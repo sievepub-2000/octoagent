@@ -1,0 +1,25 @@
+{
+  "version": 1,
+  "skills": {
+    "awesome-design-md": {
+      "source": "octoagent/awesome-design-md",
+      "sourceType": "workspace",
+      "computedHash": "4986fec2f9bc84b8dfc265baf9ea06107be22973a4aad4ea7188ef61590d17e3"
+    },
+    "fullstack-dev": {
+      "source": "MiniMax-AI/skills",
+      "sourceType": "github",
+      "computedHash": "f1cbf217e7daaa542e0611cdf3cab4bf053f0c057e0aab9e6837a42dcce39398"
+    },
+    "pencil-design": {
+      "source": "chiroro-jr/pencil-design-skill",
+      "sourceType": "github",
+      "computedHash": "d85c4365810524de5ef0be5684e9e267556e083856e61e837470ac4d04ba5934"
+    },
+    "voltagent-best-practices": {
+      "source": "voltagent/skills",
+      "sourceType": "github",
+      "computedHash": "bae60c5ed59943c3641a6be41c29497e34a2355cbee05985fba465b92263ea53"
+    }
+  }
+}

@@ -1,0 +1,109 @@
+# OctoAgent docker image cache
+docker/.cache/
+# OS generated files
+.DS_Store
+*.local
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Virtual environments
+.venv
+venv/
+backend/.venv/
+backend/.pytest_cache/
+
+# Environment variables
+.env
+
+# Configuration files
+config.yaml
+mcp_config.json
+extensions_config.json
+
+# IDE
+.idea/
+!.vscode/
+.vscode/*
+!.vscode/settings.json
+*.code-workspace
+
+# Coverage report
+coverage.xml
+coverage/
+.octoagent/
+.claude/
+skills/custom/*
+logs/
+log/
+
+# Local git hooks (keep only on this machine, do not push)
+.githooks/
+
+# pnpm
+.pnpm-store
+sandbox_image_cache.tar
+frontend/node_modules/
+frontend/.next/
+frontend/.next-scorecard/
+frontend/test-results/
+frontend/tsconfig.tsbuildinfo
+backend/screenshots/
+screenshots/
+deploy/system/bootstrap/models/*
+!deploy/system/bootstrap/models/.gitkeep
+deploy/system/bootstrap/*.duckdb
+
+# ignore the legacy `web` folder
+web/
+references/_clones/
+references/codex-cli-openai/
+test_outputs/
+
+# Repository hygiene
+.evolution/
+bin/
+bin_root_migrated/
+lib/
+lib_root_migrated/
+logs/
+codex-gui.log
+conversation_summary.xml
+task_summary.txt
+stable_mining_runner.py
+turboquant_repo/
+turboquant_website.html
+vscode-account-snapshots/
+vscode-reset-archive-*/
+.tools/
+tmp/
+nohup.out
+backend/nohup.out
+
+# Runtime workspace data (generated at runtime, not source code)
+workspace/.octoagent/
+workspace/default/memory.json
+workspace/default/memory*.json
+workspace/default/agents/*/memory.json
+workspace/env/
+workspace/default/threads/
+workspace/default/code/
+workspace/runtime/
+workspace/workflow/task/
+workspace/workflow/taskwork/
+workspace/skill_evolution/
+workspace/skills/
+workspace/bootstrap_vectors.duckdb
+workspace/system_guard_vectors.duckdb
+workspace/workspace/
+# Runtime vector/database backups
+workspace/*.bak
+workspace/*.corrupted.*.bak
