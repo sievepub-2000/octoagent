@@ -1,0 +1,654 @@
+# Configuration for the OctoAgent application
+#
+# Guidelines:
+# - Copy this file to `config.yaml` and customize it for your environment
+# - The default path of this configuration file is `config.yaml` in the current working directory.
+#   However you can change it using the `OCTO_AGENT_CONFIG_PATH` environment variable.
+# - Environment variables are available for all field values. Example: `api_key: $OPENAI_API_KEY`
+# - Preferred model config shape: choose an `interface_type`, optionally add a `provider_name`, and only set `use` when you need a custom wrapper.
+# - Built-in `interface_type` values: `openai_compatible`, `anthropic_messages`, `google_genai`, `deepseek_reasoner`.
+# - The `use` path still works and looks like "package_name.sub_package_name.module_name:class_name/variable_name".
+
+# ============================================================================
+# Models Configuration
+# ============================================================================
+# Configure available LLM models for the agent to use
+
+models:
+  # Example: Volcengine (Doubao) model
+  # - name: doubao-seed-1.8
+  #   display_name: Doubao-Seed-1.8
+  #   interface_type: deepseek_reasoner
+  #   provider_name: volcengine
+  #   model: doubao-seed-1-8-251228
+  #   api_base: https://ark.cn-beijing.volces.com/api/v3
+  #   api_key: $VOLCENGINE_API_KEY
+  #   supports_thinking: true
+  #   supports_vision: true
+  #   supports_reasoning_effort: true
+  #   when_thinking_enabled:
+  #     extra_body:
+  #       thinking:
+  #         type: enabled
+
+  # Example: OpenAI model
+  # - name: gpt-4
+  #   display_name: GPT-4
+  #   interface_type: openai_compatible
+  #   provider_name: openai
+  #   model: gpt-4
+  #   api_key: $OPENAI_API_KEY # Use environment variable
+  #   max_tokens: 4096
+  #   temperature: 0.7
+  #   # Optional hot-switch chain for context/rate-limit/network failures
+  #   fallback_models:
+  #     - gpt-4o-mini
+  #   # Optional declared context window for planner heuristics
+  #   max_context_tokens: 128000
+  #   supports_vision: true # Enable vision support for view_image tool
+
+  # Example: Anthropic Claude model
+  # - name: claude-3-5-sonnet
+  #   display_name: Claude 3.5 Sonnet
+  #   interface_type: anthropic_messages
+  #   provider_name: anthropic
+  #   model: claude-3-5-sonnet-20241022
+  #   api_key: $ANTHROPIC_API_KEY
+  #   max_tokens: 8192
+  #   supports_vision: true  # Enable vision support for view_image tool
+  #   when_thinking_enabled:
+  #     thinking:
+  #       type: enabled
+
+  # Example: Google Gemini model
+  # - name: gemini-2.5-pro
+  #   display_name: Gemini 2.5 Pro
+  #   interface_type: google_genai
+  #   provider_name: google
+  #   model: gemini-2.5-pro
+  #   google_api_key: $GOOGLE_API_KEY
+  #   max_tokens: 8192
+  #   fallback_models:
+  #     - gemini-2.5-flash
+  #   max_context_tokens: 1048576
+  #   supports_vision: true
+
+  # Example: DeepSeek model (with thinking support)
+  # - name: deepseek-v3
+  #   display_name: DeepSeek V3 (Thinking)
+  #   interface_type: deepseek_reasoner
+  #   provider_name: deepseek
+  #   model: deepseek-reasoner
+  #   api_key: $DEEPSEEK_API_KEY
+  #   max_tokens: 16384
+  #   fallback_models:
+  #     - deepseek-chat
+  #   max_context_tokens: 128000
+  #   supports_thinking: true
+  #   supports_vision: false  # DeepSeek V3 does not support vision
+  #   when_thinking_enabled:
+  #     extra_body:
+  #       thinking:
+  #         type: enabled
+
+  # Example: Kimi K2.5 model
+  # - name: kimi-k2.5
+  #   display_name: Kimi K2.5
+  #   interface_type: deepseek_reasoner
+  #   provider_name: moonshot
+  #   model: kimi-k2.5
+  #   api_base: https://api.moonshot.cn/v1
+  #   api_key: $MOONSHOT_API_KEY
+  #   max_tokens: 32768
+  #   supports_thinking: true
+  #   supports_vision: true  # Check your specific model's capabilities
+  #   when_thinking_enabled:
+  #     extra_body:
+  #       thinking:
+  #         type: enabled
+
+  # Example: Novita AI (OpenAI-compatible)
+  # Novita provides an OpenAI-compatible API with competitive pricing
+  # See: https://novita.ai
+  # - name: novita-deepseek-v3.2
+  #   display_name: Novita DeepSeek V3.2
+  #   interface_type: openai_compatible
+  #   provider_name: novita
+  #   model: deepseek/deepseek-v3.2
+  #   api_key: $NOVITA_API_KEY
+  #   base_url: https://api.novita.ai/openai
+  #   max_tokens: 4096
+  #   temperature: 0.7
+  #   supports_thinking: true
+  #   supports_vision: true
+  #   when_thinking_enabled:
+  #     extra_body:
+  #       thinking:
+  #         type: enabled
+
+  # ---------------------------------------------------------------------------
+  # Fallback model pool (free / low-cost tiers)
+  # ---------------------------------------------------------------------------
+  # These entries target the NVIDIA NIM free tier (OpenAI-compatible) used by
+  # the "free-claude-code" community project. When a paid primary model fails
+  # due to quota/credentials, the runtime can hot-switch to any of these via
+  # the `fallback_models` chain. Get a free NVIDIA API key at
+  # https://build.nvidia.com and export it as NVIDIA_API_KEY.
+  # - name: nvidia-llama-3.3-70b
+  #   display_name: "NVIDIA · Llama 3.3 70B (free)"
+  #   interface_type: openai_compatible
+  #   provider_name: nvidia
+  #   model: meta/llama-3.3-70b-instruct
+  #   api_key: $NVIDIA_API_KEY
+  #   base_url: https://integrate.api.nvidia.com/v1
+  #   max_tokens: 4096
+  #   max_context_tokens: 131072
+  #   supports_vision: false
+  # - name: nvidia-deepseek-r1
+  #   display_name: "NVIDIA · DeepSeek R1 (free)"
+  #   interface_type: openai_compatible
+  #   provider_name: nvidia
+  #   model: deepseek-ai/deepseek-r1
+  #   api_key: $NVIDIA_API_KEY
+  #   base_url: https://integrate.api.nvidia.com/v1
+  #   max_tokens: 8192
+  #   supports_thinking: true
+  # - name: nvidia-qwen2.5-coder-32b
+  #   display_name: "NVIDIA · Qwen2.5 Coder 32B (free)"
+  #   interface_type: openai_compatible
+  #   provider_name: nvidia
+  #   model: qwen/qwen2.5-coder-32b-instruct
+  #   api_key: $NVIDIA_API_KEY
+  #   base_url: https://integrate.api.nvidia.com/v1
+  #   max_tokens: 4096
+
+# ============================================================================
+# Tool Groups Configuration
+# ============================================================================
+# Define groups of tools for organization and access control
+
+tool_groups:
+  - name: web
+  - name: file:read
+  - name: file:write
+  - name: bash
+
+# ============================================================================
+# Tools Configuration
+# ============================================================================
+# Configure available tools for the agent to use
+
+tools:
+  # Web search tool (requires Tavily API key)
+  - name: web_search
+    group: web
+    use: src.community.tavily.tools:web_search_tool
+    max_results: 5
+    # api_key: $TAVILY_API_KEY  # Set if needed
+
+  # Web search tool (requires InfoQuest API key)
+  # - name: web_search
+  #   group: web
+  #   use: src.community.infoquest.tools:web_search_tool
+  #   # Used to limit the scope of search results, only returns content within the specified time range. Set to -1 to disable time filtering
+  #   search_time_range: 10
+
+  # Web fetch tool (uses Jina AI reader)
+  - name: web_fetch
+    group: web
+    use: src.community.jina_ai.tools:web_fetch_tool
+    timeout: 10
+
+  # Web fetch tool (uses InfoQuest AI reader)
+  # - name: web_fetch
+  #   group: web
+  #   use: src.community.infoquest.tools:web_fetch_tool
+  #   # Overall timeout for the entire crawling process (in seconds). Set to positive value to enable, -1 to disable
+  #   timeout: 10
+  #   # Waiting time after page loading (in seconds). Set to positive value to enable, -1 to disable
+  #   fetch_time: 10
+  #   # Timeout for navigating to the page (in seconds). Set to positive value to enable, -1 to disable
+  #   navigation_timeout: 30
+
+  # Image search tool (uses DuckDuckGo)
+  # Use this to find reference images before image generation
+  - name: image_search
+    group: web
+    use: src.community.image_search.tools:image_search_tool
+    max_results: 5
+
+  # File operations tools
+  - name: ls
+    group: file:read
+    use: src.sandbox.tools:ls_tool
+
+  - name: read_file
+    group: file:read
+    use: src.sandbox.tools:read_file_tool
+
+  - name: write_file
+    group: file:write
+    use: src.sandbox.tools:write_file_tool
+
+  - name: str_replace
+    group: file:write
+    use: src.sandbox.tools:str_replace_tool
+
+  # Bash execution tool
+  - name: bash
+    group: bash
+    use: src.sandbox.tools:bash_tool
+
+# ============================================================================
+# Sandbox Configuration
+# ============================================================================
+# Choose between local sandbox (direct execution) or Docker-based AIO sandbox
+
+# Option 1: Local Sandbox (Default)
+# Executes commands directly on the host machine
+sandbox:
+  use: src.sandbox.local:LocalSandboxProvider
+
+# Option 2: Container-based AIO Sandbox
+# Executes commands in isolated containers (Docker or Apple Container)
+# On macOS: Automatically prefers Apple Container if available, falls back to Docker
+# On other platforms: Uses Docker
+# Uncomment to use:
+# sandbox:
+#   use: src.community.aio_sandbox:AioSandboxProvider
+#
+#   # Optional: Container image to use (works with both Docker and Apple Container)
+#   # Default: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
+#   # Recommended: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest (works on both x86_64 and arm64)
+#   # image: enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
+#
+#   # Optional: Base port for sandbox containers (default: 19900)
+#   # port: 19900
+
+#   # Optional: Maximum number of concurrent sandbox containers (default: 3)
+#   # When the limit is reached the least-recently-used sandbox is evicted to
+#   # make room for new ones. Use a positive integer here; omit this field to use the default.
+#   # replicas: 3
+#
+#   # Optional: Prefix for container names (default: octoagent-sandbox)
+#   # container_prefix: octoagent-sandbox
+#
+#   # Optional: Additional mount directories from host to container
+#   # NOTE: Skills directory is automatically mounted from skills.path to skills.container_path
+#   # mounts:
+#   #   # Other custom mounts
+#   #   - host_path: /path/on/host
+#   #     container_path: /home/user/shared
+#   #     read_only: false
+#
+#   # Optional: Environment variables to inject into the sandbox container
+#   # Values starting with $ will be resolved from host environment variables
+#   # environment:
+#   #   NODE_ENV: production
+#   #   DEBUG: "false"
+#   #   API_KEY: $MY_API_KEY        # Reads from host's MY_API_KEY env var
+#   #   DATABASE_URL: $DATABASE_URL  # Reads from host's DATABASE_URL env var
+
+# Option 3: Provisioner-managed AIO Sandbox (docker-compose-dev)
+# Each sandbox_id gets a dedicated Pod in k3s, managed by the provisioner.
+# Recommended for production or advanced users who want better isolation and scalability.:
+# sandbox:
+#   use: src.community.aio_sandbox:AioSandboxProvider
+#   provisioner_url: http://provisioner:19888
+
+# ============================================================================
+# Subagents Configuration
+# ============================================================================
+# Configure timeouts for subagent execution
+# Subagents are background workers delegated tasks by the lead agent
+
+# subagents:
+#   # Default timeout in seconds for all subagents (default: 900 = 15 minutes)
+#   timeout_seconds: 900
+#   # Global maximum concurrent subagents
+#   max_concurrent_subagents: 3
+#   # Maximum simultaneously active subagents inside a single thread
+#   max_active_subagents_per_thread: 2
+#   # Absolute delegated-task ceiling per thread
+#   max_total_subagents_per_thread: 8
+#   # Block new subagents when host memory gets too low
+#   enable_system_memory_guard: true
+#   # Keep at least this much host memory available before spawning another subagent
+#   min_available_memory_gb: 8
+#   # Heuristic memory reservation per active subagent
+#   estimated_memory_per_subagent_gb: 2
+#
+#   # Optional per-agent timeout overrides
+#   agents:
+#     general-purpose:
+#       timeout_seconds: 1800  # 30 minutes for complex multi-step tasks
+#     bash:
+#       timeout_seconds: 300   # 5 minutes for quick command execution
+
+# ============================================================================
+# Skills Configuration
+# ============================================================================
+# Configure skills directory for specialized agent workflows
+
+skills:
+  # Path to skills directory on the host (relative to project root or absolute)
+  # Default: ../skills (relative to backend directory)
+  # Uncomment to customize:
+  # path: /absolute/path/to/custom/skills
+
+  # Path where skills are mounted in the sandbox container
+  # This is used by the agent to access skills in both local and Docker sandbox
+  # Default: /mnt/skills
+  container_path: /mnt/skills
+
+# ============================================================================
+# Title Generation Configuration
+# ============================================================================
+# Automatic conversation title generation settings
+
+title:
+  enabled: true
+  max_words: 6
+  max_chars: 60
+  model_name: null # Use default model (first model in models list)
+
+# ============================================================================
+# Summarization Configuration
+# ============================================================================
+# Automatically summarize conversation history when token limits are approached
+# This helps maintain context in long conversations without exceeding model limits
+
+summarization:
+  enabled: true
+
+  # Model to use for summarization (null = use default model)
+  # Recommended: Use a lightweight, cost-effective model like "gpt-4o-mini" or similar
+  model_name: null
+
+  # Trigger conditions - at least one required
+  # Summarization runs when ANY threshold is met (OR logic)
+  # You can specify a single trigger or a list of triggers
+  trigger:
+    # Trigger when token count reaches 15564
+    - type: tokens
+      value: 15564
+    # Uncomment to also trigger when message count reaches 50
+    # - type: messages
+    #   value: 50
+    # Uncomment to trigger when 80% of model's max input tokens is reached
+    # - type: fraction
+    #   value: 0.8
+
+  # Context retention policy after summarization
+  # Specifies how much recent history to preserve
+  keep:
+    # Keep the most recent 10 messages (recommended)
+    type: messages
+    value: 10
+    # Alternative: Keep specific token count
+    # type: tokens
+    # value: 3000
+    # Alternative: Keep percentage of model's max input tokens
+    # type: fraction
+    # value: 0.3
+
+  # Maximum tokens to keep when preparing messages for summarization
+  # Set to null to skip trimming (not recommended for very long conversations)
+  trim_tokens_to_summarize: 15564
+
+  # Custom summary prompt template (null = use default LangChain prompt)
+  # The prompt should guide the model to extract important context
+  summary_prompt: null
+
+# ============================================================================
+# Memory Configuration
+# ============================================================================
+# Global memory mechanism
+# Stores user context and conversation history for personalized responses
+memory:
+  enabled: true
+  storage_path: memory.json # Path relative to backend directory
+  debounce_seconds: 30 # Wait time before processing queued updates
+  model_name: null # Use default model
+  max_facts: 100 # Maximum number of facts to store
+  fact_confidence_threshold: 0.7 # Minimum confidence for storing facts
+  injection_enabled: true # Whether to inject memory into system prompt
+  max_injection_tokens: 2000 # Maximum tokens for memory injection
+  write_governance_enabled: true # Evaluate long-term/permanent writes through governance rules
+  write_governance_mode: enforce # audit | enforce
+  long_term_retention_days: 180 # Default retention window for conversation_summary memory
+  permanent_retention_days: 3650 # Used when a permanent namespace is given an explicit TTL
+  permanent_memory_immutable: true # Mark permanent namespaces as immutable in governance metadata
+
+# ============================================================================
+# Integrations Configuration
+# ============================================================================
+# External ingress plus browser/system execution capability settings
+
+# integrations:
+#   system_execution:
+#     enabled: true
+#     engine: sandbox_exec
+#     supports_file_open_handoffs: true
+#     system_cli_enabled: true
+#     permission_policy:
+#       policy_id: octoagent-system-default
+#       title: OctoAgent System Execution Default Policy
+#       default_effect: ask
+#       rules:
+#         - rule_id: allow-safe-read
+#           scope: shell
+#           effect: allow
+#           match_prefixes:
+#             - pwd
+#             - ls
+#             - rg
+#             - cat
+#             - find
+#             - git status
+#             - git diff --stat
+#             - uname
+#             - whoami
+#             - id
+#             - env
+#             - printenv
+#             - which
+#             - command -v
+#             - python --version
+#             - python3 --version
+#             - go version
+#             - go env
+#             - node -v
+#             - npm -v
+#             - pnpm -v
+#         - rule_id: deny-destructive-shell
+#           scope: shell
+#           effect: deny
+#           match_prefixes:
+#             - rm -rf
+#             - git reset --hard
+#             - mkfs
+#             - shutdown
+
+# ============================================================================
+# Embedded Tiny-Model Bootstrap Runtime
+# ============================================================================
+# Recommended for ARM/CPU-first local deployment.
+# This embeds a tiny GGUF model inside OctoAgent for:
+# - first-run onboarding guidance
+# - lightweight semantic retrieval
+# - offline-safe startup assistance
+#
+# Recommended profile:
+# - framework: llama_cpp
+# - repo_id: lmstudio-community/gemma-3-270m-it-GGUF
+# - filename: gemma-3-270m-it-Q4_K_M.gguf
+#
+# embedded_model:
+#   project_managed: true
+#   enabled: true
+#   framework: llama_cpp
+#   repo_id: lmstudio-community/gemma-3-270m-it-GGUF
+#   filename: gemma-3-270m-it-Q4_K_M.gguf
+#   cache_dir: deploy/system/bootstrap/models
+#   vector_store_path: deploy/system/bootstrap/bootstrap_vectors.duckdb
+#   onboarding_enabled: true
+#   use_for_embeddings: true
+#   auto_download: false
+#   n_ctx: 8192
+#   n_batch: 256
+#   n_threads: 8
+#   max_tokens: 256
+#   temperature: 0.2
+#   top_p: 0.9
+#   retrieval_top_k: 4
+
+# ============================================================================
+# System Guard (Startup Self-Check / Self-Repair / Lifecycle Persistence)
+# ============================================================================
+# Persists startup/shutdown snapshots into a DuckDB-backed vector store,
+# detects unclean shutdowns, and can ask the default agent for repair plans.
+#
+# system_guard:
+#   enabled: true
+#   auto_repair: true
+#   invoke_default_agent_on_issue: true
+#   startup_agent_timeout_seconds: 20
+#   vector_store_path: system_guard_vectors.duckdb
+#   namespace: system_lifecycle
+#   register_signal_handlers: true
+#   capture_atexit: true
+
+# ============================================================================
+# Checkpointer Configuration
+# ============================================================================
+# Configure state persistence for the embedded OctoAgentClient.
+# The LangGraph Server manages its own state persistence separately
+# via the server infrastructure (this setting does not affect it).
+#
+# When configured, OctoAgentClient will automatically use this checkpointer,
+# enabling multi-turn conversations to persist across process restarts.
+#
+# Supported types:
+#   memory   - In-process only. State is lost when the process exits. (default)
+#   sqlite   - File-based SQLite persistence. Survives restarts.
+#              Requires: uv add langgraph-checkpoint-sqlite
+#   postgres - PostgreSQL persistence. Suitable for multi-process deployments.
+#              Requires: uv add langgraph-checkpoint-postgres psycopg[binary] psycopg-pool
+#
+# Examples:
+#
+# In-memory (default when omitted — no persistence):
+# checkpointer:
+#   type: memory
+#
+# SQLite (file-based, single-process):
+checkpointer:
+  type: sqlite
+  connection_string: checkpoints.db
+#
+# PostgreSQL (multi-process, production):
+# checkpointer:
+#   type: postgres
+#   connection_string: postgresql://user:password@localhost:5432/octoagent
+
+# ============================================================================
+# IM Channels Configuration
+# ============================================================================
+# Connect OctoAgent to external messaging platforms.
+# All channels use outbound connections (WebSocket or polling) — no public IP required.
+
+# channels:
+#   # LangGraph Server URL for thread/message management (default: http://localhost:19884)
+#   langgraph_url: http://localhost:19884
+#   # Gateway API URL for auxiliary queries like /models, /memory (default: http://localhost:19882)
+#   gateway_url: http://localhost:19882
+#
+#   # Optional: default mobile/session settings for all IM channels
+#   session:
+#     assistant_id: lead_agent
+#     config:
+#       recursion_limit: 100
+#     context:
+#       thinking_enabled: true
+#       is_plan_mode: false
+#       subagent_enabled: false
+#
+#   feishu:
+#     enabled: false
+#     app_id: $FEISHU_APP_ID
+#     app_secret: $FEISHU_APP_SECRET
+#
+#   slack:
+#     enabled: false
+#     bot_token: $SLACK_BOT_TOKEN     # xoxb-...
+#     app_token: $SLACK_APP_TOKEN     # xapp-... (Socket Mode)
+#     allowed_users: []               # empty = allow all
+#
+#   telegram:
+#     enabled: false
+#     bot_token: $TELEGRAM_BOT_TOKEN
+#     allowed_users: []               # empty = allow all
+#
+#   # Bridge-backed channels for external GitHub connector projects.
+#   # Each bridge receives inbound events at /api/channels/<name>/ingest and
+#   # can optionally receive outbound replies via outbound_url.
+#   # Recommended upstream projects:
+#   #   qq -> https://github.com/mamoe/mirai
+#   #   wechat -> https://github.com/wechaty/wechaty
+#   #   line -> https://github.com/line/line-bot-sdk-python
+#   #   kakaotalk -> https://github.com/storycraft/node-kakao
+#   #   whatsapp -> https://github.com/open-wa/wa-automate-nodejs
+#   #   zalo -> https://github.com/zaloplatform/zalo-php-sdk
+#   #   facebook_messenger -> https://github.com/fbsamples/messenger-platform-samples
+#
+#   qq:
+#     enabled: false
+#     shared_secret: $QQ_BRIDGE_SHARED_SECRET
+#     outbound_url: http://127.0.0.1:30101/outbound
+#
+#   wechat:
+#     enabled: false
+#     shared_secret: $WECHAT_BRIDGE_SHARED_SECRET
+#     outbound_url: http://127.0.0.1:30102/outbound
+#
+#   line:
+#     enabled: false
+#     shared_secret: $LINE_BRIDGE_SHARED_SECRET
+#     outbound_url: http://127.0.0.1:30103/outbound
+#
+#   kakaotalk:
+#     enabled: false
+#     shared_secret: $KAKAOTALK_BRIDGE_SHARED_SECRET
+#     outbound_url: http://127.0.0.1:30104/outbound
+#
+#   whatsapp:
+#     enabled: false
+#     shared_secret: $WHATSAPP_BRIDGE_SHARED_SECRET
+#     outbound_url: http://127.0.0.1:30105/outbound
+#
+#   zalo:
+#     enabled: false
+#     shared_secret: $ZALO_BRIDGE_SHARED_SECRET
+#     outbound_url: http://127.0.0.1:30106/outbound
+#
+#   facebook_messenger:
+#     enabled: false
+#     shared_secret: $FACEBOOK_MESSENGER_BRIDGE_SHARED_SECRET
+#     outbound_url: http://127.0.0.1:30107/outbound
+#
+#     # Optional: channel-level session overrides
+#     session:
+#       assistant_id: mobile_agent
+#       context:
+#         thinking_enabled: false
+#
+#       # Optional: per-user overrides by user_id
+#       users:
+#         "123456789":
+#           assistant_id: vip_agent
+#           config:
+#             recursion_limit: 150
+#           context:
+#             thinking_enabled: true
+#             subagent_enabled: true
