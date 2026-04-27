@@ -1,0 +1,18 @@
+[Unit]
+Description=OctoAgent Local Service
+After=network.target
+
+[Service]
+Type=simple
+User=sieve-pub
+WorkingDirectory=/home/sieve-pub/public-workspace/octoagent
+Environment=PATH=/snap/bin:/usr/local/bin:/usr/bin:/usr/sbin:/usr/bin
+Environment=OCTO_AGENT_CAPABILITY_SOURCE=/home/sieve-pub/Vscode-workspace
+ExecStart=/home/sieve-pub/public-workspace/octoagent/scripts/start-daemon.sh --prod
+ExecStop=/usr/bin/make -C /home/sieve-pub/public-workspace/octoagent stop
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
