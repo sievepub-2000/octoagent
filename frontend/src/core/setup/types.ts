@@ -53,4 +53,5 @@ export interface ApplySetupRequest {
   workspace_path: string;
   default_model: string;
   sandbox_mode: "local" | "docker";
+  preserve_existing_workspace?: boolean;
 }

@@ -144,22 +144,22 @@ export function InputBox({
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
   const [localSettings, setLocalSettings] = useLocalSettings();
   const { models } = useModels();
-  const { status: setupStatus } = useSetupStatus({
-    enabled:
-      localSettings.setup.default_model.trim().length === 0
-      || localSettings.setup.workspace_path.trim().length === 0,
-  });
+  const { status: setupStatus } = useSetupStatus();
   const applySetup = useApplySetup();
   const { agents } = useAgents();
   const { textInput } = usePromptInputController();
   const promptRootRef = useRef<HTMLDivElement | null>(null);
   const [queuedMessage, setQueuedMessage] = useState<PromptInputMessage | null>(null);
+  const statusWorkspacePath = setupStatus?.workspace_path?.trim() ?? "";
+  const localWorkspacePath = localSettings.setup.workspace_path.trim();
   const configuredWorkspacePath =
-    localSettings.setup.workspace_path ?? setupStatus?.workspace_path ?? "";
+    statusWorkspacePath.length > 0 ? statusWorkspacePath : localWorkspacePath;
   const configuredSandboxMode =
-    localSettings.setup.sandbox_mode ?? setupStatus?.configured_sandbox_mode ?? "local";
+    setupStatus?.configured_sandbox_mode ?? localSettings.setup.sandbox_mode ?? "local";
+  const statusDefaultModelName = setupStatus?.configured_default_model?.trim() ?? "";
+  const localDefaultModelName = localSettings.setup.default_model.trim();
   const configuredDefaultModelName =
-    localSettings.setup.default_model ?? setupStatus?.configured_default_model ?? "";
+    statusDefaultModelName.length > 0 ? statusDefaultModelName : localDefaultModelName;
 
   // Agent selector
   const selectedAgent = useMemo(() => {
@@ -302,6 +302,7 @@ export function InputBox({
           workspace_path: configuredWorkspacePath,
           default_model: modelName,
           sandbox_mode: configuredSandboxMode,
+          preserve_existing_workspace: true,
         });
         if (!result.success) {
           throw new Error(result.error || "Failed to update system default model.");

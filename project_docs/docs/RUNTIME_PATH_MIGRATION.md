@@ -4,7 +4,7 @@ OctoAgent runtime data belongs under the canonical workspace root:
 
 `/home/sieve-pub/public-workspace/octoagent/workspace`
 
-Do not use repo-local `.octoagent`, `backend/.octoagent`, or archived roots such as `/home/sieve-pub/codex/octoagent` as active runtime locations.
+Do not use repo-local `.octoagent`, `backend/.octoagent`, or archived roots from a previous checkout as active runtime locations.
 
 ## Current Layout
 

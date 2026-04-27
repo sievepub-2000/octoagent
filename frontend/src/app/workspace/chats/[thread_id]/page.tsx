@@ -117,6 +117,21 @@ export default function ChatPage() {
   useSpecificChatMode();
   const { hydrate } = useWorkflows();
   const continuationHydratedRef = useRef(false);
+  const clearedRouteAgentRef = useRef(false);
+
+  useEffect(() => {
+    if (clearedRouteAgentRef.current) {
+      return;
+    }
+    clearedRouteAgentRef.current = true;
+    if (!settings.context.agent_name) {
+      return;
+    }
+    setSettings("context", {
+      ...settings.context,
+      agent_name: undefined,
+    });
+  }, [setSettings, settings.context]);
 
   const { showNotification } = useNotification();
   const { data: continuationSourceState } = useThreadState(

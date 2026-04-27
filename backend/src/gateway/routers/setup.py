@@ -16,7 +16,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from src.config import get_app_config, get_paths
-from src.config.paths import get_setup_state_file
+from src.config.paths import get_setup_state_file, load_setup_state
 from src.skills.loader import load_skills
 
 router = APIRouter(prefix="/api/setup", tags=["setup"])
@@ -55,6 +55,13 @@ class ApplySetupRequest(BaseModel):
     workspace_path: str = Field(default="", description="Root workspace path")
     default_model: str = Field(default="", description="Preferred model name")
     sandbox_mode: str = Field(default="local", description="'local' or 'docker'")
+    preserve_existing_workspace: bool = Field(
+        default=False,
+        description=(
+            "When only updating setup metadata, reuse the persisted workspace if "
+            "the submitted workspace is stale or not writable."
+        ),
+    )
 
 
 class ApplySetupResponse(BaseModel):
@@ -254,6 +261,47 @@ def _save_workspace_env_state(
     )
 
 
+def _workspace_dirs(resolved: Path) -> list[Path]:
+    return [
+        resolved,
+        resolved / "default",
+        resolved / "default" / "agents",
+        resolved / "default" / "threads",
+        resolved / "default" / "code",
+        resolved / "env",
+        resolved / "workflow",
+        resolved / "workflow" / "taskwork",
+        resolved / "workflow" / "taskwork" / "_state",
+        resolved / "runtime",
+        resolved / "runtime" / "browser_runtime",
+        resolved / "runtime" / "channels",
+        resolved / "runtime" / "plugins",
+        resolved / "runtime" / "system_execution",
+    ]
+
+
+def _create_workspace_dirs(resolved: Path) -> list[str]:
+    created: list[str] = []
+    for directory in _workspace_dirs(resolved):
+        if not directory.exists():
+            directory.mkdir(parents=True, exist_ok=True)
+            created.append(str(directory))
+    return created
+
+
+def _resolve_persisted_workspace_fallback(current: Path) -> Path | None:
+    workspace_path = load_setup_state().get("workspace_path", "").strip()
+    if not workspace_path:
+        return None
+    try:
+        resolved = _resolve_path(workspace_path)
+    except Exception:
+        return None
+    if resolved == current or not _is_safe_path(resolved):
+        return None
+    return resolved
+
+
 # ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
@@ -323,8 +371,7 @@ async def apply_setup(req: ApplySetupRequest) -> ApplySetupResponse:
     """Create workspace directories and persist configuration."""
     workspace = req.workspace_path.strip()
     if not workspace:
-        # Use the default backend path
-        workspace = str(get_paths().base_dir)
+        workspace = load_setup_state().get("workspace_path", "").strip() or str(get_paths().base_dir)
 
     try:
         resolved = _resolve_path(workspace)
@@ -337,41 +384,97 @@ async def apply_setup(req: ApplySetupRequest) -> ApplySetupResponse:
             error="Path is outside allowed directories. Use a path under /home, /tmp, /opt, /var/lib, or /srv.",
         )
 
-    # Create core directory structure
-    dirs_to_create = [
-        resolved,
-        resolved / "default",
-        resolved / "default" / "agents",
-        resolved / "default" / "threads",
-        resolved / "default" / "code",
-        resolved / "env",
-        resolved / "workflow",
-        resolved / "workflow" / "taskwork",
-        resolved / "workflow" / "taskwork" / "_state",
-        resolved / "runtime",
-        resolved / "runtime" / "browser_runtime",
-        resolved / "runtime" / "channels",
-        resolved / "runtime" / "plugins",
-        resolved / "runtime" / "system_execution",
-    ]
-
-    created: list[str] = []
     try:
-        for d in dirs_to_create:
-            if not d.exists():
-                d.mkdir(parents=True, exist_ok=True)
-                created.append(str(d))
+        created = _create_workspace_dirs(resolved)
     except PermissionError:
+        fallback = (
+            _resolve_persisted_workspace_fallback(resolved)
+            if req.preserve_existing_workspace
+            else None
+        )
+        if fallback is not None:
+            try:
+                created = _create_workspace_dirs(fallback)
+                logger.info(
+                    "Setup apply reused persisted workspace after permission error: requested=%s fallback=%s",
+                    resolved,
+                    fallback,
+                )
+                resolved = fallback
+            except PermissionError:
+                return ApplySetupResponse(
+                    success=False,
+                    workspace_path=str(fallback),
+                    error="Permission denied when creating directories",
+                )
+            except OSError as e:
+                return ApplySetupResponse(
+                    success=False,
+                    workspace_path=str(fallback),
+                    error=f"Failed to create directories: {e}",
+                )
+        else:
+            return ApplySetupResponse(
+                success=False,
+                workspace_path=str(resolved),
+                error="Permission denied when creating directories",
+            )
+    except OSError as e:
+        fallback = (
+            _resolve_persisted_workspace_fallback(resolved)
+            if req.preserve_existing_workspace
+            else None
+        )
+        if fallback is not None:
+            try:
+                created = _create_workspace_dirs(fallback)
+                logger.info(
+                    "Setup apply reused persisted workspace after OS error: requested=%s fallback=%s error=%s",
+                    resolved,
+                    fallback,
+                    e,
+                )
+                resolved = fallback
+            except PermissionError:
+                return ApplySetupResponse(
+                    success=False,
+                    workspace_path=str(fallback),
+                    error="Permission denied when creating directories",
+                )
+            except OSError as fallback_error:
+                return ApplySetupResponse(
+                    success=False,
+                    workspace_path=str(fallback),
+                    error=f"Failed to create directories: {fallback_error}",
+                )
+        else:
+            return ApplySetupResponse(
+                success=False,
+                workspace_path=str(resolved),
+                error=f"Failed to create directories: {e}",
+            )
+
+    if not _check_writable(resolved):
+        fallback = (
+            _resolve_persisted_workspace_fallback(resolved)
+            if req.preserve_existing_workspace
+            else None
+        )
+        if fallback is not None and _check_writable(fallback):
+            resolved = fallback
+            created = _create_workspace_dirs(resolved)
+        else:
+            return ApplySetupResponse(
+                success=False,
+                workspace_path=str(resolved),
+                error="Permission denied when creating directories",
+            )
+
+    if not _check_writable(resolved):
         return ApplySetupResponse(
             success=False,
             workspace_path=str(resolved),
             error="Permission denied when creating directories",
-        )
-    except OSError as e:
-        return ApplySetupResponse(
-            success=False,
-            workspace_path=str(resolved),
-            error=f"Failed to create directories: {e}",
         )
 
     # Initialize memory.json if not present
