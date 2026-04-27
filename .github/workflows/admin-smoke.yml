@@ -1,0 +1,94 @@
+name: admin-smoke
+
+on:
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "backend/src/gateway/**"
+      - ".github/workflows/admin-smoke.yml"
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install backend deps
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          .venv/bin/pip install -r requirements.txt
+
+      - name: Set up Node + pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright chromium
+        working-directory: frontend
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Build frontend
+        working-directory: frontend
+        run: pnpm build
+
+      - name: Start backend gateway
+        working-directory: backend
+        env:
+          PYTHONPATH: .
+        run: |
+          nohup .venv/bin/python -m uvicorn src.gateway.app:app \
+            --host 127.0.0.1 --port 19882 > /tmp/gateway.log 2>&1 &
+          for i in {1..40}; do
+            curl -sf http://127.0.0.1:19882/api/health && break || sleep 1
+          done
+
+      - name: Start frontend (next start)
+        working-directory: frontend
+        run: |
+          nohup pnpm start --hostname 127.0.0.1 --port 19886 > /tmp/next.log 2>&1 &
+          for i in {1..40}; do
+            curl -sf http://127.0.0.1:19886/ && break || sleep 1
+          done
+
+      # CI uses :19886 directly (no nginx); override BASE via env-aware script fallback
+      - name: Run admin smoke via Playwright
+        working-directory: frontend
+        env:
+          ADMIN_SMOKE_BASE: http://127.0.0.1:19886
+        run: node scripts/admin_smoke_2026-04-23.cjs
+
+      - name: Upload smoke screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-smoke-screenshots
+          path: screenshots/admin_smoke_2026-04-23/
+          if-no-files-found: warn
+
+      - name: Upload server logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: admin-smoke-logs
+          path: |
+            /tmp/gateway.log
+            /tmp/next.log
+          if-no-files-found: ignore
