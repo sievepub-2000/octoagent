@@ -3,7 +3,9 @@ target-version = "py312"
 
 [lint]
 select = ["E", "F", "I", "UP"]
-ignore = []
+# UP042 (str, Enum -> StrEnum) intentionally ignored: behaviour-incompatible rewrite
+# may break JSON serialisation paths that expect EnumName.MEMBER repr().
+ignore = ["UP042"]
 
 [format]
 quote-style = "double"

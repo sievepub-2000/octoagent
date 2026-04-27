@@ -421,7 +421,15 @@ def get_agent_soul(agent_name: str | None) -> str:
     return ""
 
 
-def apply_prompt_template(subagent_enabled: bool = False, max_concurrent_subagents: int = 3, *, agent_name: str | None = None, available_skills: set[str] | None = None, conversation_language: str | None = None, ml_intern_profile: str | None = None) -> str:
+def apply_prompt_template(
+    subagent_enabled: bool = False,
+    max_concurrent_subagents: int = 3,
+    *,
+    agent_name: str | None = None,
+    available_skills: set[str] | None = None,
+    conversation_language: str | None = None,
+    ml_intern_profile: str | None = None,
+) -> str:
     # Get memory context
     memory_context = _get_memory_context(agent_name)
 

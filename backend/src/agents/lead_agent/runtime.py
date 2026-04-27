@@ -9,8 +9,8 @@ from langchain_core.runnables import RunnableConfig
 from src.config.agents_config import load_agent_config
 from src.config.app_config import get_app_config
 from src.config.paths import resolve_configured_default_model_name
-from src.models import is_embedded_backup_model_name
 from src.ml_intern_defaults import build_ml_intern_runtime_context, resolve_ml_intern_profile_name
+from src.models import is_embedded_backup_model_name
 
 logger = logging.getLogger(__name__)
 
