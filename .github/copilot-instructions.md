@@ -13,7 +13,7 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
 
 ## Registry Summary
 
-- Generated at: 2026-04-27T09:36:40.206069+00:00
+- Generated from: current runtime capability snapshot
 - Total capabilities: 108
 - Enabled capabilities: 97
 - Installed capabilities: 108

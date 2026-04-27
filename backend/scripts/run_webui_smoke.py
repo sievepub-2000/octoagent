@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import sys
+import time
 import uuid
 from dataclasses import asdict, dataclass, field
 from urllib.parse import urlsplit
@@ -31,6 +32,8 @@ class SmokeResult:
     chat_input_ready: bool = False
     chat_message_sent: bool = False
     multi_turn_message_sent: bool = False
+    attachment_uploaded: bool = False
+    attachment_submitted: bool = False
     continuation_route_opened: bool = False
     workflow_task_created: bool = False
     task_workspace_cleaned: bool = False
@@ -351,7 +354,15 @@ def main() -> int:
         )
         result.chat_input_ready = True
 
-        smoke_message = "Smoke test message for embedded fallback validation."
+        smoke_attachment_name = f"octoagent-smoke-{uuid.uuid4().hex[:8]}.txt"
+        smoke_attachment_text = "OctoAgent smoke attachment for thread.submit(files) regression.\n"
+        attachment_input = page.locator('input[aria-label="Upload files"]').first
+        attachment_input.set_input_files(
+            {"name": smoke_attachment_name, "mimeType": "text/plain", "buffer": smoke_attachment_text.encode("utf-8")}
+        )
+        page.get_by_text(smoke_attachment_name, exact=False).wait_for(timeout=10000)
+
+        smoke_message = "Smoke test message with attachment for embedded fallback validation."
         _note("sending smoke message")
         chat_box.fill(smoke_message)
         chat_box.press("Enter")
@@ -401,6 +412,45 @@ def main() -> int:
                 "Smoke script resolved thread id 'new' after submission, which means the conversation route "
                 "never switched to a real thread. "
                 f"url={current_url!r} page_errors={page_errors or []!r} console_errors={console_errors or []!r}"
+            )
+
+        with httpx.Client(timeout=args.timeout_seconds, trust_env=False) as client:
+            uploaded = client.get(f"{args.gateway_url}/api/threads/{current_thread_id}/uploads/list")
+            uploaded.raise_for_status()
+            uploaded_files = uploaded.json().get("files") or []
+        result.attachment_uploaded = any(
+            isinstance(item, dict) and item.get("filename") == smoke_attachment_name
+            for item in uploaded_files
+        )
+        if not result.attachment_uploaded:
+            raise RuntimeError(
+                f"Uploaded attachment {smoke_attachment_name!r} was not found in thread uploads list: {uploaded_files!r}"
+            )
+
+        attachment_state_deadline = time.monotonic() + min(args.timeout_seconds, 30)
+        while time.monotonic() < attachment_state_deadline and not result.attachment_submitted:
+            try:
+                with httpx.Client(timeout=args.timeout_seconds, trust_env=False) as client:
+                    state_response = client.get(f"{args.gateway_url}/api/langgraph/threads/{current_thread_id}/state")
+                    state_response.raise_for_status()
+                    state_messages = (state_response.json().get("values") or {}).get("messages") or []
+                for message in state_messages:
+                    kwargs = message.get("additional_kwargs") if isinstance(message, dict) else {}
+                    files_payload = kwargs.get("files") if isinstance(kwargs, dict) else None
+                    if isinstance(files_payload, list) and any(
+                        isinstance(item, dict) and item.get("filename") == smoke_attachment_name
+                        for item in files_payload
+                    ):
+                        result.attachment_submitted = True
+                        break
+            except Exception as exc:
+                result.notes.append(f"attachment_state_check_failed:{exc}")
+                break
+            if not result.attachment_submitted:
+                time.sleep(1)
+        if not result.attachment_submitted:
+            raise RuntimeError(
+                f"Submitted thread state did not include attachment metadata for {smoke_attachment_name!r}."
             )
 
         follow_up_message = "Follow-up smoke turn for conversation regression."
@@ -662,6 +712,8 @@ def main() -> int:
         "chat_input_ready": result.chat_input_ready,
         "chat_message_sent": result.chat_message_sent,
         "multi_turn_message_sent": result.multi_turn_message_sent,
+        "attachment_uploaded": result.attachment_uploaded,
+        "attachment_submitted": result.attachment_submitted,
         "continuation_route_opened": result.continuation_route_opened,
         "workflow_task_created": result.workflow_task_created,
         "task_workspace_cleaned": result.task_workspace_cleaned,

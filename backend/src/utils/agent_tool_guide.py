@@ -147,7 +147,7 @@ def generate_agent_tool_guide() -> Path:
         "",
         "## Registry Summary",
         "",
-        f"- Generated at: {snapshot.generated_at}",
+        "- Generated from: current runtime capability snapshot",
         f"- Total capabilities: {snapshot.summary.total_items}",
         f"- Enabled capabilities: {snapshot.summary.enabled_items}",
         f"- Installed capabilities: {snapshot.summary.installed_items}",
