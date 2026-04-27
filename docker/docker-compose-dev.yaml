@@ -1,0 +1,208 @@
+# OctoAgent Development Environment
+# Usage: docker-compose -f docker-compose-dev.yaml up --build
+#
+# Services:
+#   - nginx: Reverse proxy (port 19880)
+#   - frontend: Frontend Next.js dev server (port 19886)
+#   - gateway: Backend Gateway API (port 19882)
+#   - langgraph: LangGraph server (port 19884)
+#   - provisioner (optional): Sandbox provisioner (creates Pods in host Kubernetes)
+#
+# Prerequisites:
+#   - Kubernetes cluster + kubeconfig are only required when using provisioner mode.
+#
+# Access: http://localhost:19880
+
+services:
+  # ── Sandbox Provisioner ────────────────────────────────────────────────
+  # Manages per-sandbox Pod + Service lifecycle in the host Kubernetes
+  # cluster via the K8s API.
+  # Backend accesses sandboxes directly via host.docker.internal:{NodePort}.
+  provisioner:
+    profiles:
+      - provisioner
+    build:
+      context: ./provisioner
+      dockerfile: Dockerfile
+    container_name: octoagent-provisioner
+    volumes:
+      - ~/.kube/config:/root/.kube/config:ro
+    environment:
+      - K8S_NAMESPACE=octoagent
+      - SANDBOX_IMAGE=enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest
+      # Host paths for K8s HostPath volumes (must be absolute paths accessible by K8s node)
+      # On Docker Desktop/OrbStack, use your actual host paths like /Users/username/...
+      # Set these in your shell before running docker-compose:
+      #   export OCTO_AGENT_ROOT=/absolute/path/to/octoagent
+      - SKILLS_HOST_PATH=${OCTO_AGENT_ROOT}/skills
+      - THREADS_HOST_PATH=${OCTO_AGENT_ROOT}/workspace/default/threads
+      - KUBECONFIG_PATH=/root/.kube/config
+      - NODE_HOST=host.docker.internal
+      # Override K8S API server URL since kubeconfig uses 127.0.0.1
+      # which is unreachable from inside the container
+      - K8S_API_SERVER=https://host.docker.internal:26443
+    env_file:
+      - ../.env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - octoagent-dev
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:${OCTO_PROVISIONER_PORT:-19883}/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 15s
+
+  # ── Reverse Proxy ──────────────────────────────────────────────────────
+  # Routes API traffic to gateway/langgraph and (optionally) provisioner.
+  # Select nginx config via NGINX_CONF:
+  # - nginx.local.conf (default): no provisioner route (local/aio modes)
+  # - nginx.conf: includes provisioner route (provisioner mode)
+  nginx:
+    image: nginx:alpine
+    container_name: octoagent-nginx
+    ports:
+      - "${OCTO_NGINX_PORT:-19880}:${OCTO_NGINX_PORT:-19880}"
+    volumes:
+      - ./nginx/${NGINX_CONF_TEMPLATE:-nginx.conf.template}:/etc/nginx/templates/nginx.conf.template:ro
+    depends_on:
+      - frontend
+      - gateway
+      - langgraph
+    environment:
+      - OCTO_GATEWAY_PORT=${OCTO_GATEWAY_PORT:-19882}
+      - OCTO_LANGGRAPH_PORT=${OCTO_LANGGRAPH_PORT:-19884}
+      - OCTO_FRONTEND_PORT=${OCTO_FRONTEND_PORT:-19886}
+      - OCTO_PROVISIONER_PORT=${OCTO_PROVISIONER_PORT:-19888}
+      - OCTO_NGINX_PORT=${OCTO_NGINX_PORT:-19880}
+      - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
+    networks:
+      - octoagent-dev
+    restart: unless-stopped
+
+  # Frontend - Next.js Development Server
+  frontend:
+    build:
+      context: ../
+      dockerfile: frontend/Dockerfile
+      args:
+        PNPM_STORE_PATH: ${PNPM_STORE_PATH:-/root/.local/share/pnpm/store}
+    container_name: octoagent-frontend
+    command: sh -c "cd frontend && pnpm exec next dev --turbo --hostname 0.0.0.0 --port ${OCTO_FRONTEND_PORT:-19886} > /app/logs/frontend.log 2>&1"
+    volumes:
+      - ../frontend/src:/app/frontend/src
+      - ../frontend/public:/app/frontend/public
+      - ../frontend/next.config.js:/app/frontend/next.config.js:ro
+      - ../logs:/app/logs
+      # Mount pnpm store for caching
+      - ${PNPM_STORE_PATH:-~/.local/share/pnpm/store}:/root/.local/share/pnpm/store
+    working_dir: /app
+    environment:
+      - NODE_ENV=development
+      - WATCHPACK_POLLING=true
+      - CI=true
+      - NEXT_PUBLIC_LOCAL_FRONTEND_PORT=${OCTO_FRONTEND_PORT:-19886}
+      - NEXT_PUBLIC_LOCAL_GATEWAY_PORT=${OCTO_GATEWAY_PORT:-19882}
+      - NEXT_PUBLIC_LOCAL_LANGGRAPH_PORT=${OCTO_LANGGRAPH_PORT:-19884}
+      - NEXT_PUBLIC_LOCAL_INGRESS_PORT=${OCTO_NGINX_PORT:-19880}
+      - BETTER_AUTH_BASE_URL=http://localhost:${OCTO_FRONTEND_PORT:-19886}
+    env_file:
+      - ../frontend/.env
+    networks:
+      - octoagent-dev
+    restart: unless-stopped
+
+  # Backend - Gateway API
+  gateway:
+    build:
+      context: ../
+      dockerfile: backend/Dockerfile
+      # cache_from disabled - requires manual setup: mkdir -p /tmp/docker-cache-gateway
+    container_name: octoagent-gateway
+    command: sh -c "cd backend && uv run uvicorn src.gateway.app:app --host 0.0.0.0 --port ${OCTO_GATEWAY_PORT:-19882} --reload --reload-include='*.yaml .env' > /app/logs/gateway.log 2>&1"
+    volumes:
+      - ../backend/:/app/backend/
+      # Preserve the .venv built during Docker image build — mounting the full backend/
+      # directory above would otherwise shadow it with the (empty) host directory.
+      - gateway-venv:/app/backend/.venv
+      - ../config.yaml:/app/config.yaml
+      - ../extensions_config.json:/app/extensions_config.json
+      - ../skills:/app/skills
+      - ../workspace:/app/workspace
+      - ../logs:/app/logs
+      # Mount uv cache for faster dependency installation
+      - ~/.cache/uv:/root/.cache/uv
+      # DooD: same as gateway — AioSandboxProvider runs inside LangGraph process.
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    environment:
+      - CI=true
+      - OCTO_AGENT_SETUP_STATE_FILE=/app/workspace/env/setup.json
+      - OCTO_AGENT_HOST_BASE_DIR=${OCTO_AGENT_ROOT}/workspace
+      - OCTO_AGENT_HOST_SKILLS_PATH=${OCTO_AGENT_ROOT}/skills
+      - OCTO_AGENT_SANDBOX_HOST=host.docker.internal
+      - OCTO_FRONTEND_PORT=${OCTO_FRONTEND_PORT:-19886}
+      - OCTO_GATEWAY_PORT=${OCTO_GATEWAY_PORT:-19882}
+      - OCTO_NGINX_PORT=${OCTO_NGINX_PORT:-19880}
+    env_file:
+      - ../.env
+    extra_hosts:
+      # For Linux: map host.docker.internal to host gateway
+      - "host.docker.internal:host-gateway"
+    networks:
+      - octoagent-dev
+    restart: unless-stopped
+
+  # Backend - LangGraph Server
+  langgraph:
+    build:
+      context: ../
+      dockerfile: backend/Dockerfile
+      # cache_from disabled - requires manual setup: mkdir -p /tmp/docker-cache-langgraph
+    container_name: octoagent-langgraph
+    command: sh -c "cd backend && uv run langgraph dev --no-browser --allow-blocking --host 0.0.0.0 --port ${OCTO_LANGGRAPH_PORT:-19884} > /app/logs/langgraph.log 2>&1"
+    volumes:
+      - ../backend/:/app/backend/
+      # Preserve the .venv built during Docker image build — mounting the full backend/
+      # directory above would otherwise shadow it with the (empty) host directory.
+      - langgraph-venv:/app/backend/.venv
+      - ../config.yaml:/app/config.yaml
+      - ../extensions_config.json:/app/extensions_config.json
+      - ../skills:/app/skills
+      - ../workspace:/app/workspace
+      - ../logs:/app/logs
+      # Mount uv cache for faster dependency installation
+      - ~/.cache/uv:/root/.cache/uv
+      # DooD: same as gateway — AioSandboxProvider runs inside LangGraph process.
+      - /var/run/docker.sock:/var/run/docker.sock
+    working_dir: /app
+    environment:
+      - CI=true
+      - OCTO_AGENT_SETUP_STATE_FILE=/app/workspace/env/setup.json
+      - OCTO_AGENT_HOST_BASE_DIR=${OCTO_AGENT_ROOT}/workspace
+      - OCTO_AGENT_HOST_SKILLS_PATH=${OCTO_AGENT_ROOT}/skills
+      - OCTO_AGENT_SANDBOX_HOST=host.docker.internal
+      - OCTO_LANGGRAPH_PORT=${OCTO_LANGGRAPH_PORT:-19884}
+    env_file:
+      - ../.env
+    extra_hosts:
+      # For Linux: map host.docker.internal to host gateway
+      - "host.docker.internal:host-gateway"
+    networks:
+      - octoagent-dev
+    restart: unless-stopped
+
+volumes:
+  # Persist .venv across container restarts so dependencies installed during
+  # image build are not shadowed by the host backend/ directory mount.
+  gateway-venv:
+  langgraph-venv:
+
+networks:
+  octoagent-dev:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 192.168.200.0/24
