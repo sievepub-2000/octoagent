@@ -43,6 +43,26 @@ const STREAM_THROTTLE_MS = 50;
  * KEY FIX: Use a callback + ref pattern to avoid creating new message array references
  * on every render, which would cause infinite update loops in effects that depend on messages.
  */
+function messagesSignature(messages: Message[]): string {
+  // Cheap fingerprint that changes only when the visible content changes.
+  // Avoids triggering effects on every re-render when the SDK creates a
+  // new array reference for the same messages.
+  let lastContentLen = 0;
+  const last = messages[messages.length - 1];
+  if (last) {
+    if (typeof last.content === "string") {
+      lastContentLen = last.content.length;
+    } else if (Array.isArray(last.content)) {
+      for (const part of last.content) {
+        if (part && typeof part === "object" && "text" in part && typeof (part as { text: unknown }).text === "string") {
+          lastContentLen += ((part as { text: string }).text).length;
+        }
+      }
+    }
+  }
+  return `${messages.length}:${last?.id ?? ""}:${lastContentLen}`;
+}
+
 function useThrottledMessages(
   messages: Message[],
   isLoading: boolean,
@@ -50,11 +70,19 @@ function useThrottledMessages(
   const [flushed, setFlushed] = useState<Message[]>(messages);
   const messagesRef = useRef<Message[]>(messages);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSigRef = useRef<string>(messagesSignature(messages));
 
-  // Always keep ref in sync with latest messages
+  // Always keep ref in sync with latest messages.
   messagesRef.current = messages;
 
+  const signature = messagesSignature(messages);
+
   useEffect(() => {
+    if (signature === lastSigRef.current) {
+      // Same content AND same array reference — nothing to flush.
+      return;
+    }
+
     if (!isLoading) {
       // Not streaming — flush immediately so hydrated history and final
       // post-stream state both render at once.
@@ -62,7 +90,8 @@ function useThrottledMessages(
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-      setFlushed(messages);
+      lastSigRef.current = signature;
+      setFlushed(messagesRef.current);
       return;
     }
 
@@ -73,9 +102,10 @@ function useThrottledMessages(
     if (timerRef.current != null) return;
     timerRef.current = setTimeout(() => {
       timerRef.current = null;
+      lastSigRef.current = messagesSignature(messagesRef.current);
       setFlushed(messagesRef.current);
     }, STREAM_THROTTLE_MS);
-  }, [messages, isLoading]);
+  }, [signature, isLoading]);
 
   // Clean up any pending timer on unmount.
   useEffect(() => () => {
