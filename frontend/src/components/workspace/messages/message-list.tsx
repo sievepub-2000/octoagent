@@ -47,39 +47,43 @@ function useThrottledMessages(
   messages: Message[],
   isLoading: boolean,
 ) {
-  const [flushed, setFlushed] = useState<Message[]>([]);
+  const [flushed, setFlushed] = useState<Message[]>(messages);
   const messagesRef = useRef<Message[]>(messages);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isLoadingRef = useRef(isLoading);
 
-  // Always keep refs in sync with latest values
+  // Always keep ref in sync with latest messages
   messagesRef.current = messages;
-  isLoadingRef.current = isLoading;
 
   useEffect(() => {
-    if (!isLoadingRef.current) {
-      // Not streaming — flush immediately so the final state shows at once
+    if (!isLoading) {
+      // Not streaming — flush immediately so hydrated history and final
+      // post-stream state both render at once.
       if (timerRef.current) {
         clearTimeout(timerRef.current);
         timerRef.current = null;
       }
-      setFlushed([...messagesRef.current]);
+      setFlushed(messages);
       return;
     }
 
-    // Streaming — only schedule a flush if none is pending
-    timerRef.current ??= setTimeout(() => {
+    // Streaming — schedule a single deferred flush; ignore subsequent
+    // re-renders until that timer fires.  This throttles token-by-token
+    // updates without dropping the final state (the !isLoading branch
+    // above runs once streaming ends).
+    if (timerRef.current != null) return;
+    timerRef.current = setTimeout(() => {
       timerRef.current = null;
-      setFlushed([...messagesRef.current]);
+      setFlushed(messagesRef.current);
     }, STREAM_THROTTLE_MS);
+  }, [messages, isLoading]);
 
-    return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-    };
-  }, []); // Empty dependency array — we rely on refs instead
+  // Clean up any pending timer on unmount.
+  useEffect(() => () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
 
   return flushed;
 }

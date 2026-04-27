@@ -73,3 +73,53 @@ curl http://127.0.0.1:19882/api/metrics/memory-health
 # Check degradation level (normal / mild / heavy)
 curl http://127.0.0.1:19882/api/metrics/memory-health | jq .degradation
 ```
+
+## Operational Notes (2026-04-27)
+
+### Logging & Rotation
+
+System log rotation is managed by logrotate via [deploy/system/logrotate.d/octoagent](deploy/system/logrotate.d/octoagent). Install it once with:
+
+\\\ash
+sudo install -o root -g root -m 0644 deploy/system/logrotate.d/octoagent /etc/logrotate.d/octoagent
+sudo logrotate -d /etc/logrotate.d/octoagent  # dry-run sanity check
+\\\
+
+Rotated logs (\logs/{nginx-access,nginx-error,gateway,frontend,langgraph}.log\): daily, 50MB cap, 7 rotations, gzip, copytruncate, owned by \sieve-pub\. Application-internal \RotatingFileHandler\ (\ackend/src/utils/logging_config.py\) remains as a secondary safety net.
+
+### Lint
+
+Backend uses [\ackend/ruff.toml\](backend/ruff.toml) (line-length 240, py312). \UP042\ (str+Enum → StrEnum) is intentionally ignored because the auto-rewrite is behaviour-incompatible with JSON serialisation paths that rely on \EnumName.MEMBER\ repr. Run from \ackend/\:
+
+\\\ash
+../.venv/bin/ruff check src
+../.venv/bin/ruff format src
+\\\
+
+### Real-Browser Smoke Test
+
+Cross-browser verification path that exercises the full Edge → nginx → Next.js → Gateway → LangGraph chain:
+
+\\\ash
+# (Windows / Mac / Linux with Chromium-based or Firefox)
+node scripts/webui_smoke.cjs http://192.168.110.2:19880
+\\\
+
+Successful run produces \messages: human → system (client_execution_contract) → ai\ with non-empty \i\ content; verify via:
+
+\\\ash
+curl -s http://127.0.0.1:19884/threads/<thread_id>/state | jq '.values.messages[] | {type, content}'
+\\\
+
+### Known Console Warnings (Non-Fatal)
+
+| Warning | Source | Action |
+|---|---|---|
+| \[octoagent] Dropped unsupported LangGraph stream mode(s): tools\ | \rontend/src/core/api/stream-mode.ts\ (now \console.debug\, deduped) | Informational; observed when SDK upgrade introduces a mode the client whitelist does not yet include. |
+| \[React Flow]: parent container needs a width and a height\ | Workflow graph in sidebar before layout settles | Cosmetic; resolves after first layout pass. |
+
+### Subscription / Tunnel (Out-of-band Operational)
+
+The \octobot\ SOCKS5 jump host (\43.162.110.88:2222\) is consumed by the local mihomo/clash-verge proxies on the developer workstation and on \host2\ / \host3\. Configurations and the merge script live outside this repository under \/etc/mihomo/\ on the LAN nodes; default rule chain is \octobot-US\ with a fallback group, prepended to the existing rules.
+
+— Updated 2026-04-27 (commit follows)

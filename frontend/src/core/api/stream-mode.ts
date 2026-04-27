@@ -14,7 +14,7 @@ const warnedUnsupportedStreamModes = new Set<string>();
 
 export function warnUnsupportedStreamModes(
   modes: string[],
-  warn: (message: string) => void = console.warn,
+  warn: (message: string) => void = console.debug,
 ) {
   const unseenModes = modes.filter((mode) => {
     if (warnedUnsupportedStreamModes.has(mode)) {
