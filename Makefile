@@ -1,6 +1,6 @@
 # OctoAgent - Unified Development Environment
 
-.PHONY: help config check check-legacy-paths install dev dev-daemon start start-daemon stop clean execution-worker smoke-real smoke-mock smoke-ui smoke-chat-stability migrate-memory release-precheck operator-release sync-check sync-align sync-references docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
+.PHONY: help config check check-legacy-paths install dev dev-daemon start start-daemon stop clean execution-worker smoke-real smoke-mock smoke-ui smoke-chat-stability smoke-artifact-panel migrate-memory release-precheck operator-release sync-check sync-align sync-references docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway
 
 SMOKE_FRONTEND_URL ?= http://127.0.0.1:$(or $(OCTO_NGINX_PORT),19880)
 SMOKE_GATEWAY_URL ?= http://127.0.0.1:$(or $(OCTO_NGINX_PORT),19880)
@@ -22,6 +22,7 @@ help:
 	@echo "  make smoke-real      - Run real-route WebUI/API smoke checks"
 	@echo "  make smoke-mock      - Run mock-route WebUI/API smoke checks"
 	@echo "  make smoke-chat-stability - Run chat model/route stability browser smoke"
+	@echo "  make smoke-artifact-panel - Run artifact side-panel browser smoke and screenshots"
 	@echo "  make release-precheck - Run release precheck (compile/lint/build + smoke)"
 	@echo "  make operator-release - Fixed operator release gate (precheck without live smoke)"
 	@echo "  make sync-check      - Verify local repo is fully aligned with origin/main"
@@ -168,6 +169,9 @@ smoke-ui:
 
 smoke-chat-stability:
 	@node frontend/scripts/chat-stability-smoke.cjs $(SMOKE_FRONTEND_URL)
+
+smoke-artifact-panel:
+	@node frontend/scripts/chat-artifact-panel-smoke.cjs $(SMOKE_FRONTEND_URL)
 
 migrate-memory:
 	@cd backend && .venv/bin/python scripts/migrate_memory_schema.py $(ARGS)

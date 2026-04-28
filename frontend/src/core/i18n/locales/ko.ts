@@ -106,6 +106,10 @@ export const ko: Translations = {
     reasoningEffortHigh: "높음",
     reasoningEffortHighDescription:
       "전차원 논리 추론 + 다경로 검증 + 역방향 확인",
+    runtimeIdentityTitle: "런타임 식별",
+    runtimeIdentityAgent: "에이전트",
+    runtimeIdentityChatModel: "채팅 모델",
+    runtimeIdentityActiveModel: "활성 런타임",
     searchModels: "모델 검색...",
     surpriseMe: "깜짝 선물",
     surpriseMePrompt: "깜짝 선물을 부탁드립니다",

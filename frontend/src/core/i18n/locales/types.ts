@@ -88,6 +88,10 @@ export interface Translations {
     reasoningEffortMediumDescription: string;
     reasoningEffortHigh: string;
     reasoningEffortHighDescription: string;
+    runtimeIdentityTitle: string;
+    runtimeIdentityAgent: string;
+    runtimeIdentityChatModel: string;
+    runtimeIdentityActiveModel: string;
     searchModels: string;
     surpriseMe: string;
     surpriseMePrompt: string;

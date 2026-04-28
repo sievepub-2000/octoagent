@@ -106,6 +106,10 @@ export const zhTW: Translations = {
     reasoningEffortHigh: "高",
     reasoningEffortHighDescription:
       "全維度邏輯推理 + 多路徑驗證 + 反向檢查",
+    runtimeIdentityTitle: "執行身份",
+    runtimeIdentityAgent: "智能體",
+    runtimeIdentityChatModel: "對話模型",
+    runtimeIdentityActiveModel: "執行時模型",
     searchModels: "搜尋模型...",
     surpriseMe: "給我驚喜",
     surpriseMePrompt: "給我一個驚喜",

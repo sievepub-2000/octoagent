@@ -806,24 +806,39 @@ export function InputBox({
             <ModelSelectorContent>
               <div className="border-b px-3 py-2 text-xs">
                 <div className="text-muted-foreground mb-2 font-medium">
-                  Runtime Identity
+                  {t.inputBox.runtimeIdentityTitle}
                 </div>
                 <div className="grid gap-1.5">
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Agent</span>
-                    <span className="truncate font-medium">
+                    <span className="text-muted-foreground">
+                      {t.inputBox.runtimeIdentityAgent}
+                    </span>
+                    <span
+                      className="truncate font-medium"
+                      data-testid="runtime-identity-agent"
+                    >
                       {selectedAgent?.name ?? t.inputBox.agentDefault}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Chat model</span>
-                    <span className="truncate font-medium">
+                    <span className="text-muted-foreground">
+                      {t.inputBox.runtimeIdentityChatModel}
+                    </span>
+                    <span
+                      className="truncate font-medium"
+                      data-testid="runtime-identity-chat-model"
+                    >
                       {selectedModel?.display_name ?? selectedModel?.name ?? "-"}
                     </span>
                   </div>
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-muted-foreground">Active runtime</span>
-                    <span className="truncate font-medium">
+                    <span className="text-muted-foreground">
+                      {t.inputBox.runtimeIdentityActiveModel}
+                    </span>
+                    <span
+                      className="truncate font-medium"
+                      data-testid="runtime-identity-active-model"
+                    >
                       {activeRuntimeModelName && activeRuntimeModelName.length > 0
                         ? activeRuntimeModelName
                         : (selectedModel?.name ?? "-")}

@@ -108,6 +108,10 @@ export const enUS: Translations = {
     reasoningEffortHigh: "High",
     reasoningEffortHighDescription:
       "Full-dimensional Logic Deduction + Multi-path Verification + Backward Check",
+    runtimeIdentityTitle: "Runtime identity",
+    runtimeIdentityAgent: "Agent",
+    runtimeIdentityChatModel: "Chat model",
+    runtimeIdentityActiveModel: "Active runtime",
     searchModels: "Search models...",
     surpriseMe: "Surprise",
     surpriseMePrompt: "Surprise me",

@@ -106,6 +106,10 @@ export const ja: Translations = {
     reasoningEffortHigh: "高",
     reasoningEffortHighDescription:
       "全次元の論理推論 + 多経路検証 + 逆方向チェック",
+    runtimeIdentityTitle: "ランタイム識別情報",
+    runtimeIdentityAgent: "エージェント",
+    runtimeIdentityChatModel: "チャットモデル",
+    runtimeIdentityActiveModel: "実行中モデル",
     searchModels: "モデルを検索...",
     surpriseMe: "サプライズ",
     surpriseMePrompt: "サプライズをお願い",

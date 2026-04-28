@@ -32,6 +32,33 @@ async function waitForUploadedFile(page, threadId, filename) {
   return uploaded.jsonValue();
 }
 
+async function assertRuntimeIdentity(page, expected) {
+  await page.getByText(/^System Default model:/).click({ timeout: 10_000 });
+  await page.getByTestId("runtime-identity-agent").waitFor({ timeout: 10_000 });
+
+  const identity = {
+    agent: (await page.getByTestId("runtime-identity-agent").textContent())?.trim(),
+    chatModel: (await page.getByTestId("runtime-identity-chat-model").textContent())?.trim(),
+    activeModel: (await page.getByTestId("runtime-identity-active-model").textContent())?.trim(),
+  };
+  await page.keyboard.press("Escape");
+
+  if (expected.agent) {
+    const expectedAgents = Array.isArray(expected.agent) ? expected.agent : [expected.agent];
+    if (!expectedAgents.includes(identity.agent)) {
+      throw new Error(`Runtime identity agent mismatch: expected ${expectedAgents.join(" or ")}, got ${identity.agent}`);
+    }
+  }
+  if (expected.chatModel && ![expected.chatModel.name, expected.chatModel.display_name].filter(Boolean).includes(identity.chatModel)) {
+    throw new Error(`Runtime identity chat model mismatch: expected ${expected.chatModel.name}, got ${identity.chatModel}`);
+  }
+  if (expected.activeModel && identity.activeModel !== expected.activeModel) {
+    throw new Error(`Runtime identity active model mismatch: expected ${expected.activeModel}, got ${identity.activeModel}`);
+  }
+
+  return identity;
+}
+
 (async () => {
   const browser = await chromium.launch({
     args: ["--no-sandbox", "--disable-dev-shm-usage"],
@@ -94,6 +121,9 @@ async function waitForUploadedFile(page, threadId, filename) {
   if (initialState.body.includes("/home/sieve-pub/codex")) {
     throw new Error("New workspace chat rendered a stale legacy workspace path.");
   }
+  if (/gemma4-serving-analyst/i.test(initialState.body)) {
+    throw new Error("New workspace chat rendered a stale agent identity.");
+  }
 
   const statusBefore = await readJson(page, "/api/setup/status");
   const modelsPayload = await readJson(page, "/api/models");
@@ -124,6 +154,12 @@ async function waitForUploadedFile(page, threadId, filename) {
   await page.waitForTimeout(500);
   await page.goto(`${baseUrl}/workspace/chats/new`, { waitUntil: "networkidle" });
   await page.locator('textarea[name="message"]').first().waitFor({ timeout: 30_000 });
+  const originalModelObject = models.find((model) => model.name === originalModel);
+  await assertRuntimeIdentity(page, {
+    agent: ["Default", "系统默认", "系統預設", "デフォルト", "기본"],
+    chatModel: originalModelObject,
+    activeModel: originalModel,
+  });
 
   const agentsPayload = await readJson(page, "/api/agents");
   const agents = Array.isArray(agentsPayload) ? agentsPayload : agentsPayload.agents || [];
@@ -132,6 +168,9 @@ async function waitForUploadedFile(page, threadId, filename) {
     await page.getByText(/Default|默认|預設|デフォルト|기본/).first().click({ timeout: 10_000 });
     await page.getByText(selectableAgent.name, { exact: true }).first().click({ timeout: 10_000 });
     await page.waitForTimeout(500);
+    await assertRuntimeIdentity(page, {
+      agent: selectableAgent.name,
+    });
   }
 
   const attachmentName = `chat-e2e-${Date.now()}.txt`;
@@ -153,6 +192,13 @@ async function waitForUploadedFile(page, threadId, filename) {
     throw new Error(`Expected concrete thread route, got ${page.url()}`);
   }
   await waitForUploadedFile(page, threadId, attachmentName);
+  const threadStateAfterFirstTurn = await readJson(page, `/api/langgraph/threads/${threadId}/state`);
+  const runtimeActiveModel = threadStateAfterFirstTurn.values?.runtime?.active_model;
+  if (runtimeActiveModel) {
+    await assertRuntimeIdentity(page, {
+      activeModel: runtimeActiveModel,
+    });
+  }
 
   const followUp = `Browser E2E follow-up ${Date.now()}`;
   await page.locator('textarea[name="message"]').first().fill(followUp);
