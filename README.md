@@ -1,4 +1,298 @@
-# OctoAgent
+> **OctoAgent — a white-box AI agent for business operations, system
+> administration, research, and office automation.** Every reasoning
+> step, every tool call, every artifact is visible, auditable, and
+> reproducible. No "black box" — the opposite of OpenClaw-style closed
+> agents.
+>
+> **Contact / 商务联系 / お問い合わせ:** **zillafan80@gmail.com**
+> **License:** Dual-licensed under SSPL v1 + commercial. See [`LICENSE`](LICENSE)
+> and [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+<p align="center">
+  <a href="https://github.com/sievepub-2000/octoagent/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/badge/ci-passing-brightgreen"></a>
+  <a href="https://github.com/sievepub-2000/octoagent/actions/workflows/license-check.yml"><img alt="license-check" src="https://img.shields.io/badge/licenses-scanned-blue"></a>
+  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-SSPLv1%20%2B%20commercial-orange"></a>
+  <a href="#"><img alt="python" src="https://img.shields.io/badge/python-3.12%2B-blue"></a>
+  <a href="#"><img alt="node" src="https://img.shields.io/badge/node-22%2B-blue"></a>
+</p>
+
+---
+
+## Table of contents
+
+- [English — Getting started](#english--getting-started)
+- [日本語 — はじめに](#日本語--はじめに)
+- [Project facts (canonical)](#project-facts-canonical)
+
+---
+
+## English — Getting started
+
+### What OctoAgent does
+
+OctoAgent is a **task-centric multi-agent platform** that runs locally
+(or on your own server) and turns a single English / Chinese / Japanese
+instruction into:
+
+- a sequence of inspectable tool calls (web search, file I/O, code
+  execution in a sandbox, browser automation, database queries, …),
+- a streaming chain-of-action visible in the WebUI,
+- a final artifact (a Markdown report, an Excel spreadsheet, a PPT, a
+  rewritten Word file, a refactored codebase, an audit report, …).
+
+Typical verticals shipped today:
+
+| Vertical | Example task |
+|----------|--------------|
+| Business research | "Compare top-10 EV charging vendors in Germany on price, network coverage, and 2025 funding." |
+| Academic research | "Survey 30 papers on retrieval-augmented generation since 2024; produce a literature review with citations." |
+| Office automation | "Take this PDF, extract every table, write me an Excel with consolidated KPIs and a 1-page PPT summary." |
+| System operations | "SSH into host3, audit `/etc/systemd/system/*.service`, find units missing `Restart=on-failure`, propose a patch." |
+| Web data scraping | "Crawl 200 product pages on this site, normalize to JSON, store in the local RAG, and answer questions about the catalog." |
+| Code work | "Refactor `backend/src/agents/middlewares/` for clarity; add tests; keep all imports passing import-linter." |
+
+Architecture (high level):
+
+```
+Next.js WebUI  ──HTTP──▶  FastAPI gateway  ──▶  LangGraph runtime
+                                              │
+                                              ├── Subagent orchestration
+                                              ├── Tool-budget middleware
+                                              ├── RAG store (FAISS)
+                                              ├── System-execution guard
+                                              └── Model-auth (multi-tenant)
+```
+
+### Prerequisites
+
+- **OS.** Linux (Ubuntu 22.04+ / Debian 12 / RHEL 9) or Windows 11 with
+  WSL2. macOS works for development but is not the supported
+  production target.
+- **Python 3.12+** — the backend pins 3.12 in `backend/.python-version`.
+- **Node.js 22+** + **pnpm 9+** — the frontend uses Next.js.
+- **Git** ≥ 2.40, **curl**, **make**, **systemctl** (for the long-running
+  service unit).
+- **2 GB free disk** for the venv + node_modules + RAG cache. **8 GB
+  RAM minimum**, 16 GB recommended.
+- *(Optional)* **PostgreSQL 15+** if you want persistent task storage
+  beyond the bundled SQLite. *(Optional)* **CUDA 12** + NVIDIA driver if
+  you intend to run local LLMs via vLLM / SGLang.
+
+### Installation (one-line)
+
+```bash
+git clone https://github.com/sievepub-2000/octoagent.git
+cd octoagent
+./scripts/install-octoagent.sh
+```
+
+The installer:
+
+1. Creates `backend/.venv` (Python 3.12) and installs requirements.
+2. Runs `pnpm install` for the frontend.
+3. Creates `runtime/` (logs, pids, cache, secrets) with safe
+   permissions.
+4. Generates `runtime/secrets/octoagent_internal_master.key` on first
+   start — a per-installation 64-byte random key used as HKDF IKM for
+   every internal credential (DB password, internal API token, etc.).
+   **This file is gitignored. Back it up if you encrypt persistent
+   data.**
+
+### First-run configuration (default models)
+
+OctoAgent ships preconfigured for **OpenRouter free tier**:
+
+| Slot | Default model | Use |
+|------|---------------|-----|
+| Flash dialogue | `openrouter/openai/gpt-oss-20b:free` | WebUI typeahead, quick replies |
+| Long-context reasoning | `openrouter/qwen/qwen3-next-free` | Subagent planning, RAG synthesis |
+| Code | `openrouter/openai/gpt-oss-120b:free` | Code generation / refactor |
+
+To use the defaults:
+
+```bash
+./scripts/octoagent configure
+# Paste your free OpenRouter API key when prompted.
+```
+
+The CLI writes it to `runtime/config/model_auth.env` (mode 0600, also
+gitignored). You can edit the file manually:
+
+```bash
+OCTOAGENT_MODEL_AUTH_OPENROUTER=sk-or-v1-...
+# Optional — replace any slot with your own provider key:
+OCTOAGENT_MODEL_AUTH_OPENAI=sk-...
+OCTOAGENT_MODEL_AUTH_ANTHROPIC=sk-ant-...
+OCTOAGENT_MODEL_AUTH_DEEPSEEK=...
+```
+
+To **change the default model assignments**, edit
+`runtime/config/models.yaml` (a starter copy is generated on first
+configure) — the schema mirrors `backend/src/governance/model_auth/`.
+
+### Start the service
+
+Foreground (development):
+
+```bash
+make dev                      # backend + frontend, hot reload
+# WebUI: http://127.0.0.1:19800
+```
+
+Background (systemd, production-style):
+
+```bash
+sudo cp deploy/system/octoagent-local.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now octoagent-local
+journalctl -u octoagent-local -f
+```
+
+### Verifying the install
+
+```bash
+make smoke-chat-regression    # browser-level smoke (Playwright)
+make release-readiness        # full evidence gate
+```
+
+A green `release-readiness` run means: compile + lint + build pass,
+doctor / API contract smoke pass, real-browser smoke pass, system-
+execution guard pass, RAG live-validation pass.
+
+### The About panel (in-product contact)
+
+Open the WebUI → **Settings (top-right gear) → About**. The very first
+line is the contact email — it is **hard-coded** in
+`backend/src/governance/about.py` and protected by a SHA-256 integrity
+fingerprint. Editing it without resealing breaks startup; even with
+resealing, the email is the HKDF salt for every internal credential, so
+changing it requires re-keying all internal databases. This is
+intentional (see LICENSE Addendum A).
+
+### Updating
+
+```bash
+git pull
+./scripts/install-octoagent.sh    # idempotent — updates deps in place
+sudo systemctl restart octoagent-local
+```
+
+### Reporting bugs / commercial inquiries
+
+- **Bugs / features:** open a GitHub issue.
+- **Security:** email `zillafan80@gmail.com` subject
+  `[octoagent-security]`.
+- **Commercial license:** use the
+  [`Commercial inquiry`](.github/ISSUE_TEMPLATE/commercial_inquiry.md)
+  template or email directly.
+
+---
+
+## 日本語 — はじめに
+
+### OctoAgent とは
+
+OctoAgent は **タスク中心のマルチエージェントプラットフォーム** です。
+ローカル（または自社サーバ）で動作し、日本語 / 英語 / 中国語の指示文を
+以下のような出力に変換します：
+
+- 検証可能なツール呼び出しの連続（Web 検索、ファイル I/O、サンドボックス
+  上のコード実行、ブラウザ自動化、データベース問い合わせなど）
+- WebUI 上でストリーミング表示される行動ログ
+- 最終成果物（Markdown レポート、Excel、PPT、書き換えた Word、リファクタ
+  済みコード、監査レポートなど）
+
+すべての推論ステップ、ツール呼び出し、生成物は **可視・監査可能・再現
+可能** です。OpenClaw のような閉じたブラックボックスエージェントとは
+対照的に、OctoAgent は **ホワイトボックス** の運用思想を貫いています。
+
+### 必要環境
+
+- **OS:** Linux (Ubuntu 22.04+ / Debian 12 / RHEL 9) または WSL2 上の
+  Windows 11。
+- **Python 3.12+**、**Node.js 22+**、**pnpm 9+**。
+- **2 GB の空きディスク**、**8 GB RAM（推奨 16 GB）**。
+- 任意で **PostgreSQL 15+**、**CUDA 12** + NVIDIA ドライバ。
+
+### インストール（ワンライナー）
+
+```bash
+git clone https://github.com/sievepub-2000/octoagent.git
+cd octoagent
+./scripts/install-octoagent.sh
+```
+
+インストーラは以下を実行します：
+
+1. `backend/.venv` を作成して Python 依存関係を導入。
+2. フロントエンドの `pnpm install`。
+3. `runtime/`（logs / pids / cache / secrets）を安全な権限で作成。
+4. 初回起動時に `runtime/secrets/octoagent_internal_master.key`
+   （64 バイト乱数）を生成。内部 DB パスワードや内部 API トークンの
+   HKDF IKM として使用されます。**gitignore 対象です。永続化データを
+   暗号化している場合は必ずバックアップしてください。**
+
+### 初回設定（既定モデル）
+
+OctoAgent は **OpenRouter 無料枠** を既定で使うように事前設定されて
+います。
+
+| 用途 | 既定モデル |
+|------|------------|
+| Flash 対話 | `openrouter/openai/gpt-oss-20b:free` |
+| 長文・推論 | `openrouter/qwen/qwen3-next-free` |
+| コード | `openrouter/openai/gpt-oss-120b:free` |
+
+設定コマンド：
+
+```bash
+./scripts/octoagent configure
+# 無料 OpenRouter API キーを貼り付けてください。
+```
+
+`runtime/config/model_auth.env`（mode 0600、gitignore 対象）に保存されます。
+独自プロバイダの鍵を使いたい場合は、同ファイルを直接編集してください。
+
+### 起動
+
+開発用（ホットリロード）：
+
+```bash
+make dev
+# WebUI: http://127.0.0.1:19800
+```
+
+本番風（systemd）：
+
+```bash
+sudo cp deploy/system/octoagent-local.service /etc/systemd/system/
+sudo systemctl daemon-reload
+sudo systemctl enable --now octoagent-local
+journalctl -u octoagent-local -f
+```
+
+### About パネル
+
+WebUI 右上の歯車 → **Settings → About** を開くと先頭に連絡先メール
+アドレスが表示されます。これは `backend/src/governance/about.py` に
+**ハードコード** されており、SHA-256 のフィンガープリントで改ざんが
+検出されます。改ざんすると起動失敗、もしくは内部認証情報が再導出
+されて DB 接続が壊れます（LICENSE Addendum A 参照）。
+
+### 商用ライセンス / お問い合わせ
+
+- **バグ / 機能要望:** GitHub Issue を起票してください。
+- **セキュリティ:** `zillafan80@gmail.com` 件名
+  `[octoagent-security]` に直接ご連絡ください。
+- **商用ライセンス:**
+  [`Commercial inquiry`](.github/ISSUE_TEMPLATE/commercial_inquiry.md)
+  テンプレートをご利用いただくか、`zillafan80@gmail.com` 宛に
+  直接メールください。
+
+---
+
+## Project facts (canonical)
+
 
 
 ## Canonical Project Path

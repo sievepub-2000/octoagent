@@ -142,3 +142,8 @@ runtime/model_cooldowns.json
 
 # Chat-session output artifacts (per-run artifacts; not roadmap deliverables)
 workspace/outputs/
+
+# OctoAgent internal secrets — never commit
+runtime/secrets/
+runtime/config/model_auth.env
+runtime/config/*.env

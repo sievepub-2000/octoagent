@@ -1,22 +1,140 @@
-MIT License
+OctoAgent License
+=================
 
-Copyright (c) 2025 Bytedance Ltd. and/or its affiliates
-Copyright (c) 2025-2026 OctopusAgent Authors
+Copyright (c) 2025 Bytedance Ltd. and/or its affiliates  
+Copyright (c) 2025-2026 OctopusAgent Authors  
+Copyright (c) 2026 OctoSys (https://octosys.cloud) — contact zillafan80@gmail.com
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+The OctoAgent project (the "Software") is dual-licensed:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1.  **Server Side Public License v1 (SSPL v1)** — for non-commercial use,
+    internal evaluation, academic research, and self-hosting that is NOT
+    offered to third parties as a managed service.
+2.  **Commercial license** — required for any party who offers OctoAgent
+    (or a modified version thereof) as a hosted service to third parties,
+    embeds it into a proprietary product, or otherwise needs terms
+    different from SSPL v1.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+To obtain a commercial license, contact: **zillafan80@gmail.com**.
+
+----------------------------------------------------------------------
+Layered Addenda
+----------------------------------------------------------------------
+
+The following three addenda apply to BOTH license tracks above and take
+precedence over any conflicting clause in either track.
+
+### A. Anti-Bypassing / API-Encapsulation Clause
+
+You may not, directly or indirectly:
+
+(a) wrap, proxy, repackage, or otherwise mediate the Software's APIs,
+    binaries, model interfaces, or runtime endpoints in order to provide
+    third parties with substantially the Software's functionality while
+    avoiding the obligations of either license track above;
+
+(b) operate a managed service, software-as-a-service, platform-as-a-
+    service, or any equivalent network-accessible offering whose
+    user-facing capabilities are materially derived from the Software,
+    without first obtaining a commercial license under section (2);
+
+(c) strip, obscure, or relocate the in-product "About / 关于" panel,
+    the contact email displayed at the top of that panel, or the
+    integrity-protected About module shipped in
+    ``backend/src/governance/about.py``. Removal, masking, or programmatic
+    suppression of these surfaces is a license violation regardless of
+    the consent of intermediate distributors.
+
+### B. Patent Retaliation Clause
+
+If you (or any affiliate or party acting on your behalf) initiate, fund,
+join, or otherwise materially assist a patent infringement claim,
+declaratory judgment action, or similar proceeding ("Patent Action")
+against any contributor to the Software, or against any user of the
+Software based on their use of the Software, then all licenses granted to
+you under both license tracks above terminate automatically on the date
+the Patent Action is filed. This clause survives termination.
+
+### C. Trademark Reservation
+
+"OctoAgent", "OctoSys", "OctopusAgent", the project logo, and any
+confusingly similar marks (collectively the "Marks") are NOT licensed
+under either license track. The Marks remain the exclusive property of
+the OctopusAgent Authors / OctoSys. You may make nominative fair use
+(e.g. "Compatible with OctoAgent", "Built on OctoAgent") provided you do
+not imply endorsement, affiliation, or origin. You may not use the Marks
+in the name of any forked or derivative project without prior written
+permission to: zillafan80@gmail.com.
+
+----------------------------------------------------------------------
+Upstream Attribution (preserved per MIT terms)
+----------------------------------------------------------------------
+
+Portions of this Software were originally released by Bytedance Ltd.
+and/or its affiliates under the MIT License (the "Upstream MIT Code").
+The full upstream MIT notice is preserved in ``NOTICE.md`` at the
+repository root. Nothing in this License removes or restricts any rights
+the Upstream MIT Code grants under its original MIT terms; this License
+governs only contributions made by the OctopusAgent Authors / OctoSys
+and the project's combined form. Recipients seeking to use the Upstream
+MIT Code in isolation may do so under MIT.
+
+----------------------------------------------------------------------
+Server Side Public License v1 (SSPL v1)
+----------------------------------------------------------------------
+
+SERVER SIDE PUBLIC LICENSE
+Version 1, October 16, 2018
+
+Copyright (c) 2018 MongoDB, Inc.
+
+Everyone is permitted to copy and distribute verbatim copies of this
+license document, but changing it is not allowed.
+
+                          PREAMBLE
+
+The Server Side Public License (SSPL) is a copyleft license for
+software intended to be used to provide network services. The "covered
+work" is the software. By making a modified version of a covered work
+available to third parties, or by offering the covered work as a service,
+you must, under the conditions described in section 13, release the
+Service Source Code of your modifications and of the management surfaces
+under SSPL.
+
+THIS LICENSE IS THE SSPL v1 TEXT AS PUBLISHED BY MONGODB, INC. The full
+canonical text is available at https://www.mongodb.com/licensing/server-
+side-public-license and is incorporated herein by reference. In case of
+any discrepancy between the canonical text and any local copy, the
+canonical text controls.
+
+Key obligation summary (non-normative, for convenience only):
+
+- If you make the functionality of the Program (or a modified version)
+  available to third parties as a service, you must release the Service
+  Source Code under SSPL v1.
+- "Service Source Code" includes the source code of the Program AND all
+  programs you use to make the Program available as a service, including
+  management software, user interfaces, application program interfaces,
+  automation software, monitoring software, backup software, storage
+  software and hosting software, all such that a user could run an
+  instance of the service using the Service Source Code you make
+  available.
+- All other obligations from GPLv3 (preserve copyright notices, no
+  further restrictions, etc.) apply.
+
+For the avoidance of doubt, this project's Anti-Bypassing /
+API-Encapsulation Clause (Addendum A) further constrains the SSPL by
+explicitly prohibiting "API encapsulation" and "proxy-wrapping" bypasses
+that some readers might consider gray-area under stock SSPL.
+
+----------------------------------------------------------------------
+Disclaimer of Warranty
+----------------------------------------------------------------------
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.

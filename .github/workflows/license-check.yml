@@ -1,0 +1,85 @@
+name: license-check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  license-compliance-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node + pnpm
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install pnpm
+        run: npm install -g pnpm@9
+
+      - name: Install license scanners
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "pip-licenses>=4.4,<6"
+          npm install -g license-checker-rseidelsohn
+
+      - name: Backend — install runtime deps (no dev)
+        working-directory: backend
+        run: |
+          python -m venv .venv
+          .venv/bin/pip install --upgrade pip
+          if [ -f requirements.txt ]; then .venv/bin/pip install -r requirements.txt; fi
+          if [ -f pyproject.toml ]; then .venv/bin/pip install -e . || true; fi
+
+      - name: Backend — scan Python licenses (forbid GPL/LGPL/AGPL)
+        working-directory: backend
+        run: |
+          .venv/bin/pip-licenses --format=markdown --with-urls --with-license-file \
+              --fail-on="GPL;LGPL;AGPL;GNU General Public License;GNU Lesser General Public License;GNU Affero General Public License"
+
+      - name: Frontend — install
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile=false
+
+      - name: Frontend — scan npm licenses (forbid GPL/LGPL/AGPL)
+        working-directory: frontend
+        run: |
+          license-checker-rseidelsohn --production --excludePackages "octoagent-frontend" \
+              --failOn 'GPL-2.0;GPL-3.0;LGPL-2.1;LGPL-3.0;AGPL-1.0;AGPL-3.0'
+
+      - name: Verify LICENSE + NOTICE present
+        run: |
+          test -f LICENSE
+          test -f NOTICE.md
+          grep -q "SSPL" LICENSE
+          grep -q "Anti-Bypassing" LICENSE
+          grep -q "Patent Retaliation" LICENSE
+          grep -q "Trademark Reservation" LICENSE
+
+      - name: Verify About module integrity stays sealed
+        run: |
+          test -f backend/src/governance/about.py
+          grep -q "zillafan80@gmail.com" backend/src/governance/about.py
+          grep -q "_INTEGRITY_FINGERPRINT" backend/src/governance/about.py
+          # placeholder is acceptable on first bootstrap only
+          if grep -q "__FINGERPRINT_PLACEHOLDER__" backend/src/governance/about.py; then
+            echo "::warning::About fingerprint is unsealed; run scripts/dev_tools/refresh_about_fingerprint.py"
+          fi
+
+      - name: Verify About menu entry exists in frontend
+        run: |
+          grep -q '"about"' frontend/src/components/workspace/settings/settings-dialog.tsx
+          grep -q "AboutSettingsPage" frontend/src/components/workspace/settings/settings-dialog.tsx

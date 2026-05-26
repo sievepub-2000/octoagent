@@ -18,6 +18,8 @@ from src.harness import (
     sweep_orphaned_runs_once,
 )
 from src.harness.dispatcher import start_dispatcher_task, stop_dispatcher_task
+from src.governance.about import initialize_internal_secrets as _init_internal_secrets
+
 from src.runtime.system_guard.service import get_system_guard_service
 
 logger = logging.getLogger(__name__)
@@ -28,6 +30,7 @@ def _initialize_configuration():
         from src.governance.model_auth import initialize_model_auth_env
 
         initialize_model_auth_env()
+        _init_internal_secrets(__import__('pathlib').Path(__file__).resolve().parents[3])
         get_app_config()
         logger.info("Configuration loaded successfully")
     except Exception as exc:
