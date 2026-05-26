@@ -4,9 +4,11 @@
 > reproducible. No "black box" — the opposite of OpenClaw-style closed
 > agents.
 >
+> **License:** Dual-licensed under **SSPL v1** + commercial alternatives.
+> The Bytedance-derived portion remains under **MIT** (see [`NOTICE.md`](NOTICE.md)).
+> Full terms: [`LICENSE`](LICENSE) · contribution policy: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+>
 > **Contact / 商务联系 / お問い合わせ:** **zillafan80@gmail.com**
-> **License:** Dual-licensed under SSPL v1 + commercial. See [`LICENSE`](LICENSE)
-> and [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 <p align="center">
   <a href="https://github.com/sievepub-2000/octoagent/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/badge/ci-passing-brightgreen"></a>
@@ -161,13 +163,15 @@ execution guard pass, RAG live-validation pass.
 
 ### The About panel (in-product contact)
 
-Open the WebUI → **Settings (top-right gear) → About**. The very first
-line is the contact email — it is **hard-coded** in
-`backend/src/governance/about.py` and protected by a SHA-256 integrity
-fingerprint. Editing it without resealing breaks startup; even with
-resealing, the email is the HKDF salt for every internal credential, so
-changing it requires re-keying all internal databases. This is
-intentional (see LICENSE Addendum A).
+Open the WebUI → **Settings (top-right gear) → About**. The panel leads
+with the **license summary** (SSPL v1 default + commercial alternatives;
+the Bytedance-derived portion remains under MIT — see
+[`NOTICE.md`](NOTICE.md)), immediately followed by the **contact email**.
+Both blocks are **hard-coded** in `backend/src/governance/about.py` and
+protected by a SHA-256 integrity fingerprint. Editing them without
+resealing breaks startup; even with resealing, the email is the HKDF
+salt for every internal credential, so changing it requires re-keying
+all internal databases. This is intentional (see LICENSE Addendum A).
 
 ### Updating
 
@@ -273,10 +277,12 @@ journalctl -u octoagent-local -f
 
 ### About パネル
 
-WebUI 右上の歯車 → **Settings → About** を開くと先頭に連絡先メール
-アドレスが表示されます。これは `backend/src/governance/about.py` に
-**ハードコード** されており、SHA-256 のフィンガープリントで改ざんが
-検出されます。改ざんすると起動失敗、もしくは内部認証情報が再導出
+WebUI 右上の歯車 → **Settings → About** を開くとまず **ライセンス概要**
+（既定: SSPL v1 / 商用代替あり / Bytedance 由来部分は MIT 継続 — 詳細は
+[`NOTICE.md`](NOTICE.md)）が表示され、その直後に **連絡先メール
+アドレス** が続きます。両ブロックとも `backend/src/governance/about.py`
+に **ハードコード** されており、SHA-256 のフィンガープリントで改ざん
+が検出されます。改ざんすると起動失敗、もしくは内部認証情報が再導出
 されて DB 接続が壊れます（LICENSE Addendum A 参照）。
 
 ### 商用ライセンス / お問い合わせ
