@@ -71,7 +71,14 @@ logger = logging.getLogger(__name__)
 
 _CONTACT_EMAIL = "zillafan80@gmail.com"
 
-_ABOUT_BODY = """联系作者：zillafan80@gmail.com
+_ABOUT_BODY = """**本项目授权协议**
+
+- 默认开源条款：**Server Side Public License v1 (SSPL v1)**。
+- 同时提供 **闭源 / SaaS / 嵌入 / OEM 等商业许可备选**（来函议定）。
+- 项目包含来自 **Bytedance Ltd.** 的原始代码片段，继续以 **MIT 许可** 分发；完整声明见仓库根目录 `NOTICE.md`。
+- 完整条款详见仓库根目录 `LICENSE` 与 `NOTICE.md`。
+
+**联系作者：zillafan80@gmail.com**
 
 =====
 
@@ -103,7 +110,7 @@ _ABOUT_BODY = """联系作者：zillafan80@gmail.com
 # whenever the canonical About body legitimately changes (e.g. translation
 # typo). Editing the email itself is a deliberate breakage signal — do not
 # bypass.
-_INTEGRITY_FINGERPRINT = "266259ef97c4b45bf5c1e6847e0194d7b5daabd8d85b1db75697d5978ee6c425"
+_INTEGRITY_FINGERPRINT = "a984fe8f294bdfe5021a31a4e306e667b08fd177f07d2a739c7ab079434b05a3"  # resealed by refresh_about_fingerprint.py
 
 
 class AboutIntegrityError(RuntimeError):

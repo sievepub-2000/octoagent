@@ -13,7 +13,14 @@
 
 export const CONTACT_EMAIL = "zillafan80@gmail.com";
 
-export const aboutMarkdown = `联系作者：${CONTACT_EMAIL}
+export const aboutMarkdown = `**本项目授权协议**
+
+- 默认开源条款：**Server Side Public License v1 (SSPL v1)**。
+- 同时提供 **闭源 / SaaS / 嵌入 / OEM 等商业许可备选**（来函议定）。
+- 项目包含来自 **Bytedance Ltd.** 的原始代码片段，继续以 **MIT 许可** 分发；完整声明见仓库根目录 \`NOTICE.md\`。
+- 完整条款详见仓库根目录 \`LICENSE\` 与 \`NOTICE.md\`。
+
+**联系作者：${CONTACT_EMAIL}**
 
 =====
 

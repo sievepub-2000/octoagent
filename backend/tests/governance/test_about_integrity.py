@@ -22,19 +22,32 @@ def test_contact_email_is_hardcoded():
     assert about.contact_email() == "zillafan80@gmail.com"
 
 
-def test_about_markdown_starts_with_contact_line():
+def test_about_markdown_starts_with_license_section():
+    """License info must come FIRST in the About panel body."""
     about = _reload_about()
     body = about.about_markdown()
-    assert body.startswith("联系作者：zillafan80@gmail.com")
+    assert body.startswith("**本项目授权协议**"), (
+        "About body must lead with the license section, not the contact line."
+    )
+    assert "SSPL v1" in body
+    assert "MIT" in body
+    assert "Bytedance" in body
     assert "=====" in body
+
+
+def test_about_markdown_contains_contact_after_license():
+    """Contact line follows the license block."""
+    about = _reload_about()
+    body = about.about_markdown()
+    license_idx = body.index("**本项目授权协议**")
+    contact_idx = body.index("联系作者：zillafan80@gmail.com")
+    assert license_idx < contact_idx, "license section must precede contact line"
 
 
 def test_integrity_fingerprint_matches_constants():
     about = _reload_about()
     payload = about._CONTACT_EMAIL.encode("utf-8") + b"|" + about._ABOUT_BODY.encode("utf-8")
     expected = hashlib.sha256(payload).hexdigest()
-    # Either the sealed fingerprint matches, or the placeholder is present
-    # (which is a soft warning state, not a hard failure).
     assert about._INTEGRITY_FINGERPRINT in {expected, "__FINGERPRINT_PLACEHOLDER__"}
 
 
@@ -68,10 +81,8 @@ def test_derive_internal_key_changes_when_master_rotates(tmp_path):
     about = _reload_about()
     about.initialize_internal_secrets(tmp_path)
     first = about.derive_internal_key("db/rotate-test")
-    # Wipe and reinit -> brand new master key
     key_file = tmp_path / "runtime" / "secrets" / "octoagent_internal_master.key"
     key_file.unlink()
-    # Force cache reset by re-init
     about.initialize_internal_secrets(tmp_path)
     second = about.derive_internal_key("db/rotate-test")
     assert first != second
