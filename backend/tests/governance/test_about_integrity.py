@@ -26,7 +26,7 @@ def test_about_markdown_starts_with_license_section():
     """License info must come FIRST in the About panel body."""
     about = _reload_about()
     body = about.about_markdown()
-    assert body.startswith("**本项目授权协议**"), (
+    assert body.startswith("**Project License**"), (
         "About body must lead with the license section, not the contact line."
     )
     assert "SSPL v1" in body
@@ -39,8 +39,8 @@ def test_about_markdown_contains_contact_after_license():
     """Contact line follows the license block."""
     about = _reload_about()
     body = about.about_markdown()
-    license_idx = body.index("**本项目授权协议**")
-    contact_idx = body.index("联系作者：zillafan80@gmail.com")
+    license_idx = body.index("**Project License**")
+    contact_idx = body.index("Contact: zillafan80@gmail.com")
     assert license_idx < contact_idx, "license section must precede contact line"
 
 

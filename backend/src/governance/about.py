@@ -71,38 +71,38 @@ logger = logging.getLogger(__name__)
 
 _CONTACT_EMAIL = "zillafan80@gmail.com"
 
-_ABOUT_BODY = """**本项目授权协议**
+_ABOUT_BODY = """**Project License**
 
-- 默认开源条款：**Server Side Public License v1 (SSPL v1)**。
-- 同时提供 **闭源 / SaaS / 嵌入 / OEM 等商业许可备选**（来函议定）。
-- 项目包含来自 **Bytedance Ltd.** 的原始代码片段，继续以 **MIT 许可** 分发；完整声明见仓库根目录 `NOTICE.md`。
-- 完整条款详见仓库根目录 `LICENSE` 与 `NOTICE.md`。
+- Default open-source terms: **Server Side Public License v1 (SSPL v1)**.
+- Commercial alternatives also available: **closed-source / SaaS / embedded / OEM licenses** (contact for terms).
+- This project includes original code excerpts from **Bytedance Ltd.**, redistributed under the **MIT License**; see `NOTICE.md` at the repository root for the full notice.
+- Full terms in `LICENSE` and `NOTICE.md` at the repository root.
 
-**联系作者：zillafan80@gmail.com**
+**Contact: zillafan80@gmail.com**
 
 =====
 
-**OctoAgent** 是一款面向办公商务与系统操作的强大白盒化（white-box）AI 工具：每一步推理、每一次工具调用、每一份产出都可追溯、可审计、可回放——与 OpenClaw 之类的黑盒代理形成鲜明对比。
+**OctoAgent** is a powerful white-box AI tool for office, business, and system operations: every reasoning step, every tool call, and every artifact is traceable, auditable, and replayable — a sharp contrast to black-box agents such as OpenClaw.
 
-**核心能力**
+**Core Capabilities**
 
-- 商业数据抓取与多维度分析（行业、竞品、舆情、ToB/ToC 调研）
-- 学术研究报告生成与可信引用聚合
-- 全自动办公文档处理（Excel / Word / PPT / PDF / Markdown 互转、批改、改写）
-- 系统级操作与 IT 运维剧本（一键巡检、配置审计、日志检索、安全扫描）
-- 数据库交互与代码生成 / 重构 / 调试
-- 多 Agent 协同的任务编排，所有中间步骤对用户可见
+- Business intelligence and multi-dimensional analysis (industry, competitors, sentiment, ToB/ToC research)
+- Academic research reports with trustworthy citation aggregation
+- Fully automated office document processing (Excel / Word / PPT / PDF / Markdown conversion, review, rewriting)
+- System-level operations and IT runbooks (one-click health checks, configuration audits, log search, security scans)
+- Database interaction and code generation / refactoring / debugging
+- Multi-agent task orchestration with every intermediate step visible to the user
 
-**白盒化承诺**
+**White-box Commitment**
 
-- 所有工具调用与参数完全透明展示
-- 每一步可暂停、可取消、可改写
-- 内置审计日志、可观测性面板与回放
-- 全本地优先：模型、检索、代码沙箱、文件系统均可本地化部署
+- Every tool call and its arguments are fully transparent
+- Every step can be paused, cancelled, or edited
+- Built-in audit logs, observability dashboards, and replay
+- Local-first: models, retrieval, code sandbox, and file system can all be deployed locally
 
-**典型应用场景**
+**Typical Scenarios**
 
-办公自动化 · 商务尽调 · 数据分析报告 · 学术综述 · 系统运维 · 安全审计 · 代码协作 · 私有部署
+Office automation · Business due diligence · Data analysis reports · Academic literature reviews · System operations · Security audits · Code collaboration · Private deployment
 """
 
 # SHA-256(("|".join((_CONTACT_EMAIL, _ABOUT_BODY))).encode("utf-8"))
@@ -110,7 +110,7 @@ _ABOUT_BODY = """**本项目授权协议**
 # whenever the canonical About body legitimately changes (e.g. translation
 # typo). Editing the email itself is a deliberate breakage signal — do not
 # bypass.
-_INTEGRITY_FINGERPRINT = "a984fe8f294bdfe5021a31a4e306e667b08fd177f07d2a739c7ab079434b05a3"  # resealed by refresh_about_fingerprint.py
+_INTEGRITY_FINGERPRINT = "f0787c499b2ad91fe97e4bbbc22ac86e70b7d46017657cd21805599f1b1b54e3"  # resealed by refresh_about_fingerprint.py
 
 
 class AboutIntegrityError(RuntimeError):
