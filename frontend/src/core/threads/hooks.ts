@@ -283,7 +283,7 @@ export function useThreadStream({
           autoContinueRef.current.add(signature);
           pushSystemEvent({
             level: "warning",
-            message: "检测到超出递归步数上限（浏览器可能缓存了旧限制值），正在以安全上限自动继续。如频繁出现，请硬刷新页面 Ctrl+Shift+R。",
+            message: t.threadEvents.recursionLimit,
             source: "auto-continue",
           });
           void submit(
@@ -461,7 +461,7 @@ export function useThreadStream({
             console.warn("Context handoff verification did not observe persisted runtime state", {
               expected: expectedHandoff,
             });
-            pushSystemEvent({ level: "warning", message: "上下文压缩接续已提交，但尚未在运行时状态中观察到确认标记。系统会继续保留当前对话状态。", source: "context-handoff" });
+            pushSystemEvent({ level: "warning", message: t.threadEvents.contextHandoffSubmitted, source: "context-handoff" });
           });
         }
       }
@@ -477,7 +477,7 @@ export function useThreadStream({
         const submit = autoContinueSubmitRef.current;
         if (currentThreadId && submit && !autoContinueRef.current.has(signature)) {
           autoContinueRef.current.add(signature);
-          pushSystemEvent({ level: "info", message: "检测到未完成的动作，正在自动继续。", source: "auto-continue" });
+          pushSystemEvent({ level: "info", message: t.threadEvents.autoContinueAction, source: "auto-continue" });
           void submit(
             {
               messages: [
@@ -516,7 +516,7 @@ export function useThreadStream({
         const currentThreadId = threadIdRef.current;
         pushSystemEvent({
           level: "info",
-          message: "上下文已达到限制，正在归档并切换新对话以继续任务。",
+          message: t.threadEvents.contextLimitHandoff,
           source: "context-handoff",
         });
         // Signal the page component via onFinish with handoff metadata.
@@ -561,7 +561,7 @@ export function useThreadStream({
             message:
               attemptNo > 1
                 ? `检测到可恢复的未完成任务（${reason}），正在第 ${attemptNo} 次自动继续（最多 ${_MAX_INCOMPLETE_RETRIES} 次）。`
-                : "检测到可恢复的未完成任务，正在自动继续。",
+                : t.threadEvents.incompleteRetry,
             source: "auto-continue",
           });
           void submit(
@@ -693,7 +693,7 @@ export function useThreadStream({
       clearWatchdog();
       watchdogRef.current = setTimeout(() => {
         watchdogRef.current = null;
-        pushSystemEvent({ level: "info", message: "助手仍在执行长任务，正在保持会话存活并轮询运行状态。", source: "watchdog" });
+        pushSystemEvent({ level: "info", message: t.threadEvents.watchdogLongRun, source: "watchdog" });
         const pollThreadState = () => {
           const base = getLangGraphBaseURL();
           void fetch(`${base}/threads/${encodeURIComponent(threadId)}/state`).catch(() => undefined);
@@ -962,7 +962,7 @@ export function useThreadStream({
             setOnStreamThreadId(null);
             threadIdRef.current = null;
             startedRef.current = false;
-            pushSystemEvent({ level: "warning", message: "会话已刷新，正在新对话中重发您的消息。", source: "session" });
+            pushSystemEvent({ level: "warning", message: t.threadEvents.sessionRefreshed, source: "session" });
 
             try {
               await thread.submit(buildSubmitPayload(filesForSubmit), buildSubmitOptions(null));

@@ -504,7 +504,7 @@ export function MessageList({
                 )
               }
             >
-              显示更早消息 ({hiddenGroupCount})
+              {t.messages.showEarlierMessages} ({hiddenGroupCount})
             </Button>
           </div>
         )}

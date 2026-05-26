@@ -917,4 +917,138 @@ export interface Translations {
       lastCheck: string;
     };
   };
+
+  // SystemEvents
+  systemEvents: {
+    title: string;
+    clear: string;
+    empty: string;
+    description: string;
+    runtimeAlerts: string;
+    threadLoadFailed: string;
+    autoContinueResume: string;
+    userAborted: string;
+  };
+
+  // PermissionMode
+  permissionMode: {
+    approval: string;
+    approvalDescription: string;
+    directory: string;
+    directoryDescription: string;
+    system: string;
+    systemDescription: string;
+    label: string;
+    conversationContext: string;
+  };
+
+  // Messages
+  messages: {
+    showEarlierMessages: string;
+  };
+
+  // TaskGraph
+  taskGraph: {
+    primaryAgent: string;
+    subAgent: string;
+    doubleClickToEdit: string;
+  };
+
+  // ChatLoading
+  chatLoading: {
+    title: string;
+    preparing: string;
+    inspectorLoading: string;
+  };
+
+  // RagSettings
+  ragSettings: {
+    sectionTitle: string;
+    sectionDescription: string;
+    sectionFullDescription: string;
+    loadFailed: string;
+    unknownError: string;
+    savedToast: string;
+    downloadStart: string;
+    downloadDone: string;
+    embeddingTitle: string;
+    modelLabel: string;
+    cached: string;
+    notDownloaded: string;
+    redownload: string;
+    download: string;
+    rerankerTitle: string;
+    rerankerEnable: string;
+    rerankerHint: string;
+    rerankerModel: string;
+    paramsTitle: string;
+    defaultTopK: string;
+    configLocation: string;
+    reset: string;
+    saving: string;
+    save: string;
+    modelLabelMiniLM: string;
+    modelLabelBgeSmallZh: string;
+    modelLabelBgeM3: string;
+  };
+
+  // TaskCardDetails
+  taskCardDetails: {
+    resultDocument: string;
+    failureAnalysis: string;
+    loadCardDocFailed: string;
+    cardDocumentPreview: string;
+    openDocument: string;
+    noBoundDocument: string;
+    loadingCardDoc: string;
+    cardDocEmpty: string;
+    noDownloadableResult: string;
+  };
+
+  // ThreadEvents
+  threadEvents: {
+    recursionLimit: string;
+    contextHandoffSubmitted: string;
+    autoContinueAction: string;
+    contextLimitHandoff: string;
+    incompleteRetryWithReason: string;
+    incompleteRetry: string;
+    watchdogLongRun: string;
+    sessionRefreshed: string;
+  };
+
+  // Register
+  register: {
+    authSuccess: string;
+    enterUsername: string;
+    needEmailVerify: string;
+    loginFailed: string;
+    codeSentEmail: string;
+    codeWrittenLog: string;
+    registerFailed: string;
+    deviceVerifyFailed: string;
+    codeCheckFailed: string;
+    title: string;
+    subtitleMail: string;
+    subtitleFirst: string;
+    subtitleTrust: string;
+    tabLogin: string;
+    tabRegister: string;
+    username: string;
+    password: string;
+    processing: string;
+    userPassLogin: string;
+    terminalLogin: string;
+    switchTerminal: string;
+    email: string;
+    displayName: string;
+    sending: string;
+    sendCode: string;
+    enter8Digit: string;
+    verifyCode: string;
+    devCode: string;
+    verifying: string;
+    verifyAndEnter: string;
+  };
+
 }

@@ -40,6 +40,7 @@ import type {
   TaskCardGraph,
   TaskStudioRuntimeResponse,
 } from "@/core/task-workspaces";
+import { useI18n } from "@/core/i18n/hooks";
 import { formatTaskRuntimeProvider } from "@/core/task-workspaces/runtime-provider";
 import { cn } from "@/lib/utils";
 
@@ -685,6 +686,7 @@ const taskCardNodeTypes = {
 };
 
 function TaskCardNode({ data }: NodeProps<CardNode>) {
+  const { t } = useI18n();
   const { card, role } = data;
   const compactCard = data.compact === true;
   const [editing, setEditing] = useState(false);
@@ -719,9 +721,9 @@ function TaskCardNode({ data }: NodeProps<CardNode>) {
     role === "project"
       ? "project"
       : role === "primary"
-        ? "主智能体"
+        ? t.taskGraph.primaryAgent
         : role === "sub-agent"
-          ? "子智能体"
+          ? t.taskGraph.subAgent
           : card.kind;
 
           const isEditable = !compactCard && (role === "primary" || role === "sub-agent");
@@ -789,7 +791,7 @@ function TaskCardNode({ data }: NodeProps<CardNode>) {
             <p
               className="cursor-pointer text-xs leading-5 text-muted-foreground hover:text-foreground"
               onDoubleClick={() => setEditing(true)}
-              title="双击编辑任务描述"
+              title={t.taskGraph.doubleClickToEdit}
             >
               {card.description}
             </p>
@@ -1070,6 +1072,7 @@ export function TaskCardGraphCanvas({
   onGraphChange,
   className,
 }: TaskCardGraphCanvasProps) {
+  const { t } = useI18n();
   return (
     <div
       className={cn(

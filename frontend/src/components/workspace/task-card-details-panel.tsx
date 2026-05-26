@@ -1,6 +1,7 @@
 "use client";
 
 import { DownloadIcon, FolderKanbanIcon } from "lucide-react";
+import { useI18n } from "@/core/i18n/hooks";
 import { useEffect, useState, type ComponentPropsWithoutRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -177,6 +178,7 @@ export function TaskCardDetailsPanel({
   copy: TaskCardDetailsCopy;
   showResultDocument?: boolean;
 }) {
+  const { t } = useI18n();
   const [selectedCardDocumentText, setSelectedCardDocumentText] =
     useState<string | null>(null);
   const [selectedCardDocumentError, setSelectedCardDocumentError] =
@@ -231,7 +233,7 @@ export function TaskCardDetailsPanel({
       (item, index, items) =>
         items.findIndex((candidate) => candidate.path === item.path) === index,
     );
-  const resultPanelTitle = taskWorkspace.status === "failed" ? "失败分析" : "结果文档";
+  const resultPanelTitle = taskWorkspace.status === "failed" ? t.taskCardDetails.failureAnalysis : t.taskCardDetails.resultDocument;
 
   useEffect(() => {
     if (!selectedDocumentPath) {
@@ -255,7 +257,7 @@ export function TaskCardDetailsPanel({
         if (!cancelled) {
           setSelectedCardDocumentText(null);
           setSelectedCardDocumentError(
-            loadError instanceof Error ? loadError.message : "加载卡片文档失败",
+            loadError instanceof Error ? loadError.message : t.taskCardDetails.loadCardDocFailed,
           );
         }
       })
@@ -378,7 +380,7 @@ export function TaskCardDetailsPanel({
               ) : null}
               <div className="rounded-lg border p-3">
                 <div className="flex items-center justify-between gap-3">
-                  <div className="font-medium">卡片文档预览</div>
+                  <div className="font-medium">{t.taskCardDetails.cardDocumentPreview}</div>
                   {selectedDocumentPath ? (
                     <a
                       href={taskWorkspaceFileUrl(taskWorkspace.task_id, selectedDocumentPath)}
@@ -387,7 +389,7 @@ export function TaskCardDetailsPanel({
                     >
                       <Button size="sm" type="button" variant="outline">
                         <DownloadIcon className="size-4" />
-                        {selectedCardArtifact?.name ?? "打开文档"}
+                        {selectedCardArtifact?.name ?? t.taskCardDetails.openDocument}
                       </Button>
                     </a>
                   ) : null}
@@ -397,15 +399,15 @@ export function TaskCardDetailsPanel({
                 ) : null}
                 <div className="mt-3">
                   {selectedDocumentPath == null ? (
-                    <div className="text-sm text-muted-foreground">当前卡片没有绑定独立文档。</div>
+                    <div className="text-sm text-muted-foreground">{t.taskCardDetails.noBoundDocument}</div>
                   ) : selectedCardDocumentLoading ? (
-                    <div className="text-sm text-muted-foreground">正在加载卡片文档…</div>
+                    <div className="text-sm text-muted-foreground">{t.taskCardDetails.loadingCardDoc}</div>
                   ) : selectedCardDocumentError ? (
                     <div className="text-sm text-destructive">{selectedCardDocumentError}</div>
                   ) : selectedCardDocumentText ? (
                     <MarkdownDocumentPreview content={selectedCardDocumentText} />
                   ) : (
-                    <div className="text-sm text-muted-foreground">卡片文档为空。</div>
+                    <div className="text-sm text-muted-foreground">{t.taskCardDetails.cardDocEmpty}</div>
                   )}
                 </div>
               </div>
@@ -417,7 +419,7 @@ export function TaskCardDetailsPanel({
                   </div>
                   <div className="mt-3 space-y-2">
                     {resultArtifacts.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">当前工作流还没有可下载的结果文件。</div>
+                      <div className="text-sm text-muted-foreground">{t.taskCardDetails.noDownloadableResult}</div>
                     ) : (
                       resultArtifacts.map((artifact, index) => (
                         <a

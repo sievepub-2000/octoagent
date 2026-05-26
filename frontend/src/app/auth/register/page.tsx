@@ -1,6 +1,7 @@
 "use client";
 
 import { CheckCircle2, KeyRound, Mail, MonitorCheck, ShieldCheck } from "lucide-react";
+import { useI18n } from "@/core/i18n/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
@@ -28,6 +29,7 @@ function formatRemaining(seconds: number) {
 }
 
 export default function AuthRegisterPage() {
+  const { t } = useI18n();
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
@@ -66,14 +68,14 @@ export default function AuthRegisterPage() {
 
   async function complete(session: Parameters<typeof saveAuthSession>[0]) {
     saveAuthSession(session);
-    setStatus("认证成功，正在进入工作区");
+    setStatus(t.register.authSuccess);
     router.replace("/workspace/chats/new");
   }
 
   async function attemptDeviceLogin(name = username, showMissingDevice = true) {
     const normalized = name.trim();
     if (!normalized) {
-      setError("请输入用户名");
+      setError(t.register.enterUsername);
       return;
     }
     setIsSubmitting(true);
@@ -84,7 +86,7 @@ export default function AuthRegisterPage() {
       await complete(session);
     } catch (err) {
       if (showMissingDevice) {
-        setError(err instanceof Error ? err.message : "此终端需要邮箱验证");
+        setError(err instanceof Error ? err.message : t.register.needEmailVerify);
       }
     } finally {
       setIsSubmitting(false);
@@ -101,7 +103,7 @@ export default function AuthRegisterPage() {
       const session = await login({ username: username.trim(), password, device_fingerprint });
       await complete(session);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "登录失败");
+      setError(err instanceof Error ? err.message : t.register.loginFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -122,9 +124,9 @@ export default function AuthRegisterPage() {
       setChallenge(response);
       setChallengePurpose("registration");
       setCode("");
-      setStatus(response.delivery === "smtp" ? "验证码已发送到邮箱" : "验证码已写入服务端日志");
+      setStatus(response.delivery === "smtp" ? t.register.codeSentEmail : t.register.codeWrittenLog);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "注册请求失败");
+      setError(err instanceof Error ? err.message : t.register.registerFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -139,9 +141,9 @@ export default function AuthRegisterPage() {
       setChallenge(response);
       setChallengePurpose("device");
       setCode("");
-      setStatus(response.delivery === "smtp" ? "验证码已发送到邮箱" : "验证码已写入服务端日志");
+      setStatus(response.delivery === "smtp" ? t.register.codeSentEmail : t.register.codeWrittenLog);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "终端验证请求失败");
+      setError(err instanceof Error ? err.message : t.register.deviceVerifyFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -158,7 +160,7 @@ export default function AuthRegisterPage() {
       const session = challengePurpose === "registration" ? await verifyRegistration(payload) : await verifyDevice(payload);
       await complete(session);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "验证码校验失败");
+      setError(err instanceof Error ? err.message : t.register.codeCheckFailed);
     } finally {
       setIsSubmitting(false);
     }
@@ -175,42 +177,42 @@ export default function AuthRegisterPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">OctoAgent Access</p>
-                <h1 className="text-3xl font-semibold tracking-normal">账户与终端认证</h1>
+                <h1 className="text-3xl font-semibold tracking-normal">{t.register.title}</h1>
               </div>
             </div>
             <div className="grid gap-3 text-sm text-muted-foreground">
-              <div className="flex items-center gap-3"><Mail className="size-4 text-primary" />邮箱 8 位验证码，10 分钟有效</div>
-              <div className="flex items-center gap-3"><KeyRound className="size-4 text-primary" />首次使用用户名和密码登录</div>
-              <div className="flex items-center gap-3"><MonitorCheck className="size-4 text-primary" />后续使用已信任终端指纹进入</div>
+              <div className="flex items-center gap-3"><Mail className="size-4 text-primary" />{t.register.subtitleMail}</div>
+              <div className="flex items-center gap-3"><KeyRound className="size-4 text-primary" />{t.register.subtitleFirst}</div>
+              <div className="flex items-center gap-3"><MonitorCheck className="size-4 text-primary" />{t.register.subtitleTrust}</div>
             </div>
           </div>
 
           <div className="rounded-lg border bg-card p-5 shadow-sm sm:p-6">
             <Tabs value={mode} onValueChange={(value) => setMode(value as "login" | "register")} className="gap-5">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">登录</TabsTrigger>
-                <TabsTrigger value="register">注册</TabsTrigger>
+                <TabsTrigger value="login">{t.register.tabLogin}</TabsTrigger>
+                <TabsTrigger value="register">{t.register.tabRegister}</TabsTrigger>
               </TabsList>
 
               <TabsContent value="login" className="space-y-4">
                 <form className="space-y-3" onSubmit={handleLogin}>
-                  <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名" autoComplete="username" required />
-                  <Input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" type="password" autoComplete="current-password" required />
+                  <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder={t.register.username} autoComplete="username" required />
+                  <Input value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.register.password} type="password" autoComplete="current-password" required />
                   <div className="flex flex-col gap-2 sm:flex-row">
-                    <Button type="submit" className="flex-1" disabled={isSubmitting}>{isSubmitting ? "处理中" : "用户名密码登录"}</Button>
-                    <Button type="button" variant="outline" className="flex-1" disabled={isSubmitting} onClick={() => attemptDeviceLogin()}>终端登录</Button>
+                    <Button type="submit" className="flex-1" disabled={isSubmitting}>{isSubmitting ? t.register.processing : t.register.userPassLogin}</Button>
+                    <Button type="button" variant="outline" className="flex-1" disabled={isSubmitting} onClick={() => attemptDeviceLogin()}>{t.register.terminalLogin}</Button>
                   </div>
                 </form>
-                <Button type="button" variant="ghost" className="w-full" disabled={isSubmitting || !username.trim()} onClick={handleDeviceVerifyStart}>更换终端，邮箱验证</Button>
+                <Button type="button" variant="ghost" className="w-full" disabled={isSubmitting || !username.trim()} onClick={handleDeviceVerifyStart}>{t.register.switchTerminal}</Button>
               </TabsContent>
 
               <TabsContent value="register" className="space-y-4">
                 <form className="space-y-3" onSubmit={handleRegisterStart}>
-                  <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder="用户名" autoComplete="username" minLength={3} required />
-                  <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="邮箱" type="email" autoComplete="email" required />
-                  <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="显示名（可选）" autoComplete="name" />
-                  <Input value={password} onChange={(event) => setPassword(event.target.value)} placeholder="密码" type="password" autoComplete="new-password" minLength={8} required />
-                  <Button type="submit" className="w-full" disabled={isSubmitting}>{isSubmitting ? "发送中" : "发送验证码"}</Button>
+                  <Input value={username} onChange={(event) => setUsername(event.target.value)} placeholder={t.register.username} autoComplete="username" minLength={3} required />
+                  <Input value={email} onChange={(event) => setEmail(event.target.value)} placeholder={t.register.email} type="email" autoComplete="email" required />
+                  <Input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder={t.register.displayName} autoComplete="name" />
+                  <Input value={password} onChange={(event) => setPassword(event.target.value)} placeholder={t.register.password} type="password" autoComplete="new-password" minLength={8} required />
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>{isSubmitting ? t.register.sending : t.register.sendCode}</Button>
                 </form>
               </TabsContent>
             </Tabs>
@@ -218,12 +220,12 @@ export default function AuthRegisterPage() {
             {challenge ? (
               <form className="mt-5 space-y-3 border-t pt-5" onSubmit={handleVerify}>
                 <div className="flex items-center justify-between gap-3 text-sm">
-                  <span className="font-medium">输入 8 位验证码</span>
+                  <span className="font-medium">{t.register.enter8Digit}</span>
                   <span className="tabular-nums text-muted-foreground">{formatRemaining(remaining)}</span>
                 </div>
-                <Input value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH))} inputMode="numeric" placeholder="验证码" maxLength={CODE_LENGTH} required />
-                {challenge.dev_code ? <p className="text-xs text-muted-foreground">开发验证码：{challenge.dev_code}</p> : null}
-                <Button type="submit" className="w-full" disabled={!canVerify || isSubmitting}>{isSubmitting ? "校验中" : "确认并进入"}</Button>
+                <Input value={code} onChange={(event) => setCode(event.target.value.replace(/\D/g, "").slice(0, CODE_LENGTH))} inputMode="numeric" placeholder={t.register.verifyCode} maxLength={CODE_LENGTH} required />
+                {challenge.dev_code ? <p className="text-xs text-muted-foreground">{t.register.devCode}{challenge.dev_code}</p> : null}
+                <Button type="submit" className="w-full" disabled={!canVerify || isSubmitting}>{isSubmitting ? t.register.verifying : t.register.verifyAndEnter}</Button>
               </form>
             ) : null}
 

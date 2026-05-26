@@ -82,7 +82,7 @@ export function SystemStatusBar() {
     { id: "skills", icon: SparklesIcon, label: t.sidebar.skills, value: registry?.summary?.skills_total ?? 0 },
     { id: "mcp", icon: CableIcon, label: t.sidebar.mcp, value: registry?.summary?.mcp_total ?? 0 },
     { id: "plugins", icon: BoxesIcon, label: t.sidebar.plugins, value: registry?.summary?.plugins_total ?? 0 },
-    { id: "runtime-alerts", icon: AlertTriangleIcon, label: "Runtime", value: runtimeAlerts.length },
+    { id: "runtime-alerts", icon: AlertTriangleIcon, label: t.systemEvents.runtimeAlerts, value: runtimeAlerts.length },
   ] as const;
 
   return (

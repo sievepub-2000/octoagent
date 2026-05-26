@@ -28,6 +28,7 @@ import {
   type SystemEvent,
   type SystemEventLevel,
 } from "@/core/system-events/store";
+import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
 const ICON_BY_LEVEL: Record<SystemEventLevel, typeof InfoIcon> = {
@@ -84,6 +85,7 @@ function EventRow({ event }: { event: SystemEvent }) {
 }
 
 export function SystemEventsButton({ className }: { className?: string }) {
+  const { t } = useI18n();
   const { events, unreadCount } = useSystemEvents();
 
   const hasEvents = events.length > 0;
@@ -104,8 +106,8 @@ export function SystemEventsButton({ className }: { className?: string }) {
           variant="ghost"
           size="icon-sm"
           className={cn("relative", className)}
-          aria-label="系统事件"
-          title="系统事件"
+          aria-label={t.systemEvents.title}
+          title={t.systemEvents.title}
         >
           <BellIcon
             className={cn(
@@ -129,7 +131,7 @@ export function SystemEventsButton({ className }: { className?: string }) {
         <SheetHeader className="border-b border-border/40 pb-3 pr-10">
           <SheetTitle className="flex items-center gap-2">
             <BellIcon className="size-4" />
-            系统事件
+            {t.systemEvents.title}
             <Badge variant="outline" className="h-5 px-1.5 text-[10px]">
               {events.length}
             </Badge>
@@ -140,14 +142,14 @@ export function SystemEventsButton({ className }: { className?: string }) {
               className="ml-2"
               onClick={clearSystemEvents}
               disabled={!hasEvents}
-              aria-label="清空"
-              title="清空"
+              aria-label={t.systemEvents.clear}
+              title={t.systemEvents.clear}
             >
               <Trash2Icon className="size-3.5" />
             </Button>
           </SheetTitle>
           <SheetDescription className="text-xs">
-            运行期的提示信息、警告与非致命错误统一收集在此。致命错误仍会通过弹窗提示。
+            {t.systemEvents.description}
           </SheetDescription>
         </SheetHeader>
         <ScrollArea className="-mx-4 h-[calc(100vh-7rem)] px-4">
@@ -156,7 +158,7 @@ export function SystemEventsButton({ className }: { className?: string }) {
               events.map((ev) => <EventRow key={ev.id} event={ev} />)
             ) : (
               <div className="grid h-[40vh] place-items-center text-center text-sm text-muted-foreground">
-                暂无系统事件
+                {t.systemEvents.empty}
               </div>
             )}
           </div>

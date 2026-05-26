@@ -2,6 +2,7 @@
 
 import { DatabaseIcon, DownloadIcon, SparklesIcon } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/core/i18n/hooks";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -21,11 +22,13 @@ import {
 
 import { SettingsSection } from "./settings-section";
 
-const EMBEDDING_MODELS = [
-  { value: "sentence-transformers/all-MiniLM-L6-v2", label: "MiniLM-L6 (英文, 384d, 88MB)" },
-  { value: "BAAI/bge-small-zh-v1.5", label: "BGE-small-zh (中文, 512d, 184MB)" },
-  { value: "BAAI/bge-m3", label: "BGE-M3 (多语言, 1024d, 2.3GB)" },
-];
+function getEmbeddingModels(t: ReturnType<typeof useI18n>["t"]) {
+  return [
+    { value: "sentence-transformers/all-MiniLM-L6-v2", label: t.ragSettings.modelLabelMiniLM },
+    { value: "BAAI/bge-small-zh-v1.5", label: t.ragSettings.modelLabelBgeSmallZh },
+    { value: "BAAI/bge-m3", label: t.ragSettings.modelLabelBgeM3 },
+  ];
+}
 
 const RERANKER_MODELS = [
   { value: "BAAI/bge-reranker-base", label: "BGE-Reranker Base (278MB)" },
@@ -33,6 +36,9 @@ const RERANKER_MODELS = [
 ];
 
 export function RagSettingsPage() {
+  const { t } = useI18n();
+  const embeddingModels = getEmbeddingModels(t);
+
   const { data, isLoading, error, refetch } = useRagConfig();
   const update = useUpdateRagConfig();
   const download = useDownloadModel();
@@ -44,7 +50,7 @@ export function RagSettingsPage() {
 
   if (isLoading) {
     return (
-      <SettingsSection title="RAG 检索" description="嵌入与重排模型配置">
+      <SettingsSection title={t.ragSettings.sectionTitle} description={t.ragSettings.sectionDescription}>
         <Skeleton className="h-48 w-full rounded-xl" />
       </SettingsSection>
     );
@@ -52,10 +58,10 @@ export function RagSettingsPage() {
 
   if (error || !data || !form) {
     return (
-      <SettingsSection title="RAG 检索" description="嵌入与重排模型配置">
+      <SettingsSection title={t.ragSettings.sectionTitle} description={t.ragSettings.sectionDescription}>
         <Card variant="status">
           <CardContent className="p-6 text-sm text-destructive">
-            加载配置失败：{error instanceof Error ? error.message : "未知错误"}
+            {t.ragSettings.loadFailed}{error instanceof Error ? error.message : t.ragSettings.unknownError}
           </CardContent>
         </Card>
       </SettingsSection>
@@ -72,7 +78,7 @@ export function RagSettingsPage() {
     if (!form) return;
     try {
       await update.mutateAsync(form);
-      toast.success("RAG 配置已保存");
+      toast.success(t.ragSettings.savedToast);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
     }
@@ -80,9 +86,9 @@ export function RagSettingsPage() {
 
   async function handleDownload(kind: "embedding" | "reranker", model: string) {
     try {
-      toast.info(`开始下载 ${model}（可能需要几分钟）...`);
+      toast.info(t.ragSettings.downloadStart.replace("{model}", model));
       await download.mutateAsync({ model, kind });
-      toast.success(`${model} 下载完成`);
+      toast.success(t.ragSettings.downloadDone.replace("{model}", model));
       await refetch();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : String(e));
@@ -91,8 +97,8 @@ export function RagSettingsPage() {
 
   return (
     <SettingsSection
-      title="RAG 检索"
-      description="配置嵌入模型与重排模型；模型从 Hugging Face 下载到 ~/.cache/huggingface/hub/。"
+      title={t.ragSettings.sectionTitle}
+      description={t.ragSettings.sectionFullDescription}
     >
       <div className="space-y-4">
         {/* Embedding */}
@@ -100,12 +106,12 @@ export function RagSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DatabaseIcon className="size-4" />
-              嵌入模型 (Embedding)
+              {t.ragSettings.embeddingTitle}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium">模型</label>
+              <label className="text-sm font-medium">{t.ragSettings.rerankerEnable}</label>
               <Select
                 value={form.embedding_model}
                 onValueChange={(v) => setForm({ ...form, embedding_model: v })}
@@ -114,7 +120,7 @@ export function RagSettingsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {EMBEDDING_MODELS.map((m) => (
+                  {embeddingModels.map((m) => (
                     <SelectItem key={m.value} value={m.value}>
                       {m.label}
                     </SelectItem>
@@ -125,7 +131,7 @@ export function RagSettingsPage() {
             <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3 text-sm">
               <div className="flex items-center gap-2">
                 <Badge variant={data.embedding_status.cached ? "secondary" : "outline"}>
-                  {data.embedding_status.cached ? "已缓存" : "未下载"}
+                  {data.embedding_status.cached ? t.ragSettings.cached : t.ragSettings.notDownloaded}
                 </Badge>
                 {data.embedding_status.cached && (
                   <span className="text-muted-foreground">
@@ -140,7 +146,7 @@ export function RagSettingsPage() {
                 onClick={() => handleDownload("embedding", form.embedding_model)}
               >
                 <DownloadIcon className="mr-1 size-3" />
-                {data.embedding_status.cached ? "重新下载" : "下载"}
+                {data.embedding_status.cached ? t.ragSettings.redownload : t.ragSettings.download}
               </Button>
             </div>
           </CardContent>
@@ -151,15 +157,15 @@ export function RagSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <SparklesIcon className="size-4" />
-              重排模型 (Cross-Encoder Reranker)
+              {t.ragSettings.rerankerTitle}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="flex items-center justify-between">
               <div>
-                <label className="text-sm font-medium">启用二段重排</label>
+                <label className="text-sm font-medium">{t.ragSettings.rerankerEnable}</label>
                 <p className="text-xs text-muted-foreground">
-                  在 hybrid 检索结果上用 Cross-Encoder 重排前 top_k 个候选。
+                  {t.ragSettings.rerankerHint}
                 </p>
               </div>
               <Switch
@@ -168,7 +174,7 @@ export function RagSettingsPage() {
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">重排模型</label>
+              <label className="text-sm font-medium">{t.ragSettings.rerankerModel}</label>
               <Select
                 value={form.reranker_model}
                 onValueChange={(v) => setForm({ ...form, reranker_model: v })}
@@ -188,7 +194,7 @@ export function RagSettingsPage() {
             <div className="flex items-center justify-between rounded-md border bg-muted/30 p-3 text-sm">
               <div className="flex items-center gap-2">
                 <Badge variant={data.reranker_status.cached ? "secondary" : "outline"}>
-                  {data.reranker_status.cached ? "已缓存" : "未下载"}
+                  {data.reranker_status.cached ? t.ragSettings.cached : t.ragSettings.notDownloaded}
                 </Badge>
                 {data.reranker_status.cached && (
                   <span className="text-muted-foreground">
@@ -203,7 +209,7 @@ export function RagSettingsPage() {
                 onClick={() => handleDownload("reranker", form.reranker_model)}
               >
                 <DownloadIcon className="mr-1 size-3" />
-                {data.reranker_status.cached ? "重新下载" : "下载"}
+                {data.reranker_status.cached ? t.ragSettings.redownload : t.ragSettings.download}
               </Button>
             </div>
           </CardContent>
@@ -212,11 +218,11 @@ export function RagSettingsPage() {
         {/* Generic */}
         <Card>
           <CardHeader>
-            <CardTitle>检索参数</CardTitle>
+            <CardTitle>{t.ragSettings.paramsTitle}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <div className="space-y-2">
-              <label className="text-sm font-medium">默认 top_k</label>
+              <label className="text-sm font-medium">{t.ragSettings.defaultTopK}</label>
               <Input
                 type="number"
                 min={1}
@@ -226,7 +232,7 @@ export function RagSettingsPage() {
               />
             </div>
             <p className="text-xs text-muted-foreground">
-              配置文件位置：<code>{data.config_file}</code>
+              {t.ragSettings.configLocation}<code>{data.config_file}</code>
             </p>
           </CardContent>
         </Card>
@@ -236,11 +242,9 @@ export function RagSettingsPage() {
             variant="ghost"
             disabled={!dirty || update.isPending}
             onClick={() => setForm(data.config)}
-          >
-            重置
-          </Button>
+          >{t.ragSettings.reset}</Button>
           <Button onClick={handleSave} disabled={!dirty || update.isPending}>
-            {update.isPending ? "保存中…" : "保存"}
+            {update.isPending ? t.ragSettings.saving : t.ragSettings.save}
           </Button>
         </div>
       </div>

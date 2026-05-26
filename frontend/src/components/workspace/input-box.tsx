@@ -95,31 +95,37 @@ type InputMode = "flash" | "thinking" | "pro" | "ultra";
 type ReasoningEffort = "minimal" | "low" | "medium" | "high";
 type PermissionMode = "approval" | "directory" | "system";
 
-const PERMISSION_MODE_OPTIONS: Array<{
+type PermissionModeOption = {
   value: PermissionMode;
   label: string;
   detail: string;
   icon: typeof ShieldQuestionIcon;
-}> = [
-  {
-    value: "approval",
-    label: "审批",
-    detail: "默认审批；隐藏系统级工具，敏感操作先请求确认。",
-    icon: ShieldQuestionIcon,
-  },
-  {
-    value: "directory",
-    label: "目录",
-    detail: "允许仓库/任务目录内操作；不暴露 host/system 工具。",
-    icon: ShieldCheckIcon,
-  },
-  {
-    value: "system",
-    label: "系统",
-    detail: "允许系统级 host/shell/network/process 工具，所有命令可追踪。",
-    icon: ShieldIcon,
-  },
-];
+};
+
+function getPermissionModeOptions(
+  t: ReturnType<typeof useI18n>["t"],
+): PermissionModeOption[] {
+  return [
+    {
+      value: "approval",
+      label: t.permissionMode.approval,
+      detail: t.permissionMode.approvalDescription,
+      icon: ShieldQuestionIcon,
+    },
+    {
+      value: "directory",
+      label: t.permissionMode.directory,
+      detail: t.permissionMode.directoryDescription,
+      icon: ShieldCheckIcon,
+    },
+    {
+      value: "system",
+      label: t.permissionMode.system,
+      detail: t.permissionMode.systemDescription,
+      icon: ShieldIcon,
+    },
+  ];
+}
 
 function normalizePermissionMode(value: unknown): PermissionMode {
   if (value === "system" || value === "yolo") return "system";
@@ -214,6 +220,7 @@ export function InputBox({
   onStop?: () => void;
 }) {
   const { t } = useI18n();
+  const permissionModeOptions = useMemo(() => getPermissionModeOptions(t), [t]);
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
   const [modelDialogOpen, setModelDialogOpen] = useState(false);
@@ -400,7 +407,7 @@ export function InputBox({
     [context.mode, context.reasoning_effort, supportThinking],
   );
   const effectivePermissionMode = normalizePermissionMode(context.permission_mode);
-  const selectedPermissionMode = PERMISSION_MODE_OPTIONS.find((item) => item.value === effectivePermissionMode) ?? PERMISSION_MODE_OPTIONS[0]!;
+  const selectedPermissionMode = permissionModeOptions.find((item) => item.value === effectivePermissionMode) ?? permissionModeOptions[0]!;
   const SelectedPermissionIcon = selectedPermissionMode.icon;
 
   const handleModelSelect = useCallback(
@@ -1005,9 +1012,9 @@ export function InputBox({
             <PromptInputActionMenuContent className="w-72">
               <DropdownMenuGroup>
                 <DropdownMenuLabel className="text-muted-foreground text-xs">
-                  权限模式
+                  {t.permissionMode.label}
                 </DropdownMenuLabel>
-                {PERMISSION_MODE_OPTIONS.map((item) => {
+                {permissionModeOptions.map((item) => {
                   const Icon = item.icon;
                   const selected = item.value === effectivePermissionMode;
                   return (
@@ -1032,7 +1039,7 @@ export function InputBox({
             </PromptInputActionMenuContent>
           </PromptInputActionMenu>
           <div
-            aria-label="对话上下文"
+            aria-label={t.permissionMode.conversationContext}
             className="border-border/70 bg-background/72 text-muted-foreground inline-flex h-8 max-w-[13rem] items-center gap-1.5 rounded-md border px-2.5 text-xs shadow-none"
             data-context-cycle-base-tokens={contextUsage.cycleBaseTokens}
             data-context-raw-tokens={contextUsage.rawUsedTokens}
@@ -1041,7 +1048,7 @@ export function InputBox({
             role="status"
             title={contextTokenTitle}
           >
-            <span className="shrink-0 font-normal">对话上下文</span>
+            <span className="shrink-0 font-normal">{t.permissionMode.conversationContext}</span>
             <span className="min-w-0 truncate font-mono tabular-nums">{contextTokenLabel}</span>
           </div>
         </PromptInputTools>

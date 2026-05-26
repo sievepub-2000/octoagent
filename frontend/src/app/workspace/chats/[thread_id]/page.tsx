@@ -48,21 +48,22 @@ const TodoList = dynamic(
   { ssr: false },
 );
 function ChatRouteFallback() {
+  const { t } = useI18n();
   return (
     <div className="flex size-full min-h-0 flex-col lg:flex-row">
       <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden" aria-labelledby="chat-loading-title">
         <div className="octo-grid pointer-events-none absolute inset-0 opacity-65" />
         <div className="relative flex min-h-0 flex-1 items-center justify-center px-6 text-center">
           <div>
-            <h1 id="chat-loading-title" className="text-2xl font-semibold text-foreground">新对话</h1>
-            <p className="mt-2 text-sm text-muted-foreground">正在准备对话工作区...</p>
+            <h1 id="chat-loading-title" className="text-2xl font-semibold text-foreground">{t.chatLoading.title}</h1>
+            <p className="mt-2 text-sm text-muted-foreground">{t.chatLoading.preparing}</p>
           </div>
         </div>
         <div className="relative z-10 px-4 pb-5">
           <div className="octo-panel mx-auto h-24 w-full max-w-5xl rounded-[1.75rem] border border-border/60" />
         </div>
       </section>
-      <aside className="hidden min-h-0 w-[38%] min-w-[22rem] border-l border-border/60 p-4 lg:block" aria-label="运行检查器加载中">
+      <aside className="hidden min-h-0 w-[38%] min-w-[22rem] border-l border-border/60 p-4 lg:block" aria-label={t.chatLoading.inspectorLoading}>
         <div className="octo-panel flex size-full min-h-[16rem] items-center justify-center rounded-[1.75rem] px-4 text-center text-sm text-muted-foreground">
           Loading runtime inspector...
         </div>
@@ -215,7 +216,7 @@ export default function ChatPage() {
     if (missingExistingThread) {
       pushSystemEvent({
         level: "warning",
-        message: "历史会话状态暂时不可读，已保留当前会话入口并继续加载对话界面。",
+        message: t.systemEvents.threadLoadFailed,
         source: "session",
       });
       setExistingThreadVerifyTimedOut(true);
@@ -408,7 +409,7 @@ function ChatThreadView({
     autoContinuationStartedRef.current = true;
     pushSystemEvent({
       level: "info",
-      message: "已加载上一段对话的压缩记忆和待办，正在自动继续执行。",
+      message: t.systemEvents.autoContinueResume,
       source: "context-handoff",
     });
     void sendMessage(
@@ -454,7 +455,7 @@ function ChatThreadView({
   const handleStop = useCallback(async () => {
     pushSystemEvent({
       level: "info",
-      message: "已由用户中止当前任务",
+      message: t.systemEvents.userAborted,
       source: "session",
     });
     await thread.stop();
