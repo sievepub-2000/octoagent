@@ -1,0 +1,24 @@
+name: Topology Freeze Check
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/**'
+      - 'scripts/check_topology_freeze.py'
+      - '.github/workflows/topology-freeze.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/src/**'
+
+jobs:
+  topology-freeze:
+    name: backend/src/ top-level layout
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check topology freeze
+        run: python scripts/check_topology_freeze.py

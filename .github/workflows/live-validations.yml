@@ -1,0 +1,107 @@
+name: Live Validations
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_smoke:
+        description: Run real WebUI/API smoke checks
+        required: false
+        type: boolean
+        default: true
+      run_staging_chat:
+        description: Run staging chat smoke when OCTO_STAGING_FRONTEND_URL is configured
+        required: false
+        type: boolean
+        default: false
+  schedule:
+    - cron: "17 2 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: live-validations-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  live-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Materialize live config
+        id: live-config
+        shell: bash
+        env:
+          OCTO_LIVE_TEST_CONFIG_YAML: ${{ secrets[format('{0}', 'OCTO_LIVE_TEST_CONFIG_YAML')] }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$OCTO_LIVE_TEST_CONFIG_YAML" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            {
+              echo "## Live validations skipped"
+              echo ""
+              echo "No OCTO_LIVE_TEST_CONFIG_YAML secret is configured."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          printf '%s\n' "$OCTO_LIVE_TEST_CONFIG_YAML" > config.yaml
+          echo "enabled=true" >> "$GITHUB_OUTPUT"
+
+      - name: Install backend dependencies
+        if: steps.live-config.outputs.enabled == 'true'
+        working-directory: backend
+        run: uv sync --group dev
+
+      - name: Install frontend dependencies
+        if: steps.live-config.outputs.enabled == 'true'
+        working-directory: frontend
+        run: pnpm install --frozen-lockfile
+
+      - name: Start live runtime stack
+        if: steps.live-config.outputs.enabled == 'true'
+        run: make dev-daemon
+
+      - name: Run smoke-real
+        if: steps.live-config.outputs.enabled == 'true' && (github.event_name == 'schedule' || inputs.run_smoke)
+        run: make smoke-real
+
+      - name: Run staging chat smoke
+        if: steps.live-config.outputs.enabled == 'true' && inputs.run_staging_chat
+        working-directory: frontend
+        env:
+          OCTO_RUN_STAGING_SMOKE: "1"
+          OCTO_STAGING_FRONTEND_URL: ${{ secrets.OCTO_STAGING_FRONTEND_URL }}
+          OCTO_EXPECTED_RUNTIME_MODEL: ${{ vars.OCTO_EXPECTED_RUNTIME_MODEL || 'gpt-oss-120b' }}
+        run: pnpm smoke:staging-chat
+
+      - name: Stop runtime stack
+        if: always() && steps.live-config.outputs.enabled == 'true'
+        run: make stop
+
+      - name: Upload live validation logs
+        if: failure() && steps.live-config.outputs.enabled == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-validation-logs
+          path: logs/
+          if-no-files-found: ignore

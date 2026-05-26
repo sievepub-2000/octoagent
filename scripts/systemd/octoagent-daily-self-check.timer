@@ -1,0 +1,10 @@
+[Unit]
+Description=Run OctoAgent Daily Self Check
+
+[Timer]
+OnCalendar=*-*-* 04:00:00
+Persistent=true
+Unit=octoagent-daily-self-check.service
+
+[Install]
+WantedBy=timers.target

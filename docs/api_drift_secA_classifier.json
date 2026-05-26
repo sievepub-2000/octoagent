@@ -1,0 +1,1071 @@
+{
+  "rows": [
+    {
+      "file": "agents.py",
+      "method": "GET",
+      "path": "/api/agents/{name}/avatar",
+      "verdict": "KEEP",
+      "summary": "backend-prod=5;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_real_workflow_scenarios.cpython-312.pyc",
+          "backend/scripts/__pycache__/webui_branch_weather_workflow.cpython-312.pyc",
+          "backend/scripts/run_real_workflow_scenarios.py",
+          "backend/scripts/webui_branch_weather_workflow.py",
+          "backend/src/gateway/routers/__pycache__/agents.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/core/agents/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "agents.py",
+      "method": "POST",
+      "path": "/api/agents/{name}/avatar",
+      "verdict": "KEEP",
+      "summary": "backend-prod=5;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_real_workflow_scenarios.cpython-312.pyc",
+          "backend/scripts/__pycache__/webui_branch_weather_workflow.cpython-312.pyc",
+          "backend/scripts/run_real_workflow_scenarios.py",
+          "backend/scripts/webui_branch_weather_workflow.py",
+          "backend/src/gateway/routers/__pycache__/agents.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/core/agents/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "artifacts.py",
+      "method": "GET",
+      "path": "/api/threads/{thread_id}/artifacts/{path:path}",
+      "verdict": "KEEP",
+      "summary": "backend-prod=6;frontend-real=2",
+      "refs": {
+        "backend-prod": [
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api-0.8.1.dist-info/RECORD",
+          "backend/src/__pycache__/client.cpython-312.pyc",
+          "backend/src/client.py",
+          "backend/src/gateway/routers/__pycache__/artifacts.cpython-312.pyc",
+          "backend/src/gateway/routers/__pycache__/uploads.cpython-312.pyc",
+          "backend/src/gateway/routers/uploads.py"
+        ],
+        "frontend-real": [
+          "frontend/src/core/artifacts/utils.ts",
+          "frontend/src/core/uploads/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "auth.py",
+      "method": "GET",
+      "path": "/api/auth/me",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/run_management_menu_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "capabilities.py",
+      "method": "GET",
+      "path": "/api/capabilities/binding-contract",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/run_system_doctor.py"
+        ]
+      }
+    },
+    {
+      "file": "capabilities.py",
+      "method": "GET",
+      "path": "/api/capabilities/policies/precheck",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/run_system_doctor.py"
+        ]
+      }
+    },
+    {
+      "file": "capabilities.py",
+      "method": "POST",
+      "path": "/api/capabilities/invalidate-cache",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_operator_module_closure_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "channels.py",
+      "method": "GET",
+      "path": "/api/channels/{name}/login-status",
+      "verdict": "KEEP",
+      "summary": "backend-prod=9;frontend-real=3;scripts=3",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/daily_self_check.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/daily_self_check.py",
+          "backend/scripts/run_management_menu_smoke.py",
+          "backend/scripts/run_system_doctor.py",
+          "backend/src/channels/__pycache__/service.cpython-312.pyc",
+          "backend/src/channels/service.py",
+          "backend/src/gateway/routers/__pycache__/channels.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/app/workspace/config/channels/page.tsx",
+          "frontend/src/app/workspace/config/tools/page.tsx",
+          "frontend/src/core/channels/api.ts"
+        ],
+        "scripts": [
+          "scripts/admin_smoke_2026-04-23.py",
+          "scripts/channels/__pycache__/qq_bridge.cpython-312.pyc",
+          "scripts/channels/qq_bridge.py"
+        ]
+      }
+    },
+    {
+      "file": "channels.py",
+      "method": "POST",
+      "path": "/api/channels/{name}/ingest",
+      "verdict": "KEEP",
+      "summary": "backend-prod=9;frontend-real=3;scripts=3",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/daily_self_check.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/daily_self_check.py",
+          "backend/scripts/run_management_menu_smoke.py",
+          "backend/scripts/run_system_doctor.py",
+          "backend/src/channels/__pycache__/service.cpython-312.pyc",
+          "backend/src/channels/service.py",
+          "backend/src/gateway/routers/__pycache__/channels.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/app/workspace/config/channels/page.tsx",
+          "frontend/src/app/workspace/config/tools/page.tsx",
+          "frontend/src/core/channels/api.ts"
+        ],
+        "scripts": [
+          "scripts/admin_smoke_2026-04-23.py",
+          "scripts/channels/__pycache__/qq_bridge.cpython-312.pyc",
+          "scripts/channels/qq_bridge.py"
+        ]
+      }
+    },
+    {
+      "file": "distributed_execution.py",
+      "method": "POST",
+      "path": "/api/execution-nodes/dispatch",
+      "verdict": "KEEP",
+      "summary": "backend-prod=6",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_distributed_dispatch_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_distributed_dispatch_smoke.py",
+          "backend/scripts/run_operator_module_closure_smoke.py",
+          "backend/src/distributed_execution/__init__.py",
+          "backend/src/distributed_execution/__pycache__/__init__.cpython-312.pyc"
+        ]
+      }
+    },
+    {
+      "file": "distributed_execution.py",
+      "method": "POST",
+      "path": "/api/execution-nodes/dispatches/{dispatch_id}/replay",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_distributed_dispatch_smoke.cpython-312.pyc",
+          "backend/scripts/run_distributed_dispatch_smoke.py",
+          "backend/src/distributed_execution/__init__.py",
+          "backend/src/distributed_execution/__pycache__/__init__.cpython-312.pyc"
+        ]
+      }
+    },
+    {
+      "file": "distributed_execution.py",
+      "method": "POST",
+      "path": "/api/execution-nodes/dispatches/{dispatch_id}/result",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_distributed_dispatch_smoke.cpython-312.pyc",
+          "backend/scripts/run_distributed_dispatch_smoke.py",
+          "backend/src/distributed_execution/__init__.py",
+          "backend/src/distributed_execution/__pycache__/__init__.cpython-312.pyc"
+        ]
+      }
+    },
+    {
+      "file": "distributed_execution.py",
+      "method": "POST",
+      "path": "/api/execution-nodes/worker/dispatch",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_execution_worker.cpython-312.pyc",
+          "backend/scripts/run_execution_worker.py",
+          "backend/src/distributed_execution/__init__.py",
+          "backend/src/distributed_execution/__pycache__/__init__.cpython-312.pyc"
+        ]
+      }
+    },
+    {
+      "file": "distributed_execution.py",
+      "method": "POST",
+      "path": "/api/execution-nodes/{node_id}/heartbeat",
+      "verdict": "KEEP",
+      "summary": "backend-prod=13;frontend-real=1;scripts=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_distributed_dispatch_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_execution_worker.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/run_distributed_dispatch_smoke.py",
+          "backend/scripts/run_execution_worker.py",
+          "backend/scripts/run_management_menu_smoke.py",
+          "backend/scripts/run_operator_module_closure_smoke.py",
+          "backend/scripts/run_system_doctor.py",
+          "backend/src/distributed_execution/__init__.py",
+          "backend/src/distributed_execution/__pycache__/__init__.cpython-312.pyc",
+          "backend/src/gateway/routers/__pycache__/distributed_execution.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/core/operator-surfaces/api.ts"
+        ],
+        "scripts": [
+          "scripts/dev_tools/api_drift_audit.py"
+        ]
+      }
+    },
+    {
+      "file": "hooks.py",
+      "method": "GET",
+      "path": "/api/hooks/state",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_operator_module_closure_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "hooks.py",
+      "method": "POST",
+      "path": "/api/hooks/emit",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_operator_module_closure_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "memory.py",
+      "method": "DELETE",
+      "path": "/api/memory/global/{entry_id}",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/global-memory-settings.tsx"
+        ]
+      }
+    },
+    {
+      "file": "memory.py",
+      "method": "GET",
+      "path": "/api/memory/global",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/global-memory-settings.tsx"
+        ]
+      }
+    },
+    {
+      "file": "memory.py",
+      "method": "GET",
+      "path": "/api/memory/status",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/run_system_doctor.py"
+        ]
+      }
+    },
+    {
+      "file": "memory.py",
+      "method": "GET",
+      "path": "/api/memory/system/stats",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/run_management_menu_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "memory.py",
+      "method": "POST",
+      "path": "/api/memory/global",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/global-memory-settings.tsx"
+        ]
+      }
+    },
+    {
+      "file": "memory.py",
+      "method": "PUT",
+      "path": "/api/memory/global/{entry_id}",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/global-memory-settings.tsx"
+        ]
+      }
+    },
+    {
+      "file": "metrics.py",
+      "method": "GET",
+      "path": "/api/metrics/governance",
+      "verdict": "KEEP",
+      "summary": "backend-prod=3",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_operator_module_closure_smoke.py",
+          "backend/src/gateway/routers/__pycache__/metrics.cpython-312.pyc"
+        ]
+      }
+    },
+    {
+      "file": "metrics.py",
+      "method": "GET",
+      "path": "/api/metrics/memory-health",
+      "verdict": "KEEP",
+      "summary": "backend-prod=3",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/run_management_menu_smoke.py",
+          "backend/src/gateway/routers/__pycache__/metrics.cpython-312.pyc"
+        ]
+      }
+    },
+    {
+      "file": "metrics.py",
+      "method": "GET",
+      "path": "/metrics",
+      "verdict": "KEEP",
+      "summary": "backend-prod=89;frontend-real=3",
+      "refs": {
+        "backend-prod": [
+          "backend/.ruff_cache/0.14.11/12874828590727829354",
+          "backend/.venv/lib/python3.12/site-packages/duckdb/experimental/spark/LICENSE",
+          "backend/.venv/lib/python3.12/site-packages/google/auth/__pycache__/metrics.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/google_auth-2.48.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/grpc/_cython/cygrpc.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/hf_xet/hf_xet.abi3.so",
+          "backend/.venv/lib/python3.12/site-packages/huggingface_hub/__pycache__/repocard.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/huggingface_hub/__pycache__/repocard_data.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/huggingface_hub/repocard.py",
+          "backend/.venv/lib/python3.12/site-packages/huggingface_hub/repocard_data.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api-0.8.1.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/api/__init__.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/api/meta.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/config/schemas.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/http_metrics_utils.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/metrics_datadog.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/middleware/http_logger.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/queue_entrypoint.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/server.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api/utils/errors.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_cli/schemas.py",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_grpc_common/proto/core_api_pb2.pyi",
+          "backend/.venv/lib/python3.12/site-packages/langgraph_runtime_inmem-0.28.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/onnxruntime-1.20.1.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/openapi.json",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/exporter/otlp/proto/http/metric_exporter/__init__.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/metrics/__pycache__/__init__.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/metrics/_internal/__pycache__/__init__.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/metrics/_internal/__pycache__/instrument.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/metrics/_internal/__pycache__/observation.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/proto/collector/metrics/v1/metrics_service_pb2.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/proto/collector/metrics/v1/metrics_service_pb2_grpc.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/proto/metrics/v1/metrics_pb2.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/proto/metrics/v1/metrics_pb2.pyi",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/sdk/metrics/_internal/aggregation.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/sdk/metrics/_internal/exemplar/exemplar.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/sdk/metrics/_internal/exemplar/exemplar_filter.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/sdk/metrics/_internal/exemplar/exemplar_reservoir.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/sdk/metrics/_internal/exponential_histogram/mapping/__init__.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/sdk/metrics/_internal/export/__init__.py",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry/semconv/_incubating/metrics/__pycache__/otel_metrics.cpython-312.pyc",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry_api-1.40.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry_exporter_otlp_proto_common-1.40.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry_proto-1.40.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry_sdk-1.40.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/opentelemetry_semantic_conventions-0.61b0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/patchright/driver/node",
+          "backend/.venv/lib/python3.12/site-packages/playwright/driver/node",
+          "backend/.venv/lib/python3.12/site-packages/scikit_learn-1.8.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_dist_metrics.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_argkmin.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_argkmin_classmode.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_base.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_datasets_pair.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_middle_term_computer.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_radius_neighbors.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/_radius_neighbors_classmode.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_distances_reduction/meson.build",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/_pairwise_fast.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/cluster/_expected_mutual_info_fast.cpython-312-aarch64-linux-gnu.so",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/cluster/meson.build",
+          "backend/.venv/lib/python3.12/site-packages/sklearn/metrics/meson.build",
+          "backend/.venv/lib/python3.12/site-packages/tokenizers/tokenizers.abi3.so",
+          "backend/.venv/lib/python3.12/site-packages/torch-2.10.0.dist-info/RECORD",
+          "backend/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/lazy/core/metrics.h",
+          "backend/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/lazy/core/thread_pool.h",
+          "backend/.venv/lib/python3.12/site-packages/torch/include/torch/csrc/lazy/core/trie.h",
+          "backend/.venv/lib/python3.12/site-packages/torch/lib/libtorch_cpu.so",
+          "backend/.venv/lib/python3.12/site-packages/torchgen/gen_lazy_tensor.py",
+          "backend/.venv/lib/python3.12/site-packages/transformers-5.4.0.dist-info/RECORD",
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_optimization_scorecard.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_runtime_latency_benchmark.cpython-312.pyc",
+          "backend/scripts/run_management_menu_smoke.py",
+          "backend/scripts/run_operator_module_closure_smoke.py",
+          "backend/scripts/run_optimization_scorecard.py",
+          "backend/scripts/run_runtime_latency_benchmark.py",
+          "backend/src/evaluation/__pycache__/metrics.cpython-312.pyc",
+          "backend/src/gateway/routers/__pycache__/metrics.cpython-312.pyc",
+          "backend/src/gateway/routers/__pycache__/optimization_program.cpython-312.pyc",
+          "backend/src/gateway/routers/__pycache__/skill_evolution.cpython-312.pyc",
+          "backend/src/gateway/routers/optimization_program.py",
+          "backend/src/gateway/routers/skill_evolution.py",
+          "backend/src/monitoring/__init__.py",
+          "backend/src/monitoring/__pycache__/__init__.cpython-312.pyc",
+          "backend/src/octoagent.egg-info/SOURCES.txt",
+          "backend/src/optimization_program/__pycache__/service.cpython-312.pyc",
+          "backend/src/optimization_program/service.py"
+        ],
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/operator-surfaces-section.tsx",
+          "frontend/src/core/evolution/api.ts",
+          "frontend/src/core/operator-surfaces/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "metrics.py",
+      "method": "POST",
+      "path": "/api/metrics/increment/{metric_name}",
+      "verdict": "KEEP",
+      "summary": "backend-prod=3",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_operator_module_closure_smoke.py",
+          "backend/src/gateway/routers/__pycache__/metrics.cpython-312.pyc"
+        ]
+      }
+    },
+    {
+      "file": "model_auth.py",
+      "method": "GET",
+      "path": "/api/model-auth/{provider_id}/oauth/callback",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2;frontend-real=2",
+      "refs": {
+        "backend-prod": [
+          "backend/runtime/model_auth/credentials.json",
+          "backend/src/gateway/routers/__pycache__/model_auth.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/app/workspace/config/models/page.tsx",
+          "frontend/src/core/model-auth/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "module_status.py",
+      "method": "GET",
+      "path": "/api/system/modules/status",
+      "verdict": "KEEP",
+      "summary": "backend-prod=1;docs=1",
+      "refs": {
+        "backend-prod": [
+          "backend/src/gateway/routers/__pycache__/module_status.cpython-312.pyc"
+        ],
+        "docs": [
+          "docs/octoagent-roundF-2026-05-14.md"
+        ]
+      }
+    },
+    {
+      "file": "multi_tenant.py",
+      "method": "GET",
+      "path": "/api/tenants/export",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_multi_tenant_persistence_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_multi_tenant_persistence_smoke.py",
+          "backend/scripts/run_operator_module_closure_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "multi_tenant.py",
+      "method": "GET",
+      "path": "/api/tenants/{tenant_id}/limits/agents",
+      "verdict": "KEEP",
+      "summary": "backend-prod=11;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_management_menu_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_multi_tenant_persistence_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_query_engine_replay_golden.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/run_management_menu_smoke.py",
+          "backend/scripts/run_multi_tenant_persistence_smoke.py",
+          "backend/scripts/run_operator_module_closure_smoke.py",
+          "backend/scripts/run_query_engine_replay_golden.py",
+          "backend/scripts/run_system_doctor.py",
+          "backend/src/gateway/routers/__pycache__/multi_tenant.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/core/operator-surfaces/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "optimization_program.py",
+      "method": "GET",
+      "path": "/api/optimization/metrics",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/src/optimization_program/__pycache__/service.cpython-312.pyc",
+          "backend/src/optimization_program/service.py"
+        ]
+      }
+    },
+    {
+      "file": "optimization_program.py",
+      "method": "GET",
+      "path": "/api/optimization/program",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_runtime_latency_benchmark.cpython-312.pyc",
+          "backend/scripts/run_runtime_latency_benchmark.py",
+          "backend/src/optimization_program/__pycache__/service.cpython-312.pyc",
+          "backend/src/optimization_program/service.py"
+        ]
+      }
+    },
+    {
+      "file": "optimization_program.py",
+      "method": "GET",
+      "path": "/api/optimization/roadmap",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/src/optimization_program/__pycache__/service.cpython-312.pyc",
+          "backend/src/optimization_program/service.py"
+        ]
+      }
+    },
+    {
+      "file": "optimization_program.py",
+      "method": "GET",
+      "path": "/api/optimization/scorecard",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/src/optimization_program/__pycache__/service.cpython-312.pyc",
+          "backend/src/optimization_program/service.py"
+        ]
+      }
+    },
+    {
+      "file": "query_engine.py",
+      "method": "GET",
+      "path": "/api/query-engine/maintenance",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_long_running_soak.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/run_long_running_soak.py",
+          "backend/scripts/run_system_doctor.py"
+        ]
+      }
+    },
+    {
+      "file": "query_engine.py",
+      "method": "GET",
+      "path": "/api/query-engine/sessions/{session_id}/replay-context",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_query_engine_replay_golden.cpython-312.pyc",
+          "backend/scripts/run_query_engine_replay_golden.py"
+        ],
+        "frontend-real": [
+          "frontend/src/core/query-engine/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "query_engine.py",
+      "method": "POST",
+      "path": "/api/query-engine/maintenance/run",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_long_running_soak.cpython-312.pyc",
+          "backend/scripts/run_long_running_soak.py"
+        ]
+      }
+    },
+    {
+      "file": "query_engine.py",
+      "method": "POST",
+      "path": "/api/query-engine/sessions/{session_id}/recover",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_query_engine_replay_golden.cpython-312.pyc",
+          "backend/scripts/run_query_engine_replay_golden.py"
+        ],
+        "frontend-real": [
+          "frontend/src/core/query-engine/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "query_engine.py",
+      "method": "POST",
+      "path": "/api/query-engine/sessions/{session_id}/summary-quality",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_query_engine_replay_golden.cpython-312.pyc",
+          "backend/scripts/run_query_engine_replay_golden.py"
+        ],
+        "frontend-real": [
+          "frontend/src/core/query-engine/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "rag_config.py",
+      "method": "POST",
+      "path": "/api/runtime/rag-config/download",
+      "verdict": "ORPHAN",
+      "summary": "",
+      "refs": {}
+    },
+    {
+      "file": "runtime.py",
+      "method": "DELETE",
+      "path": "/api/runtime/langgraph-contract/threads/{thread_id}",
+      "verdict": "KEEP",
+      "summary": "backend-prod=6",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_langgraph_remote_lifecycle_e2e.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_long_running_soak.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_workflow_langgraph_contract_smoke.cpython-312.pyc",
+          "backend/scripts/run_langgraph_remote_lifecycle_e2e.py",
+          "backend/scripts/run_long_running_soak.py",
+          "backend/scripts/run_workflow_langgraph_contract_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "runtime.py",
+      "method": "GET",
+      "path": "/api/runtime/langgraph-contract",
+      "verdict": "KEEP",
+      "summary": "backend-prod=8",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_langgraph_remote_lifecycle_e2e.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_long_running_soak.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_workflow_langgraph_contract_smoke.cpython-312.pyc",
+          "backend/scripts/run_langgraph_remote_lifecycle_e2e.py",
+          "backend/scripts/run_long_running_soak.py",
+          "backend/scripts/run_system_doctor.py",
+          "backend/scripts/run_workflow_langgraph_contract_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "runtime.py",
+      "method": "GET",
+      "path": "/api/runtime/provider-contracts",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/run_system_doctor.py"
+        ]
+      }
+    },
+    {
+      "file": "runtime.py",
+      "method": "POST",
+      "path": "/api/runtime/langgraph-contract/copy",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_langgraph_remote_lifecycle_e2e.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_workflow_langgraph_contract_smoke.cpython-312.pyc",
+          "backend/scripts/run_langgraph_remote_lifecycle_e2e.py",
+          "backend/scripts/run_workflow_langgraph_contract_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "runtime.py",
+      "method": "POST",
+      "path": "/api/runtime/langgraph-contract/prune",
+      "verdict": "KEEP",
+      "summary": "backend-prod=4",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_long_running_soak.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_workflow_langgraph_contract_smoke.cpython-312.pyc",
+          "backend/scripts/run_long_running_soak.py",
+          "backend/scripts/run_workflow_langgraph_contract_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "runtime.py",
+      "method": "POST",
+      "path": "/api/runtime/langgraph-contract/threads/{thread_id}/lifecycle",
+      "verdict": "KEEP",
+      "summary": "backend-prod=6",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_langgraph_remote_lifecycle_e2e.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_long_running_soak.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_workflow_langgraph_contract_smoke.cpython-312.pyc",
+          "backend/scripts/run_langgraph_remote_lifecycle_e2e.py",
+          "backend/scripts/run_long_running_soak.py",
+          "backend/scripts/run_workflow_langgraph_contract_smoke.py"
+        ]
+      }
+    },
+    {
+      "file": "self_evolution.py",
+      "method": "GET",
+      "path": "/api/evolution/proposals/{proposal_id}",
+      "verdict": "KEEP",
+      "summary": "backend-prod=2;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_operator_module_closure_smoke.cpython-312.pyc",
+          "backend/scripts/run_operator_module_closure_smoke.py"
+        ],
+        "frontend-real": [
+          "frontend/src/core/operator-surfaces/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "skill_evolution.py",
+      "method": "GET",
+      "path": "/api/skill-evolution/metrics/{skill_name}",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/core/evolution/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "software_interfaces.py",
+      "method": "DELETE",
+      "path": "/api/software-interfaces/connections/{connection_id}",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/app/workspace/config/channels/page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "software_interfaces.py",
+      "method": "GET",
+      "path": "/api/software-interfaces/{toolkit}/triggers",
+      "verdict": "KEEP",
+      "summary": "backend-prod=1;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/src/gateway/routers/__pycache__/software_interfaces.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/app/workspace/config/channels/page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "software_interfaces.py",
+      "method": "GET",
+      "path": "/api/software-interfaces/{toolkit}/triggers/available",
+      "verdict": "KEEP",
+      "summary": "backend-prod=1;frontend-real=1",
+      "refs": {
+        "backend-prod": [
+          "backend/src/gateway/routers/__pycache__/software_interfaces.cpython-312.pyc"
+        ],
+        "frontend-real": [
+          "frontend/src/app/workspace/config/channels/page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "software_interfaces.py",
+      "method": "POST",
+      "path": "/api/software-interfaces/connections/{connection_id}/sync",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/app/workspace/config/channels/page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "suggestions.py",
+      "method": "POST",
+      "path": "/api/threads/{thread_id}/suggestions",
+      "verdict": "KEEP",
+      "summary": "backend-prod=7;frontend-real=2",
+      "refs": {
+        "backend-prod": [
+          "backend/.venv/lib/python3.12/site-packages/langgraph_api-0.8.1.dist-info/RECORD",
+          "backend/src/__pycache__/client.cpython-312.pyc",
+          "backend/src/client.py",
+          "backend/src/gateway/routers/__pycache__/artifacts.cpython-312.pyc",
+          "backend/src/gateway/routers/__pycache__/uploads.cpython-312.pyc",
+          "backend/src/gateway/routers/artifacts.py",
+          "backend/src/gateway/routers/uploads.py"
+        ],
+        "frontend-real": [
+          "frontend/src/core/artifacts/utils.ts",
+          "frontend/src/core/uploads/api.ts"
+        ]
+      }
+    },
+    {
+      "file": "system_update.py",
+      "method": "GET",
+      "path": "/api/system/update/auto-config",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/update-settings-page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "system_update.py",
+      "method": "GET",
+      "path": "/api/system/update/check",
+      "verdict": "KEEP",
+      "summary": "frontend-real=2",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/settings-dialog.tsx",
+          "frontend/src/components/workspace/settings/update-settings-page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "system_update.py",
+      "method": "GET",
+      "path": "/api/system/version",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/update-settings-page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "system_update.py",
+      "method": "POST",
+      "path": "/api/system/update/apply",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/update-settings-page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "system_update.py",
+      "method": "POST",
+      "path": "/api/system/update/auto-config",
+      "verdict": "KEEP",
+      "summary": "frontend-real=1",
+      "refs": {
+        "frontend-real": [
+          "frontend/src/components/workspace/settings/update-settings-page.tsx"
+        ]
+      }
+    },
+    {
+      "file": "task_workspaces.py",
+      "method": "GET",
+      "path": "/api/task-workspaces/{task_id}/artifacts/{artifact_path:path}",
+      "verdict": "KEEP",
+      "summary": "backend-prod=15;frontend-real=5;scripts=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_multi_tenant_persistence_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_query_engine_replay_golden.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_real_workflow_scenarios.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_webui_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/webui_branch_weather_workflow.cpython-312.pyc",
+          "backend/scripts/run_multi_tenant_persistence_smoke.py",
+          "backend/scripts/run_query_engine_replay_golden.py",
+          "backend/scripts/run_real_workflow_scenarios.py",
+          "backend/scripts/run_system_doctor.py",
+          "backend/scripts/run_webui_smoke.py",
+          "backend/scripts/webui_branch_weather_workflow.py",
+          "backend/src/gateway/routers/__pycache__/task_workspaces.cpython-312.pyc",
+          "backend/src/workflow_core/__pycache__/service.cpython-312.pyc",
+          "backend/src/workflow_core/service.py"
+        ],
+        "frontend-real": [
+          "frontend/src/app/workspace/workflows/page.tsx",
+          "frontend/src/components/workspace/task-card-details-panel.tsx",
+          "frontend/src/components/workspace/task-workspace-overview.tsx",
+          "frontend/src/components/workspace/workflow-result-card.tsx",
+          "frontend/src/core/task-workspaces/api.ts"
+        ],
+        "scripts": [
+          "scripts/dev_tools/api_drift_audit.py"
+        ]
+      }
+    },
+    {
+      "file": "task_workspaces.py",
+      "method": "POST",
+      "path": "/api/task-workspaces/{task_id}/agents/{agent_id}/handoff",
+      "verdict": "KEEP",
+      "summary": "backend-prod=15;frontend-real=5;scripts=1",
+      "refs": {
+        "backend-prod": [
+          "backend/scripts/__pycache__/run_multi_tenant_persistence_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_query_engine_replay_golden.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_real_workflow_scenarios.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_system_doctor.cpython-312.pyc",
+          "backend/scripts/__pycache__/run_webui_smoke.cpython-312.pyc",
+          "backend/scripts/__pycache__/webui_branch_weather_workflow.cpython-312.pyc",
+          "backend/scripts/run_multi_tenant_persistence_smoke.py",
+          "backend/scripts/run_query_engine_replay_golden.py",
+          "backend/scripts/run_real_workflow_scenarios.py",
+          "backend/scripts/run_system_doctor.py",
+          "backend/scripts/run_webui_smoke.py",
+          "backend/scripts/webui_branch_weather_workflow.py",
+          "backend/src/gateway/routers/__pycache__/task_workspaces.cpython-312.pyc",
+          "backend/src/workflow_core/__pycache__/service.cpython-312.pyc",
+          "backend/src/workflow_core/service.py"
+        ],
+        "frontend-real": [
+          "frontend/src/app/workspace/workflows/page.tsx",
+          "frontend/src/components/workspace/task-card-details-panel.tsx",
+          "frontend/src/components/workspace/task-workspace-overview.tsx",
+          "frontend/src/components/workspace/workflow-result-card.tsx",
+          "frontend/src/core/task-workspaces/api.ts"
+        ],
+        "scripts": [
+          "scripts/dev_tools/api_drift_audit.py"
+        ]
+      }
+    },
+    {
+      "file": "ws_events.py",
+      "method": "WEBSOCKET",
+      "path": "/ws/events",
+      "verdict": "KEEP",
+      "summary": "backend-prod=3",
+      "refs": {
+        "backend-prod": [
+          "backend/src/channel_sdk/__pycache__/client.cpython-312.pyc",
+          "backend/src/channel_sdk/client.py",
+          "backend/src/gateway/routers/__pycache__/ws_events.cpython-312.pyc"
+        ]
+      }
+    }
+  ]
+}

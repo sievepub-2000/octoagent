@@ -1,0 +1,58 @@
+{
+  "mcpServers": {
+    "filesystem": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/path/to/allowed/files"
+      ],
+      "env": {},
+      "description": "Provides filesystem access within allowed directories"
+    },
+    "github": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_TOKEN": "$GITHUB_TOKEN"
+      },
+      "description": "GitHub MCP server for repository operations"
+    },
+    "postgres": {
+      "enabled": false,
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://localhost/mydb"
+      ],
+      "env": {},
+      "description": "PostgreSQL database access"
+    }
+  },
+  "skills": {},
+  "hooks": {},
+  "agentSkillsCompat": {
+    "enabled": false,
+    "sourceRoot": "/absolute/path/to/agent-skills",
+    "include_skills": true,
+    "include_commands": true,
+    "include_agents": true,
+    "include_references": true,
+    "include_hooks": true,
+    "trustLevel": "untrusted",
+    "itemStates": {
+      "agent_skills:command:spec": {
+        "enabled": false
+      }
+    }
+  }
+}

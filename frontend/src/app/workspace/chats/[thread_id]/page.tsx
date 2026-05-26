@@ -1,0 +1,639 @@
+"use client";
+
+import dynamic from "next/dynamic";
+import { useParams, useRouter } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+
+import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { useSpecificChatMode } from "@/components/workspace/chats/use-chat-mode";
+import { useThreadChat } from "@/components/workspace/chats/use-thread-chat";
+import { ThreadContext } from "@/components/workspace/messages/context";
+import { Welcome } from "@/components/workspace/welcome";
+import { isRecoverableThreadMissingError } from "@/core/api";
+import type { ContextTokenUsage } from "@/core/context/context-token-counter";
+import { useI18n } from "@/core/i18n/hooks";
+import { useNotification } from "@/core/notification/hooks";
+import { useLocalSettings } from "@/core/settings";
+import { pushSystemEvent } from "@/core/system-events/store";
+import { buildContinuationContext } from "@/core/threads";
+import { useThreadState, useThreadStream } from "@/core/threads/hooks";
+import type { AgentThreadContext, AgentThreadState } from "@/core/threads/types";
+import { textOfMessage } from "@/core/threads/utils";
+import { useWorkflows } from "@/core/workflows";
+import { env } from "@/env";
+import { cn } from "@/lib/utils";
+
+const ChatBox = dynamic(
+  () => import("@/components/workspace/chats/chat-box").then((module) => module.ChatBox),
+  { ssr: false, loading: () => <ChatRouteFallback /> },
+);
+const InputBox = dynamic(
+  () => import("@/components/workspace/input-box").then((module) => module.InputBox),
+  {
+    ssr: false,
+    loading: () => <div className="octo-panel h-24 w-full rounded-[1.75rem] border border-border/60" />,
+  },
+);
+const MessageList = dynamic(
+  () => import("@/components/workspace/messages/message-list").then((module) => module.MessageList),
+  { ssr: false },
+);
+const ThreadTitle = dynamic(
+  () => import("@/components/workspace/thread-title").then((module) => module.ThreadTitle),
+  { ssr: false },
+);
+const TodoList = dynamic(
+  () => import("@/components/workspace/todo-list").then((module) => module.TodoList),
+  { ssr: false },
+);
+function ChatRouteFallback() {
+  return (
+    <div className="flex size-full min-h-0 flex-col lg:flex-row">
+      <section className="relative flex min-h-0 flex-1 flex-col overflow-hidden" aria-labelledby="chat-loading-title">
+        <div className="octo-grid pointer-events-none absolute inset-0 opacity-65" />
+        <div className="relative flex min-h-0 flex-1 items-center justify-center px-6 text-center">
+          <div>
+            <h1 id="chat-loading-title" className="text-2xl font-semibold text-foreground">新对话</h1>
+            <p className="mt-2 text-sm text-muted-foreground">正在准备对话工作区...</p>
+          </div>
+        </div>
+        <div className="relative z-10 px-4 pb-5">
+          <div className="octo-panel mx-auto h-24 w-full max-w-5xl rounded-[1.75rem] border border-border/60" />
+        </div>
+      </section>
+      <aside className="hidden min-h-0 w-[38%] min-w-[22rem] border-l border-border/60 p-4 lg:block" aria-label="运行检查器加载中">
+        <div className="octo-panel flex size-full min-h-[16rem] items-center justify-center rounded-[1.75rem] px-4 text-center text-sm text-muted-foreground">
+          Loading runtime inspector...
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+type ChatInputContext = Omit<
+  AgentThreadContext,
+  "thread_id" | "is_plan_mode" | "thinking_enabled" | "subagent_enabled"
+> & {
+  mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
+  reasoning_effort?: "minimal" | "low" | "medium" | "high";
+};
+
+export default function ChatPage() {
+  const { t } = useI18n();
+  const router = useRouter();
+  const [settings, setSettings] = useLocalSettings();
+
+  // Defer rendering until after hydration — ChatThreadView contains Radix UI
+  // components whose auto-generated IDs (useId) differ between SSR and client
+  // when hooks like useStream alter the fiber tree.  Rendering null on both
+  // SSR and first client render guarantees identical output; actual UI renders
+  // on the second (post-hydration) paint.
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => { setHydrated(true); }, []);
+
+  const { thread_id: rawThreadId } = useParams<{ thread_id: string }>();
+  const { threadId, isNewThread, isFreshRoute, setThreadId, setIsNewThread, isMock, continueFromThreadId } =
+    useThreadChat();
+  const [existingThreadVerifyTimedOut, setExistingThreadVerifyTimedOut] =
+    useState(false);
+  // Track threads that were locally activated (created from /new) so that the
+  // blocking thread-state verification does not fire when history.replaceState
+  // triggers a Next.js router update and rawThreadId briefly flips to the real
+  // UUID — which would cause ChatThreadView to unmount and kill the live stream.
+  const justActivatedThreadIdRef = useRef<string | null>(null);
+  const markThreadJustActivated = useCallback((id: string) => {
+    justActivatedThreadIdRef.current = id;
+  }, []);
+  useSpecificChatMode();
+  const { hydrate } = useWorkflows();
+  const continuationHydratedRef = useRef(false);
+
+  // Reset just-activated marker when the user navigates back to a fresh /new thread.
+  useEffect(() => {
+    if (rawThreadId === "new") {
+      justActivatedThreadIdRef.current = null;
+    }
+  }, [rawThreadId]);
+
+  useEffect(() => {
+    if (!hydrated || rawThreadId !== "new" || !threadId || threadId === "new") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    params.set("fresh", "1");
+    if (!params.has("draft")) {
+      params.set("draft", String(Date.now()));
+    }
+    router.replace(`/workspace/chats/${threadId}?${params.toString()}`);
+  }, [hydrated, rawThreadId, router, threadId]);
+
+  const { showNotification } = useNotification();
+  const { data: continuationSourceState } = useThreadState(
+    continueFromThreadId,
+    Boolean(isNewThread && continueFromThreadId && !isMock),
+  );
+  const {
+    data: existingThreadState,
+    isVerifying: isExistingThreadVerifying,
+  } = useThreadState(
+    isNewThread ? null : threadId,
+    Boolean(!isNewThread && threadId && !isMock),
+  );
+  const shouldVerifyExistingThread =
+    rawThreadId !== "new" &&
+    !isNewThread &&
+    !isMock &&
+    threadId !== justActivatedThreadIdRef.current;
+
+  useEffect(() => {
+    setExistingThreadVerifyTimedOut(false);
+    if (
+      !shouldVerifyExistingThread ||
+      !isExistingThreadVerifying ||
+      existingThreadState
+    ) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      console.warn("[ChatPage] Thread state verification timed out; rendering chat shell.", {
+        threadId,
+      });
+      setExistingThreadVerifyTimedOut(true);
+    }, 3_000);
+
+    return () => window.clearTimeout(timeout);
+  }, [
+    existingThreadState,
+    isExistingThreadVerifying,
+    shouldVerifyExistingThread,
+    threadId,
+  ]);
+
+  useEffect(() => {
+    if (
+      !isNewThread ||
+      !continueFromThreadId ||
+      !continuationSourceState ||
+      continuationHydratedRef.current
+    ) {
+      return;
+    }
+    hydrate(
+      continuationSourceState.workflows ?? [],
+      continuationSourceState.workflow_events ?? [],
+    );
+    continuationHydratedRef.current = true;
+  }, [
+    continueFromThreadId,
+    continuationSourceState,
+    hydrate,
+    isNewThread,
+  ]);
+
+  const continuationContext = useMemo(() => {
+    if (!isNewThread || !continueFromThreadId || !continuationSourceState) {
+      return undefined;
+    }
+
+    return buildContinuationContext(continueFromThreadId, continuationSourceState);
+  }, [continueFromThreadId, continuationSourceState, isNewThread]);
+
+  // Only verify existence when the user navigated directly to a thread URL.
+  // When transitioning from /new (thread just created), the first checkpoint
+  // may not exist yet → GET /state returns 404 → false "expired" redirect.
+  // history.replaceState does NOT update useParams, so rawThreadId stays "new".
+  const missingExistingThread =
+    shouldVerifyExistingThread &&
+    !existingThreadVerifyTimedOut &&
+    !isExistingThreadVerifying &&
+    !existingThreadState;
+
+  useEffect(() => {
+    if (missingExistingThread) {
+      pushSystemEvent({
+        level: "warning",
+        message: "历史会话状态暂时不可读，已保留当前会话入口并继续加载对话界面。",
+        source: "session",
+      });
+      setExistingThreadVerifyTimedOut(true);
+    }
+  }, [missingExistingThread]);
+
+  // Block rendering until the thread state has been verified against the server.
+  // Using isVerifying (isFetching) instead of isLoading prevents stale cache
+  // from letting ChatThreadView mount with a defunct thread ID.
+  const isBlockingExistingThreadVerification =
+    shouldVerifyExistingThread &&
+    isExistingThreadVerifying &&
+    !existingThreadState &&
+    !existingThreadVerifyTimedOut;
+  if (!hydrated || isBlockingExistingThreadVerification) {
+    return <ChatRouteFallback />;
+  }
+
+  return (
+    <ChatThreadView
+      continuationContext={continuationContext}
+      continuationSourceState={continuationSourceState ?? undefined}
+      continueFromThreadId={continueFromThreadId ?? undefined}
+      isMock={isMock}
+      isFreshRoute={isFreshRoute}
+      isNewThread={isNewThread}
+      onThreadActivated={markThreadJustActivated}
+      router={router}
+      settings={settings}
+      setIsNewThread={setIsNewThread}
+      setThreadId={setThreadId}
+      setSettings={setSettings}
+      showNotification={showNotification}
+      t={t}
+      threadId={threadId}
+    />
+  );
+}
+
+function ChatThreadView({
+  continuationContext,
+  continuationSourceState,
+  continueFromThreadId,
+  isMock,
+  isFreshRoute,
+  isNewThread,
+  onThreadActivated,
+  router,
+  settings,
+  setIsNewThread,
+  setThreadId,
+  setSettings,
+  showNotification,
+  t,
+  threadId,
+}: {
+  continuationContext: Record<string, unknown> | undefined;
+  continuationSourceState: AgentThreadState | undefined;
+  continueFromThreadId?: string;
+  isMock: boolean;
+  isFreshRoute: boolean;
+  isNewThread: boolean;
+  onThreadActivated: (threadId: string) => void;
+  router: ReturnType<typeof useRouter>;
+  settings: ReturnType<typeof useLocalSettings>[0];
+  setIsNewThread: (value: boolean) => void;
+  setThreadId: (value: string) => void;
+  setSettings: ReturnType<typeof useLocalSettings>[1];
+  showNotification: ReturnType<typeof useNotification>["showNotification"];
+  t: ReturnType<typeof useI18n>["t"];
+  threadId: string;
+}) {
+  const threadCreatedAtRef = useRef<number | null>(null);
+  // Initialize the "thread freshly opened" timestamp as soon as the
+  // component mounts. The 15s protection window on the page-level
+  // "thread missing → redirect to /new" guard previously depended on
+  // this ref being set inside activateThreadRoute (called from the SDK's
+  // onStart). When a turn was attempted but never reached runs/stream
+  // (e.g. an upload race or transient error), onStart never fired,
+  // threadCreatedAtRef stayed null, and a transient 404 on GET /state
+  // could bounce the user to a brand-new fresh chat — losing their
+  // attachment + draft. Capturing the timestamp on mount closes that
+  // gap without changing the "stale thread eventually redirects" intent.
+  if (threadCreatedAtRef.current === null) {
+    threadCreatedAtRef.current = Date.now();
+  }
+  const routeSyncRef = useRef<string | null>(null);
+  const [pendingContinuationContext, setPendingContinuationContext] = useState<Record<string, unknown> | undefined>();
+  const [contextCycleBaseTokens, setContextCycleBaseTokens] = useState(0);
+  const autoContinuationStartedRef = useRef(false);
+  // Capture initial isNewThread to stabilize loadInitialState across re-renders.
+  // When onStart fires setIsNewThread(false), loadInitialState must NOT flip
+  // from false→true mid-stream, otherwise useStream reconnects and kills the
+  // active SSE stream — causing the first message to get no reply.
+  const initialIsNewRef = useRef(isNewThread);
+  const activateThreadRoute = useCallback(
+    (createdThreadId: string) => {
+      threadCreatedAtRef.current ??= Date.now();
+      // Mark the thread as locally activated BEFORE setIsNewThread so that
+      // when history.replaceState causes Next.js to update useParams and
+      // rawThreadId flips to the real UUID, shouldVerifyExistingThread is
+      // already gated — preventing ChatThreadView from unmounting and killing
+      // the live SSE stream (which would swallow the first message reply).
+      onThreadActivated(createdThreadId);
+      setThreadId(createdThreadId);
+      if (routeSyncRef.current === createdThreadId) {
+        return;
+      }
+
+      routeSyncRef.current = createdThreadId;
+      // Note (2026-05-26): URL cleanup of ?fresh=1&draft=... is intentionally
+      // deferred to the "first AI message arrives" effect below. Stripping
+      // the URL here used to fire BEFORE the upload + thread.submit pipeline
+      // completed, causing a cascade:
+      //   history.replaceState → useSearchParams re-renders →
+      //   useThreadChat setIsNewThread(false) → page re-evaluation →
+      //   useThreadState may fetch /state during the brief window before
+      //   the activation ref propagates → 404 → ChatRouteFallback renders →
+      //   ChatThreadView UNMOUNTS → in-flight thread.submit() orphaned →
+      //   no /runs/stream POST ever reaches the server → user sees the
+      //   chat silently "reset" with no agent reply.
+      // Mature implementations (Vercel AI SDK / Anthropic console) keep the
+      // route URL stable through the first turn; we now do the same.
+      // The "first AI message" effect (below) handles fresh/draft cleanup
+      // once a streamed reply has actually started arriving.
+    },
+    [onThreadActivated, setThreadId],
+  );
+
+  const [thread, sendMessage] = useThreadStream({
+    threadId: threadId,
+    context: settings.context,
+    isMock,
+    loadInitialState: !initialIsNewRef.current,
+    onStart: (createdThreadId) => {
+      activateThreadRoute(createdThreadId);
+    },
+    onFinish: (state) => {
+      // Context handoff: navigate to new thread with continuation
+      const handoff = (state as Record<string, unknown>)?._context_handoff as
+        | { required: boolean; source_thread_id: string; reason: string }
+        | undefined;
+      if (handoff?.required && handoff.source_thread_id) {
+        router.push(
+          `/workspace/chats/new?continue_from=${encodeURIComponent(handoff.source_thread_id)}&fresh=1`,
+        );
+        return;
+      }
+      if (document.hidden || !document.hasFocus()) {
+        let body = "Conversation finished";
+        const lastMessage = state.messages.at(-1);
+        if (lastMessage) {
+          const textContent = textOfMessage(lastMessage);
+          if (textContent) {
+            body =
+              textContent.length > 200
+                ? `${textContent.substring(0, 200)}...`
+                : textContent;
+          }
+        }
+        showNotification(state.title, { body });
+      }
+    },
+  });
+
+  const handleSubmit = useCallback(
+    (message: PromptInputMessage) => {
+      const hiddenContinuationContext = pendingContinuationContext ?? continuationContext;
+      if (pendingContinuationContext) {
+        setContextCycleBaseTokens(Number(pendingContinuationContext.continue_cycle_base_tokens ?? 0));
+        setPendingContinuationContext(undefined);
+      }
+      void sendMessage(threadId, message, hiddenContinuationContext);
+    },
+    [continuationContext, pendingContinuationContext, sendMessage, threadId],
+  );
+
+  useEffect(() => {
+    if (
+      autoContinuationStartedRef.current ||
+      !isFreshRoute ||
+      !isNewThread ||
+      !continueFromThreadId ||
+      !continuationContext ||
+      thread.isLoading ||
+      thread.messages.length > 0
+    ) {
+      return;
+    }
+    autoContinuationStartedRef.current = true;
+    pushSystemEvent({
+      level: "info",
+      message: "已加载上一段对话的压缩记忆和待办，正在自动继续执行。",
+      source: "context-handoff",
+    });
+    void sendMessage(
+      threadId,
+      {
+        text: "继续执行上一段对话中尚未完成的任务。请根据隐藏的接续记忆、todo 状态和最近三轮双方对话，立即从下一步开始工作，不要要求用户重复说明。",
+        files: [],
+      },
+      continuationContext,
+    );
+  }, [
+    continuationContext,
+    continueFromThreadId,
+    isFreshRoute,
+    isNewThread,
+    sendMessage,
+    thread.isLoading,
+    thread.messages.length,
+    threadId,
+  ]);
+
+  useEffect(() => {
+    if (!isFreshRoute || !isNewThread || thread.isLoading) {
+      return;
+    }
+    const hasAssistantMessage = thread.messages.some((message) =>
+      message.type === "ai",
+    );
+    if (!hasAssistantMessage) {
+      return;
+    }
+    setIsNewThread(false);
+    const url = new URL(window.location.href);
+    url.searchParams.delete("fresh");
+    url.searchParams.delete("draft");
+    history.replaceState(null, "", url.pathname + url.search);
+  }, [isFreshRoute, isNewThread, setIsNewThread, thread.isLoading, thread.messages]);
+
+  useEffect(() => {
+    setContextCycleBaseTokens(Number(thread.values.runtime?.context_cycle_base_tokens ?? 0));
+  }, [threadId, thread.values.runtime?.context_cycle_base_tokens]);
+
+  const handleStop = useCallback(async () => {
+    pushSystemEvent({
+      level: "info",
+      message: "已由用户中止当前任务",
+      source: "session",
+    });
+    await thread.stop();
+  }, [thread]);
+
+  const handleContextThreshold = useCallback((usage: ContextTokenUsage) => {
+    if (thread.isLoading) {
+      return;
+    }
+    // If context is critically full (>= 95%), navigate to new thread directly
+    if (usage.ratio >= 0.95 && thread.messages.length > 0 && !isNewThread) {
+      console.info(`[octoagent] Context usage ${usage.percent}% (critical) — switching to new thread`);
+      router.push(
+        `/workspace/chats/new?continue_from=${encodeURIComponent(threadId)}&fresh=1`,
+      );
+      return;
+    }
+    const cycleId = `context-cycle-${threadId}-${Date.now()}`;
+    const cycleStartedAt = new Date().toISOString();
+    const continuationSource = thread.messages.length > 0 && !isNewThread
+      ? buildContinuationContext(threadId, thread.values)
+      : {};
+    setPendingContinuationContext({
+      ...continuationSource,
+      continue_cycle_id: cycleId,
+      continue_cycle_started_at: cycleStartedAt,
+      continue_cycle_base_tokens: usage.rawUsedTokens,
+    });
+    console.info(`[octoagent] Context usage reached ${usage.percent}%; next turn will use hidden compaction context in-place.`);
+  }, [isNewThread, router, thread.isLoading, thread.messages.length, thread.values, threadId]);
+
+  const handleContextChange = useCallback(
+    (context: ChatInputContext) => setSettings("context", context),
+    [setSettings],
+  );
+
+  const threadContextValue = useMemo(
+    () => ({ thread, isMock }),
+    [isMock, thread],
+  );
+
+  const welcomeContinuation = useMemo(() => {
+    if (!continueFromThreadId) {
+      return undefined;
+    }
+
+    return {
+      sourceTitle: continuationSourceState?.title ?? continueFromThreadId,
+      messageCount: continuationSourceState?.messages?.length ?? 0,
+      recentMessages: (continuationSourceState?.messages ?? [])
+        .slice(-6)
+        .map((m) => ({
+          role: m.type,
+          content:
+            typeof m.content === "string"
+              ? m.content
+              : "",
+        }))
+        .filter((m) => m.content.trim().length > 0),
+    };
+  }, [continueFromThreadId, continuationSourceState]);
+
+  useEffect(() => {
+    if (!thread.error || isNewThread) return;
+    if (thread.isLoading) return;
+    const msg =
+      thread.error instanceof Error
+        ? thread.error.message
+        : typeof thread.error === "string"
+          ? thread.error
+          : typeof thread.error === "object" &&
+              thread.error !== null &&
+              "message" in thread.error &&
+              typeof thread.error.message === "string"
+            ? thread.error.message
+            : "";
+    if (msg.includes("not found") || msg.includes("404")) {
+      // "Run not found" comes from reconnectOnMount trying to rejoin a
+      // completed run — this is normal, not a thread expiry.
+      if (msg.includes("Run not found")) return;
+      // If thread already has messages, the error is from a stale reconnect.
+      // This is the normal case for historical conversations — we have local
+      // state and just failed to reconnect to a live run.
+      if (thread.messages.length > 0) return;
+      // Don't redirect threads that were just created — the first checkpoint
+      // may not have been written yet, causing a spurious 404.
+      if (threadCreatedAtRef.current && Date.now() - threadCreatedAtRef.current < 15_000) return;
+      // 2026-05-16: Also check if the thread was loaded from sidebar/history
+      // navigation — give it more time before declaring it unavailable.
+      // The SDK onError handler already swallows recoverable 404s and treats
+      // the thread as a readable history view.
+      if (isRecoverableThreadMissingError(thread.error)) return;
+      // Diagnostic: log the conditions that led to this redirect so future
+      // accidental thread-resets are traceable from the browser console.
+      console.warn("[ChatThreadView] redirecting stale thread to /new", {
+        threadId,
+        threadError: thread.error,
+        threadErrorMessage: msg,
+        threadCreatedAt: threadCreatedAtRef.current,
+        ageMs: threadCreatedAtRef.current ? Date.now() - threadCreatedAtRef.current : null,
+        isNewThread,
+        messagesLength: thread.messages.length,
+      });
+      toast.info("Chat session is no longer available. Starting fresh.");
+      router.replace("/workspace/chats/new");
+    }
+  }, [thread.error, thread.isLoading, isNewThread, router, thread.messages.length, threadId]);
+
+  return (
+    <ThreadContext.Provider value={threadContextValue}>
+      <ChatBox contextModelName={typeof settings.context.model_name === "string" ? settings.context.model_name : undefined} isNewThread={isNewThread} mode={settings.context.mode} threadId={threadId}>
+        <div className="relative flex size-full min-h-0 justify-between overflow-hidden">
+          <div className="octo-grid pointer-events-none absolute inset-0 opacity-65" />
+          <h1 className="sr-only">{isNewThread ? t.pages.newChat : thread.values.title}</h1>
+          <header
+            className="absolute top-0 right-0 left-0 z-30 flex h-14 shrink-0 items-center px-5"
+          >
+            <div className="flex min-w-0 flex-1 items-center text-sm font-medium">
+              <ThreadTitle isNewThread={isNewThread} threadId={threadId} thread={thread} />
+            </div>
+            <div className="flex shrink-0 items-center">
+            </div>
+          </header>
+          <div className="relative flex min-h-0 max-w-full grow flex-col">
+            <div className="flex size-full justify-center">
+              <MessageList
+                className="size-full px-4 pb-32 pt-12"
+                threadId={threadId}
+                thread={thread}
+                emptyState={
+                  isNewThread ? (
+                    <Welcome
+                      mode={settings.context.mode}
+                      continuation={welcomeContinuation}
+                    />
+                  ) : undefined
+                }
+              />
+            </div>
+            <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-3 pb-5 sm:px-4">
+              <div className="relative w-full max-w-5xl">
+                <div className="absolute right-0 bottom-full left-0 z-0 translate-y-px">
+                  <TodoList
+                    className="octo-panel"
+                    todos={thread.values.todos ?? []}
+                    hidden={
+                      !thread.values.todos || thread.values.todos.length === 0
+                    }
+                  />
+                </div>
+                <InputBox
+                  className={cn(
+                    "octo-panel w-full rounded-[1.75rem]",
+                    thread.values.todos?.length ? "rounded-t-none" : "",
+                    isNewThread ? "pb-2" : "",
+                  )}
+                  isNewThread={isNewThread}
+                  threadId={threadId}
+                  threadState={thread.values}
+                  autoFocus={false}
+                  status={thread.isLoading ? "streaming" : "ready"}
+                  context={settings.context}
+                  contextCycleBaseTokens={contextCycleBaseTokens}
+                  disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
+                  onContextChange={handleContextChange}
+                  onContextThreshold={handleContextThreshold}
+                  onSubmit={handleSubmit}
+                  onStop={handleStop}
+                />
+                {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" && (
+                  <div className="text-muted-foreground w-full translate-y-12 text-center text-xs">
+                    {t.common.notAvailableInDemoMode}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </ChatBox>
+    </ThreadContext.Provider>
+  );
+}

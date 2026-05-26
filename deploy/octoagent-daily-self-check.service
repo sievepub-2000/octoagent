@@ -1,0 +1,13 @@
+[Unit]
+Description=OctoAgent Daily Self Check
+Wants=network-online.target
+After=network-online.target octoagent-local.service
+
+[Service]
+Type=oneshot
+User=sieve-pub
+WorkingDirectory=/home/sieve-pub/public-workspace/octoagent
+Environment=PATH=/snap/bin:/usr/bin:/usr/sbin:/bin:/home/sieve-pub/public-workspace/octoagent/scripts
+Environment=TMPDIR=/home/sieve-pub/public-workspace/octoagent/tmp
+Environment=OCTOAGENT_PYTHON_BIN=/home/sieve-pub/public-workspace/octoagent/backend/.venv/bin/python
+ExecStart=/home/sieve-pub/public-workspace/octoagent/scripts/maintenance/daily-self-check.sh

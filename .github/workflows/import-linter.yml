@@ -1,0 +1,30 @@
+name: Import Boundary Check (import-linter)
+
+on:
+  pull_request:
+    paths:
+      - 'backend/src/**'
+      - '.importlinter'
+      - '.github/workflows/import-linter.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/src/**'
+      - '.importlinter'
+
+jobs:
+  import-linter:
+    name: cross-domain import boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install import-linter
+        run: pip install import-linter==2.11
+      - name: Run lint-imports
+        working-directory: backend
+        env:
+          PYTHONPATH: ${{ github.workspace }}/backend
+        run: lint-imports --config ../.importlinter

@@ -1,0 +1,1044 @@
+[
+  {
+    "path": "src/components/ai-elements/canvas.tsx",
+    "syms": [
+      "Canvas"
+    ],
+    "sym_total_hits": 3,
+    "leaf_hits": 1,
+    "sample": [
+      "Canvas=3"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/checkpoint.tsx",
+    "syms": [
+      "Checkpoint",
+      "CheckpointIcon",
+      "CheckpointIconProps",
+      "CheckpointProps",
+      "CheckpointTrigger",
+      "CheckpointTriggerProps"
+    ],
+    "sym_total_hits": 5,
+    "leaf_hits": 0,
+    "sample": [
+      "Checkpoint=5"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/connection.tsx",
+    "syms": [
+      "Connection"
+    ],
+    "sym_total_hits": 2,
+    "leaf_hits": 0,
+    "sample": [
+      "Connection=2"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/context.tsx",
+    "syms": [
+      "Context",
+      "ContextCacheUsage",
+      "ContextCacheUsageProps",
+      "ContextContent",
+      "ContextContentBody",
+      "ContextContentBodyProps",
+      "ContextContentFooter",
+      "ContextContentFooterProps",
+      "ContextContentHeader",
+      "ContextContentHeaderProps",
+      "ContextContentProps",
+      "ContextInputUsage",
+      "ContextInputUsageProps",
+      "ContextOutputUsage",
+      "ContextOutputUsageProps",
+      "ContextProps",
+      "ContextReasoningUsage",
+      "ContextReasoningUsageProps",
+      "ContextTrigger",
+      "ContextTriggerProps"
+    ],
+    "sym_total_hits": 7,
+    "leaf_hits": 9,
+    "sample": [
+      "Context=7"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/controls.tsx",
+    "syms": [
+      "Controls",
+      "ControlsProps"
+    ],
+    "sym_total_hits": 3,
+    "leaf_hits": 0,
+    "sample": [
+      "Controls=3"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/edge.tsx",
+    "syms": [
+      "Edge"
+    ],
+    "sym_total_hits": 2,
+    "leaf_hits": 0,
+    "sample": [
+      "Edge=2"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/image.tsx",
+    "syms": [
+      "Image",
+      "ImageProps"
+    ],
+    "sym_total_hits": 5,
+    "leaf_hits": 0,
+    "sample": [
+      "Image=5"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/node.tsx",
+    "syms": [
+      "Node",
+      "NodeAction",
+      "NodeActionProps",
+      "NodeContent",
+      "NodeContentProps",
+      "NodeDescription",
+      "NodeDescriptionProps",
+      "NodeFooter",
+      "NodeFooterProps",
+      "NodeHeader",
+      "NodeHeaderProps",
+      "NodeProps",
+      "NodeTitle",
+      "NodeTitleProps"
+    ],
+    "sym_total_hits": 6,
+    "leaf_hits": 0,
+    "sample": [
+      "Node=4",
+      "NodeProps=2"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/open-in-chat.tsx",
+    "syms": [
+      "OpenIn",
+      "OpenInChatGPT",
+      "OpenInChatGPTProps",
+      "OpenInClaude",
+      "OpenInClaudeProps",
+      "OpenInContent",
+      "OpenInContentProps",
+      "OpenInCursor",
+      "OpenInCursorProps",
+      "OpenInItem",
+      "OpenInItemProps",
+      "OpenInLabel",
+      "OpenInLabelProps",
+      "OpenInProps",
+      "OpenInScira",
+      "OpenInSciraProps",
+      "OpenInSeparator",
+      "OpenInSeparatorProps",
+      "OpenInT3",
+      "OpenInT3Props",
+      "OpenInTrigger",
+      "OpenInTriggerProps",
+      "OpenInv0",
+      "OpenInv0Props"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/ai-elements/panel.tsx",
+    "syms": [
+      "Panel"
+    ],
+    "sym_total_hits": 2,
+    "leaf_hits": 0,
+    "sample": [
+      "Panel=2"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/plan.tsx",
+    "syms": [
+      "Plan",
+      "PlanAction",
+      "PlanActionProps",
+      "PlanContent",
+      "PlanContentProps",
+      "PlanDescription",
+      "PlanDescriptionProps",
+      "PlanFooter",
+      "PlanFooterProps",
+      "PlanHeader",
+      "PlanHeaderProps",
+      "PlanProps",
+      "PlanTitle",
+      "PlanTitleProps",
+      "PlanTrigger",
+      "PlanTriggerProps"
+    ],
+    "sym_total_hits": 3,
+    "leaf_hits": 0,
+    "sample": [
+      "Plan=3"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/sources.tsx",
+    "syms": [
+      "Source",
+      "SourceProps",
+      "Sources",
+      "SourcesContent",
+      "SourcesContentProps",
+      "SourcesProps",
+      "SourcesTrigger",
+      "SourcesTriggerProps"
+    ],
+    "sym_total_hits": 6,
+    "leaf_hits": 0,
+    "sample": [
+      "Source=6"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/toolbar.tsx",
+    "syms": [
+      "Toolbar"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 0,
+    "sample": [
+      "Toolbar=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ai-elements/web-preview.tsx",
+    "syms": [
+      "WebPreview",
+      "WebPreviewBody",
+      "WebPreviewBodyProps",
+      "WebPreviewConsole",
+      "WebPreviewConsoleProps",
+      "WebPreviewContextValue",
+      "WebPreviewNavigation",
+      "WebPreviewNavigationButton",
+      "WebPreviewNavigationButtonProps",
+      "WebPreviewNavigationProps",
+      "WebPreviewProps",
+      "WebPreviewUrl",
+      "WebPreviewUrlProps"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/landing/footer.tsx",
+    "syms": [
+      "Footer"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/landing/header.tsx",
+    "syms": [
+      "Header"
+    ],
+    "sym_total_hits": 4,
+    "leaf_hits": 0,
+    "sample": [
+      "Header=4"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/landing/hero.tsx",
+    "syms": [
+      "Hero"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/landing/progressive-skills-animation.tsx",
+    "syms": [
+      "ProgressiveSkillsAnimation"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 0,
+    "sample": [
+      "ProgressiveSkillsAnimation=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/landing/section.tsx",
+    "syms": [
+      "Section"
+    ],
+    "sym_total_hits": 6,
+    "leaf_hits": 0,
+    "sample": [
+      "Section=6"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/landing/sections/case-study-section.tsx",
+    "syms": [
+      "CaseStudySection"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/landing/sections/community-section.tsx",
+    "syms": [
+      "CommunitySection"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/landing/sections/sandbox-section.tsx",
+    "syms": [
+      "SandboxSection"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/landing/sections/skills-section.tsx",
+    "syms": [
+      "SkillsSection"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/landing/sections/whats-new-section.tsx",
+    "syms": [
+      "WhatsNewSection"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/system/diagnostic-timeline.tsx",
+    "syms": [
+      "DiagnosticTimeline"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/ui/alert.tsx",
+    "syms": [
+      "Alert",
+      "AlertDescription",
+      "AlertTitle"
+    ],
+    "sym_total_hits": 3,
+    "leaf_hits": 1,
+    "sample": [
+      "AlertDescription=1",
+      "AlertTitle=1",
+      "Alert=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/avatar.tsx",
+    "syms": [
+      "Avatar",
+      "AvatarFallback",
+      "AvatarImage"
+    ],
+    "sym_total_hits": 2,
+    "leaf_hits": 0,
+    "sample": [
+      "Avatar=2"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/carousel.tsx",
+    "syms": [
+      "Carousel",
+      "CarouselContent",
+      "CarouselItem",
+      "CarouselNext",
+      "CarouselPrevious"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/ui/config-entity-card.tsx",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/ui/empty.tsx",
+    "syms": [
+      "Empty",
+      "EmptyContent",
+      "EmptyDescription",
+      "EmptyHeader",
+      "EmptyMedia",
+      "EmptyTitle"
+    ],
+    "sym_total_hits": 9,
+    "leaf_hits": 1,
+    "sample": [
+      "Empty=4",
+      "EmptyHeader=1",
+      "EmptyDescription=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/error-boundary.tsx",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/ui/flickering-grid.tsx",
+    "syms": [
+      "FlickeringGrid"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 1,
+    "sample": [
+      "FlickeringGrid=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/galaxy.jsx",
+    "syms": [
+      "Galaxy"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 1,
+    "sample": [
+      "Galaxy=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/item.tsx",
+    "syms": [
+      "Item",
+      "ItemActions",
+      "ItemContent",
+      "ItemDescription",
+      "ItemFooter",
+      "ItemGroup",
+      "ItemHeader",
+      "ItemMedia",
+      "ItemSeparator",
+      "ItemTitle"
+    ],
+    "sym_total_hits": 4,
+    "leaf_hits": 0,
+    "sample": [
+      "Item=4"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/magic-bento.tsx",
+    "syms": [
+      "BentoCardProps",
+      "BentoProps",
+      "MagicBento"
+    ],
+    "sym_total_hits": 2,
+    "leaf_hits": 1,
+    "sample": [
+      "MagicBento=1",
+      "BentoCardProps=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/number-ticker.tsx",
+    "syms": [
+      "NumberTicker"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 1,
+    "sample": [
+      "NumberTicker=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/progress.tsx",
+    "syms": [
+      "Progress"
+    ],
+    "sym_total_hits": 5,
+    "leaf_hits": 1,
+    "sample": [
+      "Progress=5"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/sonner.tsx",
+    "syms": [
+      "Toaster"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 0,
+    "sample": [
+      "Toaster=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/spotlight-card.tsx",
+    "syms": [
+      "SpotlightCard"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/ui/terminal.tsx",
+    "syms": [
+      "AnimatedSpan",
+      "Terminal",
+      "TypingAnimation"
+    ],
+    "sym_total_hits": 5,
+    "leaf_hits": 1,
+    "sample": [
+      "TypingAnimation=1",
+      "Terminal=3",
+      "AnimatedSpan=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/ui/word-rotate.tsx",
+    "syms": [
+      "WordRotate"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 1,
+    "sample": [
+      "WordRotate=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/widget/index.ts",
+    "syms": [
+      "initWidget"
+    ],
+    "sym_total_hits": 1,
+    "leaf_hits": 0,
+    "sample": [
+      "initWidget=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/widget/octo-agent-widget.ts",
+    "syms": [
+      "WidgetConfig",
+      "initWidget"
+    ],
+    "sym_total_hits": 2,
+    "leaf_hits": 0,
+    "sample": [
+      "initWidget=1",
+      "WidgetConfig=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/components/workspace/chunk-load-recovery.tsx",
+    "syms": [
+      "ChunkLoadRecovery"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/execution-log-panel.tsx",
+    "syms": [
+      "ExecutionLogPanel"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/orchestrator/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/orchestrator/workflow-builder.tsx",
+    "syms": [
+      "WorkflowBuilder"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/orchestrator/workflow-graph.tsx",
+    "syms": [
+      "WorkflowGraph"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/overscroll.tsx",
+    "syms": [
+      "Overscroll"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/settings/skill-settings-page.tsx",
+    "syms": [
+      "SkillSettingsPage"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/settings/tool-settings-page.tsx",
+    "syms": [
+      "ToolSettingsPage"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/studio-runtime-panel.tsx",
+    "syms": [
+      "StudioRuntimePanel"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/task-workspace-overview.tsx",
+    "syms": [
+      "TaskWorkspaceOverview"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/components/workspace/task-workspace-tabs.tsx",
+    "syms": [
+      "TaskWorkspaceTabs"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/alerts/hooks.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 58,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/alerts/notify.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/alerts/store.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 3,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/artifacts/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/browser-runtime/api.ts",
+    "syms": [
+      "createBrowserRuntimeSession",
+      "executeNextBrowserRuntimeAction",
+      "loadBrowserRuntimeCapabilities",
+      "loadBrowserRuntimeProviders",
+      "loadBrowserRuntimeSession",
+      "loadBrowserRuntimeSessions",
+      "recoverBrowserRuntimeSession",
+      "updateBrowserRuntimeSession"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 14,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/browser-runtime/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/browser-runtime/types.ts",
+    "syms": [
+      "BrowserActionContract",
+      "BrowserActionExecutionRequest",
+      "BrowserActionExecutionResult",
+      "BrowserExecutionSession",
+      "BrowserProviderProfile",
+      "BrowserRuntimeCapability",
+      "BrowserSessionEvent",
+      "BrowserSessionRecoveryRequest",
+      "BrowserSessionRequest",
+      "BrowserSessionUpdateRequest"
+    ],
+    "sym_total_hits": 8,
+    "leaf_hits": 18,
+    "sample": [
+      "BrowserRuntimeCapability=1",
+      "BrowserProviderProfile=1",
+      "BrowserSessionRequest=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/i18n/locales/index.ts",
+    "syms": [
+      "enUS",
+      "ja",
+      "ko",
+      "zhCN",
+      "zhTW"
+    ],
+    "sym_total_hits": 34,
+    "leaf_hits": 0,
+    "sample": [
+      "enUS=5",
+      "zhTW=4",
+      "zhCN=5"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/interface/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/mcp/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/memory/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/model-auth/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/models/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/observation/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/orchestration/api.ts",
+    "syms": [
+      "loadOrchestrationCapabilities",
+      "loadPromptStacks",
+      "loadSeedTaskGraph"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 14,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/orchestration/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/orchestration/types.ts",
+    "syms": [
+      "BudgetPolicy",
+      "CompiledTaskGraph",
+      "OrchestrationCapability",
+      "OrchestrationCard",
+      "PromptModuleProfile",
+      "PromptStackProfile",
+      "RuntimeBinding",
+      "RuntimeHandoff"
+    ],
+    "sym_total_hits": 3,
+    "leaf_hits": 18,
+    "sample": [
+      "PromptStackProfile=1",
+      "CompiledTaskGraph=1",
+      "OrchestrationCapability=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/plugins/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/query-engine/hooks.ts",
+    "syms": [
+      "useCompactQueryEngineSession",
+      "useExecuteQueryEngineTurn",
+      "useQueryEngineSession",
+      "useRefreshQueryEngineSessionProfile"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 58,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/query-engine/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/research-runtime/api.ts",
+    "syms": [
+      "createResearchExperiment",
+      "loadResearchExperiment",
+      "loadResearchExperiments",
+      "loadResearchPrograms",
+      "loadResearchRuntimeCapabilities",
+      "loadResearchTrials",
+      "runResearchExperiment"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 14,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/research-runtime/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/research-runtime/types.ts",
+    "syms": [
+      "CreateResearchExperimentRequest",
+      "ResearchArtifactRef",
+      "ResearchExecutionBudget",
+      "ResearchExperiment",
+      "ResearchExperimentListResponse",
+      "ResearchExperimentRunResponse",
+      "ResearchExperimentSpec",
+      "ResearchInstructionProgram",
+      "ResearchProgramListResponse",
+      "ResearchRuntimeCapability",
+      "ResearchRuntimeSnapshot",
+      "ResearchRuntimeStatusResponse",
+      "ResearchTrial",
+      "ResearchTrialVerdict",
+      "RunResearchExperimentRequest"
+    ],
+    "sym_total_hits": 8,
+    "leaf_hits": 18,
+    "sample": [
+      "ResearchProgramListResponse=1",
+      "ResearchExperimentListResponse=1",
+      "ResearchRuntimeCapability=1"
+    ],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/tool-registry/api.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 14,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/tool-registry/hooks.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 58,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/tool-registry/index.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/core/tool-registry/types.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 18,
+    "sample": [],
+    "verdict": "LIVE"
+  },
+  {
+    "path": "src/core/utils/json.ts",
+    "syms": [
+      "tryParseJSON"
+    ],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  },
+  {
+    "path": "src/instrumentation-client.ts",
+    "syms": [],
+    "sym_total_hits": 0,
+    "leaf_hits": 0,
+    "sample": [],
+    "verdict": "DEAD"
+  }
+]

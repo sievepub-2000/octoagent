@@ -1,0 +1,228 @@
+"""DuckDuckGo + httpx based web tools — zero API key required.
+
+Provides:
+  - ``web_search_tool``: queries DuckDuckGo via the ``ddgs`` package.
+  - ``web_fetch_tool``: httpx fetch via env-configured proxy, with readability
+    extraction. Falls back to RSS variants for sites known to block scrapers
+    (currently: Bloomberg → ``feeds.bloomberg.com/markets/news.rss``).
+
+Why this exists: Tavily/Jina API keys are not provisioned, and Jina reader is
+not reachable from this host. DDG + httpx work today without credentials.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import os
+import ssl
+from functools import lru_cache
+from urllib.parse import urlparse
+
+import httpx
+from langchain.tools import tool
+
+from src.runtime.config import get_app_config
+from src.utils.readability import ReadabilityExtractor
+from src.utils.url_safety import is_url_safe
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_TIMEOUT = 30.0
+_DEFAULT_CONNECT = 15.0
+_USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0"
+_readability = ReadabilityExtractor()
+
+
+# Sites that reliably 403 HTML scrapers but expose RSS / public APIs.
+_RSS_REWRITES = {
+    "www.bloomberg.com": "https://feeds.bloomberg.com/markets/news.rss",
+    "bloomberg.com": "https://feeds.bloomberg.com/markets/news.rss",
+    "www.reuters.com": "https://www.reutersagency.com/feed/",
+    "reuters.com": "https://www.reutersagency.com/feed/",
+}
+
+
+@lru_cache(maxsize=1)
+def _ssl_verify_context() -> ssl.SSLContext | bool:
+    if os.environ.get("OCTO_WEB_FETCH_SSL_VERIFY", "1").strip().lower() in {"0", "false", "no", "off"}:
+        return False
+    try:
+        import truststore
+
+        return truststore.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+    except Exception:
+        try:
+            import certifi
+
+            return ssl.create_default_context(cafile=certifi.where())
+        except Exception:
+            return True
+
+
+def _allow_insecure_ssl_retry() -> bool:
+    return os.environ.get("OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY", "1").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _is_certificate_verify_error(exc: BaseException) -> bool:
+    text = str(exc).lower()
+    return "certificate_verify_failed" in text or "certificate verify failed" in text or "unable to get local issuer certificate" in text
+
+
+def _client(timeout: float = _DEFAULT_TIMEOUT, *, verify: ssl.SSLContext | bool | None = None) -> httpx.Client:
+    """httpx client that honours HTTP_PROXY/HTTPS_PROXY env vars."""
+    return httpx.Client(
+        trust_env=True,
+        timeout=httpx.Timeout(timeout, connect=_DEFAULT_CONNECT),
+        headers={
+            "User-Agent": _USER_AGENT,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+        },
+        follow_redirects=True,
+        verify=_ssl_verify_context() if verify is None else verify,
+    )
+
+
+# ──────────────────────────── web_search ────────────────────────────
+
+
+@tool("web_search", parse_docstring=True)
+def web_search_tool(query: str) -> str:
+    """Search the web via DuckDuckGo. Returns a JSON list of {title,url,snippet}.
+
+    No API key required. Honours HTTPS_PROXY in the environment.
+
+    Args:
+        query: The query to search for.
+    """
+    cfg = get_app_config().get_tool_config("web_search")
+    max_results = 8
+    if cfg is not None and "max_results" in cfg.model_extra:
+        max_results = int(cfg.model_extra.get("max_results") or max_results)
+
+    try:
+        from ddgs import DDGS
+    except ImportError:
+        return json.dumps([{"error": "ddgs package not installed"}])
+
+    try:
+        def _ddg_search():
+            with DDGS(timeout=25) as ddg:
+                return list(ddg.text(query, region="us-en", max_results=max_results))
+
+        raw = _ddg_search()
+    except Exception as exc:
+        logger.exception("ddgs search failed: %s", exc)
+        return json.dumps([{"error": f"web_search failed: {type(exc).__name__}: {exc}"}])
+
+    normalised = [
+        {
+            "title": (r.get("title") or "").strip(),
+            "url": r.get("href") or r.get("url") or "",
+            "snippet": (r.get("body") or "").strip(),
+        }
+        for r in raw
+    ]
+    return json.dumps(normalised, ensure_ascii=False, indent=2)
+
+
+# ──────────────────────────── web_fetch ─────────────────────────────
+
+
+def _maybe_rewrite_to_rss(url: str) -> str | None:
+    host = urlparse(url).netloc.lower()
+    if host in _RSS_REWRITES:
+        return _RSS_REWRITES[host]
+    return None
+
+
+def _fetch_raw(url: str, timeout: float) -> tuple[int, str, str]:
+    """Return (status_code, content_type, body). Body truncated to 1MB."""
+    with _client(timeout=timeout) as c:
+        r = c.get(url)
+        body = r.text
+        if len(body) > 1_000_000:
+            body = body[:1_000_000]
+        return r.status_code, (r.headers.get("Content-Type") or ""), body
+
+
+def _fetch_raw_without_verification(url: str, timeout: float) -> tuple[int, str, str]:
+    """Retry for public pages with broken certificate chains; caller adds warning."""
+    with _client(timeout=timeout, verify=False) as c:
+        r = c.get(url)
+        body = r.text
+        if len(body) > 1_000_000:
+            body = body[:1_000_000]
+        return r.status_code, (r.headers.get("Content-Type") or ""), body
+
+
+@tool("web_fetch", parse_docstring=True)
+def web_fetch_tool(url: str) -> str:
+    """Fetch a web page and return readable markdown.
+
+    Uses httpx via the system proxy. For sites known to block HTML scrapers
+    (e.g. Bloomberg) automatically falls back to RSS feeds.
+
+    Args:
+        url: The URL to fetch the contents of.
+    """
+    if not is_url_safe(url):
+        return "Error: Access to private/internal network addresses is not allowed."
+
+    cfg = get_app_config().get_tool_config("web_fetch")
+    timeout = _DEFAULT_TIMEOUT
+    if cfg is not None and "timeout" in cfg.model_extra:
+        try:
+            timeout = float(cfg.model_extra.get("timeout") or timeout)
+        except (TypeError, ValueError):
+            pass
+
+    tls_warning = ""
+    try:
+        status, ctype, body = _fetch_raw(url, timeout=timeout)
+    except Exception as exc:
+        if _allow_insecure_ssl_retry() and _is_certificate_verify_error(exc):
+            logger.warning("web_fetch TLS verification failed for %s; retrying without verification: %s", url, exc)
+            try:
+                status, ctype, body = _fetch_raw_without_verification(url, timeout=timeout)
+                tls_warning = (
+                    "[Warning: TLS certificate verification failed for this public URL; "
+                    "retried with certificate verification disabled. Verify the source URL before relying on the content.]\n\n"
+                )
+            except Exception as retry_exc:
+                logger.warning("web_fetch insecure TLS retry failed for %s: %s", url, retry_exc)
+                status, ctype, body = 0, "", ""
+        else:
+            logger.warning("web_fetch initial GET failed for %s: %s", url, exc)
+            status, ctype, body = 0, "", ""
+
+    # If blocked or empty, try RSS fallback for known-bad hosts.
+    if status in (0, 403, 401, 451, 503) or not body:
+        rss = _maybe_rewrite_to_rss(url)
+        if rss:
+            logger.info("web_fetch: %s status=%s, retrying RSS %s", url, status, rss)
+            try:
+                status2, ctype2, body2 = _fetch_raw(rss, timeout=timeout)
+                if status2 == 200 and body2:
+                    return f"# RSS feed for {urlparse(url).netloc}\n\nSource: {rss}\n\n{body2[:6000]}"
+            except Exception as exc:
+                logger.warning("web_fetch RSS fallback failed: %s", exc)
+
+    if not body:
+        return f"Web fetch failed for {url}: status={status}. Consider trying a different source URL or web_search for alternatives."
+
+    # XML/RSS content: return raw (truncated) — readability does not help.
+    if "xml" in ctype or url.endswith((".rss", ".xml", ".atom")):
+        return f"{tls_warning}# Feed: {url}\n\n{body[:6000]}"
+
+    try:
+        article = _readability.extract_article(body)
+        md = article.to_markdown()
+        if md and md.strip():
+            return f"{tls_warning}{md[:4096]}"
+    except Exception as exc:
+        logger.warning("readability failed for %s: %s", url, exc)
+
+    # Last resort: truncated raw HTML.
+    return f"{tls_warning}# Raw HTML for {url}\n\n{body[:4096]}"

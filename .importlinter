@@ -1,0 +1,137 @@
+# import-linter configuration
+# Topology boundary enforcement layered on top of `scripts/check_topology_freeze.py`.
+#
+# All contracts here MUST currently pass against `backend/src/`. They lock in
+# import-graph properties that are already true today, preventing regressions
+# while the larger semantic dedup work (MODULE_OWNERS.md Phase 7 core) lands
+# incrementally.
+#
+# Aspirational target (from MODULE_OWNERS.md §2): a layered dependency direction
+# `interfaces+governance -> gateway -> agents -> harness -> tools -> storage -> runtime`
+# with `community`/`models`/`utils` as shared leaves. The current import graph
+# violates strict layering, so this file enforces only the verified-clean
+# subset. Stricter contracts will be added phase by phase.
+
+[importlinter]
+root_packages =
+    src
+include_external_packages = False
+
+# ---------------------------------------------------------------------------
+# Contract 1: utils is a pure leaf
+# ---------------------------------------------------------------------------
+# `src.utils` must not import from any other top-level domain. utils provides
+# generic helpers (logging_config, etc.) and must stay framework-agnostic.
+
+[importlinter:contract:utils-is-leaf]
+name = utils must not depend on any other top-level domain
+type = forbidden
+source_modules =
+    src.utils
+forbidden_modules =
+    src.agents
+    src.community
+    src.gateway
+    src.governance
+    src.harness
+    src.interfaces
+    src.models
+    src.runtime
+    src.storage
+    src.tools
+allow_indirect_imports = true
+# Known acceptable edge: agent_tool_guide is a documentation generator that
+# consumes the tool capability registry. Misplaced under utils/ historically;
+# slated to move under a docs_generation/ module in a follow-up.
+ignore_imports =
+    src.utils.agent_tool_guide -> src.tools.capability.registry
+
+# ---------------------------------------------------------------------------
+# Contract 2: community is a terminal adapter layer
+# ---------------------------------------------------------------------------
+# `src.community` houses third-party / external integrations. It may consume
+# runtime + utils only. It must never reach into product domains, otherwise
+# core domains become entangled with optional/3rd-party code paths.
+
+[importlinter:contract:community-is-terminal]
+name = community must not depend on product domains
+type = forbidden
+source_modules =
+    src.community
+forbidden_modules =
+    src.agents
+    src.gateway
+    src.governance
+    src.harness
+    src.interfaces
+    src.models
+    src.storage
+    src.tools
+allow_indirect_imports = true
+
+# ---------------------------------------------------------------------------
+# Contract 3: models is a near-leaf type layer
+# ---------------------------------------------------------------------------
+# `src.models` contains DTOs / embedding services. Today it imports from
+# `runtime` and `harness` only. Lock out everything else.
+
+[importlinter:contract:models-stays-narrow]
+name = models must not depend on agents/gateway/governance/interfaces/storage/tools/community/utils
+type = forbidden
+source_modules =
+    src.models
+forbidden_modules =
+    src.agents
+    src.community
+    src.gateway
+    src.governance
+    src.interfaces
+    src.storage
+    src.tools
+allow_indirect_imports = true
+
+# ---------------------------------------------------------------------------
+# Contract 4: governance stays high-level / policy-only
+# ---------------------------------------------------------------------------
+# Today: governance -> runtime, utils only. Lock against cross-domain leaks.
+
+[importlinter:contract:governance-stays-high]
+name = governance must not depend on product domains (only runtime+utils allowed)
+type = forbidden
+source_modules =
+    src.governance
+forbidden_modules =
+    src.agents
+    src.community
+    src.gateway
+    src.harness
+    src.interfaces
+    src.models
+    src.storage
+    src.tools
+allow_indirect_imports = true
+
+# ---------------------------------------------------------------------------
+# Contract 5: harness avoids agent/governance/interfaces/models/tools/community
+# ---------------------------------------------------------------------------
+# Today harness imports only: gateway (1), runtime (1), storage (1), utils (1).
+# Keep the surface small.
+
+[importlinter:contract:harness-stays-narrow]
+name = harness must not depend on agents/community/governance/interfaces/models/tools
+type = forbidden
+source_modules =
+    src.harness
+forbidden_modules =
+    src.agents
+    src.community
+    src.governance
+    src.interfaces
+    src.models
+    src.tools
+allow_indirect_imports = true
+
+# ---------------------------------------------------------------------------
+# Contract 6: runtime is not reachable from gateway/agents/etc. in reverse...
+# (deliberately omitted — current state has runtime -> gateway/storage edges
+# which need a separate cleanup pass; see MODULE_OWNERS.md Phase 7 follow-up.)

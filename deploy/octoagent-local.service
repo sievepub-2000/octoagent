@@ -1,0 +1,27 @@
+[Unit]
+Description=OctoAgent Local Service
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=sieve-pub
+WorkingDirectory=/home/sieve-pub/public-workspace/octoagent
+Environment=PATH=/snap/bin:/usr/local/bin:/usr/bin:/usr/sbin:/usr/bin
+Environment=OCTO_AGENT_CAPABILITY_SOURCE=/home/sieve-pub/public-workspace/octoagent
+Environment=OCTOAGENT_MANAGED_BY_SYSTEMD=1
+Environment=BG_JOB_ISOLATED_LOOPS=true
+Environment=PYTHONDONTWRITEBYTECODE=1
+PermissionsStartOnly=yes
+ExecStartPre=-/usr/bin/find /home/sieve-pub/public-workspace/octoagent/frontend/.next -not -user sieve-pub -exec chown sieve-pub:sieve-pub {} +
+ExecStartPre=-/usr/bin/find /home/sieve-pub/public-workspace/octoagent/frontend/.next -not -group sieve-pub -exec chgrp sieve-pub {} +
+ExecStart=/home/sieve-pub/public-workspace/octoagent/scripts/start-octoagent.sh run
+ExecStop=/home/sieve-pub/public-workspace/octoagent/scripts/start-octoagent.sh stop-runtime
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+TimeoutStartSec=900
+TimeoutStopSec=60
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,143 @@
+{
+  "title": "Inarbit AI Workflow Hub",
+  "environment": "production",
+  "policy": {
+    "mode": "compliant_internal_control_plane",
+    "disabled_capabilities": [
+      "bulk_account_registration",
+      "sms_verification_brokerage",
+      "quota_pool_sharing",
+      "provider_limit_evasion",
+      "public_multi_account_token_proxy"
+    ]
+  },
+  "systems": [
+    {
+      "id": "ai-access-control",
+      "name": "Unified Access Control",
+      "kind": "security",
+      "status": "active",
+      "public_path": "https://inarbit.work/ai-ops/login",
+      "health": {
+        "type": "http",
+        "url": "http://127.0.0.1:8095/health"
+      },
+      "role": "Unified authentication, RBAC, and audit gate for gateway, chat, admin, and ai-ops."
+    },
+    {
+      "id": "redis",
+      "name": "Redis",
+      "kind": "data",
+      "status": "active",
+      "public_path": null,
+      "health": {
+        "type": "tcp",
+        "host": "127.0.0.1",
+        "port": 6379
+      },
+      "role": "Local cache and queue dependency."
+    },
+    {
+      "id": "cpa-dashboard",
+      "name": "CPA-Dashboard Connector",
+      "kind": "connector",
+      "status": "active_internal_gateway_panel",
+      "public_path": "https://gateway.inarbit.work/",
+      "health": {
+        "type": "http",
+        "url": "http://127.0.0.1:5010/"
+      },
+      "role": "Internal gateway panel for owned credentials and legal gateway testing. Quota pooling and public multi-account dispatch are disabled."
+    },
+    {
+      "id": "antigravity-manager",
+      "name": "Antigravity Manager Connector",
+      "kind": "connector",
+      "status": "planned_lab_only",
+      "public_path": null,
+      "health": {
+        "type": "manual"
+      },
+      "role": "Reference connector for protocol compatibility testing with owned credentials only."
+    },
+    {
+      "id": "team-entitlement",
+      "name": "Team Entitlement Connector",
+      "kind": "connector",
+      "status": "planned_internal_only",
+      "public_path": null,
+      "health": {
+        "type": "manual"
+      },
+      "role": "Reference connector for legitimate team seat assignment, approval, and audit."
+    },
+    {
+      "id": "admin-web",
+      "name": "ChatGPT Admin Web Reference",
+      "kind": "reference",
+      "status": "active_reference_deployment",
+      "public_path": "https://admin.inarbit.work/",
+      "health": {
+        "type": "http",
+        "url": "http://127.0.0.1:3011/"
+      },
+      "role": "Dashboard reference deployment for user management patterns. Upstream admin backend is still under development."
+    },
+    {
+      "id": "chatgpt-admin-chat",
+      "name": "ChatGPT Admin Web Chat",
+      "kind": "frontend",
+      "status": "active_reference_deployment",
+      "public_path": "https://chat.inarbit.work/",
+      "health": {
+        "type": "http",
+        "url": "http://127.0.0.1:3010/"
+      },
+      "role": "Chat frontend reference deployment for UI compatibility checks."
+    },
+    {
+      "id": "cli-proxy-api-management-center",
+      "name": "Cli-Proxy API Management Center Reference",
+      "kind": "reference",
+      "status": "enabled_legal_gateway_test_slot",
+      "public_path": "https://gateway.inarbit.work/",
+      "health": {
+        "type": "manual"
+      },
+      "role": "Enabled as a legal gateway test slot. Public reverse proxy, multi-account dispatch, quota pooling, and provider limit evasion remain disabled."
+    },
+    {
+      "id": "chatgpt-register",
+      "name": "chatgpt_register Reference",
+      "kind": "reference",
+      "status": "enabled_manual_import_only",
+      "public_path": null,
+      "health": {
+        "type": "manual"
+      },
+      "role": "Enabled only as a manual, lawful account import placeholder. Bulk registration, SMS brokerage, automatic replenishment, and account farm workflows are not deployed."
+    }
+  ],
+  "workflow": [
+    {
+      "step": "intake",
+      "owner": "gateway.inarbit.work or approved external forms",
+      "description": "Accept business or operator requests through approved APIs and forms."
+    },
+    {
+      "step": "approval",
+      "owner": "AI Workflow Hub",
+      "description": "Classify sensitive operations and route risky actions to manual approval."
+    },
+    {
+      "step": "execution",
+      "owner": "OctoAgent or legal gateway",
+      "description": "Execute approved tasks through owned APIs, legal gateway credentials, or self-hosted models."
+    },
+    {
+      "step": "audit",
+      "owner": "AI Workflow Hub",
+      "description": "Record system, tool, model, connector, and outcome metadata without storing raw secrets."
+    }
+  ]
+}

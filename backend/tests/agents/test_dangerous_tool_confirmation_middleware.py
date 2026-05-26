@@ -1,0 +1,104 @@
+from __future__ import annotations
+
+from types import SimpleNamespace
+
+from langchain_core.tools import tool
+from langgraph.types import Command
+
+from src.agents.middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware, _signature
+
+
+@tool("host_shell")
+def _host_shell(command: str) -> str:
+    """Run command."""
+
+    return command
+
+
+def _request(messages=None, runtime=None, metadata=None, command="systemctl restart octoagent-local.service"):
+    _host_shell.metadata = metadata or {"permission_scope": "system", "requires_confirmation": True}
+    return SimpleNamespace(
+        tool=_host_shell,
+        tool_call={"name": "host_shell", "id": "call-1", "args": {"command": command}},
+        state={"messages": messages or [], "runtime": runtime or {}},
+    )
+
+
+def _pending_runtime(human_count: int = 1):
+    args = {"command": "systemctl restart octoagent-local.service"}
+    return {
+        "dangerous_tool_pending": {
+            "tool_name": "host_shell",
+            "signature": _signature("host_shell", args),
+            "args": args,
+            "human_count": human_count,
+        }
+    }
+
+
+def test_dangerous_tool_requires_confirmation() -> None:
+    middleware = DangerousToolConfirmationMiddleware()
+
+    blocked = middleware._maybe_block(_request())
+
+    assert isinstance(blocked, Command)
+    assert "任务已暂停" in blocked.update["messages"][0].content
+    assert "1. 确认" in blocked.update["messages"][0].content
+    assert "2. 取消" in blocked.update["messages"][0].content
+    assert blocked.update["messages"][0].name == "ask_clarification"
+
+
+def test_initial_user_confirmation_words_do_not_preapprove_tool() -> None:
+    middleware = DangerousToolConfirmationMiddleware()
+    human = SimpleNamespace(type="human", content="确认，继续执行")
+
+    blocked = middleware._maybe_block(_request(messages=[human]))
+
+    assert isinstance(blocked, Command)
+
+
+def test_dangerous_tool_allows_after_user_confirmation() -> None:
+    middleware = DangerousToolConfirmationMiddleware()
+    initial_human = SimpleNamespace(type="human", content="重启服务")
+    confirmation_human = SimpleNamespace(type="human", content="1")
+
+    blocked = middleware._maybe_block(_request(messages=[initial_human, confirmation_human], runtime=_pending_runtime()))
+
+    assert blocked is None
+
+
+def test_dangerous_tool_cancels_after_user_denial() -> None:
+    middleware = DangerousToolConfirmationMiddleware()
+    initial_human = SimpleNamespace(type="human", content="重启服务")
+    denial_human = SimpleNamespace(type="human", content="2")
+
+    blocked = middleware._maybe_block(_request(messages=[initial_human, denial_human], runtime=_pending_runtime()))
+
+    assert isinstance(blocked, Command)
+    assert "已取消" in blocked.update["messages"][0].content
+
+
+def test_pending_confirmation_blocks_other_tool_execution() -> None:
+    middleware = DangerousToolConfirmationMiddleware()
+    initial_human = SimpleNamespace(type="human", content="重启服务")
+
+    blocked = middleware._maybe_block(
+        _request(
+            messages=[initial_human],
+            runtime=_pending_runtime(),
+            command="systemctl status octoagent-local.service",
+        )
+    )
+
+    assert isinstance(blocked, Command)
+    assert "任务已暂停" in blocked.update["messages"][0].content
+
+
+def test_system_permission_mode_does_not_prompt_for_system_tool() -> None:
+    middleware = DangerousToolConfirmationMiddleware()
+
+    blocked = middleware._maybe_block(
+        _request(metadata={"permission_scope": "system", "requires_confirmation": False, "active_permission_mode": "system"})
+    )
+
+    assert blocked is None

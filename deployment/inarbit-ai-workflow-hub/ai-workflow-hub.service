@@ -1,0 +1,25 @@
+[Unit]
+Description=Inarbit AI Workflow Hub
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=www-data
+Group=www-data
+WorkingDirectory=/opt/ai-workflow-hub
+Environment=AI_WORKFLOW_HUB_HOST=127.0.0.1
+Environment=AI_WORKFLOW_HUB_PORT=8095
+Environment=AI_WORKFLOW_HUB_CONFIG=/opt/ai-workflow-hub/config.json
+Environment=AI_WORKFLOW_AUTH_CONFIG=/etc/ai-workflow-hub/auth.json
+Environment=AI_WORKFLOW_AUDIT_LOG=/var/log/ai-workflow-hub/audit.jsonl
+Environment=AI_WORKFLOW_COOKIE_DOMAIN=.inarbit.work
+ExecStart=/usr/bin/python3 /opt/ai-workflow-hub/server.py
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
