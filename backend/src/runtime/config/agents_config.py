@@ -151,12 +151,23 @@ def _slug_from_agent_filename(stem: str) -> str:
 
 
 def _system_agents_root() -> Path:
-    """Return the .github/agents directory for the repository, if it exists."""
-    # backend/src/config/agents_config.py -> parents[3] == repo root
-    repo_root = Path(__file__).resolve().parents[3]
+    """Return the .github/agents directory for the repository, if it exists.
+
+    The agents_config module lives at ``backend/src/runtime/config/agents_config.py``
+    so the repository root is ``Path(__file__).resolve().parents[4]``. An earlier
+    revision used ``parents[3]`` (which resolves to ``backend/``), causing
+    ``list_system_agents()`` to silently return an empty list and the
+    ``/api/agents`` endpoint to surface zero preset agents in the WebUI even
+    though dozens of ``.agent.md`` files were checked into ``.github/agents/``.
+    The ``Path.cwd()`` fallback never compensated because the uvicorn process
+    runs with cwd set to ``backend/`` (start-daemon launches python from there).
+    """
+    here = Path(__file__).resolve()
+    repo_root = here.parents[4] if len(here.parents) > 4 else here.parents[-1]
     candidates = [
         repo_root / ".github" / "agents",
         Path.cwd() / ".github" / "agents",
+        here.parents[3] / ".github" / "agents",  # back-compat: keep the legacy hop scanned too
     ]
     for candidate in candidates:
         try:

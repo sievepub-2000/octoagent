@@ -17,6 +17,33 @@ class ClarificationMiddlewareState(AgentState):
     pass
 
 
+# Tool names that are routed through the same clarification pause logic.
+# `ask_clarification` is the canonical tool; `ask_user_question` is a legacy
+# alias exported by the openharness-compat catalog (some free-tier models
+# pick the simpler name and would otherwise loop forever because the legacy
+# stub just returned a plain text message without pausing the graph).
+_CLARIFICATION_TOOL_NAMES = frozenset({"ask_clarification", "ask_user_question"})
+
+
+def _normalize_clarification_args(tool_name: str, args: dict) -> dict:
+    """Map the legacy ``ask_user_question(question=...)`` signature onto the
+    richer ``ask_clarification`` argument schema so the existing formatter
+    can render either call uniformly.
+    """
+    if tool_name == "ask_clarification":
+        return args or {}
+    normalized = dict(args or {})
+    normalized.setdefault("clarification_type", "missing_info")
+    if "question" not in normalized:
+        # ``ask_user_question`` has a single ``question`` arg; fall back to any
+        # ``text``/``prompt`` field that future variants might use.
+        for legacy_key in ("text", "prompt"):
+            if legacy_key in normalized:
+                normalized["question"] = normalized[legacy_key]
+                break
+    return normalized
+
+
 class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
     """Intercepts clarification tool calls and interrupts execution to present questions to the user.
 
@@ -97,11 +124,14 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         Returns:
             Command that interrupts execution with the formatted clarification message
         """
-        # Extract clarification arguments
-        args = request.tool_call.get("args", {})
+        # Extract clarification arguments (normalized so the legacy
+        # ``ask_user_question`` single-arg signature plays nice with the
+        # ``ask_clarification`` formatter).
+        tool_name = str(request.tool_call.get("name") or "")
+        args = _normalize_clarification_args(tool_name, request.tool_call.get("args", {}) or {})
         question = args.get("question", "")
 
-        print("[ClarificationMiddleware] Intercepted clarification request")
+        print(f"[ClarificationMiddleware] Intercepted clarification request via {tool_name!r}")
         print(f"[ClarificationMiddleware] Question: {question}")
 
         # Format the clarification message
@@ -144,7 +174,7 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
             Command that interrupts execution with the formatted clarification message
         """
         # Check if this is an ask_clarification tool call
-        if request.tool_call.get("name") != "ask_clarification":
+        if str(request.tool_call.get("name") or "") not in _CLARIFICATION_TOOL_NAMES:
             # Not a clarification call, execute normally
             return handler(request)
 
@@ -166,7 +196,7 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
             Command that interrupts execution with the formatted clarification message
         """
         # Check if this is an ask_clarification tool call
-        if request.tool_call.get("name") != "ask_clarification":
+        if str(request.tool_call.get("name") or "") not in _CLARIFICATION_TOOL_NAMES:
             # Not a clarification call, execute normally
             return await handler(request)
 

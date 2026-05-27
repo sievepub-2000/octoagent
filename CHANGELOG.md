@@ -1,3 +1,72 @@
+## 2026-05-27 (Preset agents restored + ask_user_question pause loop fix)
+
+### `_system_agents_root()` path resolution
+
+`backend/src/runtime/config/agents_config.py:_system_agents_root()` previously
+computed the repository root via `Path(__file__).resolve().parents[3]`, but the
+file lives at `backend/src/runtime/config/agents_config.py`, so that index
+resolved to the `backend/` directory and the `.github/agents/` lookup always
+missed. The `Path.cwd()` fallback never compensated because the systemd
+unit runs uvicorn with `cwd=backend/`. Net effect: `list_system_agents()`
+returned an empty list at runtime, `/api/agents` responded with an empty
+array, and the WebUI **Preset Agents** gallery at `/workspace/agents`
+showed zero entries even though 56+ `.agent.md` files were checked into
+`.github/agents/`.
+
+Fix: bump to `parents[4]` (still guarding for short paths) and keep
+`Path.cwd()` plus the legacy `parents[3]` hop as additional candidates so
+any future relocation continues to discover the directory. After the
+restart `/api/agents` returns 57 preset agents.
+
+Touch points:
+
+- `backend/src/runtime/config/agents_config.py` — `_system_agents_root()`
+  rewritten with correct anchor + multi-candidate fallback list.
+
+### `ask_user_question` no longer enters an infinite confirmation loop
+
+The lead-agent tool catalog exposes two clarification entry points:
+the canonical `ask_clarification` (defined in
+`backend/src/tools/builtins/clarification_tool.py`) and a legacy
+`ask_user_question` re-export shipped via
+`backend/src/tools/builtins/openharness_compat_tools.py:667-674`.
+
+`ClarificationMiddleware` only intercepted the canonical name. The
+legacy tool was a no-op stub that returned the plain string
+`"User clarification required: <q>"`. Several smaller open-weight
+models (e.g. free-tier qwen3-next, gpt-oss-20b) preferred the shorter
+name; the model received the stub's text as a tool result, decided the
+clarification had not been answered, and immediately re-called the tool —
+the `ToolBudgetMiddleware` duplicate hard-stop only fires for byte-for-byte
+identical calls, so any small wording variation kept the loop alive
+until the runtime recursion limit was hit. The frontend layer at
+`frontend/src/core/threads/hooks.ts` then auto-resumed on
+`GraphRecursionError`, which made the loop appear permanent to the user.
+
+Fix: `ClarificationMiddleware` now intercepts both `ask_clarification`
+and `ask_user_question`. The legacy single-arg
+`ask_user_question(question=...)` payload is normalized through a new
+`_normalize_clarification_args()` helper into the richer
+`ask_clarification` argument shape (with `clarification_type` defaulted
+to `"missing_info"`), then routed through the existing
+`Command(goto=END)` interrupt path. The resulting `ToolMessage` keeps
+`name="ask_clarification"`, so the frontend's existing
+`message-group.tsx:402` renderer surfaces it without any UI change.
+
+Touch points:
+
+- `backend/src/agents/middlewares/clarification_middleware.py` — added
+  `_CLARIFICATION_TOOL_NAMES`, `_normalize_clarification_args()`, and
+  extended `wrap_tool_call` / `awrap_tool_call` to accept both tool names.
+
+Verification:
+
+- `python -c "from src.runtime.config.agents_config import list_system_agents; print(len(list_system_agents()))"` → `57`.
+- `curl http://127.0.0.1:19800/api/agents | jq '.agents | length'` → `57`.
+- `pytest backend/tests` middleware/config selectors still pass (no regression).
+- `ruff check` clean on both modified files.
+- WebUI `/workspace/agents` returns HTTP 200 with preset cards rendered.
+
 ## 2026-05-27 (Japan + Korea provider cards; start-daemon config detection fix)
 
 ### Provider templates — Japan + Korea closed-source models
