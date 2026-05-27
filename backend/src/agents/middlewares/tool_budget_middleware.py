@@ -824,9 +824,45 @@ def _research_closure_guidance(total: int, fetches: int, substantive: int) -> st
     )
 
 
+def _latest_human_turn_marker(messages: list[object]) -> dict[str, Any] | None:
+    index = _latest_human_index(messages)
+    if index < 0 or index >= len(messages):
+        return None
+    text = _message_text(messages[index])
+    digest = hashlib.sha256(text.encode("utf-8", errors="ignore")).hexdigest()[:16]
+    return {"latest_human_index": index, "latest_human_hash": digest}
+
+
 def _research_closure_active(runtime_state: dict[str, Any]) -> bool:
     closure = runtime_state.get("research_closure")
     return isinstance(closure, dict) and closure.get("status") == "must_finalize"
+
+
+def _research_closure_active_for_turn(runtime_state: dict[str, Any], messages: list[object]) -> bool:
+    closure = runtime_state.get("research_closure")
+    if not isinstance(closure, dict) or closure.get("status") != "must_finalize":
+        return False
+    marker = _latest_human_turn_marker(messages)
+    if marker is None:
+        return False
+    return (
+        closure.get("latest_human_index") == marker["latest_human_index"]
+        and closure.get("latest_human_hash") == marker["latest_human_hash"]
+    )
+
+
+def _clear_stale_research_closure(runtime_state: dict[str, Any], messages: list[object]) -> tuple[dict[str, Any], bool]:
+    if not _research_closure_active(runtime_state) or _research_closure_active_for_turn(runtime_state, messages):
+        return runtime_state, False
+    cleaned = dict(runtime_state)
+    cleaned.pop("research_closure", None)
+    cleaned.pop("research_evidence_compaction", None)
+    cleaned.pop("research_closure_reflection", None)
+    cleaned["research_closure_reset"] = {
+        "reason": "new_user_turn",
+        **(_latest_human_turn_marker(messages) or {}),
+    }
+    return cleaned, True
 
 
 def _research_closure_guard_count(messages: list[object]) -> int:
@@ -1051,7 +1087,10 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
         if not messages:
             return None
         runtime_state_current = dict(state.get("runtime") or {})
-        if _research_closure_active(runtime_state_current) and not _research_evidence_already_compacted(messages):
+        runtime_state_current, stale_closure_reset = _clear_stale_research_closure(runtime_state_current, messages)
+        if stale_closure_reset:
+            return {"runtime": runtime_state_current}
+        if _research_closure_active_for_turn(runtime_state_current, messages) and not _research_evidence_already_compacted(messages):
             compacted_messages, compacted = _compact_research_evidence_for_final(messages)
             runtime_state_current["research_evidence_compaction"] = {
                 "status": "compacted_for_final",
@@ -1091,7 +1130,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
                 "runtime": runtime_state,
             }
 
-        if _research_closure_active(runtime_state_current) and not _soft_constraint_reflection_already_injected(messages, "research_closure_loop"):
+        if _research_closure_active_for_turn(runtime_state_current, messages) and not _soft_constraint_reflection_already_injected(messages, "research_closure_loop"):
             research_total, research_fetches, research_substantive = _research_tool_counts(messages)
             guard_count = _research_closure_guard_count(messages)
             extra_total = research_total >= (_RESEARCH_CLOSURE_TOOL_LIMIT + _RESEARCH_CLOSURE_SELF_REFLECT_EXTRA_TOOLS)
@@ -1135,6 +1174,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
                 "substantive_results": research_substantive,
                 "tool_limit": _RESEARCH_CLOSURE_TOOL_LIMIT,
                 "fetch_limit": _RESEARCH_CLOSURE_FETCH_LIMIT,
+                **(_latest_human_turn_marker(messages) or {}),
             }
             compacted_messages, compacted = _compact_research_evidence_for_final(messages)
             runtime_state["research_evidence_compaction"] = {
@@ -1322,7 +1362,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
     @staticmethod
     def _research_final_request(request: ModelRequest) -> ModelRequest:
         runtime_state = dict((request.state or {}).get("runtime") or {}) if isinstance(request.state, dict) else {}
-        if not _research_closure_active(runtime_state):
+        if not _research_closure_active_for_turn(runtime_state, list(request.messages)):
             return request
         guidance = SystemMessage(
             content=(
@@ -1388,7 +1428,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
             return None
 
         runtime_state = dict(state.get("runtime") or {})
-        if _research_closure_active(runtime_state):
+        if _research_closure_active_for_turn(runtime_state, messages):
             tool_calls = list(getattr(last_message, "tool_calls", []) or [])
             tool_names = {str(call.get("name") or "") for call in tool_calls if isinstance(call, dict)}
             if tool_names and tool_names <= _WEB_RESEARCH_TOOLS:

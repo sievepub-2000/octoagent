@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from src.agents.dialogue_routing import (
     FAST_ROUTES,
+    ROUTE_CURRENT_RESEARCH,
     ROUTE_DEEP_AGENT,
     ROUTE_DIRECT_ANSWER,
     ROUTE_TOOL_ACTION,
@@ -54,3 +55,27 @@ class TestNeedsFlags:
     def test_direct_answer_no_tools(self):
         r = classify_dialogue_route("hi")
         assert not r.needs_tools and not r.needs_memory and not r.needs_deep_agent
+
+class TestResearchIntentRouting:
+    def test_trade_record_query_is_current_research(self):
+        route = classify_dialogue_route(
+            "帮我查一下上面的炼油厂LPG产品主要出口国家是哪些，产量和出口量是多大？另外查一下有没有到中国的贸易记录"
+        )
+        assert route.kind == ROUTE_CURRENT_RESEARCH
+        assert route.needs_tools is True
+
+    def test_research_intent_overrides_bad_client_route(self):
+        route = classify_dialogue_route(
+            "帮我查一下阿特劳炼油厂LPG出口量和到中国贸易记录",
+            explicit_route="direct_answer",
+        )
+        assert route.kind == ROUTE_CURRENT_RESEARCH
+        assert route.needs_tools is True
+        assert route.reason == "server_research_intent_overrides_client_route"
+
+    def test_long_trade_assessment_stays_deep_with_tools(self):
+        route = classify_dialogue_route(
+            "详细评估分析一下阿特劳炼油厂LPG出口到青岛港CIF业务的可行性、客观风险、产量和出口国家。"
+        )
+        assert route.kind == ROUTE_DEEP_AGENT
+        assert route.needs_tools is True

@@ -1,10 +1,18 @@
 from __future__ import annotations
 
+import hashlib
+
 from langchain.agents.middleware.types import ModelRequest, ModelResponse
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.prebuilt.tool_node import ToolCallRequest
 
 from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
+
+
+def _research_runtime_for_latest_human(messages: list[object]) -> dict:
+    latest = max(index for index, message in enumerate(messages) if isinstance(message, HumanMessage))
+    digest = hashlib.sha256(str(messages[latest].content).encode("utf-8", errors="ignore")).hexdigest()[:16]
+    return {"research_closure": {"status": "must_finalize", "latest_human_index": latest, "latest_human_hash": digest}}
 
 
 class _Runtime:
@@ -359,7 +367,7 @@ def test_research_closure_compacts_web_evidence_before_final_model_call() -> Non
     update = middleware.before_model(
         {
             "messages": messages,
-            "runtime": {"research_closure": {"status": "must_finalize"}},
+            "runtime": _research_runtime_for_latest_human(messages),
         },
         None,
     )
@@ -394,7 +402,7 @@ def test_research_closure_compacts_even_after_closure_guidance_message() -> None
     update = middleware.before_model(
         {
             "messages": messages,
-            "runtime": {"research_closure": {"status": "must_finalize"}},
+            "runtime": _research_runtime_for_latest_human(messages),
         },
         None,
     )
@@ -415,7 +423,7 @@ def test_research_closure_model_call_runs_without_tools() -> None:
         tool_choice="auto",
         tools=[{"name": "web_search"}],
         response_format=None,
-        state={"messages": messages, "runtime": {"research_closure": {"status": "must_finalize"}}},
+        state={"messages": messages, "runtime": _research_runtime_for_latest_human(messages)},
         runtime=None,
         model_settings={},
     )
@@ -453,7 +461,7 @@ def test_research_closure_fallback_filters_to_named_source_domain() -> None:
     messages.append(_ai_tool_call(tool_name="web_search", call_id="search-extra", args={"query": "more"}))
 
     update = middleware.after_model(
-        {"messages": messages, "runtime": {"research_closure": {"status": "must_finalize"}}},
+        {"messages": messages, "runtime": _research_runtime_for_latest_human(messages)},
         None,
     )
 
@@ -485,7 +493,7 @@ def test_research_closure_uses_model_guided_soft_review_without_forced_answer() 
     update = middleware.after_model(
         {
             "messages": messages,
-            "runtime": {"research_closure": {"status": "must_finalize"}},
+            "runtime": _research_runtime_for_latest_human(messages),
         },
         None,
     )
@@ -508,6 +516,42 @@ def test_research_closure_uses_model_guided_soft_review_without_forced_answer() 
     )
     assert compacted is not None
     assert compacted["runtime"]["research_evidence_compaction"]["status"] == "compacted_for_final"
+
+
+def test_stale_research_closure_does_not_block_new_user_turn() -> None:
+    middleware = ToolBudgetMiddleware()
+    messages = [HumanMessage(content="first research")]
+    messages.append(_ai_tool_call(tool_name="web_search", call_id="search-0", args={"query": "old"}))
+    messages.append(ToolMessage(content="old evidence " * 80, name="web_search", tool_call_id="search-0"))
+    old_runtime = _research_runtime_for_latest_human(messages)
+    messages.append(AIMessage(content="old final"))
+    messages.append(HumanMessage(content="帮我查一下阿特劳炼油厂LPG出口国家和到中国贸易记录"))
+
+    update = middleware.before_model({"messages": messages, "runtime": old_runtime}, None)
+
+    assert update is not None
+    assert "research_closure" not in update["runtime"]
+    assert update["runtime"]["research_closure_reset"]["reason"] == "new_user_turn"
+
+    request = ModelRequest(
+        model=object(),
+        messages=messages,
+        system_message=None,
+        tool_choice="auto",
+        tools=[{"name": "web_search"}],
+        response_format=None,
+        state={"messages": messages, "runtime": update["runtime"]},
+        runtime=None,
+        model_settings={},
+    )
+    seen = {}
+
+    def handler(next_request: ModelRequest) -> ModelResponse:
+        seen["tools"] = next_request.tools
+        return ModelResponse(result=[AIMessage(content="ok")], structured_response=None)
+
+    middleware.wrap_model_call(request, handler)
+    assert seen["tools"] == [{"name": "web_search"}]
 
 
 def test_recovery_guard_messages_do_not_escalate_error_budget() -> None:

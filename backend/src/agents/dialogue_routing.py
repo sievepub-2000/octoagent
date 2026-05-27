@@ -42,7 +42,14 @@ _SYSTEM_TOOLS_RE = re.compile(
     re.IGNORECASE,
 )
 _CURRENT_RESEARCH_RE = re.compile(
-    r"\b(today|latest|current|news|price|stock|weather|forecast|search|web|internet|lookup)\b|今天|最新|当前|現在|新闻|新聞|查询|搜尋|搜索|联网|网络",
+    r"\b(today|latest|current|news|price|stock|weather|forecast|search|web|internet|lookup|export|import|trade record|production volume)\b|"
+    r"今天|最新|当前|現在|新闻|新聞|查询|搜尋|搜索|联网|网络|查一下|查查|查找|调查|"
+    r"贸易记录|貿易記錄|出口国家|出口國家|出口量|进口量|進口量|产量|產量|货源地|貨源地|到中国|到中國|到岸|CIF",
+    re.IGNORECASE,
+)
+_STRONG_CURRENT_RESEARCH_RE = re.compile(
+    r"\b(search|lookup|export|import|trade record|production volume)\b|"
+    r"查一下|查查|查找|帮我查|幫我查|贸易记录|貿易記錄|出口国家|出口國家|出口量|进口量|進口量|产量|產量|货源地|貨源地|到中国|到中國",
     re.IGNORECASE,
 )
 _DEEP_RE = re.compile(
@@ -60,10 +67,20 @@ def classify_dialogue_route(
 ) -> DialogueRoute:
     """Classify a user turn into the cheapest route that can satisfy it."""
 
+    stripped = text.strip()
+    if explicit_route and stripped and _STRONG_CURRENT_RESEARCH_RE.search(stripped):
+        if _DEEP_RE.search(stripped) or len(stripped) > 420:
+            return DialogueRoute(
+                ROUTE_DEEP_AGENT,
+                "server_research_intent_overrides_client_route",
+                needs_tools=True,
+                needs_memory=True,
+                needs_deep_agent=True,
+            )
+        return DialogueRoute(ROUTE_CURRENT_RESEARCH, "server_research_intent_overrides_client_route", needs_tools=True)
     if explicit_route:
         return _route_from_kind(explicit_route, reason="client_explicit_route")
 
-    stripped = text.strip()
     if has_files:
         return DialogueRoute(ROUTE_TOOL_ACTION, "attachments_require_file_tools", needs_tools=True, needs_memory=True)
     if mode in {"thinking", "pro", "ultra"}:
@@ -71,6 +88,10 @@ def classify_dialogue_route(
     if not stripped:
         return DialogueRoute(ROUTE_DIRECT_ANSWER, "empty_or_whitespace")
 
+    if _STRONG_CURRENT_RESEARCH_RE.search(stripped):
+        if _DEEP_RE.search(stripped) or len(stripped) > 420:
+            return DialogueRoute(ROUTE_DEEP_AGENT, "deep_research_keywords", needs_tools=True, needs_memory=True, needs_deep_agent=True)
+        return DialogueRoute(ROUTE_CURRENT_RESEARCH, "strong_current_research_keywords", needs_tools=True)
     if _TOOL_ACTION_RE.search(stripped) or _TOOL_ACTION_ZH_RE.search(stripped):
         return DialogueRoute(ROUTE_TOOL_ACTION, "action_or_workspace_keywords", needs_tools=True, needs_memory=True)
     if _DEEP_RE.search(stripped) or len(stripped) > 420:
