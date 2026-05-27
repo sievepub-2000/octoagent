@@ -22,6 +22,7 @@ The only active OctoAgent project root on this host is `/home/sieve-pub/public-w
 | `docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md` | P0 closure, cleanup summary, validation, and repository sync notes. |
 | `docs/CHANNEL_BRIDGE_DEPLOYMENT_GUIDE.md` | Bridge contract, deployment steps, platform matrix, and security boundary. |
 | `docs/DEFAULT_AGENT_PROMPT_STANDARD.md` | Canonical default agent prompt standard. |
+| `HARNESS_RESEARCH_POLICY.md` | Source-first web research, soft loop recovery, research closure, and validation baseline. |
 | `docs/PORTS.md` | Port allocation and local runtime endpoints. |
 | `backend/README.md` | Backend architecture and API surface. |
 | `frontend/README.md` | Frontend routes, structure, and development workflow. |
@@ -61,6 +62,13 @@ Later on 2026-05-16, dangerous host-level capabilities were moved behind a
 user-confirmation gate, while Letta-style core memory blocks and archival memory
 were integrated into the existing memory stack. See
 `docs/P25_CONFIRMATION_AND_LETTA_MEMORY_INTEGRATION_2026-05-16.md`.
+
+As of 2026-05-27, user-directed web research follows a source-first harness
+policy: named URLs/domains are tried before broad search, repeated execution
+steps summarize and change strategy after three repeats, repeated failures skip
+and continue after five failures, and research closure uses compacted evidence
+plus source-domain-filtered fallback reports instead of normal hard stops. See
+`HARNESS_RESEARCH_POLICY.md`.
 
 ## Repository Hygiene
 

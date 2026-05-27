@@ -1,4 +1,4 @@
-"""Recover failed tool calls and stop only truly exhausted tool loops."""
+"""Recover failed tool calls through soft constraints and self-iteration."""
 
 from __future__ import annotations
 
@@ -11,24 +11,24 @@ import threading
 import time
 from collections import Counter
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, override
+from urllib.parse import urlparse
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain.agents.middleware.types import ToolCallRequest
+from langchain.agents.middleware.types import ModelRequest, ModelResponse, ToolCallRequest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from langgraph.graph import END
 from langgraph.runtime import Runtime
-from langgraph.types import Command
 
 from src.utils.messages import latest_human_index as _latest_human_index
 from src.utils.messages import message_text as _message_text
 
 logger = logging.getLogger(__name__)
 
-_DUPLICATE_TOOL_CALL_LIMIT = int(_os.environ.get("OCTO_TOOL_DUPLICATE_LIMIT", "4"))
-_DUPLICATE_TOOL_CALL_HARD_LIMIT = int(_os.environ.get("OCTO_TOOL_DUPLICATE_HARD_LIMIT", "8"))
+_DUPLICATE_TOOL_CALL_LIMIT = int(_os.environ.get("OCTO_TOOL_DUPLICATE_LIMIT", "3"))
+_DUPLICATE_TOOL_CALL_HARD_LIMIT = int(_os.environ.get("OCTO_TOOL_DUPLICATE_HARD_LIMIT", "0"))
+_DUPLICATE_TOOL_CALL_HARD_STOP_ENABLED = _os.environ.get("OCTO_TOOL_DUPLICATE_HARD_STOP", "0").strip().lower() in {"1", "true", "yes", "on"}
 _TOOL_LOOP_HARD_STOP_KEY = "octo_tool_loop_hard_stop"
 _PLANNING_LOOP_FINALIZE_DUP = int(_os.environ.get("OCTO_PLANNING_LOOP_FINALIZE_DUP", "8"))
 _SELF_CONSTRAINT_MARKER = "<runtime_self_constraint_reflection>"
@@ -71,11 +71,11 @@ _ERROR_MARKERS = (
 _WEB_RESEARCH_TOOLS = {"web_search", "web_fetch", "web_fetch_heavy", "read_webpage", "scrapling_fetch"}
 _RESEARCH_CLOSURE_GUARD_KEY = "octo_research_closure_guard"
 _RESEARCH_EVIDENCE_COMPACTED_KEY = "octo_research_evidence_compacted"
-_RESEARCH_CLOSURE_TOOL_LIMIT = int(_os.environ.get("OCTO_RESEARCH_CLOSURE_TOOL_LIMIT", "6"))
-_RESEARCH_CLOSURE_FETCH_LIMIT = int(_os.environ.get("OCTO_RESEARCH_CLOSURE_FETCH_LIMIT", "4"))
-_RESEARCH_CLOSURE_MIN_SUBSTANTIVE = int(_os.environ.get("OCTO_RESEARCH_CLOSURE_MIN_SUBSTANTIVE", "4"))
+_RESEARCH_CLOSURE_TOOL_LIMIT = int(_os.environ.get("OCTO_RESEARCH_CLOSURE_TOOL_LIMIT", "4"))
+_RESEARCH_CLOSURE_FETCH_LIMIT = int(_os.environ.get("OCTO_RESEARCH_CLOSURE_FETCH_LIMIT", "3"))
+_RESEARCH_CLOSURE_MIN_SUBSTANTIVE = int(_os.environ.get("OCTO_RESEARCH_CLOSURE_MIN_SUBSTANTIVE", "2"))
 _RESEARCH_CLOSURE_SELF_REFLECT_EXTRA_TOOLS = int(_os.environ.get("OCTO_RESEARCH_CLOSURE_SELF_REFLECT_EXTRA_TOOLS", "2"))
-_RESEARCH_CLOSURE_BLOCK_WEB_TOOLS = _os.environ.get("OCTO_RESEARCH_CLOSURE_BLOCK_WEB_TOOLS", "0").strip().lower() in {"1", "true", "yes", "on"}
+_RESEARCH_CLOSURE_BLOCK_WEB_TOOLS = _os.environ.get("OCTO_RESEARCH_CLOSURE_BLOCK_WEB_TOOLS", "1").strip().lower() in {"1", "true", "yes", "on"}
 _TOOL_RECOVERY_LEGACY_BLOCK_FINAL_TOOLS_REQUESTED = _os.environ.get("OCTO_TOOL_RECOVERY_BLOCK_FINAL_TOOLS", "0").strip().lower() in {"1", "true", "yes", "on"}
 _RESEARCH_SUBSTANTIVE_CHARS = int(_os.environ.get("OCTO_RESEARCH_SUBSTANTIVE_CHARS", "240"))
 _RESEARCH_COMPACT_CHARS = int(_os.environ.get("OCTO_RESEARCH_COMPACT_CHARS", "1200"))
@@ -180,6 +180,29 @@ def _planning_noop_guard_message(*, dup_count: int, tool_call_id: str | None) ->
         tool_call_id=tool_call_id,
         status="success",
         additional_kwargs={_PLANNING_NOOP_GUARD_KEY: True},
+    )
+
+
+def _duplicate_step_summary_guard_message(*, tool_name: str, dup_count: int, tool_call_id: str | None) -> ToolMessage:
+    tool_specific_hint = ""
+    if tool_name == "web_fetch":
+        tool_specific_hint = " For repeated web_fetch failures, do not fetch the same URL again; use web_search or a different public page."
+    return ToolMessage(
+        content=(
+            f"Duplicate-step review required: `{tool_name}` has already been requested with identical arguments "
+            f"{dup_count} times in this user turn. Do not call the same step again. "
+            "Summarize the evidence already collected, state the remaining gap, then either answer from current evidence, "
+            "switch to a materially different source/tool/argument set, or skip this failing step and continue with the next useful step. "
+            "This is a soft self-iteration constraint, not a hard stop."
+            f"{tool_specific_hint}"
+        ),
+        name=tool_name,
+        tool_call_id=tool_call_id,
+        status="error",
+        additional_kwargs={
+            _RECOVERY_GUARD_KEY: True,
+            "octo_duplicate_step_summary": True,
+        },
     )
 
 
@@ -421,10 +444,8 @@ def _recovery_stage(error_count: int) -> str:
         return "none"
     if error_count < 3:
         return "repair"
-    if error_count < 6:
+    if error_count < 5:
         return "alternate"
-    if error_count < 9:
-        return "discover"
     return "final"
 
 
@@ -473,19 +494,12 @@ def _recovery_instruction(entries: list[ToolErrorEntry]) -> str | None:
                     "- 如果错误是 private/internal network，视为安全拦截；不要尝试绕过，只能换公开来源。",
                 ]
             )
-    elif stage == "discover":
-        lines.extend(
-            [
-                f"- 动作：继续失败后，先查找可替代能力。优先 {_discovery_guidance_zh()}。",
-                "- 如果发现可用替代工具，使用替代工具完成任务；如果需要安装能力，先说明风险和依赖。",
-            ]
-        )
     else:
         lines.extend(
             [
-                "- Action: repeated tool failures reached the final recovery review point.",
+                "- Action: five or more tool failures reached the skip-step recovery point.",
                 "- This is still advisory recovery guidance, not a hard stop and not task completion.",
-                "- Do not repeat the same failing call. Switch strategy, use a different capability/source, ask for missing input, or explain the specific external blocker.",
+                "- Do not repeat the same failing execution step. Summarize the failure, record the limitation, and continue with the next useful step or answer from current evidence.",
                 "- If enough evidence already exists, produce a substantive answer from that evidence; otherwise keep the task recoverable and name the next safe step.",
             ]
         )
@@ -884,6 +898,117 @@ def _research_final_only_guidance(compacted: int) -> str:
     )
 
 
+def _clean_research_excerpt(text: str, limit: int = 280) -> str:
+    cleaned = re.sub(r"\s+", " ", text).strip()
+    return cleaned if len(cleaned) <= limit else cleaned[:limit].rstrip() + "..."
+
+
+def _source_domains_for_goal(goal: str) -> tuple[str, ...]:
+    lowered = goal.lower()
+    domains: list[str] = []
+    for marker, domain in (
+        ("x.com", "x.com"),
+        ("twitter", "x.com"),
+        ("reddit", "reddit.com"),
+        ("红迪", "reddit.com"),
+        ("bloomberg", "bloomberg.com"),
+        ("彭博", "bloomberg.com"),
+    ):
+        if marker in lowered and domain not in domains:
+            domains.append(domain)
+    for domain in re.findall(r"(?i)\b[a-z0-9][a-z0-9.-]+\.(?:com|org|net|io|ai|gov|edu|cn|co|uk)\b", goal):
+        normalized = domain.lower().removeprefix("www.")
+        if normalized not in domains:
+            domains.append(normalized)
+    return tuple(domains)
+
+
+def _url_matches_source_domain(url: str, domains: tuple[str, ...]) -> bool:
+    if not domains:
+        return True
+    host = (urlparse(url).hostname or "").lower().removeprefix("www.")
+    return any(host == domain or host.endswith(f".{domain}") for domain in domains)
+
+
+def _research_closure_evidence_items(
+    messages: list[object], *, source_domains: tuple[str, ...] = (), limit: int = 10
+) -> list[tuple[str, str, str]]:
+    items: list[tuple[str, str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    title_pattern = re.compile(
+        r'"title"\s*:\s*"(?P<title>[^"\n]{1,180})".*?"url"\s*:\s*"(?P<url>https?://[^"\s]+)"(?:.*?"snippet"\s*:\s*"(?P<snippet>[^"\n]{0,320})")?',
+        re.DOTALL,
+    )
+    for message in _messages_since_latest_human(messages):
+        if not isinstance(message, ToolMessage) or str(getattr(message, "name", "") or "") not in _WEB_RESEARCH_TOOLS:
+            continue
+        text = _message_text(message)
+        for match in title_pattern.finditer(text):
+            title = _clean_research_excerpt(match.group("title"), 140)
+            url = match.group("url").rstrip('.,;')
+            if title.startswith("[Compacted web evidence") or not _url_matches_source_domain(url, source_domains):
+                continue
+            snippet = _clean_research_excerpt(match.group("snippet") or "", 220)
+            key = (title, url)
+            if key in seen:
+                continue
+            seen.add(key)
+            items.append((title, url, snippet))
+            if len(items) >= limit:
+                return items
+        if len(items) >= limit:
+            return items
+
+        if source_domains:
+            continue
+        urls = list(dict.fromkeys(re.findall(r"https?://[^\s)\]}>'\"]+", text)))[:2]
+        if urls:
+            title = _clean_research_excerpt(text, 120)
+            if title.startswith("[Compacted web evidence"):
+                continue
+            for url in urls:
+                key = (title, url)
+                if key in seen:
+                    continue
+                seen.add(key)
+                items.append((title, url.rstrip('.,;'), ""))
+                if len(items) >= limit:
+                    return items
+    return items
+
+
+def _research_closure_fallback_answer(messages: list[object], *, tool_names: set[str]) -> str:
+    goal = _latest_human_text(messages) or "当前研究请求"
+    source_domains = _source_domains_for_goal(goal)
+    items = _research_closure_evidence_items(messages, source_domains=source_domains)
+    source_label = "、".join(source_domains) if source_domains else "用户指定来源"
+    lines = [
+        "我已经按用户指定来源优先进行了查询，并在研究闭合后停止继续扩大抓取。",
+        "",
+        f"请求：{goal}",
+        "",
+        f"结论：{source_label} 的公开页面/接口存在登录墙、反爬、搜索片段不稳定或页面错误限制；以下仅列出工具实际返回且匹配指定来源域名的可见证据，不补齐或编造到 10 条。",
+    ]
+    if tool_names:
+        lines.append(f"闭合后模型仍尝试调用 web 工具（{', '.join(sorted(tool_names))}），已按软约束改为基于现有证据报告。")
+    lines.extend(["", f"可见结果（{len(items)}/10）："])
+    if not items:
+        lines.append("- 未能从公开可访问页面提取到可核验条目。")
+    else:
+        for index, (title, url, snippet) in enumerate(items, start=1):
+            lines.append(f"{index}. {title}")
+            lines.append(f"   来源：{url}")
+            if snippet:
+                lines.append(f"   摘要：{snippet}")
+    lines.extend(
+        [
+            "",
+            "限制：这些结果来自公开搜索/抓取返回的片段或可访问页面，不能等同于登录态来源内的完整实时排行榜。若需要严格的站内前十，需要提供可访问的登录态、官方 API 或允许的专用数据源。",
+        ]
+    )
+    return "\n".join(lines)
+
+
 
 class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
     """Recover tool failures and provide memory-derived soft budget guidance.
@@ -891,8 +1016,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
     Recovery policy:
     - first errors: guide the model to inspect schema/arguments and retry safely;
     - after three errors: return recovery feedback asking for a different tool/path;
-    - after six errors: return capability/tool/settings discovery feedback;
-    - after nine errors: inject memory-backed self-iteration guidance instead of finalizing.
+    - after five errors: inject memory-backed self-iteration guidance to skip the failing step and continue.
 
     Normal successful tool use has no default hard per-turn ceiling. If runtime
     context or long-term system memory defines a tool budget, it is treated as a
@@ -903,8 +1027,8 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
         self,
         max_tool_messages: int | None = None,
         switch_tool_errors: int = 3,
-        discover_tool_errors: int = 6,
-        final_failure_errors: int = 9,
+        discover_tool_errors: int = 5,
+        final_failure_errors: int = 5,
     ):
         super().__init__()
         self.max_tool_messages = max_tool_messages
@@ -1012,8 +1136,18 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
                 "tool_limit": _RESEARCH_CLOSURE_TOOL_LIMIT,
                 "fetch_limit": _RESEARCH_CLOSURE_FETCH_LIMIT,
             }
+            compacted_messages, compacted = _compact_research_evidence_for_final(messages)
+            runtime_state["research_evidence_compaction"] = {
+                "status": "compacted_for_final",
+                "messages": compacted,
+                "max_chars_per_message": _RESEARCH_COMPACT_CHARS,
+            }
             return {
-                "messages": [SystemMessage(content=_research_closure_guidance(research_total, research_fetches, research_substantive))],
+                "messages": [
+                    *compacted_messages,
+                    SystemMessage(content=_research_closure_guidance(research_total, research_fetches, research_substantive)),
+                    SystemMessage(content=_research_final_only_guidance(compacted)),
+                ],
                 "runtime": runtime_state,
             }
 
@@ -1040,8 +1174,8 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
                     f"latest failing tool is {entries[-1].tool_name}."
                 ),
                 suggested_lesson=(
-                    "When a turn accumulates repeated tool failures, use memory tools to summarize the pattern, "
-                    "then change strategy or explain the specific blocker instead of treating recovery guidance as task completion."
+                    "When a turn accumulates five repeated tool failures, use memory tools to summarize the pattern, "
+                      "then skip the failing execution step, continue with the next useful step, or explain the specific blocker instead of retrying the same path."
                 ),
                 user_goal=_latest_human_text(messages),
             )
@@ -1093,48 +1227,42 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
         next_args = {**args, "description": _auto_description(str(tool_name), args)}
         return request.override(tool_call={**request.tool_call, "args": next_args})
 
-    def _blocked_repeated_tool_message(self, request: ToolCallRequest) -> ToolMessage | Command | None:
+    def _blocked_repeated_tool_message(self, request: ToolCallRequest) -> ToolMessage | None:
         messages = list((request.state or {}).get("messages", [])) if isinstance(request.state, dict) else []
         tool_name_current = request.tool.name if request.tool else str(request.tool_call.get("name") or "unknown")
         current_sig = _tool_call_args_signature(tool_name_current, request.tool_call.get("args"))
         recent_signatures = _consecutive_recent_tool_signatures(messages, limit=60)
         dup_count = _duplicate_signature_recent_count(recent_signatures, current_sig)
         if (
-            dup_count >= _DUPLICATE_TOOL_CALL_HARD_LIMIT
+            _DUPLICATE_TOOL_CALL_HARD_STOP_ENABLED
+            and _DUPLICATE_TOOL_CALL_HARD_LIMIT > 0
+            and dup_count >= _DUPLICATE_TOOL_CALL_HARD_LIMIT
             and tool_name_current != "write_todos"
         ):
             logger.warning(
-                "ToolBudget: hard-stopping duplicate tool loop tool=%s dup=%d limit=%d",
+                "ToolBudget: duplicate loop reached operator-enabled checkpoint tool=%s dup=%d limit=%d",
                 tool_name_current,
                 dup_count,
                 _DUPLICATE_TOOL_CALL_HARD_LIMIT,
             )
-            hard_stop_tool_message = ToolMessage(
+            return _recovery_guard_message(
                 content=(
-                    f"Tool loop hard-stop: `{tool_name_current}` has been called with identical "
-                    f"arguments {dup_count} times in this turn despite repeated recovery hints. "
-                    "Aborting tool execution to break the loop."
+                    f"Error: `{tool_name_current}` has repeated identical arguments {dup_count} times. "
+                    "Operator-enabled duplicate hard-stop is deprecated; treat this as an urgent soft self-iteration checkpoint: summarize, switch strategy, or skip the step."
                 ),
                 name=tool_name_current,
                 tool_call_id=request.tool_call.get("id"),
-                status="error",
-                additional_kwargs={
-                    _RECOVERY_GUARD_KEY: True,
-                    _TOOL_LOOP_HARD_STOP_KEY: True,
-                },
             )
-            summary_message = AIMessage(
-                content=(
-                    f"检测到工具调用陷入循环：`{tool_name_current}` 在本轮已被相同参数重复调用 "
-                    f"{dup_count} 次，尽管系统多次提示更换策略，模型仍持续重复同一调用。"
-                    "为避免继续消耗资源，已自动中止本轮。\n\n"
-                    "建议：请基于已有上下文重新发起请求，或在提示中明确指出不要重复同一工具调用，"
-                    "并提供更具体的目标（更换工具、修改参数或缩小范围）。"
-                ),
-            )
-            return Command(
-                update={"messages": [hard_stop_tool_message, summary_message]},
-                goto=END,
+        if dup_count >= _DUPLICATE_TOOL_CALL_LIMIT:
+            if tool_name_current == "write_todos":
+                return _planning_noop_guard_message(
+                    dup_count=dup_count,
+                    tool_call_id=request.tool_call.get("id"),
+                )
+            return _duplicate_step_summary_guard_message(
+                tool_name=tool_name_current,
+                dup_count=dup_count,
+                tool_call_id=request.tool_call.get("id"),
             )
         entries = _tool_error_entries(messages)
         closure_needed, research_total, research_fetches, research_substantive = _research_closure_needed(messages)
@@ -1153,22 +1281,6 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
             )
         exhausted_entries = _tool_error_entries(messages, include_recovery_guards=True)
         if not entries:
-            if dup_count >= _DUPLICATE_TOOL_CALL_LIMIT:
-                if tool_name_current == "write_todos":
-                    return _planning_noop_guard_message(
-                        dup_count=dup_count,
-                        tool_call_id=request.tool_call.get("id"),
-                    )
-                return _recovery_guard_message(
-                    content=(
-                        f"Error: this exact tool call ({tool_name_current} with identical arguments) "
-                        f"has already been tried {dup_count} times in this turn with the same result. "
-                        "This is a recovery hint, not a task hard stop: do not repeat this call. "
-                        "Change the arguments materially, switch to a different tool/source, or explain the blockage to the user."
-                    ),
-                    name=tool_name_current,
-                    tool_call_id=request.tool_call.get("id"),
-                )
             return None
 
         tool_name = tool_name_current
@@ -1197,7 +1309,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
         return None
 
     @staticmethod
-    def _mark_error_result(result: ToolMessage | Command) -> ToolMessage | Command:
+    def _mark_error_result(result: ToolMessage) -> ToolMessage:
         if not isinstance(result, ToolMessage):
             return result
         if getattr(result, "status", None) == "error":
@@ -1206,6 +1318,31 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
         if not (text.startswith(_ERROR_PREFIXES) or any(marker in text for marker in _ERROR_MARKERS) or _json_tool_payload_is_error(text)):
             return result
         return result.model_copy(update={"status": "error"})
+
+    @staticmethod
+    def _research_final_request(request: ModelRequest) -> ModelRequest:
+        runtime_state = dict((request.state or {}).get("runtime") or {}) if isinstance(request.state, dict) else {}
+        if not _research_closure_active(runtime_state):
+            return request
+        guidance = SystemMessage(
+            content=(
+                "<research_final_tool_policy>\n"
+                "Research closure is active. For this model call, web research tools are intentionally unavailable so the assistant can produce the final user-facing answer from existing compacted evidence. "
+                "This is a soft harness constraint, not a graph hard stop. Mention limitations rather than requesting more web tools.\n"
+                "</research_final_tool_policy>"
+            )
+        )
+        return replace(request, messages=[*request.messages, guidance], tools=[], tool_choice=None)
+
+    @override
+    def wrap_model_call(self, request: ModelRequest, handler: Callable[[ModelRequest], ModelResponse]) -> ModelResponse:
+        return handler(self._research_final_request(request))
+
+    @override
+    async def awrap_model_call(
+        self, request: ModelRequest, handler: Callable[[ModelRequest], Awaitable[ModelResponse]]
+    ) -> ModelResponse:
+        return await handler(self._research_final_request(request))
 
     @override
     def before_model(self, state: AgentState, runtime: Runtime) -> dict | None:
@@ -1219,8 +1356,8 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
     def wrap_tool_call(
         self,
         request: ToolCallRequest,
-        handler: Callable[[ToolCallRequest], ToolMessage | Command],
-    ) -> ToolMessage | Command:
+        handler: Callable[[ToolCallRequest], ToolMessage],
+    ) -> ToolMessage:
         blocked = self._blocked_repeated_tool_message(request)
         if blocked is not None:
             return blocked
@@ -1231,8 +1368,8 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
     async def awrap_tool_call(
         self,
         request: ToolCallRequest,
-        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage | Command]],
-    ) -> ToolMessage | Command:
+        handler: Callable[[ToolCallRequest], Awaitable[ToolMessage]],
+    ) -> ToolMessage:
         blocked = self._blocked_repeated_tool_message(request)
         if blocked is not None:
             return blocked
@@ -1255,10 +1392,28 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
             tool_calls = list(getattr(last_message, "tool_calls", []) or [])
             tool_names = {str(call.get("name") or "") for call in tool_calls if isinstance(call, dict)}
             if tool_names and tool_names <= _WEB_RESEARCH_TOOLS:
-                runtime_state["research_closure"]["summary_mode"] = "model_guided"
+                runtime_state["research_closure"]["summary_mode"] = "evidence_fallback"
                 runtime_state["research_closure"]["soft_review_tool_calls"] = sorted(tool_names)
-                runtime_state["self_feedback_action"] = "self_review_web_tools_after_research_closure"
-                return {"runtime": runtime_state}
+                runtime_state["research_closure"]["fallback_answer_generated"] = True
+                runtime_state["self_feedback_action"] = "answer_from_existing_research_evidence"
+                tool_messages = [
+                    ToolMessage(
+                        content=(
+                            "Research closure fallback: this pending web tool call was not executed because enough evidence was already collected. "
+                            "A conservative final answer is generated from existing evidence."
+                        ),
+                        name=str(call.get("name") or "web"),
+                        tool_call_id=call.get("id"),
+                        status="success",
+                        additional_kwargs={_RESEARCH_CLOSURE_GUARD_KEY: True},
+                    )
+                    for call in tool_calls
+                    if isinstance(call, dict)
+                ]
+                return {
+                    "messages": [*tool_messages, AIMessage(content=_research_closure_fallback_answer(messages, tool_names=tool_names))],
+                    "runtime": runtime_state,
+                }
 
         error_entries = _tool_error_entries(messages, include_recovery_guards=True)
         if len(error_entries) < self.final_failure_errors:

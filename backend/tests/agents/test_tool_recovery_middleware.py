@@ -1,9 +1,8 @@
 from __future__ import annotations
 
+from langchain.agents.middleware.types import ModelRequest, ModelResponse
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
-from langgraph.graph import END
 from langgraph.prebuilt.tool_node import ToolCallRequest
-from langgraph.types import Command
 
 from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
 
@@ -149,7 +148,7 @@ def test_repeated_same_tool_errors_are_blocked_with_switch_guidance() -> None:
 
     assert isinstance(result, ToolMessage)
     assert result.status == "error"
-    assert "switching to a different tool" in result.content
+    assert "Summarize the evidence already collected" in result.content
     assert result.additional_kwargs["octo_tool_recovery_guard"] is True
 
 
@@ -172,6 +171,30 @@ def test_duplicate_guard_counts_actual_tool_calls_once() -> None:
     assert isinstance(result, ToolMessage)
     assert result.content == "/workspace"
     assert result.status == "success"
+
+
+def test_duplicate_guard_requires_summary_after_three_identical_steps_without_hard_stop() -> None:
+    middleware = ToolBudgetMiddleware()
+    messages = [HumanMessage(content="research current news")]
+    args = {"query": "X.com trending news today"}
+    for index in range(3):
+        call_id = f"call-{index}"
+        messages.append(_ai_tool_call(tool_name="web_search", call_id=call_id, args=args))
+        messages.append(ToolMessage(content="same search result", name="web_search", tool_call_id=call_id))
+    request = ToolCallRequest(
+        tool_call={"name": "web_search", "args": args, "id": "call-next"},
+        tool=None,
+        state={"messages": messages},
+        runtime=None,
+    )
+
+    result = middleware.wrap_tool_call(request, lambda next_request: ToolMessage(content="should not run", name="web_search", tool_call_id="call-next"))
+
+    assert isinstance(result, ToolMessage)
+    assert result.status == "error"
+    assert result.additional_kwargs["octo_duplicate_step_summary"] is True
+    assert "Summarize the evidence already collected" in result.content
+    assert "hard stop" in result.content
 
 
 def test_duplicate_write_todos_is_nonfatal_planning_noop() -> None:
@@ -261,10 +284,12 @@ def test_web_research_budget_injects_closure_guidance() -> None:
     update = middleware.before_model({"messages": messages}, None)
 
     assert update is not None
-    guidance = update["messages"][0].content
+    guidance = "\n".join(message.content for message in update["messages"] if isinstance(message, SystemMessage))
     assert "research_closure_policy" in guidance
+    assert "research_final_answer_mode" in guidance
     assert "Produce the final user-facing report now" in guidance
     assert update["runtime"]["research_closure"]["status"] == "must_finalize"
+    assert update["runtime"]["research_evidence_compaction"]["status"] == "compacted_for_final"
 
 
 def test_web_research_budget_injects_closure_after_step_review_message() -> None:
@@ -279,11 +304,12 @@ def test_web_research_budget_injects_closure_after_step_review_message() -> None
     update = middleware.before_model({"messages": messages}, None)
 
     assert update is not None
-    assert "research_closure_policy" in update["messages"][0].content
+    guidance = "\n".join(message.content for message in update["messages"] if isinstance(message, SystemMessage))
+    assert "research_closure_policy" in guidance
     assert update["runtime"]["research_closure"]["status"] == "must_finalize"
 
 
-def test_web_research_budget_does_not_hard_block_more_fetches_by_default() -> None:
+def test_web_research_budget_soft_blocks_more_fetches_by_default() -> None:
     middleware = ToolBudgetMiddleware()
     messages = [HumanMessage(content="research content subscription saas")]
     for index in range(6):
@@ -303,8 +329,9 @@ def test_web_research_budget_does_not_hard_block_more_fetches_by_default() -> No
     )
 
     assert isinstance(result, ToolMessage)
-    assert result.content == "executed"
-    assert "octo_research_closure_guard" not in result.additional_kwargs
+    assert "Research collection skipped" in result.content
+    assert "Produce the final report now" in result.content
+    assert result.additional_kwargs["octo_research_closure_guard"] is True
 
 
 def test_research_closure_compacts_web_evidence_before_final_model_call() -> None:
@@ -378,6 +405,65 @@ def test_research_closure_compacts_even_after_closure_guidance_message() -> None
     assert "research_final_answer_mode" in update["messages"][-1].content
 
 
+def test_research_closure_model_call_runs_without_tools() -> None:
+    middleware = ToolBudgetMiddleware()
+    messages = [HumanMessage(content="research current news")]
+    request = ModelRequest(
+        model=object(),
+        messages=messages,
+        system_message=None,
+        tool_choice="auto",
+        tools=[{"name": "web_search"}],
+        response_format=None,
+        state={"messages": messages, "runtime": {"research_closure": {"status": "must_finalize"}}},
+        runtime=None,
+        model_settings={},
+    )
+
+    seen = {}
+
+    def handler(next_request: ModelRequest) -> ModelResponse:
+        seen["tools"] = next_request.tools
+        seen["tool_choice"] = next_request.tool_choice
+        seen["last_message"] = next_request.messages[-1]
+        return ModelResponse(result=[AIMessage(content="最终报告")], structured_response=None)
+
+    result = middleware.wrap_model_call(request, handler)
+
+    assert result.result[0].content == "最终报告"
+    assert seen["tools"] == []
+    assert seen["tool_choice"] is None
+    assert "research_final_tool_policy" in seen["last_message"].content
+
+
+def test_research_closure_fallback_filters_to_named_source_domain() -> None:
+    middleware = ToolBudgetMiddleware()
+    messages = [HumanMessage(content="查询x.com前十大新闻")]
+    messages.append(_ai_tool_call(tool_name="web_search", call_id="search-0", args={"query": "x.com trending"}))
+    messages.append(
+        ToolMessage(
+            content=(
+                '[{"title":"X official update","url":"https://x.com/example/status/1","snippet":"source item"},'
+                '{"title":"Video about X trends","url":"https://www.youtube.com/watch?v=abc","snippet":"not source"}]'
+            ),
+            name="web_search",
+            tool_call_id="search-0",
+        )
+    )
+    messages.append(_ai_tool_call(tool_name="web_search", call_id="search-extra", args={"query": "more"}))
+
+    update = middleware.after_model(
+        {"messages": messages, "runtime": {"research_closure": {"status": "must_finalize"}}},
+        None,
+    )
+
+    assert update is not None
+    final = update["messages"][-1].content
+    assert "https://x.com/example/status/1" in final
+    assert "youtube.com" not in final
+    assert "匹配指定来源域名" in final
+
+
 def test_research_closure_uses_model_guided_soft_review_without_forced_answer() -> None:
     middleware = ToolBudgetMiddleware()
     messages = [HumanMessage(content="Research ANPZ tax, debt, operations, revenue, profit, and exports.")]
@@ -405,11 +491,13 @@ def test_research_closure_uses_model_guided_soft_review_without_forced_answer() 
     )
 
     assert update is not None
-    assert "messages" not in update
     assert update["runtime"]["research_closure"]["status"] == "must_finalize"
-    assert update["runtime"]["research_closure"]["summary_mode"] == "model_guided"
+    assert update["runtime"]["research_closure"]["summary_mode"] == "evidence_fallback"
     assert update["runtime"]["research_closure"]["soft_review_tool_calls"] == ["web_search"]
-    assert update["runtime"]["self_feedback_action"] == "self_review_web_tools_after_research_closure"
+    assert update["runtime"]["self_feedback_action"] == "answer_from_existing_research_evidence"
+    assert update["messages"][-1].type == "ai"
+    assert "不补齐或编造到 10 条" in update["messages"][-1].content
+    assert "https://example.kz/anpz/0" in update["messages"][-1].content
 
     compacted = middleware.before_model(
         {
@@ -420,23 +508,6 @@ def test_research_closure_uses_model_guided_soft_review_without_forced_answer() 
     )
     assert compacted is not None
     assert compacted["runtime"]["research_evidence_compaction"]["status"] == "compacted_for_final"
-
-    soft = middleware.before_model(
-        {
-            "messages": compacted["messages"],
-            "runtime": compacted["runtime"],
-        },
-        None,
-    )
-
-    assert soft is not None
-    guidance = soft["messages"][0].content
-    assert "runtime_self_constraint_reflection" in guidance
-    assert "research_closure_loop" in guidance
-    assert "search_memory" in guidance
-    assert "archival_memory_insert" in guidance
-    assert "Substack" not in guidance
-    assert "Patreon" not in guidance
 
 
 def test_recovery_guard_messages_do_not_escalate_error_budget() -> None:
@@ -466,7 +537,7 @@ def test_recovery_guard_messages_do_not_escalate_error_budget() -> None:
 
     assert isinstance(result, ToolMessage)
     assert result.status == "error"
-    assert "has already failed 3 times" in result.content
+    assert "Summarize the evidence already collected" in result.content
     assert "capability discovery" not in result.content
     assert "工具调用连续失败" not in result.content
 
@@ -489,7 +560,7 @@ def test_repeated_web_fetch_errors_require_different_source_guidance() -> None:
 
     assert isinstance(result, ToolMessage)
     assert result.status == "error"
-    assert "Do not fetch the same URL again" in result.content
+    assert "Summarize the evidence already collected" in result.content
     assert "web_search" in result.content
 
 
@@ -557,6 +628,25 @@ def test_six_total_tool_errors_require_capability_discovery() -> None:
     assert result.status == "error"
     assert "capability discovery" in result.content
     assert "web_search" not in result.content
+
+
+def test_five_consecutive_tool_failures_inject_skip_step_self_iteration() -> None:
+    middleware = ToolBudgetMiddleware()
+    messages = [HumanMessage(content="complete task")]
+    for index in range(5):
+        call_id = f"call-{index}"
+        messages.append(_ai_tool_call(call_id=call_id))
+        messages.append(_tool_error(call_id=call_id, content="Error: repeated failure"))
+
+    update = middleware.before_model({"messages": messages}, None)
+
+    assert update is not None
+    assert update["runtime"]["tool_recovery"]["stage"] == "final_soft_constraint"
+    assert update["runtime"]["tool_recovery"]["hard_stop"] is False
+    guidance = update["messages"][0].content
+    assert "runtime_self_constraint_reflection" in guidance
+    assert "five repeated tool failures" in guidance
+    assert "skip the failing execution step" in guidance
 
 
 def test_final_failure_after_model_records_soft_review_without_replacing_tool_calls() -> None:
@@ -659,7 +749,7 @@ def test_final_recovery_guidance_after_reflection_remains_advisory() -> None:
 
     assert update is not None
     guidance = update["messages"][0].content
-    assert "final recovery review point" in guidance
+    assert "skip-step recovery point" in guidance
     assert "not a hard stop" in guidance
     assert "stopped the task" not in guidance
     assert update["runtime"]["tool_recovery"]["stage"] == "final"
@@ -787,29 +877,15 @@ def test_soft_budget_does_not_summarize_directory_listing_noise() -> None:
     assert middleware.after_model({"messages": messages}, None) is None
 
 
-# octo_tool_loop_hard_stop
-def test_duplicate_tool_call_hard_limit_aborts_turn_with_command_end() -> None:
-    """Once the same (tool, args) is repeated past the hard limit despite soft
-    recovery guards, the middleware aborts the turn via Command(goto=END)
-    instead of returning yet another advisory ToolMessage that the model would
-    again ignore.
-    """
-    from src.agents.middlewares.tool_budget_middleware import (
-        _DUPLICATE_TOOL_CALL_HARD_LIMIT,
-        _TOOL_LOOP_HARD_STOP_KEY,
-    )
-
+# Duplicate loops are soft self-iteration checkpoints, not graph hard stops.
+def test_duplicate_tool_call_soft_limit_returns_summary_without_command_end() -> None:
     middleware = ToolBudgetMiddleware()
     args = {"command": "curl -s http://10.0.0.1/../etc/passwd"}
     messages = [HumanMessage(content="scan ports")]
-    # Build HARD_LIMIT prior identical successful calls so the next call's
-    # dup_count equals _DUPLICATE_TOOL_CALL_HARD_LIMIT.
-    for index in range(_DUPLICATE_TOOL_CALL_HARD_LIMIT):
+    for index in range(3):
         call_id = f"call-{index}"
         messages.append(_ai_tool_call(call_id=call_id, args=args))
-        messages.append(
-            ToolMessage(content="200", name="bash", tool_call_id=call_id, status="success")
-        )
+        messages.append(ToolMessage(content="200", name="bash", tool_call_id=call_id, status="success"))
     request = ToolCallRequest(
         tool_call={"name": "bash", "args": args, "id": "call-next"},
         tool=None,
@@ -818,47 +894,29 @@ def test_duplicate_tool_call_hard_limit_aborts_turn_with_command_end() -> None:
     )
 
     def handler(_req: ToolCallRequest) -> ToolMessage:  # pragma: no cover - must not run
-        raise AssertionError("handler must not execute once hard-stop is reached")
+        raise AssertionError("handler must not execute once duplicate summary is required")
 
     result = middleware.wrap_tool_call(request, handler)
 
-    assert isinstance(result, Command)
-    assert result.goto == END
-    update_messages = result.update["messages"]
-    assert len(update_messages) == 2
-    tool_msg, ai_msg = update_messages
-    assert isinstance(tool_msg, ToolMessage)
-    assert tool_msg.status == "error"
-    assert tool_msg.additional_kwargs.get(_TOOL_LOOP_HARD_STOP_KEY) is True
-    assert isinstance(ai_msg, AIMessage)
-    assert "循环" in ai_msg.content
+    assert isinstance(result, ToolMessage)
+    assert result.status == "error"
+    assert result.additional_kwargs["octo_duplicate_step_summary"] is True
+    assert "Summarize the evidence already collected" in result.content
+    assert "hard stop" in result.content
 
 
-def test_duplicate_tool_call_hard_limit_also_triggers_when_prior_errors_present() -> None:
-    """Hard-stop must fire regardless of whether prior calls failed or
-    succeeded. The previous design gated duplicate detection behind a
-    `not entries:` check, allowing infinite loops once any tool error existed.
-    """
-    from src.agents.middlewares.tool_budget_middleware import (
-        _DUPLICATE_TOOL_CALL_HARD_LIMIT,
-        _TOOL_LOOP_HARD_STOP_KEY,
-    )
-
+def test_duplicate_tool_call_soft_limit_also_triggers_when_prior_errors_present() -> None:
     middleware = ToolBudgetMiddleware()
     args = {"command": "curl http://target/x"}
     messages = [HumanMessage(content="probe target")]
-    # Mix some unrelated tool errors first to populate `entries`.
     for index in range(2):
         call_id = f"err-{index}"
         messages.append(_ai_tool_call(tool_name="bash", call_id=call_id, args={"command": "broken"}))
         messages.append(_tool_error(tool_name="bash", call_id=call_id, content="Error: failed"))
-    # Then HARD_LIMIT identical duplicates.
-    for index in range(_DUPLICATE_TOOL_CALL_HARD_LIMIT):
+    for index in range(3):
         call_id = f"dup-{index}"
         messages.append(_ai_tool_call(call_id=call_id, args=args))
-        messages.append(
-            ToolMessage(content="ok", name="bash", tool_call_id=call_id, status="success")
-        )
+        messages.append(ToolMessage(content="ok", name="bash", tool_call_id=call_id, status="success"))
     request = ToolCallRequest(
         tool_call={"name": "bash", "args": args, "id": "call-final"},
         tool=None,
@@ -871,20 +929,17 @@ def test_duplicate_tool_call_hard_limit_also_triggers_when_prior_errors_present(
         lambda _r: ToolMessage(content="ok", name="bash", tool_call_id="call-final"),
     )
 
-    assert isinstance(result, Command)
-    assert result.goto == END
-    assert result.update["messages"][0].additional_kwargs.get(_TOOL_LOOP_HARD_STOP_KEY) is True
+    assert isinstance(result, ToolMessage)
+    assert result.status == "error"
+    assert result.additional_kwargs["octo_duplicate_step_summary"] is True
+    assert "Summarize the evidence already collected" in result.content
 
 
-def test_duplicate_write_todos_does_not_hit_hard_stop() -> None:
-    """write_todos has its own planning-noop guard and is exempt from the
-    hard-stop branch to avoid prematurely ending plan-revision loops."""
-    from src.agents.middlewares.tool_budget_middleware import _DUPLICATE_TOOL_CALL_HARD_LIMIT
-
+def test_duplicate_write_todos_uses_planning_noop_guard_without_hard_stop() -> None:
     middleware = ToolBudgetMiddleware()
     args = {"todos": [{"content": "x", "status": "in_progress"}]}
     messages = [HumanMessage(content="plan")]
-    for index in range(_DUPLICATE_TOOL_CALL_HARD_LIMIT):
+    for index in range(3):
         call_id = f"call-{index}"
         messages.append(_ai_tool_call(tool_name="write_todos", call_id=call_id, args=args))
         messages.append(ToolMessage(content="ok", name="write_todos", tool_call_id=call_id))
@@ -900,6 +955,6 @@ def test_duplicate_write_todos_does_not_hit_hard_stop() -> None:
         lambda _r: ToolMessage(content="ok", name="write_todos", tool_call_id="call-next"),
     )
 
-    # write_todos hits the planning-noop guard (a ToolMessage), never the
-    # Command(goto=END) hard-stop branch.
-    assert not isinstance(result, Command)
+    assert isinstance(result, ToolMessage)
+    assert result.status == "success"
+    assert result.additional_kwargs["octo_planning_noop_guard"] is True

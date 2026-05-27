@@ -94,6 +94,12 @@ _DESTRUCTIVE_MARKERS = ("删除", "清理", "rm ", "rm -rf", "wipe", "delete", "
 _PRIVILEGE_MARKERS = ("sudo", "提权", "免密", "root", "chmod", "chown")
 _PUBLISH_MARKERS = ("push", "推送", "github", "发布", "release", "deploy", "上线")
 _DOMAIN_PATTERN = re.compile(r"\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b", re.IGNORECASE)
+_NAMED_SOURCE_DOMAINS = (
+    (("x.com", "twitter"), "x.com"),
+    (("reddit", "红迪"), "reddit.com"),
+    (("bloomberg", "彭博", "彭博社"), "bloomberg.com"),
+)
+_MAX_RESEARCH_EVIDENCE_LINK_REQUIREMENT = 5
 
 
 @dataclass(frozen=True)
@@ -122,9 +128,10 @@ def _contains_any(text: str, markers: tuple[str, ...]) -> bool:
 def _extract_required_domains(text: str) -> tuple[str, ...]:
     domains: list[str] = []
     seen: set[str] = set()
-    if "x.com" in text or "twitter" in text or "site:x.com" in text:
-        seen.add("x.com")
-        domains.append("x.com")
+    for markers, mapped_domain in _NAMED_SOURCE_DOMAINS:
+        if any(marker in text for marker in markers) and mapped_domain not in seen:
+            seen.add(mapped_domain)
+            domains.append(mapped_domain)
     for match in _DOMAIN_PATTERN.findall(text):
         domain = match.lower()
         if domain == "twitter.com":
@@ -194,7 +201,26 @@ def detect_instruction_contract(
 
     if is_current_research:
         domains = _extract_required_domains(text)
-        min_links = _requested_result_count(text)
+        requested_count = _requested_result_count(text)
+        min_links = min(requested_count, _MAX_RESEARCH_EVIDENCE_LINK_REQUIREMENT)
+        output_requirements = [
+            "Use tool-backed evidence for current or time-sensitive claims.",
+            "Return source URLs for the concrete content pages that support the answer.",
+            "Do not claim completion if the requested pages cannot be fetched or verified.",
+            "Cross-validate dynamic data (Stars, prices, rankings) with the actual tool output — never cite stale training data.",
+            "Each factual claim in the response must be traceable to a specific tool output.",
+            "Before submitting, verify all URLs are correct and all data attributions match their sources.",
+        ]
+        if domains:
+            output_requirements.append(
+                "When the user names a URL, domain, or source, start with that exact source "
+                "(direct fetch/read if a URL is present, otherwise source-scoped search such as site:domain). "
+                "If those results are enough, answer immediately; broaden only after stating the source-specific gap."
+            )
+        if requested_count > min_links:
+            output_requirements.append(
+                f"For top-{requested_count} requests, list up to {requested_count} supported items from the first source-specific pass; if fewer are observable, report the shortfall instead of expanding into unrelated topics."
+            )
         return InstructionContract(
             intent="current_research",
             risk_level="medium",
@@ -203,14 +229,7 @@ def detect_instruction_contract(
             required_domains=domains,
             min_evidence_links=min_links,
             require_source_attribution=True,
-            output_requirements=(
-                "Use tool-backed evidence for current or time-sensitive claims.",
-                "Return source URLs for the concrete content pages that support the answer.",
-                "Do not claim completion if the requested pages cannot be fetched or verified.",
-                "Cross-validate dynamic data (Stars, prices, rankings) with the actual tool output — never cite stale training data.",
-                "Each factual claim in the response must be traceable to a specific tool output.",
-                "Before submitting, verify all URLs are correct and all data attributions match their sources.",
-            ),
+            output_requirements=tuple(output_requirements),
         )
 
     if is_code_task:
@@ -256,7 +275,7 @@ def build_contract_prompt(contract: InstructionContract) -> str:
     if contract.required_tool_categories:
         lines.append("- Required tool categories: " + ", ".join(contract.required_tool_categories))
     if contract.required_domains:
-        lines.append("- Required source domains: " + ", ".join(contract.required_domains))
+        lines.append("- User-named source domains to try first: " + ", ".join(contract.required_domains))
     if contract.min_evidence_links:
         lines.append(f"- Minimum source URLs/content pages: {contract.min_evidence_links}")
     if contract.require_runtime_identity:

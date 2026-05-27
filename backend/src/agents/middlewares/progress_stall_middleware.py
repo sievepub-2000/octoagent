@@ -32,10 +32,11 @@ from typing import Any, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langgraph.runtime import Runtime
-from src.utils.messages import message_text as _message_text
+
 from src.utils.messages import latest_human_index as _latest_human_index
+from src.utils.messages import message_text as _message_text
 
 logger = logging.getLogger(__name__)
 
@@ -48,10 +49,10 @@ _MAX_REFLECTIONS_PER_TURN = int(os.getenv("OCTO_PROGRESS_STALL_MAX_REFLECTIONS",
 # many times in a single human turn, force a strategy-change prompt instead of
 # injecting another generic self-reflection. The legacy HARD_STOP env name is
 # still accepted for compatibility, but this path never jumps to graph end.
-_SOFT_ESCALATION_DUP = int(os.getenv("OCTO_PROGRESS_STALL_SOFT_ESCALATION_DUP", os.getenv("OCTO_PROGRESS_STALL_HARD_STOP_DUP", "6")))
+_SOFT_ESCALATION_DUP = int(os.getenv("OCTO_PROGRESS_STALL_SOFT_ESCALATION_DUP", os.getenv("OCTO_PROGRESS_STALL_HARD_STOP_DUP", "3")))
 # Deep soft ceiling: once the same call repeats this many times, inject stronger
 # strategy-change guidance instead of allowing the same call loop to continue.
-_SAFETY_NET_DUP = max(_SOFT_ESCALATION_DUP * 2, int(os.getenv("OCTO_PROGRESS_STALL_SAFETY_NET_DUP", "12")))
+_SAFETY_NET_DUP = max(_SOFT_ESCALATION_DUP + 2, int(os.getenv("OCTO_PROGRESS_STALL_SAFETY_NET_DUP", "5")))
 # Maximum number of soft-recovery system messages to inject for any single stall
 # signature inside one human turn before escalating to user-communication advice.
 _MAX_SOFT_ESCALATIONS_PER_SIGNATURE = int(os.getenv("OCTO_PROGRESS_STALL_MAX_SOFT_PER_SIG", "2"))
