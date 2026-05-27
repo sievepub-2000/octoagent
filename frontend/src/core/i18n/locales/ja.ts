@@ -802,7 +802,7 @@ export const ja: Translations = {
       systemDescription: "OS の設定に自動的に合わせます。",
       lightDescription: "明るい配色で、日中の使用に適しています。",
       darkDescription: "暗い配色で、まぶしさを抑えて集中できます。",
-      languageTitle: "言語",
+      languageTitle: "言語設定",
       languageDescription: "言語を切り替えます。",
     },
     tools: {

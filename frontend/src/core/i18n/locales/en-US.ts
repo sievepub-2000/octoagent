@@ -811,7 +811,7 @@ This signs out the upstream account when supported and keeps the reusable interf
       systemDescription: "Match the operating system preference automatically.",
       lightDescription: "Bright palette with higher contrast for daytime.",
       darkDescription: "Dim palette that reduces glare for focus.",
-      languageTitle: "Language",
+      languageTitle: "Language Settings",
       languageDescription: "Switch between languages.",
     },
     tools: {

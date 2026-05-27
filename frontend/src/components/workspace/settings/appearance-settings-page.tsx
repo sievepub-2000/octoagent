@@ -132,6 +132,43 @@ export function AppearanceSettingsPage() {
 
   return (
     <div className="space-y-6">
+      {/* Language – clickable tab cards */}
+      <SettingsSection
+        title={t.settings.appearance.languageTitle}
+        description={t.settings.appearance.languageDescription}
+      >
+        <div className="flex flex-wrap gap-2">
+          {languageOptions.map((item) => {
+            const active = locale === item.value;
+            return (
+              <button
+                key={item.value}
+                type="button"
+                onClick={() => {
+                  if (isLocale(item.value) && item.value !== locale) {
+                    changeLocale(item.value);
+                    setSettings("context", {
+                      conversation_language: LOCALE_TO_LANGUAGE[item.value],
+                    });
+                    window.location.reload();
+                  }
+                }}
+                className={cn(
+                  "flex items-center gap-2 rounded-lg border px-3 py-2 transition-all",
+                  active
+                    ? "border-primary bg-primary/5 ring-primary/30 shadow-sm ring-2"
+                    : "hover:border-border hover:shadow-sm",
+                )}
+              >
+                <span className="text-base">{item.flag}</span>
+                <span className="text-xs font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </SettingsSection>
+      <Separator />
+
       <SettingsSection
         title={t.settings.appearance.themeTitle}
         description={t.settings.appearance.themeDescription}
@@ -217,43 +254,6 @@ export function AppearanceSettingsPage() {
         </div>
       </SettingsSection>
 
-      <Separator />
-
-      {/* Language – clickable tab cards */}
-      <SettingsSection
-        title={t.settings.appearance.languageTitle}
-        description={t.settings.appearance.languageDescription}
-      >
-        <div className="flex flex-wrap gap-2">
-          {languageOptions.map((item) => {
-            const active = locale === item.value;
-            return (
-              <button
-                key={item.value}
-                type="button"
-                onClick={() => {
-                  if (isLocale(item.value) && item.value !== locale) {
-                    changeLocale(item.value);
-                    setSettings("context", {
-                      conversation_language: LOCALE_TO_LANGUAGE[item.value],
-                    });
-                    window.location.reload();
-                  }
-                }}
-                className={cn(
-                  "flex items-center gap-2 rounded-lg border px-3 py-2 transition-all",
-                  active
-                    ? "border-primary bg-primary/5 ring-primary/30 shadow-sm ring-2"
-                    : "hover:border-border hover:shadow-sm",
-                )}
-              >
-                <span className="text-base">{item.flag}</span>
-                <span className="text-xs font-medium">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </SettingsSection>
     </div>
   );
 }

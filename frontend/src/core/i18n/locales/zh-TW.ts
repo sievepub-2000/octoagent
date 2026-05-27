@@ -803,7 +803,7 @@ export const zhTW: Translations = {
       systemDescription: "自動配合作業系統設定。",
       lightDescription: "明亮配色，適合白天使用。",
       darkDescription: "暗色配色，減少刺眼使注意力更集中。",
-      languageTitle: "語言",
+      languageTitle: "語言設定",
       languageDescription: "切換語言。",
     },
     tools: {

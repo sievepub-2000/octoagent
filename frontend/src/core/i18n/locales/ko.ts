@@ -804,7 +804,7 @@ export const ko: Translations = {
       systemDescription: "OS 설정에 자동으로 맞춥니다.",
       lightDescription: "밝은 색상 배합으로 낮에 사용하기 좋습니다.",
       darkDescription: "어두운 색상 배합으로 눈부심을 줄이고 집중할 수 있습니다.",
-      languageTitle: "언어",
+      languageTitle: "언어 설정",
       languageDescription: "언어를 전환합니다.",
     },
     tools: {
