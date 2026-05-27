@@ -1,3 +1,21 @@
+## 2026-05-27 — Decommission 192.168.110.3 model card; system default now localhost:8000
+
+### Changes
+- `runtime/config/config.yaml`: removed model card `qwen3.6-35b-a3b-mxfp4` (was pointing to
+  `http://192.168.110.3:8000/v1`); 3号机 has been reimaged so the upstream is gone.
+- Elevated `qwen3.6-35b-a3b-q8-mm-prod` (local 2号机 llama.cpp at `http://localhost:8000/v1`)
+  to system default by setting `priority: 100`, ahead of all other models. The factory's
+  `_select_default_model_name()` is priority-driven, so this becomes the picked default
+  whenever no user override exists in setup_state.
+- Local deployment `~/.config/octoagent/setup_state.json` also explicitly sets
+  `default_model: qwen3.6-35b-a3b-q8-mm-prod` (not committed; user-scoped).
+
+### Verification
+- `/api/models` reports 33 entries with zero `mxfp4` references.
+- `/api/agents` still reports 57 preset agents.
+- `http://127.0.0.1:8000/v1/models` confirms the local llama.cpp server is serving
+  `qwen3.6-35b-a3b-q8-mm-prod`.
+
 ## 2026-05-27 (Preset agents restored + ask_user_question pause loop fix)
 
 ### `_system_agents_root()` path resolution
