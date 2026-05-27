@@ -147,3 +147,4 @@ workspace/outputs/
 runtime/secrets/
 runtime/config/model_auth.env
 runtime/config/*.env
+runtime/config/*.yaml

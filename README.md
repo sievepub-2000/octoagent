@@ -9,6 +9,14 @@
 > Full terms: [`LICENSE`](LICENSE) · contribution policy: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 >
 > **Contact / 商务联系 / お問い合わせ:** **zillafan80@gmail.com**
+>
+> **Commercial License FAQ:** [`docs/COMMERCIAL_LICENSE_FAQ.md`](docs/COMMERCIAL_LICENSE_FAQ.md)
+> — TL;DR: free **only** for personal non-commercial use; every
+> other use (SaaS, internal enterprise, OEM, redistribution) requires
+> a commercial license.
+>
+> **Docs index:** [`docs/INDEX.md`](docs/INDEX.md) ·
+> **Module ownership map:** [`docs/MODULE_OWNERS.md`](docs/MODULE_OWNERS.md)
 
 <p align="center">
   <a href="https://github.com/sievepub-2000/octoagent/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/badge/ci-passing-brightgreen"></a>

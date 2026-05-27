@@ -108,8 +108,8 @@ jobs:
 
       - name: Prepare local config
         run: |
-          cp config.example.yaml config.yaml
-          mkdir -p workspace/env workspace/runtime
+          mkdir -p runtime/config workspace/env workspace/runtime
+          cp config.example.yaml runtime/config/config.yaml
 
       - name: Runtime soak smoke
         run: make soak-smoke

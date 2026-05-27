@@ -64,7 +64,9 @@ jobs:
             exit 0
           fi
 
-          printf '%s\n' "$OCTO_LIVE_TEST_CONFIG_YAML" > config.yaml
+          mkdir -p runtime/config
+          printf '%s\n' "$OCTO_LIVE_TEST_CONFIG_YAML" > runtime/config/config.yaml
+          chmod 600 runtime/config/config.yaml
           echo "enabled=true" >> "$GITHUB_OUTPUT"
 
       - name: Install backend dependencies

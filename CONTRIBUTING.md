@@ -103,3 +103,46 @@ embedded redistribution, OEM, proprietary integration, removal of the
 About panel obligations, etc.), open an issue using the
 [`Commercial inquiry`](.github/ISSUE_TEMPLATE/commercial_inquiry.md)
 template or email zillafan80@gmail.com directly.
+
+## 7. Push policy (no squash on `main`)
+
+The `main` branch keeps the **full commit history**. When merging a
+pull request or pushing approved changes, you MUST preserve the
+individual commits.
+
+- Use `git push origin main` (no rebase-squash, no `git merge --squash`).
+- For PRs merged via the GitHub UI, choose **"Create a merge commit"**
+  or **"Rebase and merge"**. Never choose **"Squash and merge"**.
+- Local cleanup via interactive rebase before pushing is fine; the
+  prohibition is on losing commit boundaries at merge time.
+
+Rationale: every commit on `main` carries a `Signed-off-by` trailer,
+a single-purpose change set, and (for governance-tagged files) the
+About-fingerprint refresh in the same commit if needed. Squashing
+loses the audit chain that section 4 of this document grants over
+each individual contribution.
+
+CI enforces this policy: a push that flattens multiple Signed-off-by
+trailers into a single commit is flagged by the `history-shape`
+guard in [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
+
+## 8. Configuration file location
+
+The active runtime configuration file lives at
+**`runtime/config/config.yaml`** (since 2026-05-27).
+
+- `config.example.yaml` at the repository root is the **template**
+  — copy it, do not edit it.
+- `make config` will populate `runtime/config/config.yaml` with mode
+  `0600`. The directory `runtime/config/` is gitignored
+  (`runtime/config/*.yaml` and `runtime/config/*.env`).
+- A root-level `config.yaml` is still honoured as a back-compat
+  fallback by `resolve_app_config_path()`, but new installations
+  should use the runtime/config/ location.
+- Override at runtime with `OCTO_AGENT_CONFIG_PATH=/abs/path/to.yaml`
+  or pass `config_path=...` to the loader.
+
+If you migrate from the legacy root layout, just `mkdir -p
+runtime/config && mv config.yaml runtime/config/config.yaml`. The
+loader picks up the new location automatically.
+

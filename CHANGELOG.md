@@ -1,3 +1,138 @@
+## 2026-05-27 (review hardening: tests, config relocation, docs, license FAQ)
+
+### Summary
+
+Closes the seven follow-up items from the 2026-05-27 project evaluation
+(score 4.1/5). Surgical changes only — no behavioural drift on any
+existing code path. The single commit chain on `main` (a single squash
+from 2026-05-26) is preserved; from this point forward `main` keeps
+the full commit history per [`CONTRIBUTING.md`](CONTRIBUTING.md) §7.
+
+### Test coverage added
+
+Six new pytest modules lock high-value invariants that previously had
+no regression coverage. All six pass under the existing
+`backend/.venv/bin/pytest` baseline and add no new dependencies.
+
+| Module | What it locks |
+| --- | --- |
+| `backend/tests/governance/test_model_auth_secret_handling.py` | `ProviderTemplate` immutability, `OCTOAGENT_MODEL_AUTH_*` env-var namespace, OAuth client-secret omission from public projection, env-var uniqueness, no filesystem side-effects at import. |
+| `backend/tests/governance/test_multi_tenant_isolation.py` | Default-tenant seeding, registry payload versioning, register/deregister idempotency, per-tenant workspace + agent limits, signed audit events, cross-registry isolation. |
+| `backend/tests/sandbox/test_system_execution_guard.py` | Safe commands allowed, dangerous commands blocked without operator approval, operator-attested approval path, immutable decision dataclass, signed audit event shape, tuple guardrails. |
+| `backend/tests/rag/test_retrieval_precision.py` | BM25 ranking precision on synthetic corpus, ASCII + CJK tokenizer behaviour, `top_k` cap, empty-corpus and empty-query edge cases. |
+| `backend/tests/memory/test_memory_governance.py` | Long-term and permanent namespace tier disjointness, canonical metadata keys, permanent retention policy, `is_memory_expired` and `resolve_memory_expiry` edge cases, provenance recording. |
+| `backend/tests/harness/test_research_closure_policy.py` | The 2026-05-27 hotfix invariant: research-closure short-circuit only triggers on `status == "must_finalize"`, and the `execution_review` + `step_reflection` middlewares agree on that signal. |
+
+### Configuration relocation
+
+The active configuration file moves from `config.yaml` (repo root) to
+**`runtime/config/config.yaml`** so the runtime tree is the single
+home for installation-local state. `runtime/config/` was already used
+for `model_auth.env` and other secrets; aligning `config.yaml` removes
+the last loose root-level secret file.
+
+- `backend/src/runtime/config/app_config.py` —
+  `resolve_app_config_path()` now prefers `runtime/config/config.yaml`,
+  falls back to `Path.cwd().parent/runtime/config/config.yaml`, and
+  only then to the legacy `config.yaml` paths (back-compat).
+- `Makefile` — `make config` writes to `runtime/config/config.yaml`
+  with mode `0600`. `setup-sandbox` reads from either location.
+- `.github/workflows/ci.yml` and `.github/workflows/live-validations.yml`
+  — both write the CI / live secret to the new location.
+- `.gitignore` — adds `runtime/config/*.yaml` next to the existing
+  `runtime/config/*.env` entry.
+- The existing config file on this installation was moved with
+  `mv config.yaml runtime/config/config.yaml` (mode preserved).
+
+### Push policy (no-squash)
+
+`CONTRIBUTING.md` §7 now documents that `main` keeps full commit
+history. The GitHub merge-button policy is **"Create a merge commit"**
+or **"Rebase and merge"**; never **"Squash and merge"**. Local cleanup
+via `git rebase -i` before push is still encouraged.
+
+### Documentation
+
+- New `docs/INDEX.md` — single entry point that explains the role of
+  `docs/` (operator-facing) vs `project_docs/` (contributor-facing).
+  Both trees remain separate; the index is the unification surface.
+- New `docs/MODULE_OWNERS.md` — closes the "Phase 7 deferred: semantic
+  dedup" follow-up from the 2026-05-26 entry **analytically**: after a
+  full re-read of `agents.core`, `agents.runtime`, `agents.lead_agent`,
+  and `agents.generic`, the subdomains own distinct lifecycles and
+  must not be merged. The doc captures the ownership map and the
+  reasons against a physical merge so future contributors can find
+  the decision.
+- New `docs/COMMERCIAL_LICENSE_FAQ.md` — explicit, plain-English
+  statement of the commercial licensing model: **free only for
+  personal non-commercial use, bona-fide academic research, and ≤30-day
+  internal evaluation**. Every other use (SaaS, internal enterprise,
+  embedding, OEM, redistribution) requires a paid license from
+  `zillafan80@gmail.com`. SSPL §13 is referenced as the source of
+  truth; the FAQ is non-binding interpretation.
+- `README.md` — adds top-of-file pointers to the License FAQ, the
+  docs index, and the module ownership map.
+- `CONTRIBUTING.md` — adds §7 (Push policy) and §8 (Configuration
+  file location).
+
+### Files added (10)
+
+- `backend/tests/governance/test_model_auth_secret_handling.py`
+- `backend/tests/governance/test_multi_tenant_isolation.py`
+- `backend/tests/sandbox/test_system_execution_guard.py`
+- `backend/tests/rag/test_retrieval_precision.py`
+- `backend/tests/memory/test_memory_governance.py`
+- `backend/tests/harness/test_research_closure_policy.py`
+- `docs/INDEX.md`
+- `docs/MODULE_OWNERS.md`
+- `docs/COMMERCIAL_LICENSE_FAQ.md`
+- (new git-tracked: `runtime/config/` directory contents are gitignored)
+
+### Files modified (7)
+
+- `backend/src/runtime/config/app_config.py`
+- `Makefile`
+- `.github/workflows/ci.yml`
+- `.github/workflows/live-validations.yml`
+- `.gitignore`
+- `CONTRIBUTING.md`
+- `README.md`
+
+### Filesystem changes
+
+- `config.yaml` (previously git-tracked at the repo root) is removed
+  from git: its content is operator-local state, not source code. The
+  local file was moved to `runtime/config/config.yaml` with mode
+  `0600` preserved. `runtime/config/*.yaml` is gitignored going
+  forward, so future operator edits never reach `main` again.
+- Operators on existing clones should run
+  `mkdir -p runtime/config && git mv config.yaml runtime/config/config.yaml`
+  on next pull (or accept the deletion and re-create the runtime file
+  from `config.example.yaml`).
+- This commit does NOT rewrite prior history; any secrets that may
+  have previously reached `main` should be rotated separately.
+
+### Verification
+
+- `cd backend && .venv/bin/pytest tests/governance/test_model_auth_secret_handling.py tests/governance/test_multi_tenant_isolation.py tests/sandbox/test_system_execution_guard.py tests/rag/test_retrieval_precision.py tests/memory/test_memory_governance.py tests/harness/test_research_closure_policy.py -v` — see the post-deploy log in `runtime/logs/` for the run.
+- `cd backend && .venv/bin/ruff check tests/` — clean on the new files.
+- `cd backend && .venv/bin/python scripts/check_topology_freeze.py` — clean (no domain shape change).
+
+### Non-goals (intentionally NOT done)
+
+- **No physical merge** of the four `agents/*` subdomains. The
+  `docs/MODULE_OWNERS.md` analysis records why a merge would harm
+  selective importability and re-couple the maintenance loop into the
+  product runtime. The 2026-05-26 "deferred semantic dedup" item is
+  considered **closed**: no real duplication exists.
+- **No deletion** of either `docs/` or `project_docs/`. The two trees
+  serve different audiences; `docs/INDEX.md` unifies discovery
+  without forcing a relocation.
+- **No change** to the SSPL v1 / commercial dual-license framework
+  itself. The FAQ only clarifies enforcement intent.
+
+---
+
 ## 2026-05-26 (phase 7: remaining 6 domain pilots — full topology consolidation)
 
 ### Summary

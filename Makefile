@@ -54,11 +54,13 @@ help:
 	@echo "  make docker-logs-gateway - View Docker gateway logs"
 
 config:
-	@if [ -f config.yaml ] || [ -f config.yml ] || [ -f configure.yml ]; then \
-		echo "Error: configuration file already exists (config.yaml/config.yml/configure.yml). Aborting."; \
+	@if [ -f runtime/config/config.yaml ] || [ -f config.yaml ] || [ -f config.yml ] || [ -f configure.yml ]; then \
+		echo "Error: configuration file already exists (runtime/config/config.yaml or config.yaml/config.yml/configure.yml). Aborting."; \
 		exit 1; \
 	fi
-	@cp config.example.yaml config.yaml
+	@mkdir -p runtime/config
+	@cp config.example.yaml runtime/config/config.yaml
+	@chmod 600 runtime/config/config.yaml
 	@test -f .env || cp .env.example .env
 	@test -f frontend/.env || cp frontend/.env.example frontend/.env
 
@@ -93,7 +95,8 @@ setup-sandbox:
 	@echo "  Pre-pulling Sandbox Container Image"
 	@echo "=========================================="
 	@echo ""
-	@IMAGE=$$(grep -A 20 "# sandbox:" config.yaml 2>/dev/null | grep "image:" | awk '{print $$2}' | head -1); \
+	@_CFG=runtime/config/config.yaml; [ -f "$$_CFG" ] || _CFG=config.yaml; \
+	IMAGE=$$(grep -A 20 "# sandbox:" "$$_CFG" 2>/dev/null | grep "image:" | awk '{print $$2}' | head -1); \
 	if [ -z "$$IMAGE" ]; then \
 		IMAGE="enterprise-public-cn-beijing.cr.volces.com/vefaas-public/all-in-one-sandbox:latest"; \
 		echo "Using default image: $$IMAGE"; \
