@@ -258,19 +258,31 @@ echo "=========================================="
 echo ""
 
 # ── Config check ─────────────────────────────────────────────────────────────
+#
+# Resolution order (matches backend/src/runtime/config/app_config.py since
+# 2026-05-27): explicit env path → runtime/config/config.yaml (preferred) →
+# backend/config.yaml / config.yaml (deprecated back-compat). When a path is
+# found we export OCTO_AGENT_CONFIG_PATH so every spawned Python process
+# resolves the same file even if its cwd differs.
 
-if ! { \
-        [ -n "$OCTO_AGENT_CONFIG_PATH" ] && [ -f "$OCTO_AGENT_CONFIG_PATH" ] || \
-        [ -f backend/config.yaml ] || \
-        [ -f config.yaml ]; \
-    }; then
+if [ -n "$OCTO_AGENT_CONFIG_PATH" ] && [ -f "$OCTO_AGENT_CONFIG_PATH" ]; then
+    : "already exported by caller"
+elif [ -f "$REPO_ROOT/runtime/config/config.yaml" ]; then
+    export OCTO_AGENT_CONFIG_PATH="$REPO_ROOT/runtime/config/config.yaml"
+elif [ -f "$REPO_ROOT/backend/config.yaml" ]; then
+    export OCTO_AGENT_CONFIG_PATH="$REPO_ROOT/backend/config.yaml"
+elif [ -f "$REPO_ROOT/config.yaml" ]; then
+    export OCTO_AGENT_CONFIG_PATH="$REPO_ROOT/config.yaml"
+else
     echo "✗ No OctoAgent config file found."
     echo "  Checked these locations:"
-    echo "    - $OCTO_AGENT_CONFIG_PATH (when OCTO_AGENT_CONFIG_PATH is set)"
-    echo "    - backend/config.yaml"
-    echo "    - ./config.yaml"
+    echo "    - \$OCTO_AGENT_CONFIG_PATH (when set)"
+    echo "    - $REPO_ROOT/runtime/config/config.yaml   (preferred since 2026-05-27)"
+    echo "    - $REPO_ROOT/backend/config.yaml          (back-compat)"
+    echo "    - $REPO_ROOT/config.yaml                  (back-compat)"
     echo ""
-    echo "  Run 'make config' from the repo root to generate ./config.yaml, then set required model API keys in .env or your config file."
+    echo "  Run 'make config' from the repo root to generate runtime/config/config.yaml,"
+    echo "  then set required model API keys in .env or your config file."
     exit 1
 fi
 

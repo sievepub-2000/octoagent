@@ -1,3 +1,70 @@
+## 2026-05-27 (Japan + Korea provider cards; start-daemon config detection fix)
+
+### Provider templates — Japan + Korea closed-source models
+
+Eight new closed-source provider cards added to the WebUI **Models** page
+(`/workspace/config/models`), inserted **between Google and the existing
+GLM card** so the first four cards (Claude, ChatGPT, Grok, Gemini) keep
+their position unchanged.
+
+| Order | provider_id | Vendor | Notes |
+| --- | --- | --- | --- |
+|  5 | `plamo`   | Preferred Networks PLaMo Prime  | OpenAI-compatible, sign up at platform.preferredai.jp |
+|  6 | `tsuzumi` | NTT tsuzumi 2                    | Enterprise contract; replace `default_base_url` with Azure MaaS / NTT Communications endpoint |
+|  7 | `cotomi`  | NEC cotomi                       | Enterprise-only; endpoint is provisioned per contract |
+|  8 | `takane`  | Fujitsu Takane (Kozuchi)         | Sold via Fujitsu Kozuchi platform |
+|  9 | `clovax`  | NAVER HyperCLOVA X (CLOVA Studio)| OpenAI-compatible (`/v1/openai`); requires NCP sub-account API key |
+| 10 | `exaone`  | LG AI Research EXAONE 3.5        | Hosted via FriendliAI dedicated endpoints |
+| 11 | `solar`   | Upstage Solar Pro / Mini         | Native OpenAI-compatible API at `api.upstage.ai/v1` |
+| 12 | `ax`      | SK Telecom A.X 4.0               | Enterprise; replace endpoint per subscription |
+
+Existing `glm`, `minimax`, `qwen`, `deepseek` cards shift to positions
+13–16 (display order only — their IDs and env-var names are unchanged).
+
+All eight templates pass the model-auth invariants exercised by
+`backend/tests/governance/test_model_auth_secret_handling.py`:
+unique `OCTOAGENT_MODEL_AUTH_<NAME>` env vars, frozen dataclasses, no
+OAuth client secrets in `to_public_dict()`, no filesystem I/O on
+import. Verified end-to-end via
+`GET /api/model-auth/templates` returning all 16 templates in the
+expected order.
+
+Touch points:
+
+- `backend/src/governance/model_auth/service.py` — eight new
+  `ProviderTemplate` entries inserted between `"google"` and `"glm"`.
+
+### scripts/start-daemon.sh — recover config-path autodetection
+
+The 2026-05-27 review-hardening commit relocated the active config
+file from `<repo>/config.yaml` to `<repo>/runtime/config/config.yaml`,
+but the shell pre-flight in `scripts/start-daemon.sh` was not updated
+to match. On hosts without `OCTO_AGENT_CONFIG_PATH` exported by the
+systemd unit, the service refused to start with
+`"✗ No OctoAgent config file found."`.
+
+`scripts/start-daemon.sh` now mirrors the resolver order used by
+`backend/src/runtime/config/app_config.py:resolve_app_config_path`:
+
+1. `$OCTO_AGENT_CONFIG_PATH` (if set and the file exists).
+2. `$REPO_ROOT/runtime/config/config.yaml` (preferred since 2026-05-27).
+3. `$REPO_ROOT/backend/config.yaml` (back-compat).
+4. `$REPO_ROOT/config.yaml` (back-compat).
+
+When a file is found via steps 2–4 the script **exports**
+`OCTO_AGENT_CONFIG_PATH` so every spawned Python process resolves the
+same file even when its working directory differs.
+
+Touch points:
+
+- `scripts/start-daemon.sh` — config-detection cascade rewritten.
+
+Operational note: the temporary systemd drop-in
+`/etc/systemd/system/octoagent-local.service.d/10-config-path.conf`
+that papered over this regression has been removed; the service now
+boots cleanly with the patched script alone.
+
+---
 ## 2026-05-27 (review hardening: tests, config relocation, docs, license FAQ)
 
 ### Summary
