@@ -55,6 +55,7 @@ _BUILTIN_CATEGORY_MAP: dict[str, str] = {
     "convert_document": "media",
     "integrated_project_catalog": "plugins",
     "integrated_workflow_run": "workflow",
+    "awesome_selfhosted": "reference",
 }
 
 
@@ -67,7 +68,7 @@ class ToolRegistryBuiltinCatalog:
         self._get_available_tools_fn = get_available_tools_fn
 
     def list_items(self) -> list[ToolRegistryBuiltinItem]:
-        all_builtin = self._get_available_tools_fn(include_mcp=False, subagent_enabled=True)
+        all_builtin = self._get_available_tools_fn(include_mcp=False, subagent_enabled=True, permission_mode="system")
         seen: set[str] = set()
         items: list[ToolRegistryBuiltinItem] = []
         for tool in sorted(all_builtin, key=lambda item: item.name):

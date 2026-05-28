@@ -1,3 +1,22 @@
+## 2026-05-28 - System tools, MCP cleanup, and runtime hardening
+
+### Changes
+- Restored LangGraph startup by aligning PostgreSQL checkpointer dependencies: `langgraph-checkpoint==4.1.1`, `langgraph-checkpoint-postgres==3.1.0`, `psycopg[binary]==3.3.4`, and `psycopg-pool==3.3.1`.
+- Added and registered specialized Docker, SSH, Git, database, security, test, `awesome_selfhosted`, and `octo_doctor` tools; capability discovery now lists system-scoped tools while preserving permission metadata.
+- Enabled the usable MCP servers (`filesystem`, `postgres`) and removed unavailable MCP entries (`camofox-controlled-browser`, `github`, `peekaboo-vision`).
+- Kept `semgrep_scan` absent because current Semgrep releases conflict with the MCP dependency set; use `static_security_scan`, `bandit_scan`, and `trivy_scan` instead.
+- Started and enabled Docker/containerd so Docker tools are actually usable on this host.
+- Set all OctoAgent model-card temperatures and the local Qwen llama.cpp launcher temperature to `0.85`.
+- Documented the operational policy in `docs/system-tools-and-mcp-hardening-2026-05-28.md`.
+
+### Verification
+- `octoagent-local.service` active; gateway `/health`, LangGraph `/docs`, and WebUI `/workspace/chats/new` all return HTTP 200.
+- Registry reports 91 built-in tools and 2/2 configured MCP servers enabled.
+- System-mode tool load returns 104 tools, including 13 MCP tools.
+- Representative tool smokes passed: `git_status`, `db_connect_check`, `docker_status`, `awesome_selfhosted`, and `octo_doctor`.
+- `backend/.venv/bin/python -m pip check` reports no broken requirements.
+- Only the backend virtualenv remains under the project tree.
+
 ## 2026-05-27 — Decommission 192.168.110.3 model card; system default now localhost:8000
 
 ### Changes

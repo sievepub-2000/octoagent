@@ -6,14 +6,15 @@ from collections.abc import Iterable
 
 from langchain.tools import BaseTool
 
-from src.runtime.config import get_app_config
 from src.harness.reflection import resolve_variable
+from src.runtime.config import get_app_config
 from src.tools.builtins import (
     BYTEBOT_COMPAT_TOOLS,
     DESKTOP_DRIVER_TOOLS,
     ECOSYSTEM_WORKFLOW_TOOLS,
     OPENHARNESS_COMPAT_TOOLS,
     SOFTWARE_INTERFACE_TOOLS,
+    SYSTEM_EXTRA_TOOLS,
     SYSTEM_OPS_TOOLS,
     archival_memory_insert_tool,
     archival_memory_search_tool,
@@ -122,6 +123,7 @@ BUILTIN_TOOLS_CORE: list[BaseTool] = [
     convert_document_tool,
 ]
 BUILTIN_TOOLS_CORE.extend(_selected_system_ops_tools())
+BUILTIN_TOOLS_CORE.extend(SYSTEM_EXTRA_TOOLS)
 BUILTIN_TOOLS_CORE.extend(DESKTOP_DRIVER_TOOLS)
 BUILTIN_TOOLS_CORE.extend(SOFTWARE_INTERFACE_TOOLS)
 BUILTIN_TOOLS_CORE.extend(ECOSYSTEM_WORKFLOW_TOOLS)
@@ -192,6 +194,41 @@ BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "software_interface_authorize": "system",
     "software_interface_list_tools": "directory",
     "software_interface_execute": "system",
+    "awesome_selfhosted": "sandbox",
+    "octo_doctor": "system",
+    "lint_run": "directory",
+    "frontend_typecheck": "directory",
+    "playwright_run": "directory",
+    "pytest_run": "directory",
+    "pytest_collect": "directory",
+    "trivy_scan": "directory",
+    "bandit_scan": "directory",
+    "static_security_scan": "directory",
+    "dependency_audit": "directory",
+    "secret_scan": "directory",
+    "db_migration_plan": "system",
+    "db_explain": "system",
+    "db_schema_introspect": "system",
+    "db_query_readonly": "system",
+    "db_connect_check": "system",
+    "git_commit_prepare": "directory",
+    "git_apply_patch": "system",
+    "git_fetch": "system",
+    "git_branch": "directory",
+    "git_log": "directory",
+    "git_diff": "directory",
+    "git_status": "directory",
+    "ssh_copy": "system",
+    "ssh_exec": "system",
+    "ssh_probe": "system",
+    "ssh_hosts_list": "system",
+    "docker_compose_apply": "system",
+    "docker_compose_plan": "system",
+    "docker_inspect": "system",
+    "docker_logs": "system",
+    "docker_images": "system",
+    "docker_ps": "system",
+    "docker_status": "system",
 }
 
 DANGEROUS_CONFIRMATION_TOOLS = {
@@ -209,6 +246,17 @@ DANGEROUS_CONFIRMATION_TOOLS = {
     "desktop_scroll",
     "software_interface_authorize",
     "software_interface_execute",
+    "octo_doctor",
+    "db_migration_plan",
+    "db_explain",
+    "db_schema_introspect",
+    "db_query_readonly",
+    "db_connect_check",
+    "git_apply_patch",
+    "git_fetch",
+    "ssh_copy",
+    "ssh_exec",
+    "docker_compose_apply",
 }
 
 

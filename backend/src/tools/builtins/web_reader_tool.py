@@ -18,6 +18,7 @@ from langgraph.types import Command
 from langgraph.typing import ContextT
 
 from src.agents.thread_state import ThreadState
+from src.utils.proxy_env import should_trust_proxy_env
 from src.utils.url_safety import is_url_safe, safe_join_url
 
 logger = logging.getLogger(__name__)
@@ -115,6 +116,27 @@ def _low_quality_tool_message(url: str, reason: str, tool_call_id: str) -> ToolM
     """Build a recoverable tool error for unusable extracted content."""
     return ToolMessage(
         (f"Error: low-quality webpage extraction for {url}: {reason}. Use a more specific raw file/document URL, an API endpoint, or a different public source instead of reusing this noisy page."),
+        tool_call_id=tool_call_id,
+        status="error",
+    )
+
+
+def _fallback_web_fetch_message(url: str, tool_call_id: str, reason: str) -> ToolMessage:
+    """Use the layered web_fetch chain when direct page reading is blocked."""
+    try:
+        from src.community.ddg.tools import web_fetch_tool
+
+        fallback = web_fetch_tool.invoke({"url": url})
+    except Exception as exc:
+        return ToolMessage(
+            f"Error fetching URL: {reason}; fallback web_fetch also failed: {exc}",
+            tool_call_id=tool_call_id,
+            status="error",
+        )
+    if isinstance(fallback, str) and fallback.strip() and not fallback.startswith("Web fetch failed"):
+        return ToolMessage(fallback, tool_call_id=tool_call_id)
+    return ToolMessage(
+        f"Error fetching URL: {reason}; fallback web_fetch returned no usable content.",
         tool_call_id=tool_call_id,
         status="error",
     )

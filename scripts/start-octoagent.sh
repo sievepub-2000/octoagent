@@ -14,6 +14,10 @@ SUPERVISOR_LOG="$REPO_ROOT/runtime/logs/octoagent-supervisor.log"
 export PATH="/snap/bin:/usr/bin:/usr/sbin:/bin:$REPO_ROOT/scripts:$PATH"
 export TMPDIR="${TMPDIR:-$REPO_ROOT/tmp}"
 export OCTOAGENT_PYTHON_BIN="${OCTOAGENT_PYTHON_BIN:-$REPO_ROOT/backend/.venv/bin/python}"
+export OCTOAGENT_TOOLS_DIR="${OCTOAGENT_TOOLS_DIR:-$REPO_ROOT/runtime/tools}"
+export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-$REPO_ROOT/runtime/tools/npm-cache}"
+export npm_config_cache="$NPM_CONFIG_CACHE"
+export TRIVY_CACHE_DIR="${TRIVY_CACHE_DIR:-$REPO_ROOT/runtime/tools/trivy-cache}"
 
 usage() {
     cat <<USAGE

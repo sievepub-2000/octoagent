@@ -16,6 +16,7 @@ from .openharness_compat_tools import OPENHARNESS_COMPAT_TOOLS
 from .present_file_tool import present_file_tool
 from .setup_agent_tool import setup_agent
 from .software_interface_tools import SOFTWARE_INTERFACE_TOOLS
+from .system_extra_tools import SYSTEM_EXTRA_TOOLS
 from .system_ops_tools import SYSTEM_OPS_TOOLS
 from .task_tool import task_tool
 from .view_image_tool import view_image_tool
@@ -35,6 +36,7 @@ __all__ = [
     "BYTEBOT_COMPAT_TOOLS",
     "DESKTOP_DRIVER_TOOLS",
     "SYSTEM_OPS_TOOLS",
+    "SYSTEM_EXTRA_TOOLS",
     "SOFTWARE_INTERFACE_TOOLS",
     "list_capabilities_tool",
     "load_skill_tool",

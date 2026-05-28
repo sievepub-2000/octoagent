@@ -14,6 +14,8 @@ from typing import Any
 
 from langchain.tools import tool
 
+from src.utils.proxy_env import without_unavailable_local_proxy
+
 logger = logging.getLogger(__name__)
 
 _FETCHER = None

@@ -171,7 +171,7 @@ def terminate_running_task_workspaces(snapshot: MemoryPressureSnapshot) -> dict[
 
 
 async def cancel_busy_langgraph_runs(snapshot: MemoryPressureSnapshot) -> dict[str, Any]:
-    base_url = os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19884").rstrip("/")
+    base_url = os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804").rstrip("/")
     cancelled: list[dict[str, str]] = []
     async with httpx.AsyncClient(timeout=5.0) as client:
         try:

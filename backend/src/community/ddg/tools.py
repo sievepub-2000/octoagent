@@ -23,6 +23,7 @@ import httpx
 from langchain.tools import tool
 
 from src.runtime.config import get_app_config
+from src.utils.proxy_env import should_trust_proxy_env, without_unavailable_local_proxy
 from src.utils.readability import ReadabilityExtractor
 from src.utils.url_safety import is_url_safe
 
@@ -70,9 +71,9 @@ def _is_certificate_verify_error(exc: BaseException) -> bool:
 
 
 def _client(timeout: float = _DEFAULT_TIMEOUT, *, verify: ssl.SSLContext | bool | None = None) -> httpx.Client:
-    """httpx client that honours HTTP_PROXY/HTTPS_PROXY env vars."""
+    """httpx client that honours usable HTTP_PROXY/HTTPS_PROXY env vars."""
     return httpx.Client(
-        trust_env=True,
+        trust_env=should_trust_proxy_env(),
         timeout=httpx.Timeout(timeout, connect=_DEFAULT_CONNECT),
         headers={
             "User-Agent": _USER_AGENT,
@@ -111,7 +112,8 @@ def web_search_tool(query: str) -> str:
             with DDGS(timeout=25) as ddg:
                 return list(ddg.text(query, region="us-en", max_results=max_results))
 
-        raw = _ddg_search()
+        with without_unavailable_local_proxy():
+            raw = _ddg_search()
     except Exception as exc:
         logger.exception("ddgs search failed: %s", exc)
         return json.dumps([{"error": f"web_search failed: {type(exc).__name__}: {exc}"}])

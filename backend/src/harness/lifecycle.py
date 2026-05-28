@@ -33,7 +33,7 @@ logger = logging.getLogger(__name__)
 
 
 def _langgraph_base_url() -> str:
-    return os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19884").rstrip("/")
+    return os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804").rstrip("/")
 
 
 def _max_run_age_minutes() -> int:

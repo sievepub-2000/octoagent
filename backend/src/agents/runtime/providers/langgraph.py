@@ -27,7 +27,7 @@ _CONFIG_AGENT_NAME_RE = re.compile(r"^[A-Za-z0-9-]+$")
 
 
 def _langgraph_base_url() -> str:
-    return os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19884")
+    return os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804")
 
 
 def _read_hint(value: Any) -> str | None:

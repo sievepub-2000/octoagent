@@ -28,7 +28,7 @@ def _langgraph_healthcheck_url() -> str:
     configured_base_url = os.getenv("OCTO_LANGGRAPH_BASE_URL", "").strip()
     if configured_base_url:
         return f"{configured_base_url.rstrip('/')}/ok"
-    port = os.getenv("OCTO_LANGGRAPH_PORT", "19884").strip() or "19884"
+    port = os.getenv("OCTO_LANGGRAPH_PORT", "19804").strip() or "19804"
     return f"http://127.0.0.1:{port}/ok"
 
 

@@ -28,7 +28,7 @@ class EmbeddedBootstrapRuntime:
 
     @staticmethod
     def repo_root() -> Path:
-        return Path(__file__).resolve().parents[3]
+        return Path(__file__).resolve().parents[4]
 
     @property
     def config(self):
@@ -224,7 +224,7 @@ class EmbeddedBootstrapRuntime:
         return store.stats()
 
     def sync_local_corpus(self) -> dict[str, int]:
-        project_root = Path(__file__).resolve().parents[3]
+        project_root = Path(__file__).resolve().parents[4]
         documents = []
         for path in self._local_corpus_files():
             try:
@@ -245,7 +245,7 @@ class EmbeddedBootstrapRuntime:
         return self.semantic_store().stats()
 
     def _local_corpus_files(self) -> list[Path]:
-        project_root = Path(__file__).resolve().parents[3]
+        project_root = Path(__file__).resolve().parents[4]
         candidates = [
             project_root / "README.md",
             project_root / "project_docs" / "docs" / "PROJECT_STATUS.md",

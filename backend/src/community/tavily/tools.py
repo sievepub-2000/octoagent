@@ -20,6 +20,7 @@ from langchain.tools import tool
 from tavily import TavilyClient
 
 from src.runtime.config import get_app_config
+from src.utils.proxy_env import without_unavailable_local_proxy
 
 logger = logging.getLogger(__name__)
 

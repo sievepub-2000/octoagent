@@ -723,7 +723,7 @@ async def record_langgraph_workflow_lifecycle(
             if request.action in {"cancel", "terminate"} and request.run_id:
                 from langgraph_sdk import get_client
 
-                base_url = str((await service.remote_capabilities()).get("base_url") or "http://localhost:19884")
+                base_url = str((await service.remote_capabilities()).get("base_url") or "http://localhost:19804")
                 client = get_client(url=base_url)
                 remote_result = {
                     "ok": True,

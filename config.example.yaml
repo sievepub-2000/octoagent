@@ -578,8 +578,8 @@ checkpointer:
 # All channels use outbound connections (WebSocket or polling) — no public IP required.
 
 # channels:
-#   # LangGraph Server URL for thread/message management (default: http://localhost:19884)
-#   langgraph_url: http://localhost:19884
+#   # LangGraph Server URL for thread/message management (default: http://localhost:19804)
+#   langgraph_url: http://localhost:19804
 #   # Gateway API URL for auxiliary queries like /models, /memory (default: http://localhost:19882)
 #   gateway_url: http://localhost:19882
 #

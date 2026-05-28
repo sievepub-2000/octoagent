@@ -14,7 +14,7 @@ from src.gateway.channels.store import ChannelStore
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_LANGGRAPH_URL = "http://localhost:19884"
+DEFAULT_LANGGRAPH_URL = "http://localhost:19804"
 DEFAULT_GATEWAY_URL = "http://localhost:19882"
 DEFAULT_ASSISTANT_ID = "lead_agent"
 

@@ -27,7 +27,7 @@ def _contract_path() -> Path:
 
 
 def _langgraph_base_url() -> str:
-    return os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19884")
+    return os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804")
 
 
 def _is_langgraph_remote_thread_id(thread_id: str) -> bool:

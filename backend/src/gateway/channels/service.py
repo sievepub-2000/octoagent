@@ -306,7 +306,7 @@ class ChannelService:
         self.bus = MessageBus()
         self.store = ChannelStore()
         config = dict(channels_config or {})
-        langgraph_url = config.pop("langgraph_url", None) or "http://localhost:19884"
+        langgraph_url = config.pop("langgraph_url", None) or "http://localhost:19804"
         gateway_url = config.pop("gateway_url", None) or "http://localhost:19882"
         default_session = config.pop("session", None)
         channel_sessions = {name: channel_config.get("session") for name, channel_config in config.items() if isinstance(channel_config, dict)}

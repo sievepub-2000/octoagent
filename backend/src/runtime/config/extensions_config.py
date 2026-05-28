@@ -233,7 +233,15 @@ class ExtensionsConfig(BaseModel):
             elif isinstance(value, dict):
                 config[key] = cls.resolve_env_variables(value)
             elif isinstance(value, list):
-                config[key] = [cls.resolve_env_variables(item) if isinstance(item, dict) else item for item in value]
+                resolved_items: list[Any] = []
+                for item in value:
+                    if isinstance(item, dict):
+                        resolved_items.append(cls.resolve_env_variables(item))
+                    elif isinstance(item, str) and item.startswith("$"):
+                        resolved_items.append(os.getenv(item[1:], ""))
+                    else:
+                        resolved_items.append(item)
+                config[key] = resolved_items
         return config
 
     def get_enabled_mcp_servers(self) -> dict[str, McpServerConfig]:
