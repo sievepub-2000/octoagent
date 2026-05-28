@@ -23,6 +23,9 @@ x-backend-env: &backend-env
   OCTOAGENT_GATEWAY_INTERNAL_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}
   OCTOAGENT_GATEWAY_HEALTH_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/health
   OCTOAGENT_OPENAPI_SPEC_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/openapi.json
+  OCTOAGENT_OPENROUTER_APP_URL: ${OCTOAGENT_OPENROUTER_APP_URL:-https://github.com/sievepub-2000/octoagent}
+  OCTOAGENT_OPENROUTER_APP_TITLE: ${OCTOAGENT_OPENROUTER_APP_TITLE:-OctoAgent}
+  OCTOAGENT_OPENROUTER_USAGE_INCLUDE: ${OCTOAGENT_OPENROUTER_USAGE_INCLUDE:-true}
   OCTOAGENT_KUBECONFIG_SMOKE: /app/runtime/tools/kubernetes/kubeconfig-smoke.yaml
   XDG_CACHE_HOME: /app/runtime/cache/xdg
   UV_CACHE_DIR: /app/runtime/cache/uv

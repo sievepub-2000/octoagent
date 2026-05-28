@@ -137,6 +137,11 @@ OCTO_NGINX_PORT=19800
 OCTOAGENT_MODEL_AUTH_OPENROUTER=sk-or-v1-...
 TAVILY_API_KEY=...
 POSTGRES_PASSWORD=change-this-before-shared-use
+
+# OpenRouter attribution and usage accounting opt-in.
+OCTOAGENT_OPENROUTER_APP_URL=https://github.com/sievepub-2000/octoagent
+OCTOAGENT_OPENROUTER_APP_TITLE=OctoAgent
+OCTOAGENT_OPENROUTER_USAGE_INCLUDE=true
 ```
 
 Edit `config.yaml` for model cards and agent behavior. The container profile mounts it read-only into `/app/config.yaml`.

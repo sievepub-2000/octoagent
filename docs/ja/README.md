@@ -94,6 +94,11 @@ OCTO_NGINX_PORT=19800
 OCTOAGENT_MODEL_AUTH_OPENROUTER=sk-or-v1-...
 TAVILY_API_KEY=...
 POSTGRES_PASSWORD=change-this-before-shared-use
+
+# OpenRouter の帰属情報と usage accounting opt-in。
+OCTOAGENT_OPENROUTER_APP_URL=https://github.com/sievepub-2000/octoagent
+OCTOAGENT_OPENROUTER_APP_TITLE=OctoAgent
+OCTOAGENT_OPENROUTER_USAGE_INCLUDE=true
 ```
 
 `config.yaml` ではモデルカードやエージェント挙動を調整できます。Docker 版では `/app/config.yaml` としてコンテナに読み取り専用でマウントされます。

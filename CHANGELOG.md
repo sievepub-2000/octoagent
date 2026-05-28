@@ -1,3 +1,8 @@
+## 2026-05-28 - OpenRouter attribution and usage tracking
+
+- Added backend-wide OpenRouter attribution headers (`HTTP-Referer`, `X-Title`) for chat model requests and provider model probes.
+- Enabled OpenRouter usage accounting opt-in by default with `usage.include=true` on OpenRouter chat requests.
+
 ## 2026-05-28 - Cross-platform Docker packaging
 
 - Added the packaged Docker Compose profile for Linux, Windows, and macOS with nginx, frontend, gateway, LangGraph, PostgreSQL, and Redis services.

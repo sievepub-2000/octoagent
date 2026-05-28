@@ -15,9 +15,13 @@ import httpx
 import yaml
 from cryptography.fernet import Fernet, InvalidToken
 
+from src.models.openrouter import (
+    is_openrouter_base_url,
+    openrouter_app_attribution_headers,
+)
 from src.runtime.config.app_config import AppConfig, reload_app_config
-from src.runtime.config.paths import get_paths, get_setup_state_file
 from src.runtime.config.effective import RuntimeJsonStore, runtime_state_path
+from src.runtime.config.paths import get_paths, get_setup_state_file
 
 
 @dataclass(frozen=True)
@@ -767,6 +771,8 @@ class ModelAuthService:
         headers = {"Authorization": f"Bearer {secret}"}
         if provider_id == "anthropic":
             headers = {"x-api-key": secret, "anthropic-version": "2023-06-01"}
+        elif provider_id == "openrouter" or is_openrouter_base_url(base_url):
+            headers.update(openrouter_app_attribution_headers())
         url = f"{base_url}/models" if not base_url.endswith("/models") else base_url
         try:
             async with httpx.AsyncClient(timeout=10) as client:

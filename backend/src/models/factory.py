@@ -14,17 +14,12 @@ from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResu
 from langchain_core.runnables import Runnable
 from pydantic import ConfigDict, Field
 
-from src.runtime.config import get_app_config, get_tracing_config, is_tracing_enabled
-from src.runtime.config.embedded_model_config import get_embedded_model_config
-from src.runtime.context_budget import (
-    SYSTEM_SESSION_CONTINUE_PROMPT,
-    estimate_message_tokens,
-    message_content_text,
-    select_system_messages_to_budget,
-    trim_message_to_token_budget,
-    trim_messages_to_budget,
-)
+from src.harness.reflection import resolve_class
 from src.models.error_contracts import NormalizedModelError
+from src.models.openrouter import (
+    apply_openrouter_request_options,
+    is_openrouter_model_config,
+)
 from src.models.provider_adapter import (
     ProviderAdapterChatModel,
     resolve_provider_adapter_profile,
@@ -35,7 +30,16 @@ from src.models.runtime_telemetry import (
     set_active_model,
 )
 from src.models.semantics import ModelSemanticTranslator
-from src.harness.reflection import resolve_class
+from src.runtime.config import get_app_config, get_tracing_config, is_tracing_enabled
+from src.runtime.config.embedded_model_config import get_embedded_model_config
+from src.runtime.context_budget import (
+    SYSTEM_SESSION_CONTINUE_PROMPT,
+    estimate_message_tokens,
+    message_content_text,
+    select_system_messages_to_budget,
+    trim_message_to_token_budget,
+    trim_messages_to_budget,
+)
 
 logger = logging.getLogger(__name__)
 __all__ = ["SYSTEM_SESSION_CONTINUE_PROMPT"]
@@ -985,6 +989,11 @@ def _create_chat_model(
         model_settings_from_config=model_settings_from_config,
         runtime_kwargs=kwargs,
     )
+    if is_openrouter_model_config(model_config):
+        model_settings_from_config, kwargs = apply_openrouter_request_options(
+            model_settings_from_config=model_settings_from_config,
+            runtime_kwargs=kwargs,
+        )
 
     model_instance = model_class(**kwargs, **model_settings_from_config)
 
