@@ -35,6 +35,7 @@ REASON_PENDING_TOOLS = "assistant ended with pending tool calls"
 REASON_CONTINUATION_ANNOUNCEMENT = "assistant ended after announcing an action"
 REASON_RUNTIME_ERROR = "runtime/tool error interrupted the task"
 REASON_TOOL_FAILURES = "tool failures interrupted the task"
+REASON_TOOL_RESULTS_WITHOUT_FINAL = "assistant ended after tool results without final answer"
 
 
 @dataclass(frozen=True)
@@ -60,6 +61,27 @@ def _visible_text(message: Any) -> str:
 
 def _has_tool_calls(message: Any) -> bool:
     return bool(getattr(message, "tool_calls", None))
+
+
+def _tool_call_ids(message: Any) -> set[str]:
+    ids: set[str] = set()
+    for call in getattr(message, "tool_calls", None) or []:
+        value = call.get("id") if isinstance(call, dict) else getattr(call, "id", None)
+        if value:
+            ids.add(str(value))
+    return ids
+
+
+def _tool_result_ids(messages: list[Any]) -> set[str]:
+    ids: set[str] = set()
+    for message in messages:
+        value = getattr(message, "tool_call_id", None)
+        if value:
+            ids.add(str(value))
+            continue
+        if isinstance(message, dict) and message.get("tool_call_id"):
+            ids.add(str(message["tool_call_id"]))
+    return ids
 
 
 # Continuation announcement: model said "let me do X" but did not call a tool.
@@ -215,14 +237,14 @@ def classify_run_outcome(
     heuristics to decide completion. If the model stopped its turn without
     calling a tool, it considers the response final. Trust that signal.
     """
-    last_ai = next(
-        (
-            m
-            for m in reversed(messages)
-            if isinstance(m, AIMessage) or getattr(m, "type", "") == "ai"
-        ),
-        None,
-    )
+    last_ai_index: int | None = None
+    last_ai = None
+    for index in range(len(messages) - 1, -1, -1):
+        message = messages[index]
+        if isinstance(message, AIMessage) or getattr(message, "type", "") == "ai":
+            last_ai_index = index
+            last_ai = message
+            break
     if last_ai is None:
         return TerminationOutcome(
             status="active",
@@ -232,9 +254,18 @@ def classify_run_outcome(
         )
 
     if _has_tool_calls(last_ai):
+        expected_tool_ids = _tool_call_ids(last_ai)
+        resolved_tool_ids = _tool_result_ids(messages[(last_ai_index or 0) + 1 :])
+        if expected_tool_ids and expected_tool_ids.issubset(resolved_tool_ids):
+            return TerminationOutcome(
+                status="incomplete",
+                reason=REASON_TOOL_RESULTS_WITHOUT_FINAL,
+                current_step=REASON_TOOL_RESULTS_WITHOUT_FINAL,
+                next_action="resume after the completed tool results and produce the missing final answer",
+            )
         return TerminationOutcome(
             status="active",
-            reason=None,
+            reason=REASON_PENDING_TOOLS,
             current_step="assistant invoked tools",
             next_action="execute pending tool calls",
         )
@@ -299,6 +330,7 @@ __all__ = [
     "REASON_PENDING_TOOLS",
     "REASON_RUNTIME_ERROR",
     "REASON_TOOL_FAILURES",
+    "REASON_TOOL_RESULTS_WITHOUT_FINAL",
     "RunStatus",
     "TerminationOutcome",
     "classify_run_outcome",

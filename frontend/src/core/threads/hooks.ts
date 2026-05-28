@@ -164,6 +164,75 @@ function lastMessage(messages: Message[]): Message | undefined {
   return messages.length > 0 ? messages[messages.length - 1] : undefined;
 }
 
+type RecoverableIncompleteDetection = {
+  reason: string;
+  source: "runtime" | "last_run_record" | "tool_results_without_final";
+  isSilentOutput: boolean;
+};
+
+function toolCallIds(message: Message | undefined): string[] {
+  const record = message as unknown as { tool_calls?: Array<{ id?: unknown }> };
+  return (record.tool_calls ?? [])
+    .map((call) => (typeof call.id === "string" ? call.id : ""))
+    .filter(Boolean);
+}
+
+function toolResultId(message: Message | undefined): string {
+  if (message?.type !== "tool") return "";
+  const record = message as unknown as Record<string, unknown>;
+  return typeof record.tool_call_id === "string" ? record.tool_call_id : "";
+}
+
+function resolvedToolIdsAfter(messages: Message[], index: number): Set<string> {
+  const ids = new Set<string>();
+  for (const message of messages.slice(index + 1)) {
+    const id = toolResultId(message);
+    if (id) ids.add(id);
+  }
+  return ids;
+}
+
+function detectRecoverableIncompleteState(values: AgentThreadState): RecoverableIncompleteDetection | null {
+  const runtimeState = (values.runtime ?? {}) as Record<string, unknown>;
+  const recoverableFailure = runtimeState.recoverable_failure as Record<string, unknown> | undefined;
+  const incompleteState = runtimeState.incomplete_state as Record<string, unknown> | undefined;
+  const lastRunRecord = runtimeState.last_run_record as Record<string, unknown> | undefined;
+  const finalEvaluation = lastRunRecord?.final_evaluation as Record<string, unknown> | undefined;
+  const runtimeReason =
+    (typeof recoverableFailure?.reason === "string" ? recoverableFailure.reason : undefined) ??
+    (typeof incompleteState?.reason === "string" ? incompleteState.reason : undefined);
+  if (recoverableFailure || incompleteState) {
+    const reason = runtimeReason ?? "recoverable_failure";
+    return { reason, source: "runtime", isSilentOutput: reason === "assistant produced no user-visible final answer" };
+  }
+  if (finalEvaluation?.status === "failed" || finalEvaluation?.status === "incomplete") {
+    const reason = typeof finalEvaluation.reason === "string" ? finalEvaluation.reason : "recoverable_failure";
+    return { reason, source: "last_run_record", isSilentOutput: reason === "assistant produced no user-visible final answer" };
+  }
+
+  const messages = values.messages ?? [];
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+    if (message?.type !== "ai") continue;
+    const expectedIds = toolCallIds(message);
+    if (expectedIds.length === 0) return null;
+    const resolvedIds = resolvedToolIdsAfter(messages, index);
+    if (expectedIds.every((id) => resolvedIds.has(id))) {
+      const rawTaskStatus = runtimeState.task_state_status ?? values.task_state?.status;
+      const taskStatus = typeof rawTaskStatus === "string" ? rawTaskStatus : "";
+      if (taskStatus !== "completed") {
+        return {
+          reason: "assistant ended after tool results without final answer",
+          source: "tool_results_without_final",
+          isSilentOutput: true,
+        };
+      }
+    }
+    return null;
+  }
+  return null;
+}
+
 export function useThreadStream({
   threadId,
   context,
@@ -467,10 +536,7 @@ export function useThreadStream({
       }
       const last = lastMessage(values.messages ?? []);
       const runtimeState = (values.runtime ?? {}) as Record<string, unknown>;
-      const recoverableFailure = runtimeState.recoverable_failure;
-      const incompleteState = runtimeState.incomplete_state;
-      const lastRunRecord = runtimeState.last_run_record as Record<string, unknown> | undefined;
-      const finalEvaluation = lastRunRecord?.final_evaluation as Record<string, unknown> | undefined;
+      const incompleteRecovery = detectRecoverableIncompleteState(values);
       if (!isMock && isUnfinishedActionAnnouncement(last)) {
         const currentThreadId = threadIdRef.current;
         const signature = `${currentThreadId ?? ""}:${last?.id ?? ""}:${messageText(last)}`;
@@ -533,23 +599,16 @@ export function useThreadStream({
         void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
         return;
       }
-      if (
-        !isMock &&
-        (recoverableFailure || incompleteState || finalEvaluation?.status === "failed")
-      ) {
+      if (!isMock && incompleteRecovery) {
         const currentThreadId = threadIdRef.current;
-        const reason =
-          (typeof (recoverableFailure as Record<string, unknown> | undefined)?.reason === "string"
-            ? ((recoverableFailure as Record<string, unknown>).reason as string)
-            : undefined) ??
-          (typeof finalEvaluation?.reason === "string" ? finalEvaluation.reason : "recoverable_failure");
+        const reason = incompleteRecovery.reason;
         // Include message count in the signature so a fresh attempt after a prior
         // recovery also resulting in an incomplete state gets a different signature
         // and triggers another retry. incompleteRetryRef caps total cross-turn
         // retries at _MAX_INCOMPLETE_RETRIES.
         const msgCount = (values.messages ?? []).length;
-        const isSilentOutput = reason === "assistant produced no user-visible final answer";
-        const signature = `${currentThreadId ?? ""}:recoverable:${reason}:msgs${msgCount}`;
+        const isSilentOutput = incompleteRecovery.isSilentOutput;
+        const signature = `${currentThreadId ?? ""}:recoverable:${incompleteRecovery.source}:${reason}:msgs${msgCount}`;
         const submit = autoContinueSubmitRef.current;
         const retryAllowed = incompleteRetryRef.current < _MAX_INCOMPLETE_RETRIES;
         if (currentThreadId && submit && retryAllowed && !autoContinueRef.current.has(signature)) {
@@ -585,9 +644,11 @@ export function useThreadStream({
               context: {
                 ...context,
                 thread_id: currentThreadId,
-                system_continue_reason: isSilentOutput
-                  ? "silent_output_recovery"
-                  : "recoverable_failure_or_incomplete_state",
+                system_continue_reason: incompleteRecovery.source === "tool_results_without_final"
+                  ? "tool_results_without_final_recovery"
+                  : isSilentOutput
+                    ? "silent_output_recovery"
+                    : "recoverable_failure_or_incomplete_state",
               },
             },
           ).catch((error) => {
@@ -602,6 +663,62 @@ export function useThreadStream({
     },
   });
   autoContinueSubmitRef.current = thread.submit as unknown as AutoContinueSubmit;
+
+  useEffect(() => {
+    if (isMock || thread.isLoading) {
+      return;
+    }
+    const recovery = detectRecoverableIncompleteState(thread.values);
+    if (!recovery) {
+      return;
+    }
+    const currentThreadId = threadIdRef.current;
+    const submit = autoContinueSubmitRef.current;
+    const retryAllowed = incompleteRetryRef.current < _MAX_INCOMPLETE_RETRIES;
+    const msgCount = (thread.messages ?? []).length;
+    const signature = `${currentThreadId ?? ""}:loaded-recoverable:${recovery.source}:${recovery.reason}:msgs${msgCount}`;
+    if (!currentThreadId || !submit || !retryAllowed || autoContinueRef.current.has(signature)) {
+      return;
+    }
+    autoContinueRef.current.add(signature);
+    incompleteRetryRef.current += 1;
+    pushSystemEvent({
+      level: "warning",
+      message: `检测到上一轮停在工具结果之后但没有最终回复（${recovery.reason}），正在自动接续。`,
+      source: "auto-continue",
+    });
+    void submit(
+      {
+        messages: [
+          {
+            type: "system" as const,
+            content: SYSTEM_SESSION_CONTINUE_PROMPT,
+          },
+        ],
+      },
+      {
+        threadId: currentThreadId,
+        streamSubgraphs: true,
+        streamResumable: true,
+        streamMode: DEFAULT_STREAM_MODE,
+        multitaskStrategy: "interrupt" as const,
+        config: {
+          recursion_limit: getRecursionLimit(),
+        },
+        context: {
+          ...context,
+          thread_id: currentThreadId,
+          system_continue_reason: recovery.source === "tool_results_without_final"
+            ? "tool_results_without_final_recovery"
+            : recovery.isSilentOutput
+              ? "silent_output_recovery"
+              : "recoverable_failure_or_incomplete_state",
+        },
+      },
+    ).catch((error) => {
+      console.error("Failed to auto-continue loaded recoverable incomplete task:", error);
+    });
+  }, [context, isMock, thread.isLoading, thread.messages, thread.values]);
 
   // Optimistic messages shown before the server stream responds
   const [optimisticMessages, setOptimisticMessages] = useState<Message[]>([]);

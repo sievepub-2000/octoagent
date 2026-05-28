@@ -24,7 +24,7 @@ except Exception:  # pragma: no cover - older langgraph without get_config
 
 from src.agents.core.run_record_store import append_run_record
 from src.agents.core.run_records import build_execution_run_record
-from src.agents.core.termination import is_continuation_announcement
+from src.agents.core.termination import classify_run_outcome, is_continuation_announcement
 from src.storage.skill_evolution.analyzer import AnalysisSuggestion, ExecutionTrace, SkillAnalyzer
 from src.storage.skill_evolution.evolver import SkillEvolver
 from src.storage.skill_evolution.planning import (
@@ -269,25 +269,29 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                 )
 
             runtime_state = dict(state.get("runtime") or {})
-            if trace.success:
+            outcome = classify_run_outcome(messages)
+            structurally_complete = outcome.status == "completed"
+            if trace.success and structurally_complete:
                 runtime_state["recoverable_failure"] = None
                 runtime_state["incomplete_state"] = None
             else:
+                reason = trace.error_message or outcome.reason or "Agent run ended before completing the user task."
                 recoverable_failure = {
                     "status": "recoverable",
-                    "reason": trace.error_message or "Agent run failed before completing the user task.",
+                    "reason": reason,
                     "next_action": "continue from persisted task state and avoid repeating failed tool paths",
                 }
                 runtime_state["recoverable_failure"] = recoverable_failure
                 runtime_state["incomplete_state"] = recoverable_failure
                 runtime_state["recommended_memory_action"] = "continue"
+            record_reason = None if trace.success and structurally_complete else trace.error_message or outcome.reason
             run_record = build_execution_run_record(
                 {
                     **state,
                     "runtime": runtime_state,
                 },
-                final_status="completed" if trace.success else None,
-                evaluation_reason=trace.error_message or None,
+                final_status="completed" if trace.success and structurally_complete else None,
+                evaluation_reason=record_reason,
             )
             runtime_state["last_run_record"] = append_run_record(
                 run_record,

@@ -198,3 +198,30 @@ def test_after_agent_records_recoverable_tool_failures_as_incomplete(monkeypatch
     assert record["recoverable_failure"]["status"] == "recoverable"
     assert record["final_evaluation"]["status"] == "incomplete"
     assert record["final_evaluation"]["reason"] == "Error: command timed out"
+
+def test_after_agent_records_completed_tool_batch_without_final_answer_as_incomplete(monkeypatch, tmp_path) -> None:
+    captured: dict[str, object] = {}
+
+    def fake_append_run_record(record, *, thread_id=None, agent_name=None, run_id=None):
+        captured["record"] = record
+        return "record-id"
+
+    monkeypatch.setattr(skill_middleware, "append_run_record", fake_append_run_record)
+    middleware = SkillEvolutionMiddleware(tmp_path / "data", tmp_path / "skills")
+    messages = [
+        HumanMessage(content="生成 Word 文件"),
+        AIMessage(content="", tool_calls=[{"name": "present_files", "args": {}, "id": "call-1"}]),
+        ToolMessage(content="Successfully presented files", name="present_files", tool_call_id="call-1"),
+    ]
+
+    update = middleware.after_agent(
+        {"messages": messages, "runtime": {}, "task_state": {"goal": "生成 Word 文件", "status": "active"}},
+        SimpleNamespace(context={}),
+    )
+
+    assert update is not None
+    record = captured["record"]
+    assert isinstance(record, dict)
+    assert record["recoverable_failure"]["status"] == "recoverable"
+    assert record["final_evaluation"]["status"] == "incomplete"
+    assert record["final_evaluation"]["reason"] == "assistant ended after tool results without final answer"
