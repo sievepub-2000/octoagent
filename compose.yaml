@@ -1,0 +1,204 @@
+name: octoagent
+
+x-backend-env: &backend-env
+  CI: "true"
+  PYTHONDONTWRITEBYTECODE: "1"
+  OCTO_AGENT_CONFIG_PATH: /app/config.yaml
+  OCTO_AGENT_EXTENSIONS_CONFIG_PATH: /app/extensions_config.json
+  OCTO_AGENT_SETUP_STATE_FILE: /app/workspace/env/setup.json
+  OCTOAGENT_RUNTIME_CONFIG_DIR: /app/backend/runtime
+  OCTOAGENT_APP_ROOT: /app
+  OCTOAGENT_BACKEND_PATH: /app/backend
+  OCTOAGENT_FILESYSTEM_ROOT: /app
+  OCTOAGENT_PYTHON_BIN: /app/backend/.venv/bin/python
+  OCTOAGENT_MCP_TOOLS_DIR: /app/runtime/tools/mcp
+  OCTOAGENT_MCP_FILESYSTEM_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-filesystem
+  OCTOAGENT_MCP_POSTGRES_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres
+  OCTOAGENT_MCP_OPENAPI_BIN: /app/runtime/tools/mcp/node_modules/.bin/openapi-mcp-server
+  OCTOAGENT_MCP_REDIS_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-redis
+  OCTOAGENT_MCP_KUBERNETES_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-kubernetes
+  OCTOAGENT_MCP_DOCKER_BIN: /app/runtime/tools/mcp/node_modules/.bin/docker-mcp
+  OCTOAGENT_REDIS_URL: redis://redis:6379
+  OCTOAGENT_POSTGRES_SUPERUSER_DSN: postgresql://octoagent:${POSTGRES_PASSWORD:-octoagent}@postgres:5432/${POSTGRES_DB:-octoagent}
+  OCTOAGENT_GATEWAY_INTERNAL_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}
+  OCTOAGENT_GATEWAY_HEALTH_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/health
+  OCTOAGENT_OPENAPI_SPEC_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/openapi.json
+  OCTOAGENT_KUBECONFIG_SMOKE: /app/runtime/tools/kubernetes/kubeconfig-smoke.yaml
+  XDG_CACHE_HOME: /app/runtime/cache/xdg
+  UV_CACHE_DIR: /app/runtime/cache/uv
+  PIP_CACHE_DIR: /app/runtime/cache/pip
+  PLAYWRIGHT_BROWSERS_PATH: /app/runtime/cache/ms-playwright
+  HF_HOME: /app/runtime/cache/huggingface
+  SENTENCE_TRANSFORMERS_HOME: /app/runtime/cache/sentence_transformers
+  HF_HUB_OFFLINE: "1"
+  TRANSFORMERS_OFFLINE: "1"
+
+x-backend-volumes: &backend-volumes
+  - ./config.yaml:/app/config.yaml:ro
+  - ./extensions_config.json:/app/extensions_config.json:ro
+  - ./workspace:/app/workspace
+  - ./logs:/app/logs
+  - ./runtime/cache:/app/runtime/cache
+  - ./runtime/logs:/app/runtime/logs
+  - ./runtime/system_tools:/app/runtime/system_tools
+  - /var/run/docker.sock:/var/run/docker.sock
+
+services:
+  postgres:
+    image: ${OCTOAGENT_POSTGRES_IMAGE:-postgres:16-alpine}
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: octoagent
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-octoagent}
+      POSTGRES_DB: ${POSTGRES_DB:-octoagent}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U octoagent -d ${POSTGRES_DB:-octoagent}"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  redis:
+    image: ${OCTOAGENT_REDIS_IMAGE:-redis:7-alpine}
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend-prod
+      args:
+        PYTHON_BASE_IMAGE: ${OCTOAGENT_PYTHON_BASE_IMAGE:-python:3.12-slim}
+        NODE_RUNTIME_IMAGE: ${OCTOAGENT_NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+    image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
+    restart: unless-stopped
+    command: >-
+      bash -lc "cd /app/backend && uv run uvicorn src.gateway.app:app --host 0.0.0.0 --port ${OCTO_GATEWAY_PORT:-19802}"
+    env_file:
+      - .env.docker
+    environment:
+      <<: *backend-env
+      OCTO_GATEWAY_PORT: ${OCTO_GATEWAY_PORT:-19802}
+    volumes: *backend-volumes
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${OCTO_GATEWAY_PORT:-19802}:${OCTO_GATEWAY_PORT:-19802}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${OCTO_GATEWAY_PORT:-19802}/health', timeout=5)\""]
+      interval: 10s
+      timeout: 6s
+      retries: 24
+      start_period: 25s
+
+  langgraph:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend-prod
+      args:
+        PYTHON_BASE_IMAGE: ${OCTOAGENT_PYTHON_BASE_IMAGE:-python:3.12-slim}
+        NODE_RUNTIME_IMAGE: ${OCTOAGENT_NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+    image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
+    restart: unless-stopped
+    command: >-
+      bash -lc "cd /app/backend && uv run langgraph dev --no-browser --allow-blocking --n-jobs-per-worker ${OCTO_LANGGRAPH_JOBS:-4} --host 0.0.0.0 --port ${OCTO_LANGGRAPH_PORT:-19804} --no-reload"
+    env_file:
+      - .env.docker
+    environment:
+      <<: *backend-env
+      OCTO_LANGGRAPH_PORT: ${OCTO_LANGGRAPH_PORT:-19804}
+    volumes: *backend-volumes
+    depends_on:
+      gateway:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${OCTO_LANGGRAPH_PORT:-19804}:${OCTO_LANGGRAPH_PORT:-19804}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${OCTO_LANGGRAPH_PORT:-19804}/docs', timeout=5)\""]
+      interval: 10s
+      timeout: 6s
+      retries: 24
+      start_period: 30s
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend-prod
+      args:
+        NODE_FRONTEND_IMAGE: ${OCTOAGENT_NODE_FRONTEND_IMAGE:-node:22-alpine}
+    image: octoagent/frontend:${OCTOAGENT_IMAGE_TAG:-local}
+    restart: unless-stopped
+    env_file:
+      - .env.docker
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: "1"
+      OCTO_FRONTEND_PORT: ${OCTO_FRONTEND_PORT:-19806}
+      NEXT_PUBLIC_BACKEND_BASE_URL: ""
+      NEXT_PUBLIC_LANGGRAPH_BASE_URL: ""
+      NEXT_PUBLIC_LOCAL_FRONTEND_PORT: ${OCTO_FRONTEND_PORT:-19806}
+      NEXT_PUBLIC_LOCAL_GATEWAY_PORT: ${OCTO_GATEWAY_PORT:-19802}
+      NEXT_PUBLIC_LOCAL_LANGGRAPH_PORT: ${OCTO_LANGGRAPH_PORT:-19804}
+      NEXT_PUBLIC_LOCAL_INGRESS_PORT: ${OCTO_NGINX_PORT:-19800}
+      BETTER_AUTH_BASE_URL: http://localhost:${OCTO_NGINX_PORT:-19800}
+    depends_on:
+      gateway:
+        condition: service_healthy
+      langgraph:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${OCTO_FRONTEND_PORT:-19806}:${OCTO_FRONTEND_PORT:-19806}"
+    healthcheck:
+      test: ["CMD-SHELL", "node -e \"fetch('http://127.0.0.1:${OCTO_FRONTEND_PORT:-19806}').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 6s
+      retries: 24
+      start_period: 20s
+
+  nginx:
+    image: ${OCTOAGENT_NGINX_IMAGE:-nginx:1.27-alpine}
+    restart: unless-stopped
+    ports:
+      - "${OCTO_NGINX_PORT:-19800}:${OCTO_NGINX_PORT:-19800}"
+    volumes:
+      - ./docker/nginx/nginx.prod.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+    environment:
+      OCTO_GATEWAY_PORT: ${OCTO_GATEWAY_PORT:-19802}
+      OCTO_LANGGRAPH_PORT: ${OCTO_LANGGRAPH_PORT:-19804}
+      OCTO_FRONTEND_PORT: ${OCTO_FRONTEND_PORT:-19806}
+      OCTO_NGINX_PORT: ${OCTO_NGINX_PORT:-19800}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx
+    depends_on:
+      frontend:
+        condition: service_healthy
+      gateway:
+        condition: service_healthy
+      langgraph:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:${OCTO_NGINX_PORT:-19800}/health >/dev/null"]
+      interval: 10s
+      timeout: 6s
+      retries: 24
+      start_period: 10s
+
+volumes:
+  postgres-data:
+  redis-data:

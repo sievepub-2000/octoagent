@@ -1,6 +1,6 @@
 # OctoAgent - Unified Development Environment
 
-.PHONY: help config check install install-service ports cli dev dev-daemon start start-daemon stop clean clean-stale-logs execution-worker smoke-real soak-smoke soak-baseline-suite soak-monitor smoke-mock smoke-ui migrate-memory release-readiness release-readiness-contract smoke-system-execution-security smoke-operator-module-closure release-precheck operator-release sync-check sync-align sync-references docker-init docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway clean-workspace
+.PHONY: help config check install install-service ports cli dev dev-daemon start start-daemon stop clean clean-stale-logs execution-worker smoke-real soak-smoke soak-baseline-suite soak-monitor smoke-mock smoke-ui migrate-memory release-readiness release-readiness-contract smoke-system-execution-security smoke-operator-module-closure release-precheck operator-release sync-check sync-align sync-references docker-init docker-install docker-prod-start docker-prod-stop docker-prod-logs docker-package docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway clean-workspace
 
 SMOKE_FRONTEND_URL ?= http://127.0.0.1:$(or $(OCTO_NGINX_PORT),19800)
 SMOKE_GATEWAY_URL ?= http://127.0.0.1:$(or $(OCTO_NGINX_PORT),19800)
@@ -269,3 +269,19 @@ check-import-boundaries:
 	@cd backend && PYTHONPATH=$$PWD .venv/bin/lint-imports --config ../.importlinter
 
 check-topology: check-topology-freeze check-import-boundaries
+
+
+docker-install:
+	@./scripts/install-docker.sh --prefix "$$(pwd)"
+
+docker-prod-start:
+	@docker compose --env-file .env.docker -f compose.yaml up -d --build --remove-orphans
+
+docker-prod-stop:
+	@docker compose --env-file .env.docker -f compose.yaml down
+
+docker-prod-logs:
+	@docker compose --env-file .env.docker -f compose.yaml logs -f nginx gateway langgraph frontend
+
+docker-package:
+	@./scripts/package-docker.sh

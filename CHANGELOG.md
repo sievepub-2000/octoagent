@@ -1,3 +1,10 @@
+## 2026-05-28 - Cross-platform Docker packaging
+
+- Added the packaged Docker Compose profile for Linux, Windows, and macOS with nginx, frontend, gateway, LangGraph, PostgreSQL, and Redis services.
+- Added production backend/frontend Dockerfiles, Linux/macOS and Windows one-command Docker installers, and a Docker source packaging script.
+- Made MCP server commands portable through environment variables and installed filesystem/postgres MCP packages into `runtime/tools/mcp`.
+- Added English Docker deployment documentation and a Japanese project/install/use guide.
+
 ## 2026-05-28 - System tools, MCP cleanup, and runtime hardening
 
 ## 2026-05-28 - MCP smoke tests, manifests, and SaaS eval loop

@@ -18,6 +18,10 @@ goal below.
 
 * **Get started** — [`README.md`](../README.md) (root). Quick-start,
   Docker compose, environment matrix.
+* **Docker install and deployment** — [`docs/docker-install.md`](./docker-install.md).
+  Linux, Windows, and macOS Docker profile, packaging, and verification.
+* **Japanese quick guide** — [`docs/ja/README.md`](./ja/README.md).
+  Project overview, installation, usage, and verification in Japanese.
 * **Configure runtime** — [`docs/CONFIGURATION.md`](./CONFIGURATION.md)
   if present, otherwise [`config.example.yaml`](../config.example.yaml).
   Note: the active `config.yaml` now lives under
@@ -67,4 +71,4 @@ goal below.
 * If a document moves between trees, leave a one-line stub at the old
   path pointing to the new location for at least one release.
 
-Last reviewed: 2026-05-27.
+Last reviewed: 2026-05-28.

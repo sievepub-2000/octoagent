@@ -31,6 +31,7 @@
 ## Table of contents
 
 - [English — Getting started](#english--getting-started)
+- [Docker installation](#docker-installation-default)
 - [日本語 — はじめに](#日本語--はじめに)
 - [Project facts (canonical)](#project-facts-canonical)
 
@@ -75,38 +76,54 @@ Next.js WebUI  ──HTTP──▶  FastAPI gateway  ──▶  LangGraph runtim
 
 ### Prerequisites
 
-- **OS.** Linux (Ubuntu 22.04+ / Debian 12 / RHEL 9) or Windows 11 with
-  WSL2. macOS works for development but is not the supported
-  production target.
-- **Python 3.12+** — the backend pins 3.12 in `backend/.python-version`.
-- **Node.js 22+** + **pnpm 9+** — the frontend uses Next.js.
-- **Git** ≥ 2.40, **curl**, **make**, **systemctl** (for the long-running
-  service unit).
-- **2 GB free disk** for the venv + node_modules + RAG cache. **8 GB
-  RAM minimum**, 16 GB recommended.
-- *(Optional)* **PostgreSQL 15+** if you want persistent task storage
-  beyond the bundled SQLite. *(Optional)* **CUDA 12** + NVIDIA driver if
-  you intend to run local LLMs via vLLM / SGLang.
+The default installation path is now **Docker Compose** on all supported desktop/server platforms:
 
-### Installation (one-line)
+- Linux with Docker Engine 24+ and Compose v2.
+- Windows 11 with Docker Desktop using Linux containers.
+- macOS with Docker Desktop, OrbStack, or another Docker-compatible engine.
+- Git is needed only when the installer has to clone the repository.
+
+You do **not** need host Python, Node.js, pnpm, nginx, PostgreSQL, or Redis for the Docker profile. They are packaged as containers or image dependencies.
+
+### Docker Installation (default)
+
+Linux and macOS:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.sh | bash
+```
+
+Windows PowerShell:
+
+```powershell
+iwr https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.ps1 -UseBasicParsing | iex
+```
+
+From an existing checkout:
+
+```bash
+git clone https://github.com/sievepub-2000/octoagent.git
+cd octoagent
+./scripts/install-docker.sh --prefix "$PWD"
+```
+
+Open the WebUI after the health check passes:
+
+```text
+http://127.0.0.1:19800
+```
+
+The Docker profile starts nginx, the production WebUI, the FastAPI gateway, LangGraph, PostgreSQL, Redis, and the packaged MCP tool dependencies. See [docs/docker-install.md](docs/docker-install.md) for operations, configuration, packaging, and verification.
+
+### Host Installation (advanced)
+
+The legacy host installer remains available for Linux service deployments that intentionally manage Python, Node.js, nginx, and systemd on the host:
 
 ```bash
 git clone https://github.com/sievepub-2000/octoagent.git
 cd octoagent
 ./scripts/install-octoagent.sh
 ```
-
-The installer:
-
-1. Creates `backend/.venv` (Python 3.12) and installs requirements.
-2. Runs `pnpm install` for the frontend.
-3. Creates `runtime/` (logs, pids, cache, secrets) with safe
-   permissions.
-4. Generates `runtime/secrets/octoagent_internal_master.key` on first
-   start — a per-installation 64-byte random key used as HKDF IKM for
-   every internal credential (DB password, internal API token, etc.).
-   **This file is gitignored. Back it up if you encrypt persistent
-   data.**
 
 ### First-run configuration (default models)
 
@@ -226,18 +243,27 @@ OctoAgent は **タスク中心のマルチエージェントプラットフォ�
 - **2 GB の空きディスク**、**8 GB RAM（推奨 16 GB）**。
 - 任意で **PostgreSQL 15+**、**CUDA 12** + NVIDIA ドライバ。
 
-### インストール（ワンライナー）
+### インストール（Docker 推奨）
+
+Linux / macOS:
 
 ```bash
-git clone https://github.com/sievepub-2000/octoagent.git
-cd octoagent
-./scripts/install-octoagent.sh
+curl -fsSL https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.sh | bash
 ```
 
-インストーラは以下を実行します：
+Windows PowerShell:
 
-1. `backend/.venv` を作成して Python 依存関係を導入。
-2. フロントエンドの `pnpm install`。
+```powershell
+iwr https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.ps1 -UseBasicParsing | iex
+```
+
+起動後、WebUI を開きます：
+
+```text
+http://127.0.0.1:19800
+```
+
+詳しい日本語ガイドは [`docs/ja/README.md`](docs/ja/README.md)、詳細な英語版 Docker 手順は [`docs/docker-install.md`](docs/docker-install.md) を参照してください。
 3. `runtime/`（logs / pids / cache / secrets）を安全な権限で作成。
 4. 初回起動時に `runtime/secrets/octoagent_internal_master.key`
    （64 バイト乱数）を生成。内部 DB パスワードや内部 API トークンの

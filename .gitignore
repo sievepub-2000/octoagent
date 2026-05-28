@@ -27,6 +27,7 @@ backend/reports/
 
 # Environment variables
 .env
+.env.docker
 
 # Configuration files
 config.yaml
@@ -71,6 +72,7 @@ web/
 references/_clones/
 references/codex-cli-openai/
 test_outputs/
+dist/
 
 # Repository hygiene
 .evolution/
