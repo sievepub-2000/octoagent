@@ -37,6 +37,10 @@
 
 ---
 
+## Writing and Publishing Workflows
+
+OctoAgent includes an optional managed writing and publishing suite for articles, novels, papers, and web serials. It wraps browser-use/browser-use, microsoft/playwright, wp-cli/wp-cli, microsoft/presidio, jgm/pandoc, textlint/textlint, and vale-cli/vale behind guarded tools for project storage, drafting, review, export, human approval, browser/WordPress publishing, and publication audit. See [docs/writing-publishing-tools.md](docs/writing-publishing-tools.md).
+
 ## English — Getting started
 
 ### What OctoAgent does
@@ -355,7 +359,7 @@ Current repository truth:
 - primary workflow truth source: task_workspaces + workflow_core projections
 - unified local entrypoint: http://127.0.0.1:19800
 - local default model: `openrouter-free-openai-gpt-oss-20b` for flash WebUI dialogue, with quota/cooldown-aware fallback for live WebUI dialogue
-- runtime governance version: `2026.5.22`
+- runtime governance version: `2026.5.28.post4`
 - systemd startup owner: `/etc/systemd/system/octoagent-local.service` calls only `scripts/start-octoagent.sh`; all OctoAgent child processes are launched and stopped by repository scripts under `scripts/`
 - backend Python runtime: one repository venv at `backend/.venv`, exposed to scripts as `OCTOAGENT_PYTHON_BIN`
 - repository-scoped tools and maintenance scripts live under `scripts/` and `runtime/`; host-level helper copies under `/usr/local/bin` are not part of the active deployment

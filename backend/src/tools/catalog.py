@@ -13,6 +13,7 @@ from src.tools.builtins import (
     DESKTOP_DRIVER_TOOLS,
     ECOSYSTEM_WORKFLOW_TOOLS,
     OPENHARNESS_COMPAT_TOOLS,
+    PUBLISHING_WORKFLOW_TOOLS,
     SOFTWARE_INTERFACE_TOOLS,
     SYSTEM_EXTRA_TOOLS,
     SYSTEM_OPS_TOOLS,
@@ -127,6 +128,7 @@ BUILTIN_TOOLS_CORE.extend(SYSTEM_EXTRA_TOOLS)
 BUILTIN_TOOLS_CORE.extend(DESKTOP_DRIVER_TOOLS)
 BUILTIN_TOOLS_CORE.extend(SOFTWARE_INTERFACE_TOOLS)
 BUILTIN_TOOLS_CORE.extend(ECOSYSTEM_WORKFLOW_TOOLS)
+BUILTIN_TOOLS_CORE.extend(PUBLISHING_WORKFLOW_TOOLS)
 
 
 def _openharness_compat_enabled() -> bool:
@@ -229,6 +231,20 @@ BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "docker_images": "system",
     "docker_ps": "system",
     "docker_status": "system",
+    "writing_toolchain_status": "sandbox",
+    "novel_project_store": "directory",
+    "writestory": "directory",
+    "chapter_drafter": "directory",
+    "chapter-drafter": "directory",
+    "chapter_writer": "directory",
+    "webnovel_write": "directory",
+    "webnovel-write": "directory",
+    "writing_review_suite": "directory",
+    "writing_format_export": "directory",
+    "human_approval_gate": "directory",
+    "browser_publisher": "system",
+    "publication_auditor": "system",
+    "wp_cli_publish": "system",
 }
 
 DANGEROUS_CONFIRMATION_TOOLS = {
@@ -257,6 +273,8 @@ DANGEROUS_CONFIRMATION_TOOLS = {
     "ssh_copy",
     "ssh_exec",
     "docker_compose_apply",
+    "browser_publisher",
+    "wp_cli_publish",
 }
 
 

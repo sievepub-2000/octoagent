@@ -72,3 +72,4 @@ goal below.
   path pointing to the new location for at least one release.
 
 Last reviewed: 2026-05-28.
+- [Writing and Publishing Tool Suite](writing-publishing-tools.md)

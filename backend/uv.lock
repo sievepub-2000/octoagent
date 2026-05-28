@@ -2758,7 +2758,7 @@ wheels = [
 
 [[package]]
 name = "octoagent"
-version = "2026.5.22"
+version = "2026.5.28.post4"
 source = { virtual = "." }
 dependencies = [
     { name = "agent-sandbox" },

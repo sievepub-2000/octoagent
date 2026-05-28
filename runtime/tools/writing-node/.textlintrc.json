@@ -1,0 +1,13 @@
+{
+  "plugins": {},
+  "rules": {
+    "preset-ja-technical-writing": false,
+    "preset-ja-spacing": false,
+    "write-good": {
+      "passive": true,
+      "so": true,
+      "thereIs": true,
+      "weasel": true
+    }
+  }
+}

@@ -148,6 +148,11 @@ runtime/tools/mcp/*
 !runtime/tools/kubernetes/
 runtime/tools/kubernetes/*
 !runtime/tools/kubernetes/kubeconfig-smoke.yaml
+!runtime/tools/writing-node/
+runtime/tools/writing-node/*
+!runtime/tools/writing-node/package.json
+!runtime/tools/writing-node/package-lock.json
+!runtime/tools/writing-node/.textlintrc.json
 runtime/logs/
 runtime/pids/
 runtime/system_tools/

@@ -1,3 +1,8 @@
+## 2026-05-28 - Writing and publishing workflow tools (`2026.5.28.post4`)
+
+- Added a managed writing/publishing toolchain wrapper for browser-use, Playwright, WP-CLI, Presidio, Pandoc, textlint, Vale, project storage, drafting, review, human approval, publishing, and publication audit flows.
+- Added a reproducible installer for writing/publishing tool dependencies under `runtime/system_tools` and `runtime/tools`.
+
 ## 2026-05-28 - OpenRouter attribution and usage tracking
 
 - Added backend-wide OpenRouter attribution headers (`HTTP-Referer`, `X-Title`) for chat model requests and provider model probes.

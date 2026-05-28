@@ -14,6 +14,7 @@ from .ecosystem_workflow_tools import ECOSYSTEM_WORKFLOW_TOOLS, integrated_proje
 from .image_processing_tool import process_image_tool
 from .openharness_compat_tools import OPENHARNESS_COMPAT_TOOLS
 from .present_file_tool import present_file_tool
+from .publishing_workflow_tools import PUBLISHING_WORKFLOW_TOOLS
 from .setup_agent_tool import setup_agent
 from .software_interface_tools import SOFTWARE_INTERFACE_TOOLS
 from .system_extra_tools import SYSTEM_EXTRA_TOOLS
@@ -25,6 +26,7 @@ from .web_reader_tool import read_webpage_tool
 __all__ = [
     "setup_agent",
     "present_file_tool",
+    "PUBLISHING_WORKFLOW_TOOLS",
     "ask_clarification_tool",
     "codex_cli_tool",
     "view_image_tool",

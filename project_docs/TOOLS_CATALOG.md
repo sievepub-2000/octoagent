@@ -90,3 +90,12 @@ existing setups stay unchanged.
 - Do not install FAISS into a host-level Python environment or a separate tool-local venv.
 - If future FAISS index artifacts are materialized outside DuckDB, store those artifacts under `runtime/system_tools/faiss-rag/` while keeping the Python package in `backend/.venv`.
 - Verify with `backend/.venv/bin/python -c "import faiss"` and RAG tests before documenting success.
+
+## Writing and Publishing Suite
+
+- `writing_toolchain_status`: verifies browser-use, Playwright, WP-CLI, Presidio, Pandoc, textlint, and Vale installation status.
+- `novel_project_store`, `writestory`, `chapter_drafter`, `chapter_writer`, and `webnovel_write`: professional writing flow for articles, novels, papers, and web serials.
+- `writing_review_suite`: runs textlint, Vale, and Presidio-backed review checks.
+- `writing_format_export`: converts writing assets through Pandoc.
+- `human_approval_gate`, `browser_publisher`, `wp_cli_publish`, and `publication_auditor`: guarded publishing and post-publication verification.
+- See `docs/writing-publishing-tools.md` for the full calling order and safety contract.
