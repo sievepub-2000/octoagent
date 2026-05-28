@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { ActivityIcon, ExternalLinkIcon, PlugIcon, RefreshCwIcon, SearchIcon, WaypointsIcon, WrenchIcon } from "lucide-react";
+import { ActivityIcon, AlertTriangleIcon, CheckCircle2Icon, ExternalLinkIcon, PlugIcon, RefreshCwIcon, SearchIcon, ShieldAlertIcon, WaypointsIcon, WrenchIcon, XCircleIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
 
@@ -38,6 +38,12 @@ interface ToolEntry {
   usage?: string;
   enabled?: boolean;
   badge?: string;
+  status?: string;
+  failureReason?: string;
+  riskLevel?: string;
+  parameterCount?: number;
+  timeoutSeconds?: number | null;
+  outputArtifacts?: string[];
 }
 
 function optionalText(value: string | null | undefined) {
@@ -63,12 +69,34 @@ interface McpServerEntry {
   disabled?: boolean;
   enabled?: boolean;
   description?: string;
+  status?: string;
+  status_reason?: string;
+  failure_reason?: string;
+  checked_at?: string | null;
+  tool_count?: number;
+  tools?: string[];
+  registry_visible?: boolean;
 }
 
 interface McpConfigResponse {
   mcp_servers?: Record<string, McpServerEntry>;
   mcpServers?: Record<string, McpServerEntry>;
 }
+
+interface RegistryMcpEntry {
+  name?: string;
+  enabled?: boolean;
+  transport?: string;
+  description?: string;
+  permission_scope?: string;
+  status?: string;
+  failure_reason?: string;
+  checked_at?: string | null;
+  tool_count?: number;
+  tools?: string[];
+  registry_visible?: boolean;
+}
+
 
 interface ChannelsStatusResponse {
   channels?: Record<
@@ -127,11 +155,17 @@ interface ToolRegistryResponse {
     active_subagents?: number;
     max_concurrent_subagents?: number;
   };
+  mcp?: RegistryMcpEntry[];
   builtin_tools?: Array<{
     name?: string;
     description?: string;
     category?: string;
     permission_scope?: string;
+    parameters?: Record<string, unknown>;
+    timeout_seconds?: number | null;
+    output_artifacts?: string[];
+    risk_level?: string;
+    failure_modes?: string[];
   }>;
 }
 
@@ -178,6 +212,19 @@ function formatTracePayloadValue(value: unknown): string {
     return String(value);
   }
   return JSON.stringify(value);
+}
+
+function statusIcon(status?: string) {
+  if (status === "pass" || status === "ready") return <CheckCircle2Icon aria-hidden="true" className="size-3.5 text-emerald-500" />;
+  if (status === "fail" || status === "configuration_error") return <XCircleIcon aria-hidden="true" className="size-3.5 text-destructive" />;
+  if (status === "warn" || status === "disabled") return <AlertTriangleIcon aria-hidden="true" className="size-3.5 text-amber-500" />;
+  return null;
+}
+
+function riskBadgeVariant(risk?: string): "default" | "secondary" | "destructive" | "outline" {
+  if (risk === "high") return "destructive";
+  if (risk === "medium") return "secondary";
+  return "outline";
 }
 
 function formatTracePayload(entry: ToolTraceEntry) {
@@ -334,18 +381,26 @@ function normalizeEntries(
     });
   }
 
+  const registryMcp = new Map((registry.mcp ?? []).filter((item) => item?.name).map((item) => [item.name as string, item]));
   const mcpServers = mcp.mcp_servers ?? mcp.mcpServers ?? {};
   for (const [name, entry] of Object.entries(mcpServers)) {
     const transport = entry?.type ?? entry?.transport ?? "stdio";
     const target = entry?.url ?? entry?.command ?? "stdio";
     const enabled = entry?.enabled !== false && entry?.disabled !== true;
+    const registryEntry = registryMcp.get(name);
+    const status = registryEntry?.status ?? entry?.status;
+    const failureReason = registryEntry?.failure_reason ?? entry?.status_reason;
     entries.push({
       id: `mcp:${name}`,
       name,
       category: "mcp",
-      description: optionalText(entry?.description) ?? `Transport: ${transport} ? ${target}`,
+      description: optionalText(entry?.description) ?? `Transport: ${transport} -> ${target}`,
       enabled,
-      usage: `Invoke via MCP client; ensure server is enabled in Settings → MCP.`,
+      badge: status,
+      status,
+      failureReason,
+      parameterCount: registryEntry?.tool_count,
+      usage: `Smoke: ${status ?? "unknown"}; tools: ${registryEntry?.tool_count ?? 0}; registry visible: ${registryEntry?.registry_visible !== false}. ${failureReason ?? ""}`,
     });
   }
 
@@ -391,6 +446,7 @@ function normalizeEntries(
   for (const tool of registry.builtin_tools ?? []) {
     if (!tool?.name) continue;
     const scope = tool.permission_scope ?? "sandbox";
+    const parameterCount = Object.keys(tool.parameters ?? {}).length;
     entries.push({
       id: `builtin:${tool.name}`,
       name: tool.name,
@@ -398,7 +454,11 @@ function normalizeEntries(
       description: optionalText(tool.description) ?? `Category: ${tool.category ?? "builtin"}`,
       enabled: true,
       badge: scope,
-      usage: `Available to the agent runtime through the unified tool registry. Permission scope: ${scope}.`,
+      riskLevel: tool.risk_level ?? "low",
+      parameterCount,
+      timeoutSeconds: tool.timeout_seconds ?? null,
+      outputArtifacts: tool.output_artifacts ?? [],
+      usage: `Permission: ${scope}; risk: ${tool.risk_level ?? "low"}; parameters: ${parameterCount}; timeout: ${tool.timeout_seconds ?? "runtime default"}; artifacts: ${(tool.output_artifacts ?? []).join(", ") || "none"}.`,
     });
   }
 
@@ -653,6 +713,18 @@ export default function ToolsHubPage() {
                           ) : null}
                         </div>
                         <div className="flex flex-col items-end gap-1">
+                          {entry.status ? (
+                            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                              {statusIcon(entry.status)}
+                              {entry.status}
+                            </span>
+                          ) : null}
+                          {entry.riskLevel ? (
+                            <Badge variant={riskBadgeVariant(entry.riskLevel)} className="uppercase tracking-wide">
+                              <ShieldAlertIcon aria-hidden="true" className="mr-1 size-3" />
+                              {entry.riskLevel}
+                            </Badge>
+                          ) : null}
                           {entry.badge ? (
                             <Badge variant="outline" className="uppercase tracking-wide">
                               {entry.badge}
@@ -665,6 +737,19 @@ export default function ToolsHubPage() {
                           )}
                         </div>
                       </div>
+                      {entry.failureReason ? (
+                        <p className="mt-2 flex items-start gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-xs text-amber-700 dark:text-amber-300">
+                          <AlertTriangleIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                          {entry.failureReason}
+                        </p>
+                      ) : null}
+                      {(entry.parameterCount !== undefined || entry.timeoutSeconds || entry.outputArtifacts?.length) ? (
+                        <div className="mt-2 flex flex-wrap gap-1 text-xs text-muted-foreground">
+                          {entry.parameterCount !== undefined ? <Badge variant="outline">params {entry.parameterCount}</Badge> : null}
+                          {entry.timeoutSeconds ? <Badge variant="outline">timeout {entry.timeoutSeconds}s</Badge> : null}
+                          {entry.outputArtifacts?.length ? <Badge variant="outline">artifacts</Badge> : null}
+                        </div>
+                      ) : null}
                       {entry.usage ? (
                         <details className="mt-2">
                           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">

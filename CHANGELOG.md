@@ -1,5 +1,15 @@
 ## 2026-05-28 - System tools, MCP cleanup, and runtime hardening
 
+## 2026-05-28 - MCP smoke tests, manifests, and SaaS eval loop
+
+- Added unified MCP smoke tests covering schema, startup, list_tools, minimal calls, registry display, and failure degradation.
+- Installed and enabled Redis/OpenAPI/Kubernetes/Docker MCP packages under `runtime/tools/mcp`, plus local HTTP API and Docker Compose MCP inspectors.
+- Added machine-readable builtin tool manifest fields for parameters, permission scope, timeout, artifacts, risk, and failure modes.
+- Enhanced the Tools Hub to show tool status, failure reasons, risk badges, parameters, timeouts, and artifact hints.
+- Upgraded `awesome_selfhosted` to a runtime-updatable SaaS catalog with tags, ratings, deployment complexity, and task templates.
+- Added OctoAgent eval suites and specialist subagent templates for planner/coder/operator/reviewer/teacher.
+
+
 ### Changes
 - Restored LangGraph startup by aligning PostgreSQL checkpointer dependencies: `langgraph-checkpoint==4.1.1`, `langgraph-checkpoint-postgres==3.1.0`, `psycopg[binary]==3.3.4`, and `psycopg-pool==3.3.1`.
 - Added and registered specialized Docker, SSH, Git, database, security, test, `awesome_selfhosted`, and `octo_doctor` tools; capability discovery now lists system-scoped tools while preserving permission metadata.

@@ -52,10 +52,24 @@ class MemoryConfig(BaseModel):
         description="Whether to inject memory into system prompt",
     )
     max_injection_tokens: int = Field(
-        default=2000,
+        default=2400,
         ge=100,
         le=8000,
         description="Maximum tokens to use for memory injection",
+    )
+    preference_injection_enabled: bool = Field(
+        default=True,
+        description="Whether durable user preferences and interaction style hints should be emphasized in injected memory.",
+    )
+    max_preference_facts: int = Field(
+        default=12,
+        ge=1,
+        le=50,
+        description="Maximum number of durable preference facts to emphasize during prompt injection.",
+    )
+    warmth_context_enabled: bool = Field(
+        default=True,
+        description="Whether memory injection should preserve user communication style and continuity hints for warmer interactions.",
     )
     write_governance_enabled: bool = Field(
         default=True,

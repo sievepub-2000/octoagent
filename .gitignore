@@ -135,6 +135,17 @@ workspace/lessons.db-wal
 # Project-local runtime caches
 runtime/cache/
 runtime/tools/
+
+# Reproducible MCP package metadata; dependency payloads remain local runtime state.
+!runtime/tools/
+runtime/tools/*
+!runtime/tools/mcp/
+runtime/tools/mcp/*
+!runtime/tools/mcp/package.json
+!runtime/tools/mcp/package-lock.json
+!runtime/tools/kubernetes/
+runtime/tools/kubernetes/*
+!runtime/tools/kubernetes/kubeconfig-smoke.yaml
 runtime/logs/
 runtime/pids/
 runtime/system_tools/

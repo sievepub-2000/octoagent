@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from src.runtime.config.extensions_config import ExtensionsConfig, McpServerConfig
+from src.tools.mcp.smoke import server_smoke_failure_reason
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +68,10 @@ def build_servers_config(extensions_config: ExtensionsConfig) -> dict[str, dict[
                     server_name,
                     ", ".join(missing_env),
                 )
+                continue
+            smoke_failure = server_smoke_failure_reason(server_name)
+            if smoke_failure:
+                logger.warning("Skipping MCP server '%s' because latest smoke test failed: %s", server_name, smoke_failure)
                 continue
             servers_config[server_name] = build_server_params(server_name, server_config)
             logger.info(f"Configured MCP server: {server_name}")

@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+from src.agents.subagents.executor import get_subagent_runtime_snapshot
 from src.runtime.config.app_config import get_app_config
 from src.runtime.config.extensions_config import get_extensions_config
 from src.runtime.config.paths import resolve_configured_default_model_name
 from src.runtime.config.subagents_config import get_subagents_app_config
-from src.tools.plugins import get_plugin_service
 from src.storage.skills import load_skills
-from src.agents.subagents.executor import get_subagent_runtime_snapshot
 from src.tools import get_available_tools
+from src.tools.mcp.smoke import load_mcp_smoke_snapshot
+from src.tools.plugins import get_plugin_service
 
 from .builtin_catalog import ToolRegistryBuiltinCatalog
 from .channels import ToolRegistryChannelReader
@@ -45,16 +46,27 @@ class ToolRegistryService:
 
     def build_registry(self) -> ToolCapabilityRegistryResponse:
         extensions = self._extensions_config_getter()
-        mcp_items = [
-            ToolRegistryMcpItem(
-                name=name,
-                enabled=cfg.enabled,
-                transport=cfg.type,
-                description=cfg.description,
-                permission_scope=cfg.permission_scope,
+        smoke_snapshot = load_mcp_smoke_snapshot()
+        smoke_servers = smoke_snapshot.get("servers", {}) if isinstance(smoke_snapshot, dict) else {}
+        mcp_items = []
+        for name, cfg in sorted(extensions.mcp_servers.items(), key=lambda item: item[0]):
+            smoke = smoke_servers.get(name, {}) if isinstance(smoke_servers, dict) else {}
+            list_tools = smoke.get("list_tools", {}) if isinstance(smoke, dict) else {}
+            mcp_items.append(
+                ToolRegistryMcpItem(
+                    name=name,
+                    enabled=cfg.enabled,
+                    transport=cfg.type,
+                    description=cfg.description,
+                    permission_scope=cfg.permission_scope,
+                    status=str(smoke.get("overall_status", "unknown")) if isinstance(smoke, dict) else "unknown",
+                    failure_reason=str(smoke.get("failure_reason", "")) if isinstance(smoke, dict) else "",
+                    checked_at=smoke.get("checked_at") if isinstance(smoke, dict) else None,
+                    tool_count=int(list_tools.get("tool_count", 0) or 0) if isinstance(list_tools, dict) else 0,
+                    tools=[str(item) for item in list_tools.get("tools", [])] if isinstance(list_tools, dict) else [],
+                    registry_visible=True,
+                )
             )
-            for name, cfg in sorted(extensions.mcp_servers.items(), key=lambda item: item[0])
-        ]
 
         skill_items = [
             ToolRegistrySkillItem(

@@ -1,0 +1,330 @@
+{
+  "version": "2026.5.28",
+  "updated_at": "2026-05-28T00:00:00Z",
+  "source": "curated awesome-selfhosted SaaS development catalog",
+  "tools": [
+    {
+      "name": "Dokku",
+      "category": "deployment",
+      "description": "Git-push PaaS for small SaaS deployments.",
+      "url": "https://dokku.com/",
+      "use_case": "Deploy single-node SaaS apps with buildpacks or Dockerfiles.",
+      "tags": [
+        "paas",
+        "deployment",
+        "docker"
+      ],
+      "rating": 4.4,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "Coolify",
+      "category": "deployment",
+      "description": "Self-hosted Heroku/Netlify/Vercel alternative.",
+      "url": "https://coolify.io/",
+      "use_case": "Deploy web apps, databases, and compose stacks from a UI.",
+      "tags": [
+        "paas",
+        "gitops",
+        "compose"
+      ],
+      "rating": 4.6,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "Appwrite",
+      "category": "backend",
+      "description": "Backend-as-a-service with auth, database, storage, functions, and realtime APIs.",
+      "url": "https://appwrite.io/",
+      "use_case": "Rapid SaaS backend scaffolding.",
+      "tags": [
+        "baas",
+        "auth",
+        "database",
+        "storage"
+      ],
+      "rating": 4.5,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "Supabase",
+      "category": "backend",
+      "description": "Postgres backend platform with auth, storage, edge functions, and realtime features.",
+      "url": "https://supabase.com/",
+      "use_case": "Postgres-first SaaS backend and auth.",
+      "tags": [
+        "postgres",
+        "auth",
+        "storage",
+        "realtime"
+      ],
+      "rating": 4.7,
+      "deployment_complexity": "high"
+    },
+    {
+      "name": "Keycloak",
+      "category": "auth",
+      "description": "Identity and access management with SSO, OIDC, and SAML.",
+      "url": "https://www.keycloak.org/",
+      "use_case": "Enterprise SaaS login, tenant realms, and SSO.",
+      "tags": [
+        "sso",
+        "oidc",
+        "saml",
+        "iam"
+      ],
+      "rating": 4.5,
+      "deployment_complexity": "high"
+    },
+    {
+      "name": "Ory Kratos",
+      "category": "auth",
+      "description": "Cloud-native identity and user management system.",
+      "url": "https://www.ory.sh/kratos/",
+      "use_case": "Customizable user identity flows for SaaS.",
+      "tags": [
+        "identity",
+        "auth",
+        "zero-trust"
+      ],
+      "rating": 4.2,
+      "deployment_complexity": "high"
+    },
+    {
+      "name": "Lago",
+      "category": "billing",
+      "description": "Open-source metering and billing platform.",
+      "url": "https://www.getlago.com/",
+      "use_case": "Usage-based SaaS billing and invoice workflows.",
+      "tags": [
+        "billing",
+        "metering",
+        "invoicing"
+      ],
+      "rating": 4.4,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "Kill Bill",
+      "category": "billing",
+      "description": "Subscription billing and payments platform.",
+      "url": "https://killbill.io/",
+      "use_case": "Complex subscription, invoicing, and payment workflows.",
+      "tags": [
+        "billing",
+        "subscription",
+        "payments"
+      ],
+      "rating": 4.1,
+      "deployment_complexity": "high"
+    },
+    {
+      "name": "PostHog",
+      "category": "analytics",
+      "description": "Product analytics, feature flags, session replay, and experimentation.",
+      "url": "https://posthog.com/",
+      "use_case": "Understand SaaS activation, retention, and funnels.",
+      "tags": [
+        "analytics",
+        "feature-flags",
+        "experiments"
+      ],
+      "rating": 4.6,
+      "deployment_complexity": "high"
+    },
+    {
+      "name": "Grafana",
+      "category": "observability",
+      "description": "Dashboards and observability visualization.",
+      "url": "https://grafana.com/",
+      "use_case": "SaaS operational dashboards and alerts.",
+      "tags": [
+        "observability",
+        "metrics",
+        "dashboards"
+      ],
+      "rating": 4.7,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "Uptime Kuma",
+      "category": "observability",
+      "description": "Self-hosted uptime monitoring.",
+      "url": "https://uptime.kuma.pet/",
+      "use_case": "Monitor SaaS endpoints and status pages.",
+      "tags": [
+        "monitoring",
+        "uptime",
+        "status"
+      ],
+      "rating": 4.6,
+      "deployment_complexity": "low"
+    },
+    {
+      "name": "Chatwoot",
+      "category": "support",
+      "description": "Customer support inbox and live chat platform.",
+      "url": "https://www.chatwoot.com/",
+      "use_case": "Support conversations, in-app chat, and shared inboxes.",
+      "tags": [
+        "support",
+        "live-chat",
+        "inbox"
+      ],
+      "rating": 4.4,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "Listmonk",
+      "category": "email",
+      "description": "Newsletter and mailing list manager.",
+      "url": "https://listmonk.app/",
+      "use_case": "Product updates, lifecycle emails, and audience lists.",
+      "tags": [
+        "email",
+        "newsletter",
+        "campaigns"
+      ],
+      "rating": 4.5,
+      "deployment_complexity": "low"
+    },
+    {
+      "name": "n8n",
+      "category": "automation",
+      "description": "Workflow automation platform with many integrations.",
+      "url": "https://n8n.io/",
+      "use_case": "Automate SaaS back-office workflows and webhooks.",
+      "tags": [
+        "automation",
+        "webhooks",
+        "integrations"
+      ],
+      "rating": 4.6,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "MinIO",
+      "category": "storage",
+      "description": "S3-compatible object storage.",
+      "url": "https://min.io/",
+      "use_case": "Tenant files, backups, exports, and media storage.",
+      "tags": [
+        "s3",
+        "storage",
+        "object-store"
+      ],
+      "rating": 4.6,
+      "deployment_complexity": "medium"
+    },
+    {
+      "name": "Gitea",
+      "category": "devops",
+      "description": "Lightweight Git forge with issues, pull requests, and packages.",
+      "url": "https://gitea.com/",
+      "use_case": "Self-host source control for SaaS engineering teams.",
+      "tags": [
+        "git",
+        "devops",
+        "packages"
+      ],
+      "rating": 4.5,
+      "deployment_complexity": "low"
+    },
+    {
+      "name": "Plane",
+      "category": "project",
+      "description": "Project and product planning tool.",
+      "url": "https://plane.so/",
+      "use_case": "Roadmaps, issues, cycles, and SaaS product planning.",
+      "tags": [
+        "project",
+        "roadmap",
+        "issues"
+      ],
+      "rating": 4.2,
+      "deployment_complexity": "medium"
+    }
+  ],
+  "task_templates": [
+    {
+      "id": "create_saas",
+      "title": "Create SaaS foundation",
+      "description": "Select backend/auth/storage/deployment components and produce a bootstrap plan.",
+      "recommended_categories": [
+        "backend",
+        "auth",
+        "storage",
+        "deployment"
+      ],
+      "steps": [
+        "choose backend",
+        "choose auth",
+        "choose storage",
+        "create compose plan",
+        "run security baseline"
+      ]
+    },
+    {
+      "id": "connect_auth",
+      "title": "Connect auth",
+      "description": "Compare self-hosted auth options and generate integration checkpoints.",
+      "recommended_categories": [
+        "auth",
+        "backend"
+      ],
+      "steps": [
+        "select auth provider",
+        "define OIDC/session model",
+        "map tenant/user schema",
+        "add smoke tests"
+      ]
+    },
+    {
+      "id": "connect_billing",
+      "title": "Connect billing",
+      "description": "Pick billing/metering stack and define subscription or usage workflow.",
+      "recommended_categories": [
+        "billing",
+        "analytics"
+      ],
+      "steps": [
+        "select billing engine",
+        "define plan catalog",
+        "wire metering events",
+        "validate invoice flow"
+      ]
+    },
+    {
+      "id": "deploy_compose",
+      "title": "Deploy compose stack",
+      "description": "Create or validate a Docker Compose deployment plan.",
+      "recommended_categories": [
+        "deployment",
+        "observability",
+        "storage"
+      ],
+      "steps": [
+        "render compose config",
+        "check secrets",
+        "run docker compose config",
+        "define rollback"
+      ]
+    },
+    {
+      "id": "security_baseline",
+      "title": "Run security baseline",
+      "description": "Run static, secret, dependency, and container checks for a SaaS stack.",
+      "recommended_categories": [
+        "devops",
+        "observability"
+      ],
+      "steps": [
+        "secret scan",
+        "static security scan",
+        "dependency audit",
+        "trivy image scan",
+        "write remediation report"
+      ]
+    }
+  ]
+}

@@ -9,6 +9,12 @@ class ToolRegistryMcpItem(BaseModel):
     transport: str
     description: str = ""
     permission_scope: str = "sandbox"
+    status: str = "unknown"
+    failure_reason: str = ""
+    checked_at: str | None = None
+    tool_count: int = 0
+    tools: list[str] = []
+    registry_visible: bool = True
 
 
 class ToolRegistrySkillItem(BaseModel):
@@ -57,6 +63,11 @@ class ToolRegistryBuiltinItem(BaseModel):
     description: str = ""
     category: str = "builtin"
     permission_scope: str = "sandbox"
+    parameters: dict = {}
+    timeout_seconds: int | None = None
+    output_artifacts: list[str] = []
+    risk_level: str = "low"
+    failure_modes: list[str] = []
 
 
 class ToolCapabilityRegistryResponse(BaseModel):

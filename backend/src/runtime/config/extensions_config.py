@@ -33,6 +33,16 @@ class McpOAuthConfig(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
+class McpSmokeTestConfig(BaseModel):
+    """Minimal MCP smoke invocation used for readiness checks."""
+
+    enabled: bool = Field(default=True, description="Whether this server should run a minimal invocation smoke test")
+    tool: str = Field(default="", description="Tool name or suffix to invoke after list_tools succeeds")
+    args: dict[str, Any] = Field(default_factory=dict, description="Arguments for the minimal smoke tool invocation")
+    expected: dict[str, Any] = Field(default_factory=dict, description="Optional expected output hints for operators")
+    model_config = ConfigDict(extra="allow")
+
+
 class McpServerConfig(BaseModel):
     """Configuration for a single MCP server."""
 
@@ -50,7 +60,12 @@ class McpServerConfig(BaseModel):
         alias="permissionScope",
         description="Default permission scope for tools loaded from this MCP server.",
     )
-    model_config = ConfigDict(extra="allow")
+    smoke_test: McpSmokeTestConfig | None = Field(
+        default=None,
+        alias="smokeTest",
+        description="Minimal startup/list_tools/invocation smoke check for this MCP server.",
+    )
+    model_config = ConfigDict(extra="allow", populate_by_name=True)
 
 
 class SkillStateConfig(BaseModel):

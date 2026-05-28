@@ -953,38 +953,76 @@ _AWESOME_SELFHOSTED_SAAS_TOOLS: list[dict[str, str]] = [
 ]
 
 
+_AWESOME_CATALOG_PATH = _REPO_ROOT / "runtime" / "catalogs" / "awesome-selfhosted-saas.json"
+
+
+def _load_awesome_selfhosted_catalog() -> dict[str, Any]:
+    fallback = {
+        "version": "static-fallback",
+        "source": "curated awesome-selfhosted-style SaaS development catalog",
+        "tools": _AWESOME_SELFHOSTED_SAAS_TOOLS,
+        "task_templates": [],
+    }
+    if not _AWESOME_CATALOG_PATH.exists():
+        return fallback
+    try:
+        data = json.loads(_AWESOME_CATALOG_PATH.read_text(encoding="utf-8"))
+        if not isinstance(data, dict) or not isinstance(data.get("tools"), list):
+            return fallback
+        return data
+    except Exception:
+        return fallback
+
+
 @tool("awesome_selfhosted", parse_docstring=True)
-def awesome_selfhosted_tool(query: str = "", category: str = "", max_results: int = 20) -> str:
+def awesome_selfhosted_tool(query: str = "", category: str = "", max_results: int = 20, template: str = "") -> str:
     """Find self-hosted SaaS development tools from a curated awesome-selfhosted-style catalog.
 
     Args:
         query: Optional keyword filter across name, description, and use case.
         category: Optional category filter such as deployment, backend, auth, billing, analytics, observability, support, email, automation, storage, devops, or project.
         max_results: Maximum number of tools to return.
+        template: Optional task template id such as create_saas, connect_auth, connect_billing, deploy_compose, or security_baseline.
     """
+    catalog = _load_awesome_selfhosted_catalog()
+    tools = [item for item in catalog.get("tools", []) if isinstance(item, dict)]
+    templates = [item for item in catalog.get("task_templates", []) if isinstance(item, dict)]
     needle = query.strip().lower()
     category_filter = category.strip().lower()
+    template_filter = template.strip().lower()
     limit = max(1, min(int(max_results), 50))
-    categories = sorted({item["category"] for item in _AWESOME_SELFHOSTED_SAAS_TOOLS})
+    categories = sorted({str(item.get("category", "")) for item in tools if str(item.get("category", "")).strip()})
     results = []
-    for item in _AWESOME_SELFHOSTED_SAAS_TOOLS:
+    for item in tools:
         haystack = " ".join(str(value) for value in item.values()).lower()
-        if category_filter and item["category"].lower() != category_filter:
+        if category_filter and str(item.get("category", "")).lower() != category_filter:
             continue
         if needle and needle not in haystack:
             continue
         results.append(item)
         if len(results) >= limit:
             break
+    selected_templates = []
+    for item in templates:
+        item_id = str(item.get("id", "")).lower()
+        if template_filter and item_id != template_filter:
+            continue
+        if category_filter and category_filter not in [str(cat).lower() for cat in item.get("recommended_categories", [])]:
+            continue
+        selected_templates.append(item)
     return _json(
         {
             "generated_at": _now(),
-            "source": "curated awesome-selfhosted-style SaaS development catalog",
+            "source": catalog.get("source", "curated awesome-selfhosted SaaS catalog"),
+            "catalog_version": catalog.get("version"),
+            "catalog_path": str(_AWESOME_CATALOG_PATH),
             "query": query,
             "category": category,
+            "template": template,
             "available_categories": categories,
             "count": len(results),
             "results": results,
+            "task_templates": selected_templates,
         }
     )
 

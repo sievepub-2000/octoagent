@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from src.runtime.config.extensions_config import ExtensionsConfig, McpServerConfig, get_extensions_config, reload_extensions_config
+from src.tools.mcp.smoke import load_mcp_smoke_snapshot, run_mcp_smoke_tests
 from src.utils.agent_tool_guide import async_refresh_agent_tool_guide
 from src.utils.json_atomic import write_json_atomic
 
@@ -34,6 +35,13 @@ class McpOAuthConfigResponse(BaseModel):
     extra_token_params: dict[str, str] = Field(default_factory=dict, description="Additional form params sent to token endpoint")
 
 
+class McpSmokeTestConfigResponse(BaseModel):
+    enabled: bool = True
+    tool: str = ""
+    args: dict = Field(default_factory=dict)
+    expected: dict = Field(default_factory=dict)
+
+
 class McpServerConfigResponse(BaseModel):
     """Response model for MCP server configuration."""
 
@@ -49,10 +57,11 @@ class McpServerConfigResponse(BaseModel):
     status: Literal["ready", "disabled", "configuration_error"] = Field(default="ready", description="Resolved runtime readiness")
     status_reason: str = Field(default="", description="Human-readable readiness reason")
     missing_env: list[str] = Field(default_factory=list, description="Environment variables configured but unresolved")
+    smokeTest: McpSmokeTestConfigResponse | None = Field(default=None, description="Minimal smoke test configuration")
 
 
 def _mcp_server_response(server: McpServerConfig) -> McpServerConfigResponse:
-    payload = server.model_dump()
+    payload = server.model_dump(by_alias=True)
     missing_env = [key for key, value in server.env.items() if not str(value or "").strip()]
     if not server.enabled:
         status: Literal["ready", "disabled", "configuration_error"] = "disabled"
@@ -201,6 +210,30 @@ class McpServerUpsertRequest(BaseModel):
 
     name: str = Field(..., description="MCP server identifier")
     server: McpServerConfigResponse = Field(..., description="Server configuration payload")
+
+
+class McpSmokeResponse(BaseModel):
+    generated_at: str | None = None
+    summary: dict = Field(default_factory=dict)
+    servers: dict = Field(default_factory=dict)
+
+
+@router.get(
+    "/mcp/smoke",
+    response_model=McpSmokeResponse,
+    summary="Get latest MCP smoke-test results",
+)
+async def get_mcp_smoke_results() -> McpSmokeResponse:
+    return McpSmokeResponse(**load_mcp_smoke_snapshot())
+
+
+@router.post(
+    "/mcp/smoke",
+    response_model=McpSmokeResponse,
+    summary="Run MCP smoke tests",
+)
+async def run_mcp_smoke_results() -> McpSmokeResponse:
+    return McpSmokeResponse(**await run_mcp_smoke_tests())
 
 
 class McpServerMutationResponse(BaseModel):
