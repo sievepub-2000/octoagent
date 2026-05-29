@@ -8,6 +8,7 @@ import {
   CircleDotIcon,
   ClipboardCopyIcon,
   Loader2Icon,
+  NetworkIcon,
   WrenchIcon,
 } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
@@ -22,6 +23,29 @@ import {
 import type { RunEvent, RunEventKind, RunEventLevel } from "@/core/runtime";
 import { copyTextToClipboard } from "@/lib/clipboard";
 import { cn } from "@/lib/utils";
+
+type WorkPlanNode = {
+  node_id?: string;
+  kind?: string;
+  status?: string;
+  description?: string;
+  subagent_type?: string;
+};
+
+type WorkPlanSnapshot = {
+  workplan_id?: string;
+  run_id?: string;
+  goal?: string;
+  mode?: string;
+  status?: string;
+  nodes?: WorkPlanNode[];
+  last_checkpoint?: {
+    title?: string;
+    summary?: string;
+    status?: string;
+    created_at?: string;
+  };
+};
 
 const KIND_LABELS: Record<RunEventKind, string> = {
   queued: "Queued",
@@ -70,22 +94,25 @@ export function RunTimelinePanel({
   className,
   events,
   isLoading,
+  workplans = [],
 }: {
   className?: string;
   events: RunEvent[];
   isLoading: boolean;
+  workplans?: WorkPlanSnapshot[];
 }) {
   const [open, setOpen] = useState(isLoading);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const visibleEvents = useMemo(() => events.slice(0, open ? 12 : 4), [events, open]);
   const errorCount = events.filter((event) => event.level === "error" || event.kind === "error").length;
   const latest = events[0];
+  const visibleWorkplans = useMemo(() => workplans.slice(0, 4), [workplans]);
 
   const copyAll = useCallback(async () => {
-    await copyTextToClipboard(JSON.stringify(events, null, 2));
-  }, [events]);
+    await copyTextToClipboard(JSON.stringify({ workplans, events }, null, 2));
+  }, [events, workplans]);
 
-  if (events.length === 0) return null;
+  if (events.length === 0 && workplans.length === 0) return null;
 
   return (
     <Collapsible
@@ -103,6 +130,9 @@ export function RunTimelinePanel({
           <div className="flex min-w-0 items-center gap-2">
             <span className="shrink-0 font-medium text-foreground">Run timeline</span>
             <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{events.length}</Badge>
+            {workplans.length > 0 ? (
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{workplans.length} plan</Badge>
+            ) : null}
             {errorCount > 0 ? (
               <Badge variant="outline" className="h-5 border-destructive/30 px-1.5 text-[10px] text-destructive">
                 {errorCount} error
@@ -119,6 +149,43 @@ export function RunTimelinePanel({
       </div>
       <CollapsibleContent>
         <div className="border-t border-border/60 px-3 py-2">
+          {visibleWorkplans.length > 0 ? (
+            <div className="mb-2 space-y-1.5">
+              {visibleWorkplans.map((plan) => {
+                const planId = plan.workplan_id ?? "workplan";
+                const nodes = Array.isArray(plan.nodes) ? plan.nodes : [];
+                return (
+                  <div key={planId} className="rounded-md border border-border/45 bg-muted/20 px-2.5 py-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <NetworkIcon className="size-4 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate font-medium text-foreground">{plan.goal || planId}</span>
+                      <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{plan.status ?? "running"}</Badge>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-1.5 text-xs text-muted-foreground">
+                      <span className="rounded border border-border/50 px-1.5 py-0.5">{plan.mode ?? "workplan"}</span>
+                      <span className="rounded border border-border/50 px-1.5 py-0.5">{nodes.length} node(s)</span>
+                      {plan.last_checkpoint?.title ? (
+                        <span className="min-w-0 truncate rounded border border-border/50 px-1.5 py-0.5">
+                          {plan.last_checkpoint.title}
+                        </span>
+                      ) : null}
+                    </div>
+                    {nodes.length > 0 ? (
+                      <div className="mt-2 space-y-1">
+                        {nodes.slice(0, 5).map((node) => (
+                          <div key={node.node_id ?? node.description} className="flex min-w-0 items-center gap-2 rounded bg-background/60 px-2 py-1 text-xs">
+                            <span className="min-w-0 flex-1 truncate">{node.description || node.node_id || "WorkPlan node"}</span>
+                            <span className="shrink-0 text-muted-foreground">{node.subagent_type ?? node.kind ?? "node"}</span>
+                            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{node.status ?? "planned"}</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ) : null}
           <ol className="space-y-1.5">
             {visibleEvents.map((event) => {
               const Icon = iconForEvent(event.kind, event.level);
