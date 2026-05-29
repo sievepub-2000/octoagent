@@ -344,25 +344,41 @@ printf '{{"removed_xlocks":%s,"repo_xvfb_before":%s,"repo_xvfb_after":%s,"xlocks
     return {"ok": step["status"] == "ok", "payload": payload, "step": step}
 
 
-def disable_unused_tor(runner: Runner) -> dict[str, Any]:
-    if os.environ.get("OCTOAGENT_ENABLE_TOR", "0").strip().lower() in {"1", "true", "yes", "on"}:
-        return {"ok": True, "skipped": True, "reason": "OCTOAGENT_ENABLE_TOR is set"}
+def ensure_tor_runtime(runner: Runner) -> dict[str, Any]:
+    if os.environ.get("OCTOAGENT_DISABLE_TOR", "0").strip().lower() in {"1", "true", "yes", "on"}:
+        return {"ok": True, "skipped": True, "reason": "OCTOAGENT_DISABLE_TOR is set"}
     script = """
 set -euo pipefail
-systemctl disable --now tor.service >/dev/null 2>&1 || true
-systemctl stop tor@default.service >/dev/null 2>&1 || true
-systemctl mask tor@default.service >/dev/null 2>&1 || true
+if ! command -v tor >/dev/null 2>&1; then
+  printf '{"installed":false,"active":"missing","socks":false,"control":false,"bootstrap":"missing"}\n'
+  exit 0
+fi
+systemctl unmask tor@default.service >/dev/null 2>&1 || true
+systemctl enable tor.service >/dev/null 2>&1 || true
 systemctl reset-failed tor.service tor@default.service >/dev/null 2>&1 || true
 systemctl daemon-reload >/dev/null 2>&1 || true
-printf '{"tor_service":"%s","tor_default":"%s","tor_default_active":"%s"}
-'   "$(systemctl is-enabled tor.service 2>/dev/null || true)"   "$(systemctl is-enabled tor@default.service 2>/dev/null || true)"   "$(systemctl is-active tor@default.service 2>/dev/null || true)"
+systemctl start tor@default.service >/dev/null 2>&1 || true
+active=$(systemctl is-active tor@default.service 2>/dev/null || true)
+socks=false
+control=false
+timeout 3 bash -c '</dev/tcp/127.0.0.1/9050' >/dev/null 2>&1 && socks=true || true
+timeout 3 bash -c '</dev/tcp/127.0.0.1/9051' >/dev/null 2>&1 && control=true || true
+bootstrap="unknown"
+if [ -r /run/tor/control.authcookie ] && command -v xxd >/dev/null 2>&1 && command -v nc >/dev/null 2>&1; then
+  cookie=$(xxd -p -c 256 /run/tor/control.authcookie 2>/dev/null || true)
+  if [ -n "$cookie" ]; then
+    bootstrap=$(printf 'AUTHENTICATE %s\r\nGETINFO status/bootstrap-phase\r\nQUIT\r\n' "$cookie" | nc 127.0.0.1 9051 2>/dev/null | tr -d '\r' | sed -n 's/^250-status\\/bootstrap-phase=//p' | head -1)
+    bootstrap=${bootstrap:-unknown}
+  fi
+fi
+printf '{"installed":true,"active":"%s","socks":%s,"control":%s,"bootstrap":%s}\n' "$active" "$socks" "$control" "$(printf '%s' "$bootstrap" | python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))')"
 """.strip()
-    step = runner.run("disable-unused-tor", ["bash", "-lc", script], timeout=120)
+    step = runner.run("ensure-tor-runtime", ["bash", "-lc", script], timeout=120)
     try:
         payload = json.loads(step.get("output_tail") or "{}")
     except Exception:
         payload = None
-    ok = step["status"] == "ok" and payload is not None and payload.get("tor_default_active") != "active"
+    ok = step["status"] == "ok" and payload is not None and payload.get("active") == "active" and payload.get("socks") is True
     return {"ok": ok, "payload": payload, "step": step}
 
 
@@ -533,7 +549,7 @@ def main() -> int:
         report["frontend_build"] = repair_frontend_build(runner)
         report["scrapling_fetch"] = verify_scrapling_fetch(runner)
         report["runtime_temp_cleanup"] = cleanup_runtime_temps(runner)
-        report["tor"] = disable_unused_tor(runner)
+        report["tor"] = ensure_tor_runtime(runner)
         report["doctor"] = run_doctor(runner)
         live = live_health(runner)
         report["live_health"] = live
