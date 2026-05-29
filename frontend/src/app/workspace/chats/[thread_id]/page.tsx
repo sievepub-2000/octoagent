@@ -608,6 +608,9 @@ function ChatThreadView({
   }, [threadId, thread.values.runtime?.context_cycle_base_tokens]);
 
   const handleStop = useCallback(async () => {
+    setRunEvents((previous) => mergeRunEvents([
+      createRunEvent("planning", "User stopped the run", "Stop requested from chat controls.", "warning"),
+    ], previous, 120));
     pushSystemEvent({
       level: "info",
       message: t.systemEvents.userAborted,
@@ -646,7 +649,16 @@ function ChatThreadView({
       message: "Retrying the last user turn.",
       source: "session",
     });
-    void sendMessage(threadId, { text: lastUserText, files: [] });
+    const controlEvent = createRunEvent("planning", "User retried the last turn", "Retry requested from chat controls.");
+    setRunEvents((previous) => mergeRunEvents([controlEvent], previous, 120));
+    void sendMessage(threadId, { text: lastUserText, files: [] }, {
+      client_control_event: {
+        id: controlEvent.id,
+        action: "retry",
+        title: controlEvent.title,
+        detail: controlEvent.detail,
+      },
+    });
   }, [lastUserText, sendMessage, thread.isLoading, threadId]);
 
   const handleResumeRun = useCallback(() => {
@@ -658,9 +670,18 @@ function ChatThreadView({
       message: "Resuming from the current runtime state.",
       source: "session",
     });
+    const controlEvent = createRunEvent("planning", "User resumed the run", "Resume requested from chat controls.");
+    setRunEvents((previous) => mergeRunEvents([controlEvent], previous, 120));
     void sendMessage(threadId, {
       text: "Continue the unfinished work in this conversation. Use the existing runtime state, todos, tool results, and recent context. Start from the next concrete step; if a failure exists, first name the recovery point and then continue.",
       files: [],
+    }, {
+      client_control_event: {
+        id: controlEvent.id,
+        action: "resume",
+        title: controlEvent.title,
+        detail: controlEvent.detail,
+      },
     });
   }, [sendMessage, thread.isLoading, threadId]);
 

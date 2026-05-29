@@ -246,6 +246,29 @@ def _synthesize_run_events_from_messages(messages: list[Any], *, run_id: str | N
     return events
 
 
+def _control_run_event_from_context(context: dict[str, Any]) -> dict[str, Any] | None:
+    raw = context.get("client_control_event")
+    if not isinstance(raw, dict):
+        return None
+    action = str(raw.get("action") or "").strip().lower()
+    if action not in {"retry", "resume", "stop"}:
+        return None
+    title_by_action = {
+        "retry": "User retried the last turn",
+        "resume": "User resumed the run",
+        "stop": "User stopped the run",
+    }
+    return _create_run_event(
+        kind="planning",
+        title=str(raw.get("title") or title_by_action[action]),
+        detail=_message_text_preview(raw.get("detail")),
+        level="warning" if action == "stop" else "info",
+        run_id=str(context.get("thread_id") or "") or None,
+        payload={"controlAction": action},
+        event_id=str(raw.get("id") or f"run-event-control-{action}-{_utc_now()}"),
+    )
+
+
 def _trim_error(value: Any, limit: int = 1200) -> str:
     text = str(value or "").strip()
     if len(text) <= limit:
@@ -341,12 +364,16 @@ class RuntimeStateMiddleware(AgentMiddleware[RuntimeStateMiddlewareState]):
             runtime_state["active_model"] = telemetry.active_model or self.model_name
             runtime_state["fallback_switches"] = list(telemetry.fallback_switches)
             runtime_state["final_error"] = telemetry.final_error
+        additions = _synthesize_run_events_from_messages(
+            list(state.get("messages") or []),
+            run_id=str(_ctx.get("thread_id") or "") or None,
+        )
+        control_event = _control_run_event_from_context(_ctx)
+        if control_event is not None:
+            additions.append(control_event)
         runtime_state["run_events"] = _merge_run_events(
             list(runtime_state.get("run_events") or []),
-            _synthesize_run_events_from_messages(
-                list(state.get("messages") or []),
-                run_id=str(_ctx.get("thread_id") or "") or None,
-            ),
+            additions,
         )
         return runtime_state
 

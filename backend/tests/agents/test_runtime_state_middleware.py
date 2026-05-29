@@ -3,6 +3,7 @@ from __future__ import annotations
 from langchain_core.messages import AIMessage, ToolMessage
 
 from src.agents.middlewares.runtime_state_middleware import (
+    _control_run_event_from_context,
     _merge_run_events,
     _normalize_run_event,
     _synthesize_run_events_from_messages,
@@ -85,3 +86,26 @@ def test_merge_run_events_dedupes_and_keeps_newest_first() -> None:
 
 def test_normalize_rejects_unknown_run_event_kind() -> None:
     assert _normalize_run_event({"kind": "not-real", "title": "Nope"}) is None
+
+
+def test_control_run_event_from_context_records_resume_action() -> None:
+    event = _control_run_event_from_context(
+        {
+            "thread_id": "thread-1",
+            "client_control_event": {
+                "id": "control-resume-1",
+                "action": "resume",
+                "detail": "Resume after failed tool call.",
+            },
+        }
+    )
+
+    assert event is not None
+    assert event["id"] == "control-resume-1"
+    assert event["kind"] == "planning"
+    assert event["runId"] == "thread-1"
+    assert event["payload"] == {"controlAction": "resume"}
+
+
+def test_control_run_event_from_context_rejects_unknown_action() -> None:
+    assert _control_run_event_from_context({"client_control_event": {"action": "dance"}}) is None
