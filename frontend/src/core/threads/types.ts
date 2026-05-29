@@ -79,6 +79,8 @@ export interface ThreadRuntimeState {
   pressure_ratio?: number | null;
   final_error?: string | null;
   run_events?: Array<Record<string, unknown>> | null;
+  workplans?: Array<Record<string, unknown>> | null;
+  active_workplan_id?: string | null;
   updated_at?: string | null;
 }
 

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import re
 import uuid
 from datetime import UTC, datetime
 from typing import Annotated
@@ -40,7 +41,9 @@ def _emit_run_event(
     detail: str | None = None,
     level: str = "info",
     run_id: str | None = None,
+    node_id: str | None = None,
     task_id: str | None = None,
+    payload: dict[str, object] | None = None,
 ) -> None:
     writer(
         {
@@ -53,7 +56,9 @@ def _emit_run_event(
                 "level": level,
                 "created_at": _utc_now(),
                 "run_id": run_id,
+                "node_id": node_id,
                 "task_id": task_id,
+                "payload": payload or {},
             },
         }
     )
@@ -66,6 +71,14 @@ def _status_value(status: object) -> str:
 def _enum_status_value(enum_cls: object, name: str, fallback: str) -> str:
     member = getattr(enum_cls, name, fallback)
     return _status_value(member)
+
+
+def _extract_workplan_context(prompt: str) -> tuple[str | None, str | None]:
+    workplan_match = re.search(r"^WorkPlan:\s*([^\s]+)\s*$", prompt, re.MULTILINE)
+    node_match = re.search(r"^Node:\s*([^\s]+)\s*$", prompt, re.MULTILINE)
+    workplan_id = workplan_match.group(1).strip() if workplan_match else None
+    node_id = node_match.group(1).strip() if node_match else None
+    return workplan_id or None, node_id or None
 
 
 @tool("task", parse_docstring=True)
@@ -112,6 +125,7 @@ async def task_tool(
         max_turns: Optional maximum number of agent turns. Defaults to subagent's configured max.
     """
     subagent_type = subagent_type.strip()
+    workplan_id, parent_node_id = _extract_workplan_context(prompt)
     config = get_subagent_config(subagent_type)
     if config is None:
         available = ", ".join(get_subagent_names())
@@ -181,7 +195,9 @@ async def task_tool(
         title=f"Subagent started: {subagent_type}",
         detail=description,
         run_id=thread_id,
+        node_id=parent_node_id,
         task_id=task_id,
+        payload={"workplan_id": workplan_id, "subagent_type": subagent_type},
     )
     writer({"type": "task_started", "task_id": task_id, "description": description})
 
@@ -220,7 +236,9 @@ async def task_tool(
                 title="Subagent produced an update",
                 detail=f"{current_message_count} message(s) available",
                 run_id=thread_id,
+                node_id=parent_node_id,
                 task_id=task_id,
+                payload={"workplan_id": workplan_id, "message_count": current_message_count},
             )
             last_message_count = current_message_count
 
@@ -242,7 +260,9 @@ async def task_tool(
                 detail=result.result,
                 level="success",
                 run_id=thread_id,
+                node_id=parent_node_id,
                 task_id=task_id,
+                payload={"workplan_id": workplan_id, "subagent_type": subagent_type},
             )
             writer({"type": "task_completed", "task_id": task_id, "result": result.result})
             cleanup_background_task(task_id)
@@ -260,7 +280,9 @@ async def task_tool(
                 detail=result.error,
                 level="error",
                 run_id=thread_id,
+                node_id=parent_node_id,
                 task_id=task_id,
+                payload={"workplan_id": workplan_id, "subagent_type": subagent_type},
             )
             writer({"type": "task_failed", "task_id": task_id, "error": result.error})
             logger.error(f"[trace={trace_id}] Task {task_id} failed: {result.error}")
@@ -274,7 +296,9 @@ async def task_tool(
                 detail=result.error,
                 level="warning",
                 run_id=thread_id,
+                node_id=parent_node_id,
                 task_id=task_id,
+                payload={"workplan_id": workplan_id, "subagent_type": subagent_type},
             )
             writer({"type": "task_timed_out", "task_id": task_id, "error": result.error})
             logger.warning(f"[trace={trace_id}] Task {task_id} timed out: {result.error}")
@@ -293,7 +317,9 @@ async def task_tool(
         detail=f"Status: {_status_value(result.status)}",
         level="warning",
         run_id=thread_id,
+        node_id=parent_node_id,
         task_id=task_id,
+        payload={"workplan_id": workplan_id, "subagent_type": subagent_type},
     )
     writer({"type": "task_timed_out", "task_id": task_id})
     return f"Task polling timed out after {timeout_minutes} minutes. This may indicate the background task is stuck. Status: {_status_value(result.status)}"

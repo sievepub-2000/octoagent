@@ -12,10 +12,12 @@ from __future__ import annotations
 import json
 import uuid
 from datetime import UTC, datetime
-from typing import Any
+from typing import Annotated, Any
 
-from langchain.tools import ToolRuntime, tool
+from langchain.tools import InjectedToolCallId, ToolRuntime, tool
+from langchain_core.messages import ToolMessage
 from langgraph.config import get_stream_writer
+from langgraph.types import Command
 from langgraph.typing import ContextT
 
 from src.agents.subagents.catalog import get_subagent_names
@@ -28,6 +30,69 @@ def _utc_now() -> str:
 
 def _json(payload: dict[str, Any]) -> str:
     return json.dumps(payload, ensure_ascii=False, indent=2)
+
+
+def _workplans(runtime: ToolRuntime[ContextT, ThreadState] | None) -> list[dict[str, Any]]:
+    if runtime is None or not runtime.state:
+        return []
+    state_runtime = runtime.state.get("runtime") or {}
+    plans = state_runtime.get("workplans") if isinstance(state_runtime, dict) else None
+    return [dict(item) for item in plans if isinstance(item, dict)] if isinstance(plans, list) else []
+
+
+def _upsert_workplan(
+    runtime: ToolRuntime[ContextT, ThreadState] | None,
+    snapshot: dict[str, Any],
+) -> dict[str, Any]:
+    state_runtime = dict((runtime.state.get("runtime") or {}) if runtime is not None and runtime.state else {})
+    plans = _workplans(runtime)
+    next_plans: list[dict[str, Any]] = []
+    replaced = False
+    for plan in plans:
+        if plan.get("workplan_id") == snapshot.get("workplan_id"):
+            next_plans.append({**plan, **snapshot, "updated_at": _utc_now()})
+            replaced = True
+        else:
+            next_plans.append(plan)
+    if not replaced:
+        next_plans.insert(0, {**snapshot, "created_at": _utc_now(), "updated_at": _utc_now()})
+    state_runtime["workplans"] = next_plans[:20]
+    state_runtime["active_workplan_id"] = snapshot.get("workplan_id")
+    return state_runtime
+
+
+def _append_workplan_node(
+    runtime: ToolRuntime[ContextT, ThreadState] | None,
+    *,
+    workplan_id: str,
+    node: dict[str, Any],
+) -> dict[str, Any]:
+    plans = _workplans(runtime)
+    target = next((dict(plan) for plan in plans if plan.get("workplan_id") == workplan_id), None)
+    if target is None:
+        target = {
+            "workplan_id": workplan_id,
+            "run_id": _run_id(runtime),
+            "goal": "",
+            "mode": "workplan",
+            "status": "running",
+            "nodes": [],
+        }
+    nodes = [dict(item) for item in target.get("nodes", []) if isinstance(item, dict)]
+    if not any(item.get("node_id") == node.get("node_id") for item in nodes):
+        nodes.append(node)
+    target["nodes"] = nodes[-80:]
+    target["updated_at"] = _utc_now()
+    return _upsert_workplan(runtime, target)
+
+
+def _command(content: dict[str, Any], *, runtime_state: dict[str, Any], tool_call_id: str) -> Command:
+    return Command(
+        update={
+            "runtime": runtime_state,
+            "messages": [ToolMessage(_json(content), tool_call_id=tool_call_id)],
+        }
+    )
 
 
 def _run_id(runtime: ToolRuntime[ContextT, ThreadState] | None) -> str:
@@ -83,9 +148,10 @@ def _emit_run_event(
 def workflow_start_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     goal: str,
+    tool_call_id: Annotated[str, InjectedToolCallId],
     workflow_id: str | None = None,
     mode: str = "workplan",
-) -> str:
+) -> Command:
     """Start a first-class WorkPlan for the current user task.
 
     Use this before a complex task that benefits from explicit workflow
@@ -100,6 +166,15 @@ def workflow_start_tool(
 
     run_id = _run_id(runtime)
     workplan_id = workflow_id.strip() if isinstance(workflow_id, str) and workflow_id.strip() else f"workplan-{uuid.uuid4().hex[:10]}"
+    snapshot = {
+        "workplan_id": workplan_id,
+        "run_id": run_id,
+        "goal": goal,
+        "mode": mode,
+        "status": "running",
+        "nodes": [],
+    }
+    runtime_state = _upsert_workplan(runtime, snapshot)
     _emit_run_event(
         kind="workflow",
         title="Workflow started",
@@ -108,7 +183,7 @@ def workflow_start_tool(
         node_id=workplan_id,
         payload={"workflow_id": workplan_id, "mode": mode},
     )
-    return _json(
+    return _command(
         {
             "status": "started",
             "workplan_id": workplan_id,
@@ -116,15 +191,18 @@ def workflow_start_tool(
             "goal": goal,
             "mode": mode,
             "next_tools": ["spawn_subagent", "checkpoint", "workflow_status"],
-        }
+        },
+        runtime_state=runtime_state,
+        tool_call_id=tool_call_id,
     )
 
 
 @tool("workflow_status", parse_docstring=True)
 def workflow_status_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
+    tool_call_id: Annotated[str, InjectedToolCallId],
     workplan_id: str | None = None,
-) -> str:
+) -> Command:
     """Return the current workflow/subagent runtime status for this thread.
 
     Args:
@@ -134,6 +212,7 @@ def workflow_status_tool(
     run_id = _run_id(runtime)
     state = runtime.state if runtime is not None else {}
     runtime_state = state.get("runtime") or {}
+    runtime_state = dict(runtime_state) if isinstance(runtime_state, dict) else {}
     workflows = state.get("workflows") or []
     events = state.get("workflow_events") or []
     task_ids = state.get("task_workspace_ids") or []
@@ -145,7 +224,7 @@ def workflow_status_tool(
         node_id=workplan_id,
         payload={"workflow_count": len(workflows), "task_workspace_count": len(task_ids)},
     )
-    return _json(
+    return _command(
         {
             "status": "ok",
             "run_id": run_id,
@@ -153,8 +232,10 @@ def workflow_status_tool(
             "workflow_count": len(workflows),
             "workflow_event_count": len(events),
             "task_workspace_ids": task_ids,
-            "runtime": runtime_state,
-        }
+            "workplans": runtime_state.get("workplans", []),
+        },
+        runtime_state=runtime_state,
+        tool_call_id=tool_call_id,
     )
 
 
@@ -164,9 +245,10 @@ def spawn_subagent_tool(
     workplan_id: str,
     description: str,
     prompt: str,
+    tool_call_id: Annotated[str, InjectedToolCallId],
     subagent_type: str = "general-purpose",
     max_turns: int | None = None,
-) -> str:
+) -> Command:
     """Prepare a subagent dispatch as a child node of the current WorkPlan.
 
     This tool does not execute the subagent itself.  It returns a ``dispatch``
@@ -185,15 +267,29 @@ def spawn_subagent_tool(
     subagent_type = subagent_type.strip() or "general-purpose"
     available = set(get_subagent_names())
     if subagent_type not in available:
-        return _json(
+        return _command(
             {
                 "status": "error",
                 "error": f"unknown subagent_type: {subagent_type}",
                 "available_subagents": sorted(available),
-            }
+            },
+            runtime_state=dict((runtime.state.get("runtime") or {}) if runtime is not None and runtime.state else {}),
+            tool_call_id=tool_call_id,
         )
     run_id = _run_id(runtime)
     node_id = f"subagent-{uuid.uuid4().hex[:10]}"
+    runtime_state = _append_workplan_node(
+        runtime,
+        workplan_id=workplan_id,
+        node={
+            "node_id": node_id,
+            "kind": "subagent",
+            "status": "planned",
+            "description": description,
+            "subagent_type": subagent_type,
+            "created_at": _utc_now(),
+        },
+    )
     _emit_run_event(
         kind="subagent",
         title=f"Subagent planned: {subagent_type}",
@@ -209,7 +305,7 @@ def spawn_subagent_tool(
     }
     if max_turns is not None:
         dispatch["max_turns"] = max_turns
-    return _json(
+    return _command(
         {
             "status": "ready",
             "workplan_id": workplan_id,
@@ -217,7 +313,9 @@ def spawn_subagent_tool(
             "run_id": run_id,
             "dispatch": dispatch,
             "next_tool": "task",
-        }
+        },
+        runtime_state=runtime_state,
+        tool_call_id=tool_call_id,
     )
 
 
@@ -227,8 +325,9 @@ def checkpoint_tool(
     workplan_id: str,
     title: str,
     summary: str,
+    tool_call_id: Annotated[str, InjectedToolCallId],
     status: str = "running",
-) -> str:
+) -> Command:
     """Record a workflow checkpoint into the unified run timeline.
 
     Args:
@@ -240,6 +339,20 @@ def checkpoint_tool(
 
     run_id = _run_id(runtime)
     level = "success" if status == "completed" else "error" if status == "failed" else "warning" if status in {"blocked", "waiting_user"} else "info"
+    runtime_state = _upsert_workplan(
+        runtime,
+        {
+            "workplan_id": workplan_id,
+            "run_id": run_id,
+            "status": status,
+            "last_checkpoint": {
+                "title": title,
+                "summary": summary,
+                "status": status,
+                "created_at": _utc_now(),
+            },
+        },
+    )
     _emit_run_event(
         kind="workflow",
         title=title,
@@ -249,14 +362,16 @@ def checkpoint_tool(
         node_id=workplan_id,
         payload={"status": status, "workplan_id": workplan_id},
     )
-    return _json(
+    return _command(
         {
             "status": status,
             "workplan_id": workplan_id,
             "run_id": run_id,
             "title": title,
             "summary": summary,
-        }
+        },
+        runtime_state=runtime_state,
+        tool_call_id=tool_call_id,
     )
 
 
