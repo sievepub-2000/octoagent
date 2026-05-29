@@ -102,6 +102,31 @@ export function mergeRunEvents(incoming: RunEvent[], existing: RunEvent[], limit
   return merged.slice(0, limit);
 }
 
+export function normalizeWorkflowRunEvents(events: unknown): RunEvent[] {
+  if (!Array.isArray(events)) return [];
+  return events.flatMap((event) => {
+    if (typeof event !== "object" || event === null) return [];
+    const record = event as Record<string, unknown>;
+    const kind = typeof record.kind === "string" ? record.kind : "";
+    const level = isRunEventLevel(record.level) ? record.level : "info";
+    const runKind: RunEventKind = kind.includes("failed") || kind === "runtime_failed"
+      ? "error"
+      : kind.includes("task") || kind.includes("workflow")
+        ? "workflow"
+        : "planning";
+    return [{
+      id: typeof record.id === "string" ? record.id : createId("workflow-event"),
+      kind: runKind,
+      title: typeof record.title === "string" ? record.title : labelForRunEventKind(runKind),
+      detail: typeof record.detail === "string" ? record.detail : undefined,
+      level,
+      createdAt: typeof record.createdAt === "string" ? record.createdAt : new Date().toISOString(),
+      taskId: typeof record.taskId === "string" ? record.taskId : undefined,
+      payload: { workflowKind: kind },
+    }];
+  });
+}
+
 export function labelForRunEventKind(kind: RunEventKind) {
   switch (kind) {
     case "queued":

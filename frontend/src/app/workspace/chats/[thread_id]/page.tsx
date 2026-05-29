@@ -14,7 +14,13 @@ import { isRecoverableThreadMissingError } from "@/core/api";
 import type { ContextTokenUsage } from "@/core/context/context-token-counter";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
-import { createRunEvent, mergeRunEvents, normalizeRunEvents, type RunEvent } from "@/core/runtime";
+import {
+  createRunEvent,
+  mergeRunEvents,
+  normalizeRunEvents,
+  normalizeWorkflowRunEvents,
+  type RunEvent,
+} from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
 import { pushSystemEvent } from "@/core/system-events/store";
 import { buildContinuationContext } from "@/core/threads";
@@ -460,12 +466,16 @@ function ChatThreadView({
   }, [threadId]);
 
   useEffect(() => {
-    const persisted = normalizeRunEvents(thread.values.runtime?.run_events);
+    const persisted = mergeRunEvents(
+      normalizeRunEvents(thread.values.runtime?.run_events),
+      normalizeWorkflowRunEvents(thread.values.workflow_events),
+      120,
+    );
     if (persisted.length === 0) {
       return;
     }
     setRunEvents((previous) => mergeRunEvents(persisted, previous, 120));
-  }, [thread.values.runtime?.run_events]);
+  }, [thread.values.runtime?.run_events, thread.values.workflow_events]);
 
   useEffect(() => {
     setContextCycleBaseTokens(Number(thread.values.runtime?.context_cycle_base_tokens ?? 0));

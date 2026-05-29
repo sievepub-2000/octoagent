@@ -29,6 +29,7 @@ import type { AgentThreadState } from "@/core/threads";
 import { cn } from "@/lib/utils";
 
 import { ArtifactFileList } from "../artifacts/artifact-file-list";
+import { RunTimelinePanel } from "../run-timeline-panel";
 import { StreamingIndicator } from "../streaming-indicator";
 
 import { MarkdownContent } from "./markdown-content";
@@ -468,6 +469,11 @@ export function MessageList({
           {thread.isLoading && (
             <StreamingIndicator className="my-4 mx-auto w-full max-w-(--container-width-md) px-0" events={runEvents} />
           )}
+          <RunTimelinePanel
+            className="my-4 mx-auto w-full max-w-(--container-width-md)"
+            events={runEvents}
+            isLoading={thread.isLoading}
+          />
           <div style={{ height: `${paddingBottom}px` }} />
         </div>
       </div>
@@ -517,6 +523,11 @@ export function MessageList({
           {thread.isLoading && (
             <StreamingIndicator className="my-4 mx-auto w-full max-w-(--container-width-md) px-0" events={runEvents} />
           )}
+          <RunTimelinePanel
+            className="my-4 mx-auto w-full max-w-(--container-width-md)"
+            events={runEvents}
+            isLoading={thread.isLoading}
+          />
           <div style={{ height: `${paddingBottom}px` }} />
         </div>
       </div>
