@@ -9,7 +9,7 @@ from src.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddle
 
 @pytest.fixture(autouse=True)
 def reset_memory_guard(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(limit_module, "is_host_memory_oom_critical", lambda: False)
+    monkeypatch.setattr(limit_module, "resolve_memory_aware_subagent_limit", lambda *, configured_limit: (configured_limit, "ok", 16.0))
 
 
 def _task_call(index: int) -> dict:
@@ -31,8 +31,8 @@ def test_healthy_host_does_not_rewrite_parallel_task_tool_calls() -> None:
     assert len(message.tool_calls) == 3
 
 
-def test_oom_critical_host_trims_excess_task_tool_calls(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(limit_module, "is_host_memory_oom_critical", lambda: True)
+def test_memory_pressure_trims_excess_task_tool_calls(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(limit_module, "resolve_memory_aware_subagent_limit", lambda *, configured_limit: (1, "soft_limit", 5.0))
     middleware = SubagentLimitMiddleware(max_concurrent=2)
     message = AIMessage(content="", tool_calls=[_task_call(1), _task_call(2), _task_call(3)])
 
@@ -40,4 +40,5 @@ def test_oom_critical_host_trims_excess_task_tool_calls(monkeypatch: pytest.Monk
 
     assert update is not None
     next_message = update["messages"][0]
-    assert len(next_message.tool_calls) == 2
+    assert len(next_message.tool_calls) == 1
+    assert next_message.response_metadata["octoagent_subagent_truncation"]["reason"] == "host_memory_soft_limit"

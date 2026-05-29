@@ -65,6 +65,41 @@ def is_host_memory_oom_critical(available_gb: float | None = None) -> bool:
     return resolved_available_gb < app_config.oom_critical_available_memory_gb
 
 
+def resolve_memory_aware_subagent_limit(
+    *,
+    configured_limit: int,
+    available_gb: float | None = None,
+) -> tuple[int, str, float | None]:
+    """Return a resource-aware active-subagent cap.
+
+    The hard OOM guard still blocks scheduling below
+    ``oom_critical_available_memory_gb``. Above that, this function shrinks
+    breadth when available memory cannot cover the configured parallelism plus
+    the configured soft reserve.
+    """
+    app_config = get_subagents_app_config()
+    base_limit = max(1, int(configured_limit))
+    if not app_config.enable_system_memory_guard:
+        return base_limit, "disabled", None
+
+    resolved_available_gb = estimate_available_memory_gb() if available_gb is None else available_gb
+    if resolved_available_gb is None:
+        return base_limit, "unknown", None
+    if is_host_memory_oom_critical(resolved_available_gb):
+        return 0, "oom_critical", resolved_available_gb
+
+    estimated_per_worker = max(0.1, float(app_config.estimated_memory_per_subagent_gb))
+    soft_reserve = max(0.0, float(app_config.min_available_memory_gb))
+    memory_budget = max(0.0, resolved_available_gb - soft_reserve)
+    memory_limited_cap = int(memory_budget // estimated_per_worker)
+
+    if memory_limited_cap >= base_limit:
+        return base_limit, "ok", resolved_available_gb
+    if resolved_available_gb < soft_reserve:
+        return max(1, min(base_limit, 1)), "soft_limit", resolved_available_gb
+    return max(1, min(base_limit, memory_limited_cap or 1)), "memory_budget", resolved_available_gb
+
+
 def resolve_subagent_config(
     base_config: SubagentConfig,
     *,
@@ -104,19 +139,23 @@ def check_admission(jobs: list[SubagentResult], *, thread_id: str | None) -> str
 
     active_jobs = [item for item in jobs if item.status in ACTIVE_SUBAGENT_STATUSES]
 
-    if len(active_jobs) >= app_config.max_concurrent_subagents:
-        return f"Subagent concurrency limit reached ({len(active_jobs)}/{app_config.max_concurrent_subagents}). Wait for a running delegated task to finish before spawning another."
+    effective_global_limit, limit_reason, available_gb = resolve_memory_aware_subagent_limit(
+        configured_limit=app_config.max_concurrent_subagents,
+    )
+    if effective_global_limit <= 0:
+        available_text = "unknown" if available_gb is None else f"{available_gb:.1f} GiB"
+        return f"Host memory guard blocked subagent scheduling (available={available_text}, oom_critical<{app_config.oom_critical_available_memory_gb:.1f} GiB). This prevents local-model OOM and host thrashing."
+    if len(active_jobs) >= effective_global_limit:
+        reason = f", memory_guard={limit_reason}" if limit_reason not in {"ok", "disabled", "unknown"} else ""
+        return f"Subagent concurrency limit reached ({len(active_jobs)}/{effective_global_limit}{reason}). Wait for a running delegated task to finish before spawning another."
 
     if thread_id is not None:
         thread_jobs = [item for item in active_jobs if item.thread_id == thread_id]
-        if len(thread_jobs) >= app_config.max_active_subagents_per_thread:
-            return f"Thread subagent limit reached ({len(thread_jobs)}/{app_config.max_active_subagents_per_thread}). This thread already has too many delegated workers running."
+        effective_thread_limit = min(app_config.max_active_subagents_per_thread, max(1, effective_global_limit))
+        if len(thread_jobs) >= effective_thread_limit:
+            return f"Thread subagent limit reached ({len(thread_jobs)}/{effective_thread_limit}). This thread already has too many delegated workers running."
         thread_total = [item for item in jobs if item.thread_id == thread_id]
         if len(thread_total) >= app_config.max_total_subagents_per_thread:
             return f"Thread delegated-task ceiling reached ({len(thread_total)}/{app_config.max_total_subagents_per_thread}). Reduce branch breadth or wait for tasks to be cleaned up."
 
-    if app_config.enable_system_memory_guard:
-        available_gb = estimate_available_memory_gb()
-        if is_host_memory_oom_critical(available_gb):
-            return f"Host memory guard blocked subagent scheduling (available={available_gb:.1f} GiB, oom_critical<{app_config.oom_critical_available_memory_gb:.1f} GiB). This prevents local-model OOM and host thrashing."
     return None

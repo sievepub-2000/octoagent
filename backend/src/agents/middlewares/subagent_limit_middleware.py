@@ -7,7 +7,7 @@ from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langgraph.runtime import Runtime
 
-from src.agents.subagents.policy import is_host_memory_oom_critical
+from src.agents.subagents.policy import resolve_memory_aware_subagent_limit
 from src.runtime.config.subagents_config import get_subagents_app_config
 
 logger = logging.getLogger(__name__)
@@ -55,16 +55,21 @@ class SubagentLimitMiddleware(AgentMiddleware[AgentState]):
         if not tool_calls:
             return None
 
-        if not is_host_memory_oom_critical():
+        effective_limit, limit_reason, _available_gb = resolve_memory_aware_subagent_limit(
+            configured_limit=self.max_concurrent,
+        )
+        if effective_limit >= self.max_concurrent:
             return None
+        if effective_limit <= 0:
+            effective_limit = 1
 
         # Count task tool calls
         task_indices = [i for i, tc in enumerate(tool_calls) if tc.get("name") == "task"]
-        if len(task_indices) <= self.max_concurrent:
+        if len(task_indices) <= effective_limit:
             return None
 
         # Build set of indices to drop (excess task calls beyond the limit)
-        indices_to_drop = set(task_indices[self.max_concurrent :])
+        indices_to_drop = set(task_indices[effective_limit:])
         truncated_tool_calls = [tc for i, tc in enumerate(tool_calls) if i not in indices_to_drop]
 
         # Sprint-1 P0 fix (anti goal-drift): the historical behaviour silently
@@ -83,17 +88,18 @@ class SubagentLimitMiddleware(AgentMiddleware[AgentState]):
         # tool-result pairing invariant on the next turn.
         dropped_count = len(indices_to_drop)
         logger.warning(
-            "Deferred %d excess `task` tool call(s) to next turn (cap=%d, oom_critical=True)",
+            "Deferred %d excess `task` tool call(s) to next turn (cap=%d, memory_guard=%s)",
             dropped_count,
-            self.max_concurrent,
+            effective_limit,
+            limit_reason,
         )
 
         meta = dict(getattr(last_msg, "response_metadata", {}) or {})
         meta.setdefault("octoagent_subagent_truncation", {}).update(
             {
                 "deferred_count": dropped_count,
-                "cap": self.max_concurrent,
-                "reason": "host_memory_oom_critical",
+                "cap": effective_limit,
+                "reason": f"host_memory_{limit_reason}",
             }
         )
         updated_msg = last_msg.model_copy(update={"tool_calls": truncated_tool_calls, "response_metadata": meta})
