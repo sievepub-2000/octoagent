@@ -187,16 +187,25 @@ def repair_backend_env(runner: Runner) -> dict[str, Any]:
     venv_python = str(VENV / "bin" / "python")
     runner.run("backend-ensure-pip", [venv_python, "-m", "ensurepip", "--upgrade"], timeout=300)
 
+    critical_import_command = [
+        venv_python,
+        "-c",
+        "import fastapi,pydantic,duckdb,httpx,uvicorn,langgraph,scrapling; print('critical imports ok')",
+    ]
+    imports = runner.run("backend-critical-imports", critical_import_command, cwd=BACKEND_ROOT, timeout=120)
+    if imports["status"] == "ok" and not created:
+        return {"created": created, "critical_imports_ok": True, "dependency_sync": "skipped-imports-ok"}
+
     if shutil.which("uv"):
-        sync = runner.run("backend-uv-sync-frozen", ["uv", "sync", "--frozen"], cwd=BACKEND_ROOT, timeout=1800)
+        sync = runner.run("backend-uv-sync-frozen", ["uv", "sync", "--frozen"], cwd=BACKEND_ROOT, timeout=600)
         if sync["status"] != "ok":
-            runner.run("backend-uv-sync", ["uv", "sync"], cwd=BACKEND_ROOT, timeout=1800)
+            runner.run("backend-uv-sync", ["uv", "sync"], cwd=BACKEND_ROOT, timeout=600)
     else:
         runner.run(
             "backend-pip-install-requirements",
             [venv_python, "-m", "pip", "install", "-r", "requirements.txt"],
             cwd=BACKEND_ROOT,
-            timeout=1800,
+            timeout=900,
         )
         runner.run(
             "backend-pip-install-editable",
@@ -205,17 +214,12 @@ def repair_backend_env(runner: Runner) -> dict[str, Any]:
             timeout=900,
         )
 
-    imports = runner.run(
-        "backend-critical-imports",
-        [
-            venv_python,
-            "-c",
-            "import fastapi,pydantic,duckdb,httpx,uvicorn,langgraph; print('critical imports ok')",
-        ],
-        cwd=BACKEND_ROOT,
-        timeout=120,
-    )
-    return {"created": created, "critical_imports_ok": imports["status"] == "ok"}
+    imports_after = runner.run("backend-critical-imports-after-repair", critical_import_command, cwd=BACKEND_ROOT, timeout=120)
+    return {
+        "created": created,
+        "critical_imports_ok": imports_after["status"] == "ok",
+        "dependency_sync": "attempted-repair",
+    }
 
 
 def repair_frontend_env(runner: Runner) -> dict[str, Any]:
@@ -237,10 +241,22 @@ def repair_frontend_env(runner: Runner) -> dict[str, Any]:
     return {"ok": install["status"] == "ok"}
 
 
+def _iter_manifest_values(value: Any):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from _iter_manifest_values(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from _iter_manifest_values(item)
+
+
 def frontend_build_ready() -> tuple[bool, list[str]]:
     missing: list[str] = []
-    required_manifest = FRONTEND_ROOT / ".next" / "required-server-files.json"
-    if not (FRONTEND_ROOT / ".next" / "BUILD_ID").exists():
+    next_root = FRONTEND_ROOT / ".next"
+    required_manifest = next_root / "required-server-files.json"
+    if not (next_root / "BUILD_ID").exists():
         missing.append(".next/BUILD_ID")
     if not required_manifest.exists():
         missing.append(".next/required-server-files.json")
@@ -252,6 +268,24 @@ def frontend_build_ready() -> tuple[bool, list[str]]:
                 missing.append(item)
     except Exception as exc:
         missing.append(f"required-server-files.json parse error: {exc}")
+
+    for manifest_name in ("build-manifest.json", "app-build-manifest.json", "react-loadable-manifest.json"):
+        manifest_path = next_root / manifest_name
+        if not manifest_path.exists():
+            continue
+        try:
+            payload = json.loads(manifest_path.read_text())
+        except Exception as exc:
+            missing.append(f"{manifest_name} parse error: {exc}")
+            continue
+        for item in _iter_manifest_values(payload):
+            relative = None
+            if item.startswith("static/"):
+                relative = item
+            elif item.startswith("/_next/static/"):
+                relative = item[len("/_next/") :]
+            if relative and not (next_root / relative).exists():
+                missing.append(f".next/{relative}")
     return not missing, missing
 
 
@@ -262,6 +296,74 @@ def repair_frontend_build(runner: Runner) -> dict[str, Any]:
     build = runner.run("frontend-next-build", ["pnpm", "exec", "next", "build"], cwd=FRONTEND_ROOT, timeout=2400)
     ready_after, missing_after = frontend_build_ready()
     return {"rebuilt": True, "build_ok": build["status"] == "ok", "missing_before": missing, "missing_after": missing_after, "ready": ready_after}
+
+
+def verify_scrapling_fetch(runner: Runner) -> dict[str, Any]:
+    venv_python = str(VENV / "bin" / "python")
+    code = """
+import json
+from src.community.scrapling.tools import scrapling_fetch
+payload = json.loads(scrapling_fetch.invoke({'url': 'https://example.com'}))
+if payload.get('error') or 'content' not in payload:
+    raise SystemExit(payload)
+print(json.dumps({'ok': True, 'engine': payload.get('engine'), 'title': payload.get('title')}))
+""".strip()
+    step = runner.run("scrapling-fetch-smoke", [venv_python, "-c", code], cwd=BACKEND_ROOT, timeout=90)
+    return {"ok": step["status"] == "ok", "step": step}
+
+
+def cleanup_runtime_temps(runner: Runner) -> dict[str, Any]:
+    script = f"""
+set -euo pipefail
+repo={str(REPO_ROOT)!r}
+active_locks=$(ps -eo args | grep -o 'Xvfb :[0-9][0-9]*' | awk '{{sub(/^:/, "", $2); print ".X" $2 "-lock"}}' | sort -u)
+removed_xlocks=0
+while IFS= read -r lock; do
+  base=$(basename "$lock")
+  if printf '%s\n' "$active_locks" | grep -qx "$base"; then
+    continue
+  fi
+  rm -f -- "$lock"
+  display=${{base#.X}}; display=${{display%-lock}}
+  rm -f -- "/tmp/.X11-unix/X${{display}}" 2>/dev/null || true
+  removed_xlocks=$((removed_xlocks + 1))
+done < <(find /tmp -maxdepth 1 -name '.X*-lock' -type f -mmin +30 -print 2>/dev/null)
+repo_xvfb_before=$(find "$repo/tmp" -maxdepth 1 -type d -name 'xvfb-run.*' 2>/dev/null | wc -l)
+find "$repo/tmp" -maxdepth 1 -type d -name 'xvfb-run.*' -mmin +360 -exec rm -rf -- {{}} + 2>/dev/null || true
+find /tmp -maxdepth 1 -type d \\( -name 'playwright-artifacts-*' -o -name 'playwright_chromiumdev_profile-*' \\) -mmin +360 -exec rm -rf -- {{}} + 2>/dev/null || true
+find /tmp -maxdepth 1 -type f \\( -name 'octoagent-*.html' -o -name 'chunk-*.js' -o -name 'test_write*.txt' -o -name 'tor*.log' \\) -mmin +60 -delete 2>/dev/null || true
+repo_xvfb_after=$(find "$repo/tmp" -maxdepth 1 -type d -name 'xvfb-run.*' 2>/dev/null | wc -l)
+xlocks_after=$(find /tmp -maxdepth 1 -name '.X*-lock' -type f 2>/dev/null | wc -l)
+printf '{{"removed_xlocks":%s,"repo_xvfb_before":%s,"repo_xvfb_after":%s,"xlocks_after":%s}}\n' "$removed_xlocks" "$repo_xvfb_before" "$repo_xvfb_after" "$xlocks_after"
+""".strip()
+    step = runner.run("runtime-temp-cleanup", ["bash", "-lc", script], timeout=180)
+    try:
+        payload = json.loads(step.get("output_tail") or "{}")
+    except Exception:
+        payload = None
+    return {"ok": step["status"] == "ok", "payload": payload, "step": step}
+
+
+def disable_unused_tor(runner: Runner) -> dict[str, Any]:
+    if os.environ.get("OCTOAGENT_ENABLE_TOR", "0").strip().lower() in {"1", "true", "yes", "on"}:
+        return {"ok": True, "skipped": True, "reason": "OCTOAGENT_ENABLE_TOR is set"}
+    script = """
+set -euo pipefail
+systemctl disable --now tor.service >/dev/null 2>&1 || true
+systemctl stop tor@default.service >/dev/null 2>&1 || true
+systemctl mask tor@default.service >/dev/null 2>&1 || true
+systemctl reset-failed tor.service tor@default.service >/dev/null 2>&1 || true
+systemctl daemon-reload >/dev/null 2>&1 || true
+printf '{"tor_service":"%s","tor_default":"%s","tor_default_active":"%s"}
+'   "$(systemctl is-enabled tor.service 2>/dev/null || true)"   "$(systemctl is-enabled tor@default.service 2>/dev/null || true)"   "$(systemctl is-active tor@default.service 2>/dev/null || true)"
+""".strip()
+    step = runner.run("disable-unused-tor", ["bash", "-lc", script], timeout=120)
+    try:
+        payload = json.loads(step.get("output_tail") or "{}")
+    except Exception:
+        payload = None
+    ok = step["status"] == "ok" and payload is not None and payload.get("tor_default_active") != "active"
+    return {"ok": ok, "payload": payload, "step": step}
 
 
 def live_health(runner: Runner) -> dict[str, Any]:
@@ -429,6 +531,9 @@ def main() -> int:
         report["venv_inventory_after"] = ensure_single_venv()
         report["frontend_env"] = repair_frontend_env(runner)
         report["frontend_build"] = repair_frontend_build(runner)
+        report["scrapling_fetch"] = verify_scrapling_fetch(runner)
+        report["runtime_temp_cleanup"] = cleanup_runtime_temps(runner)
+        report["tor"] = disable_unused_tor(runner)
         report["doctor"] = run_doctor(runner)
         live = live_health(runner)
         report["live_health"] = live
@@ -448,6 +553,9 @@ def main() -> int:
     report["ok"] = (
         not failing_steps
         and report.get("venv_inventory_after", {}).get("ok") is True
+        and report.get("scrapling_fetch", {}).get("ok") is True
+        and report.get("runtime_temp_cleanup", {}).get("ok") is True
+        and report.get("tor", {}).get("ok") is True
         and all(item.get("ok") for item in live_final.values())
     )
     if not args.no_memory:
