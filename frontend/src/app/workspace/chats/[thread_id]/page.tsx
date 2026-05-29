@@ -14,7 +14,7 @@ import { isRecoverableThreadMissingError } from "@/core/api";
 import type { ContextTokenUsage } from "@/core/context/context-token-counter";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
-import { createRunEvent, type RunEvent } from "@/core/runtime";
+import { createRunEvent, mergeRunEvents, normalizeRunEvents, type RunEvent } from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
 import { pushSystemEvent } from "@/core/system-events/store";
 import { buildContinuationContext } from "@/core/threads";
@@ -355,13 +355,12 @@ function ChatThreadView({
       activateThreadRoute(createdThreadId);
     },
     onRunEvent: (event) => {
-      setRunEvents((previous) => [event, ...previous].slice(0, 80));
+      setRunEvents((previous) => mergeRunEvents([event], previous, 120));
     },
     onFinish: (state) => {
-      setRunEvents((previous) => [
+      setRunEvents((previous) => mergeRunEvents([
         createRunEvent("done", "Run finished", undefined, "success"),
-        ...previous,
-      ].slice(0, 80));
+      ], previous, 120));
       // Context handoff: navigate to new thread with continuation
       const handoff = (state as Record<string, unknown>)?._context_handoff as
         | { required: boolean; source_thread_id: string; reason: string }
@@ -459,6 +458,14 @@ function ChatThreadView({
   useEffect(() => {
     setRunEvents([]);
   }, [threadId]);
+
+  useEffect(() => {
+    const persisted = normalizeRunEvents(thread.values.runtime?.run_events);
+    if (persisted.length === 0) {
+      return;
+    }
+    setRunEvents((previous) => mergeRunEvents(persisted, previous, 120));
+  }, [thread.values.runtime?.run_events]);
 
   useEffect(() => {
     setContextCycleBaseTokens(Number(thread.values.runtime?.context_cycle_base_tokens ?? 0));

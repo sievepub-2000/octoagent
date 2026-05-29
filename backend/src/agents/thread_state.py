@@ -61,6 +61,7 @@ class ThreadRuntimeState(TypedDict):
     task_state_status: NotRequired[str | None]
     recoverable_failure: NotRequired[dict | None]
     incomplete_state: NotRequired[dict | None]
+    run_events: NotRequired[list[dict] | None]
 
 def merge_runtime_state(
     existing: Mapping[str, Any] | None,

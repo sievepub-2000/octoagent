@@ -28,6 +28,20 @@ from src.runtime.config.subagents_config import get_subagents_app_config
 from src.utils.datetime import utc_now_iso as _utc_now
 
 logger = logging.getLogger(__name__)
+RUN_EVENT_LIMIT = 120
+RUN_EVENT_KINDS = {
+    "queued",
+    "planning",
+    "tool_call",
+    "tool_result",
+    "workflow",
+    "subagent",
+    "answer_delta",
+    "artifact",
+    "done",
+    "error",
+}
+RUN_EVENT_LEVELS = {"info", "success", "warning", "error"}
 
 
 class RuntimeStateMiddlewareState(AgentState):
@@ -77,6 +91,159 @@ def _create_runtime_event(kind: str, title: str, detail: str, level: str) -> dic
         "createdAt": timestamp,
         "level": level,
     }
+
+
+def _create_run_event(
+    *,
+    kind: str,
+    title: str,
+    detail: str | None = None,
+    level: str = "info",
+    run_id: str | None = None,
+    node_id: str | None = None,
+    task_id: str | None = None,
+    payload: dict[str, Any] | None = None,
+    event_id: str | None = None,
+) -> dict[str, Any]:
+    timestamp = _utc_now()
+    event: dict[str, Any] = {
+        "id": event_id or f"run-event-{timestamp}",
+        "kind": kind if kind in RUN_EVENT_KINDS else "planning",
+        "title": title,
+        "createdAt": timestamp,
+        "level": level if level in RUN_EVENT_LEVELS else "info",
+    }
+    if detail:
+        event["detail"] = detail
+    if run_id:
+        event["runId"] = run_id
+    if node_id:
+        event["nodeId"] = node_id
+    if task_id:
+        event["taskId"] = task_id
+    if payload:
+        event["payload"] = payload
+    return event
+
+
+def _normalize_run_event(event: Any) -> dict[str, Any] | None:
+    if not isinstance(event, dict):
+        return None
+    payload = event.get("event") if event.get("type") == "run_event" and isinstance(event.get("event"), dict) else event
+    kind = payload.get("kind")
+    if kind not in RUN_EVENT_KINDS:
+        return None
+    event_id = payload.get("id")
+    created_at = payload.get("createdAt") or payload.get("created_at") or _utc_now()
+    title = payload.get("title")
+    normalized: dict[str, Any] = {
+        "id": str(event_id or f"run-event-{created_at}"),
+        "kind": kind,
+        "title": str(title or kind.replace("_", " ").title()),
+        "createdAt": str(created_at),
+        "level": payload.get("level") if payload.get("level") in RUN_EVENT_LEVELS else "info",
+    }
+    for source_key, target_key in (
+        ("detail", "detail"),
+        ("runId", "runId"),
+        ("run_id", "runId"),
+        ("nodeId", "nodeId"),
+        ("node_id", "nodeId"),
+        ("taskId", "taskId"),
+        ("task_id", "taskId"),
+    ):
+        value = payload.get(source_key)
+        if value is not None and target_key not in normalized:
+            normalized[target_key] = str(value)
+    if isinstance(payload.get("payload"), dict):
+        normalized["payload"] = payload["payload"]
+    return normalized
+
+
+def _run_event_key(event: dict[str, Any]) -> tuple[str, str, str, str, str]:
+    return (
+        str(event.get("id") or ""),
+        str(event.get("kind") or ""),
+        str(event.get("taskId") or ""),
+        str(event.get("title") or ""),
+        str(event.get("detail") or ""),
+    )
+
+
+def _merge_run_events(existing: list[Any], additions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    merged: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str, str, str]] = set()
+    for raw in [*reversed(additions), *existing]:
+        event = _normalize_run_event(raw)
+        if event is None:
+            continue
+        key = _run_event_key(event)
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(event)
+    return merged[:RUN_EVENT_LIMIT]
+
+
+def _message_text_preview(value: Any, *, limit: int = 180) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        text = value
+    elif isinstance(value, list):
+        parts: list[str] = []
+        for part in value:
+            if isinstance(part, dict) and isinstance(part.get("text"), str):
+                parts.append(part["text"])
+        text = " ".join(parts)
+    else:
+        text = str(value)
+    text = text.strip().replace("\n", " ")
+    if not text:
+        return None
+    if len(text) <= limit:
+        return text
+    return text[: limit - 3].rstrip() + "..."
+
+
+def _synthesize_run_events_from_messages(messages: list[Any], *, run_id: str | None = None) -> list[dict[str, Any]]:
+    events: list[dict[str, Any]] = []
+    for index, message in enumerate(messages):
+        if isinstance(message, AIMessage):
+            for call in message.tool_calls or []:
+                if not isinstance(call, dict):
+                    continue
+                tool_name = str(call.get("name") or "tool")
+                task_id = str(call.get("id") or f"tool-{index}")
+                events.append(
+                    _create_run_event(
+                        kind="tool_call",
+                        title=f"Calling {tool_name}",
+                        detail=_message_text_preview(call.get("args")),
+                        run_id=run_id,
+                        task_id=task_id,
+                        payload={"tool": tool_name},
+                        event_id=f"run-event-tool-call-{task_id}",
+                    )
+                )
+        if isinstance(message, ToolMessage) or getattr(message, "type", None) == "tool":
+            task_id = str(getattr(message, "tool_call_id", "") or getattr(message, "id", "") or f"tool-result-{index}")
+            tool_name = str(getattr(message, "name", "") or "tool")
+            status = str(getattr(message, "status", "") or "").lower()
+            is_error = status == "error"
+            events.append(
+                _create_run_event(
+                    kind="error" if is_error else "tool_result",
+                    title=f"{tool_name} failed" if is_error else f"{tool_name} finished",
+                    detail=_message_text_preview(getattr(message, "content", None)),
+                    level="error" if is_error else "success",
+                    run_id=run_id,
+                    task_id=task_id,
+                    payload={"tool": tool_name},
+                    event_id=f"run-event-tool-result-{task_id}",
+                )
+            )
+    return events
 
 
 def _trim_error(value: Any, limit: int = 1200) -> str:
@@ -174,6 +341,13 @@ class RuntimeStateMiddleware(AgentMiddleware[RuntimeStateMiddlewareState]):
             runtime_state["active_model"] = telemetry.active_model or self.model_name
             runtime_state["fallback_switches"] = list(telemetry.fallback_switches)
             runtime_state["final_error"] = telemetry.final_error
+        runtime_state["run_events"] = _merge_run_events(
+            list(runtime_state.get("run_events") or []),
+            _synthesize_run_events_from_messages(
+                list(state.get("messages") or []),
+                run_id=str(_ctx.get("thread_id") or "") or None,
+            ),
+        )
         return runtime_state
 
     def _build_runtime_events(

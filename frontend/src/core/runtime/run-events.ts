@@ -53,8 +53,8 @@ export function createRunEvent(
 export function normalizeRunEvent(event: unknown): RunEvent | null {
   if (typeof event !== "object" || event === null) return null;
   const record = event as Record<string, unknown>;
-  if (record.type !== "run_event") return null;
-  const payload = typeof record.event === "object" && record.event !== null
+  if (record.type && record.type !== "run_event") return null;
+  const payload = record.type === "run_event" && typeof record.event === "object" && record.event !== null
     ? record.event as Record<string, unknown>
     : record;
   const kind = typeof payload.kind === "string" ? payload.kind : "";
@@ -75,6 +75,31 @@ export function normalizeRunEvent(event: unknown): RunEvent | null {
     taskId: typeof payload.taskId === "string" ? payload.taskId : typeof payload.task_id === "string" ? payload.task_id : undefined,
     payload: typeof payload.payload === "object" && payload.payload !== null ? payload.payload as Record<string, unknown> : undefined,
   };
+}
+
+export function normalizeRunEvents(events: unknown): RunEvent[] {
+  if (!Array.isArray(events)) return [];
+  return events
+    .map((event) => normalizeRunEvent(event))
+    .filter((event): event is RunEvent => event !== null);
+}
+
+export function mergeRunEvents(incoming: RunEvent[], existing: RunEvent[], limit = 120): RunEvent[] {
+  const seen = new Set<string>();
+  const merged: RunEvent[] = [];
+  for (const event of [...incoming, ...existing]) {
+    const key = [
+      event.id,
+      event.kind,
+      event.taskId ?? "",
+      event.title,
+      event.detail ?? "",
+    ].join("|");
+    if (seen.has(key)) continue;
+    seen.add(key);
+    merged.push(event);
+  }
+  return merged.slice(0, limit);
 }
 
 export function labelForRunEventKind(kind: RunEventKind) {

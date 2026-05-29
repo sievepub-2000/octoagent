@@ -78,6 +78,7 @@ export interface ThreadRuntimeState {
   capability_control_mode?: string | null;
   pressure_ratio?: number | null;
   final_error?: string | null;
+  run_events?: Array<Record<string, unknown>> | null;
   updated_at?: string | null;
 }
 
