@@ -17,6 +17,7 @@ from src.tools.builtins import (
     SOFTWARE_INTERFACE_TOOLS,
     SYSTEM_EXTRA_TOOLS,
     SYSTEM_OPS_TOOLS,
+    WORKFLOW_RUNTIME_TOOLS,
     archival_memory_insert_tool,
     archival_memory_search_tool,
     ask_clarification_tool,
@@ -128,6 +129,7 @@ BUILTIN_TOOLS_CORE.extend(SYSTEM_EXTRA_TOOLS)
 BUILTIN_TOOLS_CORE.extend(DESKTOP_DRIVER_TOOLS)
 BUILTIN_TOOLS_CORE.extend(SOFTWARE_INTERFACE_TOOLS)
 BUILTIN_TOOLS_CORE.extend(ECOSYSTEM_WORKFLOW_TOOLS)
+BUILTIN_TOOLS_CORE.extend(WORKFLOW_RUNTIME_TOOLS)
 BUILTIN_TOOLS_CORE.extend(PUBLISHING_WORKFLOW_TOOLS)
 
 
@@ -185,6 +187,10 @@ BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "process_manage": "system",
     "integrated_project_catalog": "sandbox",
     "integrated_workflow_run": "directory",
+    "workflow_start": "directory",
+    "workflow_status": "directory",
+    "spawn_subagent": "directory",
+    "checkpoint": "directory",
     "desktop_driver_status": "system",
     "desktop_screenshot": "system",
     "desktop_click": "system",

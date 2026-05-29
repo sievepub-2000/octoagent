@@ -67,7 +67,11 @@ const ChatBox: React.FC<{
   const persistTimeoutRef = useRef<number | null>(null);
   const workflowSnapshotRef = useRef<string>("[]");
   const { appendEvent, events, hydrate, workflows } = useWorkflows();
-  const { runtime } = useRuntimeCapabilities({ enabled: threadId !== "new" });
+  const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
+  const [inspectorReady, setInspectorReady] = useState(false);
+  const { runtime } = useRuntimeCapabilities({
+    enabled: threadId !== "new" && artifactPanelOpen && inspectorReady,
+  });
   const isMobile = useIsMobile();
 
   const {
@@ -78,7 +82,6 @@ const ChatBox: React.FC<{
   } = useArtifacts();
 
   const [autoSelectFirstArtifact, setAutoSelectFirstArtifact] = useState(true);
-  const [inspectorReady, setInspectorReady] = useState(false);
   const threadArtifacts = useMemo(
     () => threadValues.artifacts ?? [],
     [threadValues.artifacts],
@@ -251,10 +254,15 @@ const ChatBox: React.FC<{
     }
   }, [appendEvent, workflows]);
 
-  const [artifactPanelOpen, setArtifactPanelOpen] = useState(true);
   const toggleArtifactPanel = useCallback(() => {
     setArtifactPanelOpen((open) => !open);
   }, []);
+
+  useEffect(() => {
+    if (threadArtifacts.length > 0 || workflows.length > 0 || events.length > 0) {
+      setArtifactPanelOpen(true);
+    }
+  }, [events.length, threadArtifacts.length, workflows.length]);
 
   useEffect(() => {
     if (layoutRef.current) {
@@ -275,6 +283,9 @@ const ChatBox: React.FC<{
       ));
     const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout;
     let idleId: number | null = null;
+    if (!artifactPanelOpen) {
+      return undefined;
+    }
     const delayId = window.setTimeout(() => {
       idleId = scheduleIdle(() => setInspectorReady(true), { timeout: 1_800 });
     }, 900);
@@ -284,7 +295,7 @@ const ChatBox: React.FC<{
         cancelIdle(idleId);
       }
     };
-  }, [threadId]);
+  }, [artifactPanelOpen, threadId]);
 
   return (
     <div className="relative size-full min-h-0">

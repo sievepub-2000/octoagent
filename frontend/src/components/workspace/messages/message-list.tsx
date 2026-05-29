@@ -12,6 +12,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
+import type { RunEvent } from "@/core/runtime";
 import {
   extractContentFromMessage,
   extractPresentFilesFromMessage,
@@ -129,12 +130,14 @@ export function MessageList({
   className,
   threadId,
   thread,
+  runEvents = [],
   paddingBottom = 160,
   emptyState,
 }: {
   className?: string;
   threadId: string;
   thread: BaseStream<AgentThreadState>;
+  runEvents?: RunEvent[];
   paddingBottom?: number;
   emptyState?: React.ReactNode;
 }) {
@@ -463,7 +466,7 @@ export function MessageList({
         <div className="flex-1 overflow-y-auto">
           <div className="pt-12">{emptyState}</div>
           {thread.isLoading && (
-            <StreamingIndicator className="my-4 mx-auto w-full max-w-(--container-width-md) px-0" />
+            <StreamingIndicator className="my-4 mx-auto w-full max-w-(--container-width-md) px-0" events={runEvents} />
           )}
           <div style={{ height: `${paddingBottom}px` }} />
         </div>
@@ -512,7 +515,7 @@ export function MessageList({
             <div key={group.id}>{renderGroup(index, group)}</div>
           ))}
           {thread.isLoading && (
-            <StreamingIndicator className="my-4 mx-auto w-full max-w-(--container-width-md) px-0" />
+            <StreamingIndicator className="my-4 mx-auto w-full max-w-(--container-width-md) px-0" events={runEvents} />
           )}
           <div style={{ height: `${paddingBottom}px` }} />
         </div>

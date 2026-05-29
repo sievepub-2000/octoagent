@@ -14,6 +14,7 @@ import { isRecoverableThreadMissingError } from "@/core/api";
 import type { ContextTokenUsage } from "@/core/context/context-token-counter";
 import { useI18n } from "@/core/i18n/hooks";
 import { useNotification } from "@/core/notification/hooks";
+import { createRunEvent, type RunEvent } from "@/core/runtime";
 import { useLocalSettings } from "@/core/settings";
 import { pushSystemEvent } from "@/core/system-events/store";
 import { buildContinuationContext } from "@/core/threads";
@@ -302,6 +303,7 @@ function ChatThreadView({
   // gap without changing the "stale thread eventually redirects" intent.
   threadCreatedAtRef.current ??= Date.now();
   const routeSyncRef = useRef<string | null>(null);
+  const [runEvents, setRunEvents] = useState<RunEvent[]>([]);
   const [pendingContinuationContext, setPendingContinuationContext] = useState<Record<string, unknown> | undefined>();
   const [contextCycleBaseTokens, setContextCycleBaseTokens] = useState(0);
   const autoContinuationStartedRef = useRef(false);
@@ -352,7 +354,14 @@ function ChatThreadView({
     onStart: (createdThreadId) => {
       activateThreadRoute(createdThreadId);
     },
+    onRunEvent: (event) => {
+      setRunEvents((previous) => [event, ...previous].slice(0, 80));
+    },
     onFinish: (state) => {
+      setRunEvents((previous) => [
+        createRunEvent("done", "Run finished", undefined, "success"),
+        ...previous,
+      ].slice(0, 80));
       // Context handoff: navigate to new thread with continuation
       const handoff = (state as Record<string, unknown>)?._context_handoff as
         | { required: boolean; source_thread_id: string; reason: string }
@@ -446,6 +455,10 @@ function ChatThreadView({
     url.searchParams.delete("draft");
     history.replaceState(null, "", url.pathname + url.search);
   }, [isFreshRoute, isNewThread, setIsNewThread, thread.isLoading, thread.messages]);
+
+  useEffect(() => {
+    setRunEvents([]);
+  }, [threadId]);
 
   useEffect(() => {
     setContextCycleBaseTokens(Number(thread.values.runtime?.context_cycle_base_tokens ?? 0));
@@ -582,6 +595,7 @@ function ChatThreadView({
             <div className="flex size-full justify-center">
               <MessageList
                 className="size-full px-4 pb-32 pt-12"
+                runEvents={runEvents}
                 threadId={threadId}
                 thread={thread}
                 emptyState={

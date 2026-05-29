@@ -21,6 +21,7 @@ import type { FileInMessage } from "../messages/utils";
 import { buildMlInternThreadContext, resolveMlInternProfile } from "../ml-intern/defaults";
 import { planQueryOperation } from "../query-engine/api";
 import { getRecursionLimit } from "../runtime-profile";
+import { createRunEvent, normalizeRunEvent, type RunEvent } from "../runtime/run-events";
 import type { LocalSettings } from "../settings";
 import { useUpdateSubtask } from "../tasks/context";
 import type { UploadedFileInfo } from "../uploads";
@@ -43,6 +44,7 @@ export type ThreadStreamOptions = {
   loadInitialState?: boolean;
   onStart?: (threadId: string) => void;
   onFinish?: (state: AgentThreadState) => void;
+  onRunEvent?: (event: RunEvent) => void;
   onToolEnd?: (event: ToolEndEvent) => void;
 };
 
@@ -240,6 +242,7 @@ export function useThreadStream({
   loadInitialState = true,
   onStart,
   onFinish,
+  onRunEvent,
   onToolEnd,
 }: ThreadStreamOptions) {
   const { t } = useI18n();
@@ -262,13 +265,14 @@ export function useThreadStream({
   const listeners = useRef({
     onStart,
     onFinish,
+    onRunEvent,
     onToolEnd,
   });
 
   // Keep listeners ref updated with latest callbacks
   useEffect(() => {
-    listeners.current = { onStart, onFinish, onToolEnd };
-  }, [onStart, onFinish, onToolEnd]);
+    listeners.current = { onStart, onFinish, onRunEvent, onToolEnd };
+  }, [onStart, onFinish, onRunEvent, onToolEnd]);
 
   useEffect(() => {
     const normalizedThreadId = threadId ?? null;
@@ -394,11 +398,29 @@ export function useThreadStream({
       setOnStreamThreadId(meta.thread_id);
     },
     onLangChainEvent(event) {
+      if (event.event === "on_tool_start") {
+        listeners.current.onRunEvent?.(
+          createRunEvent(
+            "tool_call",
+            event.name ? `Calling ${event.name}` : "Calling tool",
+            undefined,
+            "info",
+          ),
+        );
+      }
       if (event.event === "on_tool_end") {
         listeners.current.onToolEnd?.({
           name: event.name,
           data: event.data,
         });
+        listeners.current.onRunEvent?.(
+          createRunEvent(
+            "tool_result",
+            event.name ? `${event.name} finished` : "Tool finished",
+            undefined,
+            "success",
+          ),
+        );
       }
     },
     onUpdateEvent(data) {
@@ -431,6 +453,11 @@ export function useThreadStream({
       }
     },
     onCustomEvent(event: unknown) {
+      const runEvent = normalizeRunEvent(event);
+      if (runEvent) {
+        listeners.current.onRunEvent?.(runEvent);
+        return;
+      }
       if (typeof event === "object" && event !== null && "type" in event) {
         const eventType = event.type;
         if (eventType === "task_running") {
@@ -449,6 +476,15 @@ export function useThreadStream({
               e.task_id,
             ),
           );
+          listeners.current.onRunEvent?.(
+            createRunEvent(
+              "subagent",
+              "Subagent still running",
+              "The delegated task is producing new messages.",
+              "info",
+              { taskId: e.task_id },
+            ),
+          );
         } else if (eventType === "task_started") {
           const e = event as {
             type: "task_started";
@@ -462,6 +498,15 @@ export function useThreadStream({
               "Runtime checkpoint created.",
               "info",
               e.task_id,
+            ),
+          );
+          listeners.current.onRunEvent?.(
+            createRunEvent(
+              "subagent",
+              e.description ?? "Subagent task started",
+              "Runtime checkpoint created.",
+              "info",
+              { taskId: e.task_id },
             ),
           );
         } else if (eventType === "task_completed") {
@@ -479,6 +524,15 @@ export function useThreadStream({
               e.task_id,
             ),
           );
+          listeners.current.onRunEvent?.(
+            createRunEvent(
+              "subagent",
+              "Subagent task completed",
+              e.result,
+              "success",
+              { taskId: e.task_id },
+            ),
+          );
         } else if (eventType === "task_failed") {
           const e = event as {
             type: "task_failed";
@@ -494,6 +548,15 @@ export function useThreadStream({
               e.task_id,
             ),
           );
+          listeners.current.onRunEvent?.(
+            createRunEvent(
+              "error",
+              "Subagent task failed",
+              e.error,
+              "error",
+              { taskId: e.task_id },
+            ),
+          );
         } else if (eventType === "task_timed_out") {
           const e = event as {
             type: "task_timed_out";
@@ -507,6 +570,15 @@ export function useThreadStream({
               e.error,
               "warning",
               e.task_id,
+            ),
+          );
+          listeners.current.onRunEvent?.(
+            createRunEvent(
+              "error",
+              "Subagent task timed out",
+              e.error,
+              "warning",
+              { taskId: e.task_id },
             ),
           );
         }
@@ -765,6 +837,9 @@ export function useThreadStream({
       message: PromptInputMessage,
       extraContext?: Record<string, unknown>,
     ) => {
+      listeners.current.onRunEvent?.(
+        createRunEvent("queued", "Queued", "Preparing the run envelope."),
+      );
       const text = message.text.trim();
       const nextHandoffCycleId = typeof extraContext?.continue_cycle_id === "string" ? extraContext.continue_cycle_id : "";
       const nextHandoffBaseTokens = Number(extraContext?.continue_cycle_base_tokens ?? 0);
@@ -863,6 +938,9 @@ export function useThreadStream({
           try {
             const needsClientOperationPlan = dialogueRoute.kind === "tool_action" || dialogueRoute.needsDeepAgent;
             if (needsClientOperationPlan && text.length <= MAX_PREPLAN_MESSAGE_CHARS) {
+              listeners.current.onRunEvent?.(
+                createRunEvent("planning", "Planning", "Selecting the execution route."),
+              );
               operationPlan = await planQueryOperation({
                 user_message: text,
                 continuation_source:
@@ -1049,6 +1127,9 @@ export function useThreadStream({
           // before uploads (see comment near markThreadPersisted above) but
           // that caused a URL-strip race that orphaned thread.submit().
           _handleOnStart(threadId);
+          listeners.current.onRunEvent?.(
+            createRunEvent("planning", "Streaming started", "Waiting for runtime events."),
+          );
           await thread.submit(buildSubmitPayload(filesForSubmit), buildSubmitOptions(threadId));
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);

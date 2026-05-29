@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import uuid
+from datetime import UTC, datetime
 from typing import Annotated
 
 from langchain.tools import InjectedToolCallId, ToolRuntime, tool
@@ -25,6 +26,37 @@ from src.agents.subagents.policy import resolve_subagent_config
 from src.agents.thread_state import ThreadState
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now() -> str:
+    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _emit_run_event(
+    writer,
+    *,
+    kind: str,
+    title: str,
+    detail: str | None = None,
+    level: str = "info",
+    run_id: str | None = None,
+    task_id: str | None = None,
+) -> None:
+    writer(
+        {
+            "type": "run_event",
+            "event": {
+                "id": f"run-event-{uuid.uuid4().hex[:12]}",
+                "kind": kind,
+                "title": title,
+                "detail": detail,
+                "level": level,
+                "created_at": _utc_now(),
+                "run_id": run_id,
+                "task_id": task_id,
+            },
+        }
+    )
 
 
 def _status_value(status: object) -> str:
@@ -143,6 +175,14 @@ async def task_tool(
 
     writer = get_stream_writer()
     # Send Task Started message'
+    _emit_run_event(
+        writer,
+        kind="subagent",
+        title=f"Subagent started: {subagent_type}",
+        detail=description,
+        run_id=thread_id,
+        task_id=task_id,
+    )
     writer({"type": "task_started", "task_id": task_id, "description": description})
 
     max_wait_seconds = config.timeout_seconds + 60
@@ -174,6 +214,14 @@ async def task_tool(
                     }
                 )
                 logger.info(f"[trace={trace_id}] Task {task_id} sent message #{i + 1}/{current_message_count}")
+            _emit_run_event(
+                writer,
+                kind="subagent",
+                title="Subagent produced an update",
+                detail=f"{current_message_count} message(s) available",
+                run_id=thread_id,
+                task_id=task_id,
+            )
             last_message_count = current_message_count
 
         for event in get_background_task_events(task_id):
@@ -187,6 +235,15 @@ async def task_tool(
 
         status_value = _status_value(result.status)
         if status_value == _status_value(SubagentStatus.COMPLETED):
+            _emit_run_event(
+                writer,
+                kind="subagent",
+                title="Subagent completed",
+                detail=result.result,
+                level="success",
+                run_id=thread_id,
+                task_id=task_id,
+            )
             writer({"type": "task_completed", "task_id": task_id, "result": result.result})
             cleanup_background_task(task_id)
             return f"Task Succeeded. Result: {result.result}"
@@ -196,11 +253,29 @@ async def task_tool(
             _enum_status_value(SubagentStatus, "CANCELLED", "cancelled"),
             _enum_status_value(SubagentStatus, "INTERRUPTED", "interrupted"),
         }:
+            _emit_run_event(
+                writer,
+                kind="error",
+                title="Subagent failed",
+                detail=result.error,
+                level="error",
+                run_id=thread_id,
+                task_id=task_id,
+            )
             writer({"type": "task_failed", "task_id": task_id, "error": result.error})
             logger.error(f"[trace={trace_id}] Task {task_id} failed: {result.error}")
             cleanup_background_task(task_id)
             return f"Task failed. Error: {result.error}"
         elif status_value == _enum_status_value(SubagentStatus, "TIMED_OUT", "timed_out"):
+            _emit_run_event(
+                writer,
+                kind="error",
+                title="Subagent timed out",
+                detail=result.error,
+                level="warning",
+                run_id=thread_id,
+                task_id=task_id,
+            )
             writer({"type": "task_timed_out", "task_id": task_id, "error": result.error})
             logger.warning(f"[trace={trace_id}] Task {task_id} timed out: {result.error}")
             cleanup_background_task(task_id)
@@ -211,5 +286,14 @@ async def task_tool(
 
     timeout_minutes = config.timeout_seconds // 60
     logger.error(f"[trace={trace_id}] Task {task_id} polling timed out after {max_wait_seconds}s")
+    _emit_run_event(
+        writer,
+        kind="error",
+        title="Subagent polling timed out",
+        detail=f"Status: {_status_value(result.status)}",
+        level="warning",
+        run_id=thread_id,
+        task_id=task_id,
+    )
     writer({"type": "task_timed_out", "task_id": task_id})
     return f"Task polling timed out after {timeout_minutes} minutes. This may indicate the background task is stuck. Status: {_status_value(result.status)}"
