@@ -38,10 +38,10 @@ from src.agents.resource_profile import get_resource_profile
 from src.agents.thread_state import ThreadState
 from src.interfaces.embedded.agent import ClientAgentBuilder
 from src.interfaces.embedded.streaming import ClientStreamSerializer
+from src.models import create_chat_model
 from src.runtime.config.app_config import get_app_config, reload_app_config
 from src.runtime.config.extensions_config import ExtensionsConfig, McpServerConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from src.runtime.config.paths import get_paths
-from src.models import create_chat_model
 
 logger = logging.getLogger(__name__)
 

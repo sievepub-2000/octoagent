@@ -46,6 +46,7 @@ from src.gateway.routers import (
     tools_registry,
     transcription,
     uploads,
+    work_bus,
     ws_events,
 )
 
@@ -85,6 +86,7 @@ ROUTERS = [
     setup.router,
     tools_registry.router,
     ws_events.router,
+    work_bus.router,
     metrics.router,
     reflection.router,
     self_evolution.router,

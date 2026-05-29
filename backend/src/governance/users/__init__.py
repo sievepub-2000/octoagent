@@ -15,8 +15,8 @@ from email.message import EmailMessage
 from pathlib import Path
 from typing import Any
 
-from src.runtime.config.paths import get_paths
 from src.governance.multi_tenant import TenantContext, get_tenant_registry
+from src.runtime.config.paths import get_paths
 
 logger = logging.getLogger(__name__)
 

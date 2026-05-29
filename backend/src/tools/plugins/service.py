@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from src.utils.datetime import utc_now_iso as _utc_now
 
 from .catalog import PluginCatalog
-from src.utils.datetime import utc_now_iso as _utc_now
 from .contracts import (
     PluginCapability,
     PluginCapabilityListResponse,
@@ -18,9 +17,6 @@ from .contracts import (
     PluginToggleRequest,
 )
 from .store import PluginRegistryStore
-
-
-
 
 _PLUGIN_CATEGORY: dict[str, str] = {
     "compound-engineering-review": "engineering",

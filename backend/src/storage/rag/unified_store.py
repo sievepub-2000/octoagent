@@ -11,9 +11,9 @@ from typing import Any
 
 import duckdb
 
-from src.runtime.config.paths import get_paths
-from src.models.embedding_service import get_embedding_service
 from src.gateway.observability import record_exception_trace
+from src.models.embedding_service import get_embedding_service
+from src.runtime.config.paths import get_paths
 from src.storage.rag.faiss_backend import search_rows as search_faiss_rows
 
 logger = logging.getLogger(__name__)

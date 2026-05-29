@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+from datetime import UTC
 from pathlib import Path
 from typing import Any, Literal
 
@@ -8,15 +9,16 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from src.agents.core.run_record_store import build_run_record_summary, list_run_records
+from src.agents.subagents.executor import get_subagent_runtime_snapshot
+from src.agents.subagents.policy import is_host_memory_oom_critical
+from src.models.factory import EMBEDDED_BACKUP_MODEL_NAME, embedded_backup_enabled, resolve_effective_fallback_model_names
 from src.runtime.config import get_app_config
 from src.runtime.config.integrations_config import get_integrations_config
 from src.runtime.config.paths import get_setup_state_file, resolve_configured_default_model_name
 from src.runtime.config.subagents_config import get_subagents_app_config
-from src.models.factory import EMBEDDED_BACKUP_MODEL_NAME, embedded_backup_enabled, resolve_effective_fallback_model_names
-from src.agents.subagents.executor import get_subagent_runtime_snapshot
-from src.agents.subagents.policy import is_host_memory_oom_critical
-from src.tools.system_execution import get_system_execution_service
 from src.runtime.system_guard.service import get_system_guard_service
+from src.tools.system_execution import get_system_execution_service
+
 
 def _resolve_repo_root() -> Path:
     """Resolve the repo root robustly.
@@ -891,7 +893,7 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
     config show`` calls this endpoint so operators do not need to read 5
     files cross-referenced to debug a misconfigured deployment.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
 
     env_prefixes = ("OCTO_", "OCTOAGENT_")
     env_keys = sorted(k for k in os.environ if k.startswith(env_prefixes))
@@ -909,7 +911,6 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
         return value
     env_snapshot = {k: _mask(k, os.environ[k]) for k in env_keys}
 
-    app_config = get_app_config()
     # default_model is best-effort: read setup.json directly
     default_model: str | None = None
     try:
@@ -962,7 +963,7 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
             ports[key] = int(raw)
 
     return RuntimeEffectiveConfigResponse(
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=datetime.now(UTC).isoformat(),
         runtime_governance_version="2026.5.22",
         repo_root=paths_snapshot["repo_root"],
         env=env_snapshot,
@@ -1010,8 +1011,8 @@ async def get_runtime_tool_trace(limit: int = 200) -> ToolTraceResponse:
     viewer at /workspace/observability/trace. Tails up to ``limit`` (default
     200, capped at 2000) most-recent events to keep response small.
     """
-    from datetime import datetime, timezone
     import json as _json
+    from datetime import datetime
 
     limit = max(1, min(int(limit), 2000))
 
@@ -1049,7 +1050,7 @@ async def get_runtime_tool_trace(limit: int = 200) -> ToolTraceResponse:
             file_exists = False
 
     return ToolTraceResponse(
-        generated_at=datetime.now(timezone.utc).isoformat(),
+        generated_at=datetime.now(UTC).isoformat(),
         source_file=str(trace_path),
         file_exists=file_exists,
         total_lines=len(events),
@@ -1062,7 +1063,11 @@ async def get_runtime_tool_trace(limit: int = 200) -> ToolTraceResponse:
 
 from src.harness.dispatcher import (  # noqa: E402
     dispatch_queue_stats as _dispatch_queue_stats,
+)
+from src.harness.dispatcher import (  # noqa: E402
     leader_status as _leader_status,
+)
+from src.harness.dispatcher import (  # noqa: E402
     list_workers as _list_workers,
 )
 

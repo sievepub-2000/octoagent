@@ -5,13 +5,13 @@ from __future__ import annotations
 import os
 
 from src.agents.memory import get_memory_data
-from src.tools.sandbox.browser import get_browser_runtime_service
-from src.runtime.config.extensions_config import ExtensionsConfig
-from src.runtime.config.paths import get_paths
-from src.runtime.config.ml_intern_defaults import build_ml_intern_runtime_context
 from src.interfaces.research import get_research_runtime_service
-from src.tools.system_execution import get_system_execution_service
+from src.runtime.config.extensions_config import ExtensionsConfig
+from src.runtime.config.ml_intern_defaults import build_ml_intern_runtime_context
+from src.runtime.config.paths import get_paths
 from src.tools.permissions import normalize_runtime_permission_mode
+from src.tools.sandbox.browser import get_browser_runtime_service
+from src.tools.system_execution import get_system_execution_service
 
 from .contracts import (
     QueryClientCommand,

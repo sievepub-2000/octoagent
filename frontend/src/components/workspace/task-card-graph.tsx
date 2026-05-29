@@ -32,6 +32,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AgentAvatar } from "@/components/brand/octo-mark";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { useI18n } from "@/core/i18n/hooks";
 import type {
   AgentHandle,
   TaskCard,
@@ -40,7 +41,6 @@ import type {
   TaskCardGraph,
   TaskStudioRuntimeResponse,
 } from "@/core/task-workspaces";
-import { useI18n } from "@/core/i18n/hooks";
 import { formatTaskRuntimeProvider } from "@/core/task-workspaces/runtime-provider";
 import { cn } from "@/lib/utils";
 
@@ -1072,7 +1072,6 @@ export function TaskCardGraphCanvas({
   onGraphChange,
   className,
 }: TaskCardGraphCanvasProps) {
-  const { t } = useI18n();
   return (
     <div
       className={cn(

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from src.utils.datetime import utc_now_iso as _utc_now
 
 from .contracts import (
@@ -22,8 +21,6 @@ from .execution import BrowserSessionExecutionEngine
 from .policy import BrowserSessionPolicy
 from .profiles import BrowserRuntimeProfileCatalog
 from .store import BrowserRuntimeStore
-
-
 
 
 class BrowserRuntimeService:

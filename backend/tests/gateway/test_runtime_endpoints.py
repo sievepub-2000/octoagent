@@ -9,8 +9,6 @@ the runtime router so we don't need to spin up the whole gateway.
 """
 from __future__ import annotations
 
-import json
-import os
 from pathlib import Path
 
 import pytest

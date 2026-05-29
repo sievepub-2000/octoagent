@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from src.utils.datetime import utc_now_iso as _utc_now
 
 from .contracts import (
@@ -21,8 +20,6 @@ from .contracts import (
     ResearchTrialVerdict,
     RunResearchExperimentRequest,
 )
-
-
 
 
 class ResearchRuntimeService:

@@ -21,8 +21,8 @@ import inspect
 
 import pytest
 
-from src.tools.sandbox.tools import bash_tool
 from src.tools.builtins.openharness_compat_tools import glob_tool, grep_tool, lsp_tool
+from src.tools.sandbox.tools import bash_tool
 
 
 @pytest.mark.parametrize(

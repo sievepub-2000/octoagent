@@ -1,6 +1,6 @@
 # OctoAgent Project Status
 
-**Last Updated**: 2026-05-15
+**Last Updated**: 2026-05-29
 
 ## What The Project Is
 
@@ -21,7 +21,7 @@ The repository still contains transitional and operator-oriented surfaces, but t
 - Main workflow lifecycle endpoints: **`/api/task-workspaces/{task_id}/compile|run|pause|resume|terminate`**
 - Main workflow runtime read model: **`/api/task-workspaces/{task_id}/studio-runtime`**
 - Public external runtime projection: **`/api/runtime/workflows/*`**
-- Unified local entrypoint: **`http://127.0.0.1:19880`**
+- Unified local entrypoint: **`http://127.0.0.1:19800`**
 - Built-in account store: **`workspace/runtime/octoagent_users.db`** with email-code registration, trusted-device sessions, and tenant binding through `/api/auth/*`
 - Repo-owned workspace default now takes precedence when explicit setup state is absent and `workspace/` already exists
 - Real-browser chat regression is now part of CI and covers ordinary tools, web search/fetch/read-webpage history, continuation, context-guard visibility, 520-message scrolling, and right-side Artifact/execution panel screenshots.
@@ -43,6 +43,12 @@ The repository still contains transitional and operator-oriented surfaces, but t
   local-model sessions, correct `sieve-pub` runtime identity, runtime permission
   repair without stale sudo ownership targets, Google provider key loading from
   ignored local `.env`, and a clean backend Ruff/PEP8 baseline.
+- The 2026-05-29 work-bus pass adds a live work-bus projection for DeepAgent
+  execution, Redis-backed event transport, frontend orchestration rendering,
+  and safe self-solidification capture for successful multi-step plans.
+- The 2026-05-29 repository sync also revalidates the current local service
+  entrypoint (`19800`), system doctor, WebUI smoke, and first-turn chat
+  regression paths before committing the synchronized workspace.
 
 ## Runtime Surface Truth
 
@@ -153,6 +159,7 @@ Use the current verification baseline before claiming runtime stability:
 - chat regression trend report: `make chat-regression-report`
 - long soak monitor: `make soak-monitor SOAK_MONITOR_MANIFEST=<suite.json>`
 - real WebUI/API smoke: `cd backend && .venv/bin/python scripts/run_webui_smoke.py --frontend-url http://127.0.0.1:19880 --gateway-url http://127.0.0.1:19880 --timeout-seconds 180`
+- current local WebUI/API smoke: `cd backend && .venv/bin/python scripts/run_webui_smoke.py --frontend-url http://127.0.0.1:19800 --gateway-url http://127.0.0.1:19800 --timeout-seconds 60`
 - local full repair baseline: backend compile, backend ruff, backend pytest, frontend lint, frontend typecheck, frontend build, release-readiness contract smoke, system-execution security smoke, operator-module closure smoke, mock/real WebUI smoke, management menu smoke, and browser accessibility checks as recorded in `P18_FULL_SYSTEM_REPAIR_AND_VERIFICATION_2026-05-11.md`
 
 Source test trees are intentionally absent by operator policy; release confidence is therefore based on compile/lint/build/doctor/smoke/soak/readiness evidence rather than pytest/frontend source test suites.

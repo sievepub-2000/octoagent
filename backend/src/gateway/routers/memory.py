@@ -7,37 +7,26 @@ import os
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi import APIRouter, HTTPException
 
-from src.agents.memory.governance import build_memory_governance_summary
 from src.agents.memory.layer_accessor import (
-    LONG_TERM_MEMORY_NAMESPACES,
-    PERMANENT_MEMORY_NAMESPACES,
     get_memory_layer_accessor,
 )
 from src.agents.memory.system_rag_store import (
-    MAX_SYSTEM_MEMORY_LIST_LIMIT,
     get_system_rag_store,
 )
 from src.agents.memory.updater import ensure_memory_schema
-from src.runtime.config.memory_config import get_memory_config
-from src.runtime.config.paths import get_paths
 from src.gateway.routers.memory_schemas import (
     GlobalMemoryEntry,
     GlobalMemoryStore,
     GlobalMemoryUpdateRequest,
     MemoryConfigResponse,
-    MemoryGovernanceSummaryResponse,
-    MemoryLayersResponse,
-    MemoryLayerSummaryResponse,
     MemoryResponse,
-    MemoryRetentionPolicyResponse,
     MemorySchemaStatus,
     MemoryStatusResponse,
-    SystemMemoryCleanupRequest,
-    SystemMemoryCleanupResponse,
-    SystemMemorySearchRequest,
 )
+from src.runtime.config.memory_config import get_memory_config
+from src.runtime.config.paths import get_paths
 
 router = APIRouter(prefix="/api", tags=["memory"])
 
@@ -389,7 +378,6 @@ async def update_global_memory(entry_id: str, body: GlobalMemoryUpdateRequest) -
             entry.updatedAt = datetime.now(UTC).isoformat()
             _save_global_memory(store)
             return entry
-    from fastapi import HTTPException
 
     raise HTTPException(status_code=404, detail="Entry not found")
 

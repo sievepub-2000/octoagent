@@ -1100,7 +1100,17 @@ export function useThreadStream({
         throw error;
       }
     },
-    [thread, _handleOnStart, t.uploads.uploadingFiles, context, queryClient, clearWatchdog, isMock],
+    [
+      thread,
+      _handleOnStart,
+      t.threadEvents.sessionRefreshed,
+      t.threadEvents.watchdogLongRun,
+      t.uploads.uploadingFiles,
+      context,
+      queryClient,
+      clearWatchdog,
+      isMock,
+    ],
   );
 
   // Merge thread with optimistic messages for display

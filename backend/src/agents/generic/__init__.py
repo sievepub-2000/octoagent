@@ -11,13 +11,11 @@ import logging
 import os
 import threading
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
 from typing import Any
+
 from src.utils.datetime import utc_now_iso as _utc_now
 
 logger = logging.getLogger(__name__)
-
-
 
 
 @dataclass
@@ -72,8 +70,8 @@ class GenericMaintenanceAgent:
     def run_once(self) -> dict[str, Any]:
         result: dict[str, Any] = {"created_at": _utc_now(), "jobs": {}}
         try:
-            from src.storage.query.service import get_query_engine_service
             from src.runtime.governance import get_runtime_maintenance_scheduler
+            from src.storage.query.service import get_query_engine_service
 
             runtime = get_runtime_maintenance_scheduler().run_once()
             query = get_query_engine_service().run_maintenance(created_at=_utc_now())

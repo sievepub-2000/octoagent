@@ -9,18 +9,12 @@ heuristics on the final assistant message.
 from __future__ import annotations
 
 import re
-from datetime import UTC, datetime
 from html import unescape
 from typing import Any
 
 from src.agents.core.termination import classify_run_outcome
 from src.utils.datetime import utc_now_iso as _utc_now
 from src.utils.messages import message_text as _message_text
-
-
-
-
-
 
 _THINK_BLOCK_RE = re.compile(r"<think\b[^>]*>.*?</think>", re.IGNORECASE | re.DOTALL)
 _TAG_RE = re.compile(r"<[^>]+>")

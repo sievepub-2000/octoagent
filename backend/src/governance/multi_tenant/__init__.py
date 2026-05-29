@@ -11,8 +11,8 @@ import time
 from dataclasses import asdict, dataclass, field
 from typing import Any, Literal
 
-from src.runtime.config.paths import get_paths
 from src.governance.operator import signed_audit_event
+from src.runtime.config.paths import get_paths
 from src.utils.json_atomic import write_json_atomic
 
 logger = logging.getLogger(__name__)

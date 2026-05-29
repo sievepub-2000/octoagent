@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Awaitable, Callable
-from datetime import UTC, datetime
 from typing import Annotated, Any, NotRequired, override
 
 from langchain.agents import AgentState
@@ -13,9 +12,9 @@ from langchain.agents.middleware.types import ModelCallResult, ModelRequest, Mod
 from langchain_core.messages import AIMessage, ToolMessage
 from langgraph.runtime import Runtime
 
+from src.agents.subagents.executor import get_subagent_runtime_snapshot
+from src.agents.subagents.policy import is_host_memory_oom_critical
 from src.agents.thread_state import merge_runtime_state
-from src.runtime.config.subagents_config import get_subagents_app_config
-from src.utils.datetime import utc_now_iso as _utc_now
 from src.models.factory import (
     EMBEDDED_BACKUP_MODEL_NAME,
     embedded_backup_enabled,
@@ -25,8 +24,8 @@ from src.models.runtime_telemetry import (
     clear_model_runtime_telemetry,
     get_model_runtime_telemetry,
 )
-from src.agents.subagents.executor import get_subagent_runtime_snapshot
-from src.agents.subagents.policy import is_host_memory_oom_critical
+from src.runtime.config.subagents_config import get_subagents_app_config
+from src.utils.datetime import utc_now_iso as _utc_now
 
 logger = logging.getLogger(__name__)
 

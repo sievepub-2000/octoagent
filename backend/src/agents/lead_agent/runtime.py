@@ -7,11 +7,11 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from src.agents.dialogue_routing import FAST_ROUTES, classify_dialogue_route
+from src.models import is_embedded_backup_model_name
 from src.runtime.config.agents_config import load_agent_config
 from src.runtime.config.app_config import get_app_config
-from src.runtime.config.paths import resolve_configured_default_model_name
 from src.runtime.config.ml_intern_defaults import build_ml_intern_runtime_context, resolve_ml_intern_profile_name
-from src.models import is_embedded_backup_model_name
+from src.runtime.config.paths import resolve_configured_default_model_name
 from src.tools.permissions import normalize_runtime_permission_mode
 
 logger = logging.getLogger(__name__)

@@ -18,10 +18,10 @@ from langchain.tools import BaseTool
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.runnables import RunnableConfig
 
+from src.agents.subagents.config import SubagentConfig
 from src.agents.thread_state import SandboxState, ThreadDataState, ThreadState
 from src.models import create_chat_model
 from src.models.factory import FallbackChatModel
-from src.agents.subagents.config import SubagentConfig
 
 from .contracts import SubagentBudget, SubagentEvent, SubagentResult, SubagentStatus
 from .policy import check_admission, estimate_available_memory_gb
@@ -248,8 +248,8 @@ class SubagentService:
             )
         else:
             model = create_chat_model(name=model_name, thinking_enabled=False)
-        from src.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
         from src.agents.middlewares.progress_stall_middleware import ProgressStallMiddleware
+        from src.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
         from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
         from src.tools.sandbox.middleware import SandboxMiddleware
 

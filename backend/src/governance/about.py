@@ -49,6 +49,7 @@ If you are an operator and you want to rotate the master key, delete
 All internal databases will need to be wiped (encrypted with old key)
 or re-keyed manually — there is no automatic migration.
 """
+# ruff: noqa: E501
 from __future__ import annotations
 
 import hashlib

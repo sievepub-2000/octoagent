@@ -2,19 +2,18 @@
 
 from fastapi import APIRouter, HTTPException
 
+from src.storage.workflow import utc_now
 from src.tools.sandbox.browser import (
     BrowserActionExecutionRequest,
     BrowserActionExecutionResult,
     BrowserExecutionSession,
     BrowserProviderProfile,
     BrowserRuntimeCapability,
-    BrowserRuntimeStatusSnapshot,
     BrowserSessionRecoveryRequest,
     BrowserSessionRequest,
     BrowserSessionUpdateRequest,
     get_browser_runtime_service,
 )
-from src.storage.workflow import utc_now
 
 router = APIRouter(prefix="/api/browser-runtime", tags=["browser-runtime"])
 

@@ -35,15 +35,15 @@ from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
 from src.agents.middlewares.uploads_middleware import UploadsMiddleware
 from src.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from src.agents.thread_state import ThreadState
-from src.runtime.config.app_config import get_app_config
-from src.runtime.config.paths import resolve_configured_default_model_name
-from src.runtime.config.summarization_config import get_summarization_config
 from src.harness import (
     HookDispatchMiddleware,
     install_default_hooks,
     maybe_build_budget_middleware,
 )
 from src.models import create_chat_model
+from src.runtime.config.app_config import get_app_config
+from src.runtime.config.paths import resolve_configured_default_model_name
+from src.runtime.config.summarization_config import get_summarization_config
 from src.tools.sandbox.middleware import SandboxMiddleware
 
 logger = logging.getLogger(__name__)

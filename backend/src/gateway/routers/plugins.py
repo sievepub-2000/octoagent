@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 
+from src.storage.workflow import utc_now
 from src.tools.plugins import (
     PluginCapabilityListResponse,
     PluginInstallRequest,
@@ -14,7 +15,6 @@ from src.tools.plugins import (
     get_plugin_service,
 )
 from src.utils.agent_tool_guide import async_refresh_agent_tool_guide
-from src.storage.workflow import utc_now
 
 router = APIRouter(prefix="/api/plugins", tags=["plugins"])
 

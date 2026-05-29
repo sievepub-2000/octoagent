@@ -23,6 +23,10 @@ from src.agents.lead_agent.prompt import (
     get_capability_guide_prompt_section,
     get_skills_prompt_section,
 )
+from src.agents.subagents import SubagentExecutor, get_subagent_config
+from src.agents.subagents.catalog import get_subagent_names
+from src.agents.subagents.executor import cleanup_background_task, get_background_task_result
+from src.agents.subagents.policy import resolve_subagent_config
 from src.agents.thread_state import ThreadState
 from src.runtime.config import get_app_config
 from src.runtime.config.paths import get_paths
@@ -34,10 +38,6 @@ from src.tools.sandbox.tools import (
     replace_virtual_path,
     replace_virtual_paths_in_command,
 )
-from src.agents.subagents import SubagentExecutor, get_subagent_config
-from src.agents.subagents.catalog import get_subagent_names
-from src.agents.subagents.executor import cleanup_background_task, get_background_task_result
-from src.agents.subagents.policy import resolve_subagent_config
 
 _CRON_JOBS: dict[str, dict] = {}
 _TASK_META: dict[str, dict] = {}

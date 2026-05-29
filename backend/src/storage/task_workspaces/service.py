@@ -7,14 +7,14 @@ import logging
 
 from src.agents.core.lifecycle import AgentLifecycleFacade
 from src.agents.runtime import get_agent_runtime_manager
-from src.storage.brain import BrainCoreService
 from src.gateway.observability import record_exception_trace
 from src.harness.orchestration import get_orchestration_service
-from src.tools.plugins import get_plugin_service
-from src.storage.query import QuerySession, get_query_engine_service
 from src.interfaces.research import get_research_runtime_service
-from src.tools.permissions import normalize_runtime_permission_mode
+from src.storage.brain import BrainCoreService
+from src.storage.query import QuerySession, get_query_engine_service
 from src.storage.workflow.projection import WorkflowProjectionFacade
+from src.tools.permissions import normalize_runtime_permission_mode
+from src.tools.plugins import get_plugin_service
 
 from .contracts import (
     AgentHandle,

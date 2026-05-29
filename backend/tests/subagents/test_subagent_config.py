@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from src.runtime.config.subagents_config import load_subagents_config_from_dict
 from src.agents.subagents.catalog import get_subagent_config, get_subagent_names
 from src.agents.subagents.config import SubagentConfig
 from src.agents.subagents.policy import resolve_subagent_config
+from src.runtime.config.subagents_config import load_subagents_config_from_dict
 
 
 def test_resolve_subagent_config_honors_small_max_turns() -> None:

@@ -1,7 +1,6 @@
 "use client";
 
 import { CheckCircle2, KeyRound, Mail, MonitorCheck, ShieldCheck } from "lucide-react";
-import { useI18n } from "@/core/i18n/hooks";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 
@@ -18,6 +17,7 @@ import {
   type AuthChallengeResponse,
 } from "@/core/auth/api";
 import { AUTH_STORAGE_KEYS, getDeviceFingerprint, saveAuthSession } from "@/core/auth/device";
+import { useI18n } from "@/core/i18n/hooks";
 
 const CODE_LENGTH = 8;
 

@@ -1,10 +1,10 @@
+import logging
 from datetime import datetime
 from pathlib import Path
 
 from src.runtime.config.agents_config import load_agent_soul
 from src.runtime.config.ml_intern_defaults import build_ml_intern_prompt_section
 from src.storage.skills import load_skills
-import logging
 
 logger = logging.getLogger(__name__)
 
@@ -503,7 +503,10 @@ You: "Deploying to staging..." [proceed]
 
 **File Management:**
 - Uploaded files are automatically listed in the <uploaded_files> section before each request
-- **When `<uploaded_files>` is present, your FIRST visible action MUST be to inspect each newly uploaded file BEFORE doing anything else for the user request.** Call `read_file` on each file's path (prefer the `*.md` companion when the original is PDF / DOCX / PPTX / XLSX, since it is pre-converted). Briefly summarize each file's format and key contents in one short paragraph, then merge that understanding with the user's request and continue the task. This pre-inspection step is mandatory so the user can SEE the attachment was actually parsed -- never skip it, never assume contents from the filename, even if the request seems unrelated to the file.
+- **When `<uploaded_files>` is present, your FIRST visible action MUST be to inspect each newly uploaded file BEFORE doing anything else for the user request.**
+  Call `read_file` on each file's path (prefer the `*.md` companion when the original is PDF / DOCX / PPTX / XLSX, since it is pre-converted).
+  Briefly summarize each file's format and key contents in one short paragraph, then merge that understanding with the user's request and continue the task.
+  This pre-inspection step is mandatory so the user can SEE the attachment was actually parsed -- never skip it, never assume contents from the filename, even if the request seems unrelated to the file.
 - Use `read_file` tool to read uploaded files using their paths from the list
 - For PDF, PPT, Excel, and Word files, converted Markdown versions (*.md) are available alongside originals
 - All temporary work happens in `/mnt/user-data/workspace`

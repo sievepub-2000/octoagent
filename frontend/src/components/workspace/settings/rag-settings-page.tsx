@@ -2,7 +2,6 @@
 
 import { DatabaseIcon, DownloadIcon, SparklesIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useI18n } from "@/core/i18n/hooks";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -12,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
+import { useI18n } from "@/core/i18n/hooks";
 import {
   formatBytes,
   useDownloadModel,

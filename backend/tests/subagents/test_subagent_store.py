@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 
-from src.runtime.config.subagents_config import load_subagents_config_from_dict
 from src.agents.subagents.contracts import SubagentEvent, SubagentResult, SubagentStatus
 from src.agents.subagents.policy import check_admission
 from src.agents.subagents.store import SubagentJobStore
+from src.runtime.config.subagents_config import load_subagents_config_from_dict
 
 
 def _result(task_id: str, status: SubagentStatus = SubagentStatus.COMPLETED) -> SubagentResult:

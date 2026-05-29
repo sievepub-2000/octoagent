@@ -1,32 +1,11 @@
 """Shared interface-layer contracts for 3.7.x task workspace surfaces."""
 
-from src.tools.sandbox.browser import (
-    BrowserExecutionSession,
-    BrowserRuntimeCapability,
-    BrowserRuntimeStatusSnapshot,
-    BrowserSessionRequest,
-)
 from src.harness.orchestration import (
     BudgetPolicy,
     CompiledTaskGraph,
     OrchestrationCapability,
     PromptStackProfile,
     RuntimeHandoff,
-)
-from src.tools.plugins import (
-    PluginCapability,
-    PluginCapabilityListResponse,
-    PluginInstallRequest,
-    PluginManifest,
-    PluginManifestListResponse,
-    PluginRegistryEntry,
-    PluginRegistryResponse,
-)
-from src.storage.query import (
-    QueryEngineCapability,
-    QueryRuntimeEvent,
-    QuerySession,
-    QuerySessionSummary,
 )
 from src.interfaces.research import (
     CreateResearchExperimentRequest,
@@ -40,9 +19,11 @@ from src.interfaces.research import (
     ResearchTrial,
     RunResearchExperimentRequest,
 )
-from src.tools.system_execution import (
-    SystemExecutionPermissionPolicy,
-    SystemExecutionPermissionRule,
+from src.storage.query import (
+    QueryEngineCapability,
+    QueryRuntimeEvent,
+    QuerySession,
+    QuerySessionSummary,
 )
 from src.storage.workflow import (
     AgentConversationRef,
@@ -56,6 +37,25 @@ from src.storage.workflow import (
     TaskProgress,
     TaskWorkspace,
     TaskWorkspaceSummary,
+)
+from src.tools.plugins import (
+    PluginCapability,
+    PluginCapabilityListResponse,
+    PluginInstallRequest,
+    PluginManifest,
+    PluginManifestListResponse,
+    PluginRegistryEntry,
+    PluginRegistryResponse,
+)
+from src.tools.sandbox.browser import (
+    BrowserExecutionSession,
+    BrowserRuntimeCapability,
+    BrowserRuntimeStatusSnapshot,
+    BrowserSessionRequest,
+)
+from src.tools.system_execution import (
+    SystemExecutionPermissionPolicy,
+    SystemExecutionPermissionRule,
 )
 
 __all__ = [

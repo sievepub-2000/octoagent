@@ -13,7 +13,6 @@ from src.agents.lead_agent.prompt import (
     get_capability_guide_prompt_section,
     get_skills_prompt_section,
 )
-from src.agents.thread_state import ThreadState
 from src.agents.subagents import SubagentExecutor, get_subagent_config
 from src.agents.subagents.catalog import get_subagent_names
 from src.agents.subagents.executor import (
@@ -23,6 +22,7 @@ from src.agents.subagents.executor import (
     get_background_task_result,
 )
 from src.agents.subagents.policy import resolve_subagent_config
+from src.agents.thread_state import ThreadState
 
 logger = logging.getLogger(__name__)
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from src.utils.datetime import utc_now as _utc_now
 
 from src.agents.memory.contracts import (
     GovernedMemoryWriteResult,
@@ -14,6 +13,7 @@ from src.agents.memory.contracts import (
     MemoryRetentionPolicy,
 )
 from src.runtime.config.memory_config import MemoryConfig, get_memory_config
+from src.utils.datetime import utc_now as _utc_now
 
 LONG_TERM_MEMORY_NAMESPACES = ("conversation_summary", "archival_memory")
 PERMANENT_MEMORY_NAMESPACES = ("skill_evolution", "system_insight")

@@ -5,8 +5,8 @@ from __future__ import annotations
 import re
 
 from src.agents.core.roles import is_management_role, is_reviewer_role, select_lead_agent, select_reviewer_agent
-from src.storage.brain import BrainTaskContext
 from src.harness.orchestration import CompiledTaskGraph
+from src.storage.brain import BrainTaskContext
 
 from .card_templates import TaskCardTemplateFactory
 from .contracts import TaskCard, TaskCardEdge, TaskCardGraph, TaskWorkspace, make_id, utc_now

@@ -4,13 +4,13 @@ from typing import Literal
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
+from src.gateway.security import require_operator_or_403
 from src.tools.capability import (
     UnifiedCapabilityItem,
     UnifiedCapabilityRegistrySnapshot,
     UnifiedCapabilitySummary,
     get_capability_core_service,
 )
-from src.gateway.security import require_operator_or_403
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["capabilities"])

@@ -8,14 +8,14 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from src.harness.hook_core import get_hook_core_service
+from src.runtime.config.extensions_config import ExtensionsConfig, get_extensions_config
+from src.storage.skills import load_skills
 from src.tools.capability.agent_skills_compat import (
     build_agent_skills_compat_entries,
     compat_item_toggleable,
 )
-from src.runtime.config.extensions_config import ExtensionsConfig, get_extensions_config
-from src.harness.hook_core import get_hook_core_service
 from src.tools.plugins import get_plugin_service
-from src.storage.skills import load_skills
 
 UnifiedCapabilityKind = Literal[
     "skill",

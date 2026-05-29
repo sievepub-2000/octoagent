@@ -1,6 +1,6 @@
 # OctoAgent 项目进度与计划
 
-> Last updated: 2026-05-15
+> Last updated: 2026-05-29
 
 ## 当前目标
 
@@ -99,8 +99,19 @@
 - P21 cleared the backend Ruff/PEP8 baseline across the Python tree, added
   runtime-state ignore rules for `backend/runtime/` and `workspace/self_evolution/`,
   and configured Google provider credentials through ignored local `.env`.
+- P22 adds DeepAgent work-bus event publication, a Redis-backed work-bus
+  transport, gateway router coverage, frontend orchestration rendering, and
+  safe self-solidification capture for successful multi-step plans.
+- P22 also synchronizes the local service truth around `http://127.0.0.1:19800`,
+  refreshes first-turn chat regression browser discovery, and records the
+  current doctor/WebUI/pytest validation baseline before commit.
 
 ## Current Verification
+
+- 2026-05-29 system doctor: `cd backend && .venv/bin/python scripts/run_system_doctor.py --skip-git --json` passed.
+- 2026-05-29 WebUI smoke: `cd backend && .venv/bin/python scripts/run_webui_smoke.py --timeout-seconds 60` passed against `http://127.0.0.1:19800`.
+- 2026-05-29 first-turn chat regression: `node scripts/first-turn-chat-regression.cjs http://127.0.0.1:19800` passed for both direct `/workspace/chats/new` and the New Chat button.
+- 2026-05-29 focused backend regression: `cd backend && .venv/bin/python -m pytest tests/gateway/test_router_contract.py tests/runtime/test_runtime_config.py tests/models/test_semantics_tool_calls.py tests/agents/test_dialogue_routing.py tests/tools/test_system_ops_tools.py -q` passed with 34 tests.
 
 - Local release readiness evidence: `backend/.venv/bin/python backend/scripts/run_release_readiness.py --json --run-doctor --min-score 0` passed and generated `workspace/runtime/release_readiness/release-readiness.{json,md}` with an evidence score of 81.5 / 100 on 2026-05-06. The gate intentionally reports `ok=false` for the 95 target until fresh staging chat, soak, signed audit, chat trend, run-record, rollback, retention, and regression bundle evidence exist.
 - Backend release readiness compile: `backend/.venv/bin/python -m compileall -q backend/scripts/run_release_readiness.py` passed.

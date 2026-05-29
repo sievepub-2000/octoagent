@@ -8,8 +8,8 @@ from pathlib import Path
 
 from langchain_core.tools import tool  # type: ignore[reportUnknownVariableType]
 
-from src.runtime.config.paths import get_paths
 from src.gateway.observability import record_exception_trace, record_tool_trace
+from src.runtime.config.paths import get_paths
 from src.runtime.governance import get_runtime_worker_isolation
 
 

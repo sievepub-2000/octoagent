@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from src.runtime.config.subagents_config import load_subagents_config_from_dict
 from src.agents.subagents import policy
+from src.runtime.config.subagents_config import load_subagents_config_from_dict
 
 
 @pytest.fixture(autouse=True)

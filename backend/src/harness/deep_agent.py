@@ -22,9 +22,11 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import time
 import uuid
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
@@ -371,6 +373,221 @@ class DeepAgentConfig:
     # Context store path
     context_store_path: str | None = None
 
+    # Realtime inspection + safe skill capture
+    enable_work_bus: bool = True
+    enable_skill_solidification: bool = True
+    solidification_min_steps: int = 4
+    solidification_output_dir: str | None = None
+
+
+# ============================================================
+# Work Bus + Skill Solidification helpers
+# ============================================================
+
+
+_WORK_BUS_EXECUTOR = ThreadPoolExecutor(
+    max_workers=1,
+    thread_name_prefix="deep-agent-work-bus",
+)
+
+
+def _compact_payload(value: Any, *, max_chars: int = 2000) -> Any:
+    if value is None or isinstance(value, (int, float, bool)):
+        return value
+    if isinstance(value, str):
+        return value if len(value) <= max_chars else value[:max_chars] + "... [truncated]"
+    try:
+        encoded = json.dumps(value, ensure_ascii=False, default=str)
+    except TypeError:
+        encoded = str(value)
+    if len(encoded) > max_chars:
+        encoded = encoded[:max_chars] + "... [truncated]"
+    try:
+        return json.loads(encoded)
+    except json.JSONDecodeError:
+        return encoded
+
+
+def _plan_id(plan: TaskPlan) -> str:
+    value = plan.metadata.get("plan_id")
+    if not value:
+        value = uuid.uuid4().hex
+        plan.metadata["plan_id"] = value
+    return str(value)
+
+
+def _thread_id(plan: TaskPlan) -> str:
+    for key in ("thread_id", "run_id", "session_id"):
+        value = plan.metadata.get(key)
+        if value:
+            return str(value)
+    value = _plan_id(plan)
+    plan.metadata["thread_id"] = value
+    return value
+
+
+def _step_kind(step: TaskStep) -> str:
+    return {
+        StepStatus.COMPLETED: "step_completed",
+        StepStatus.FAILED: "step_failed",
+        StepStatus.BLOCKED: "step_blocked",
+        StepStatus.SKIPPED: "step_skipped",
+        StepStatus.RUNNING: "step_started",
+    }.get(step.status, "step_updated")
+
+
+def _step_event_payload(plan: TaskPlan, kind: str, step: TaskStep | None = None) -> dict[str, Any]:
+    base: dict[str, Any] = {
+        "thread_id": _thread_id(plan),
+        "plan_id": _plan_id(plan),
+        "kind": kind,
+        "status": plan.status.value,
+        "title": plan.goal[:180],
+        "payload": {
+            "goal": plan.goal,
+            "progress_ratio": plan.progress_ratio,
+            "total_steps": len(plan.steps),
+            "completed_steps": len(plan.completed_steps),
+            "failed_steps": len(plan.failed_steps),
+            "blocked_steps": len(plan.blocked_steps),
+        },
+    }
+    if step is not None:
+        base.update(
+            {
+                "step_id": step.id,
+                "status": step.status.value,
+                "title": step.description[:180],
+                "detail": step.error,
+                "role": step.assigned_role.value,
+                "tool_name": step.tool_name,
+                "input": _compact_payload(step.tool_args),
+                "output": _compact_payload(step.result),
+                "error": step.error,
+                "duration_ms": step.duration_ms,
+                "payload": {
+                    **base["payload"],
+                    "retry_count": step.retry_count,
+                    "max_retries": step.max_retries,
+                    "result_file": step.result_file,
+                    "depends_on": step.depends_on,
+                    "priority": step.priority.value,
+                },
+            }
+        )
+    return base
+
+
+async def _publish_work_bus_event(plan: TaskPlan, kind: str, step: TaskStep | None = None) -> None:
+    try:
+        from src.harness.work_bus_redis import get_work_bus
+
+        await get_work_bus().publish_step_event(**_step_event_payload(plan, kind, step))
+    except Exception:
+        logger.debug("DeepAgent: Work Bus event skipped", exc_info=True)
+
+
+def _publish_work_bus_event_nowait(plan: TaskPlan, kind: str, step: TaskStep | None = None) -> None:
+    coro = _publish_work_bus_event(plan, kind, step)
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        _WORK_BUS_EXECUTOR.submit(asyncio.run, coro)
+    else:
+        loop.create_task(coro, name=f"deep-agent-work-bus-{kind}")
+
+
+def _skill_slug(goal: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", goal.lower()).strip("-")
+    return slug[:48] or "deep-agent-workflow"
+
+
+def _clean_skill_text(value: Any, *, max_chars: int = 500) -> str:
+    text = re.sub(r"\s+", " ", str(value or "")).strip()
+    text = text.replace("---", "-").replace("`", "'")
+    return text[:max_chars]
+
+
+class SelfSolidificationExecutor:
+    """Capture successful multi-step plans as reusable custom skills."""
+
+    def __init__(self, config: DeepAgentConfig) -> None:
+        self._config = config
+
+    def maybe_solidify(self, plan: TaskPlan) -> str | None:
+        if not self._config.enable_skill_solidification:
+            return None
+        if plan.status != StepStatus.COMPLETED:
+            return None
+        if len(plan.completed_steps) < self._config.solidification_min_steps:
+            return None
+        if plan.metadata.get("solidified_skill_path"):
+            return str(plan.metadata["solidified_skill_path"])
+
+        root = self._resolve_output_root()
+        if root is None:
+            return None
+        plan_hash = hashlib.sha256(plan.to_continuation_summary().encode()).hexdigest()[:10]
+        name = f"deep-agent-{_skill_slug(plan.goal)}-{plan_hash}"
+        skill_dir = root / name
+        skill_file = skill_dir / "SKILL.md"
+        if skill_file.exists():
+            plan.metadata["solidified_skill_path"] = str(skill_file)
+            return str(skill_file)
+
+        skill_dir.mkdir(parents=True, exist_ok=True)
+        skill_file.write_text(self._render_skill(plan, name), encoding="utf-8")
+        plan.metadata["solidified_skill_path"] = str(skill_file)
+        try:
+            from src.storage.skills.loader import invalidate_skills_cache
+
+            invalidate_skills_cache()
+        except Exception:
+            logger.debug("DeepAgent: could not invalidate skills cache", exc_info=True)
+        logger.info("DeepAgent: solidified plan as skill %s", skill_file)
+        return str(skill_file)
+
+    def _resolve_output_root(self) -> Path | None:
+        if self._config.solidification_output_dir:
+            return Path(self._config.solidification_output_dir)
+        try:
+            from src.storage.skills.loader import get_skills_root_path
+
+            return get_skills_root_path() / "custom" / "auto-captured"
+        except Exception:
+            logger.debug("DeepAgent: skills root unavailable", exc_info=True)
+            return None
+
+    def _render_skill(self, plan: TaskPlan, name: str) -> str:
+        description = _clean_skill_text(f"Auto-captured workflow for: {plan.goal}", max_chars=140)
+        lines = [
+            "---",
+            f"name: {name}",
+            f"description: {description}",
+            "license: proprietary",
+            "---",
+            "",
+            f"# {name}",
+            "",
+            "Captured from a successful DeepAgent workflow.",
+            "",
+            "## Goal",
+            "",
+            _clean_skill_text(plan.goal, max_chars=1000),
+            "",
+            "## Execution Pattern",
+            "",
+        ]
+        for index, step in enumerate(plan.completed_steps, start=1):
+            tool = f" using `{step.tool_name}`" if step.tool_name else ""
+            lines.append(f"{index}. {_clean_skill_text(step.description)}{tool}.")
+        if plan.learned_facts:
+            lines.extend(["", "## Learned Facts", ""])
+            for fact in plan.learned_facts[-8:]:
+                lines.append(f"- {_clean_skill_text(fact)}")
+        lines.append("")
+        return "\n".join(lines)
+
 
 # ============================================================
 # Deep Agent Executor
@@ -406,6 +623,7 @@ class DeepAgentExecutor:
         self._execution_log: list[dict[str, Any]] = []
         self._memory = MemoryStore()
         self._context_store = ContextFileStore(base_dir=self._config.context_store_path) if self._config.enable_context_offload else None
+        self._solidification = SelfSolidificationExecutor(self._config)
 
     @property
     def memory(self) -> MemoryStore:
@@ -569,6 +787,8 @@ class DeepAgentExecutor:
         """Execute a complete plan with dependency resolution."""
         plan.status = StepStatus.RUNNING
         executed = 0
+        if self._config.enable_work_bus:
+            _publish_work_bus_event_nowait(plan, "plan_started")
 
         # Priority-sorted execution
         plan.steps.sort(key=lambda s: list(StepPriority).index(s.priority))
@@ -579,7 +799,11 @@ class DeepAgentExecutor:
                 break
 
             step = ready[0]  # Sequential: take highest priority ready step
+            if self._config.enable_work_bus:
+                _publish_work_bus_event_nowait(plan, "step_started", step)
             self.execute_step(step)
+            if self._config.enable_work_bus:
+                _publish_work_bus_event_nowait(plan, _step_kind(step), step)
             executed += 1
 
             # Periodic checkpoint (ECC context rot prevention)
@@ -601,12 +825,22 @@ class DeepAgentExecutor:
             plan.status = StepStatus.COMPLETED
             plan.completed_at = datetime.now(UTC).isoformat()
 
+        if self._config.enable_skill_solidification:
+            self._solidification.maybe_solidify(plan)
+        if self._config.enable_work_bus:
+            _publish_work_bus_event_nowait(
+                plan,
+                "plan_completed" if plan.status == StepStatus.COMPLETED else "plan_failed",
+            )
+
         return plan
 
     async def aexecute_plan(self, plan: TaskPlan) -> TaskPlan:
         """Execute a plan with parallel step support (sub-agent delegation)."""
         plan.status = StepStatus.RUNNING
         executed = 0
+        if self._config.enable_work_bus:
+            await _publish_work_bus_event(plan, "plan_started")
 
         while executed < self._config.max_steps:
             ready = self._resolve_dependencies(plan)
@@ -616,11 +850,11 @@ class DeepAgentExecutor:
             if self._config.enable_parallel and len(ready) > 1:
                 # Parallel execution (deepagents sub-agent pattern)
                 batch = ready[: self._config.max_parallel]
-                tasks = [self.aexecute_step(s) for s in batch]
+                tasks = [self._aexecute_step_with_bus(plan, s) for s in batch]
                 await asyncio.gather(*tasks, return_exceptions=True)
                 executed += len(batch)
             else:
-                await self.aexecute_step(ready[0])
+                await self._aexecute_step_with_bus(plan, ready[0])
                 executed += 1
 
             if executed % self._config.checkpoint_interval == 0:
@@ -636,7 +870,23 @@ class DeepAgentExecutor:
             plan.status = StepStatus.COMPLETED
             plan.completed_at = datetime.now(UTC).isoformat()
 
+        if self._config.enable_skill_solidification:
+            await asyncio.to_thread(self._solidification.maybe_solidify, plan)
+        if self._config.enable_work_bus:
+            await _publish_work_bus_event(
+                plan,
+                "plan_completed" if plan.status == StepStatus.COMPLETED else "plan_failed",
+            )
+
         return plan
+
+    async def _aexecute_step_with_bus(self, plan: TaskPlan, step: TaskStep) -> TaskStep:
+        if self._config.enable_work_bus:
+            await _publish_work_bus_event(plan, "step_started", step)
+        result = await self.aexecute_step(step)
+        if self._config.enable_work_bus:
+            await _publish_work_bus_event(plan, _step_kind(result), result)
+        return result
 
     def learn(self, fact: str, *, source: str = "execution", tags: list[str] | None = None) -> None:
         """Store a learned fact in session memory."""
@@ -737,6 +987,7 @@ __all__ = [
     "DeepAgentExecutor",
     "MemoryEntry",
     "MemoryStore",
+    "SelfSolidificationExecutor",
     "Skill",
     "SkillRegistry",
     "StepPriority",

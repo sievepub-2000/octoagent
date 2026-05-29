@@ -8,8 +8,8 @@ from fastapi import APIRouter, Header, HTTPException, Path
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
-from src.gateway.security import require_operator_or_403
 from src.gateway.monitoring import get_metrics_registry
+from src.gateway.security import require_operator_or_403
 from src.governance.operator import signed_audit_event
 
 logger = logging.getLogger(__name__)

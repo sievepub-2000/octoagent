@@ -12,9 +12,9 @@ from urllib.parse import urlparse
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, Field
 
-from src.interfaces.distributed import get_execution_node_registry
 from src.gateway.security import require_operator_or_403, require_worker_token_or_403
 from src.governance.operator import confirmation_matches, redact_secrets, signed_audit_event
+from src.interfaces.distributed import get_execution_node_registry
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/execution-nodes", tags=["distributed_execution"])

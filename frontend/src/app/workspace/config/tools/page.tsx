@@ -381,7 +381,7 @@ function normalizeEntries(
     });
   }
 
-  const registryMcp = new Map((registry.mcp ?? []).filter((item) => item?.name).map((item) => [item.name as string, item]));
+  const registryMcp = new Map((registry.mcp ?? []).filter((item) => item?.name).map((item) => [item.name!, item]));
   const mcpServers = mcp.mcp_servers ?? mcp.mcpServers ?? {};
   for (const [name, entry] of Object.entries(mcpServers)) {
     const transport = entry?.type ?? entry?.transport ?? "stdio";

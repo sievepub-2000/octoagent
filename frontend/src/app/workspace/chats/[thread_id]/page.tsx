@@ -221,7 +221,7 @@ export default function ChatPage() {
       });
       setExistingThreadVerifyTimedOut(true);
     }
-  }, [missingExistingThread]);
+  }, [missingExistingThread, t.systemEvents.threadLoadFailed]);
 
   // Block rendering until the thread state has been verified against the server.
   // Using isVerifying (isFetching) instead of isLoading prevents stale cache
@@ -300,9 +300,7 @@ function ChatThreadView({
   // could bounce the user to a brand-new fresh chat — losing their
   // attachment + draft. Capturing the timestamp on mount closes that
   // gap without changing the "stale thread eventually redirects" intent.
-  if (threadCreatedAtRef.current === null) {
-    threadCreatedAtRef.current = Date.now();
-  }
+  threadCreatedAtRef.current ??= Date.now();
   const routeSyncRef = useRef<string | null>(null);
   const [pendingContinuationContext, setPendingContinuationContext] = useState<Record<string, unknown> | undefined>();
   const [contextCycleBaseTokens, setContextCycleBaseTokens] = useState(0);
@@ -426,6 +424,7 @@ function ChatThreadView({
     isFreshRoute,
     isNewThread,
     sendMessage,
+    t.systemEvents.autoContinueResume,
     thread.isLoading,
     thread.messages.length,
     threadId,
@@ -459,7 +458,7 @@ function ChatThreadView({
       source: "session",
     });
     await thread.stop();
-  }, [thread]);
+  }, [t.systemEvents.userAborted, thread]);
 
   const handleContextThreshold = useCallback((usage: ContextTokenUsage) => {
     if (thread.isLoading) {

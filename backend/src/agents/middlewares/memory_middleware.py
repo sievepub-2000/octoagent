@@ -1,8 +1,10 @@
 """Middleware for memory mechanism."""
 
+import asyncio
 import logging
 import re
 import threading
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any, override
 
 from langchain.agents import AgentState
@@ -15,6 +17,28 @@ from src.utils.messages import message_text as _message_text
 
 logger = logging.getLogger(__name__)
 _simplemem_write_lock = threading.Lock()
+_simplemem_executor = ThreadPoolExecutor(
+    max_workers=1,
+    thread_name_prefix="simplemem-writer",
+)
+
+
+def _dispatch_simplemem_worker(worker, thread_id: str) -> None:  # type: ignore[no-untyped-def]
+    def _log_failure(done) -> None:  # type: ignore[no-untyped-def]
+        try:
+            done.result()
+        except Exception as exc:
+            logger.debug("SimpleMem async write skipped for thread %s: %s", thread_id, exc)
+
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        future = _simplemem_executor.submit(worker)
+        future.add_done_callback(_log_failure)
+        return
+
+    future = loop.run_in_executor(_simplemem_executor, worker)
+    future.add_done_callback(_log_failure)
 
 
 def _store_simplemem_conversation_async(
@@ -45,12 +69,7 @@ def _store_simplemem_conversation_async(
         except Exception as exc:
             logger.debug("SimpleMem async write skipped for thread %s: %s", thread_id, exc)
 
-    thread = threading.Thread(
-        target=_worker,
-        name=f"octoagent-simplemem-{thread_id[:8]}",
-        daemon=True,
-    )
-    thread.start()
+    _dispatch_simplemem_worker(_worker, thread_id)
 
 
 class MemoryMiddlewareState(AgentState):
@@ -123,7 +142,6 @@ def _filter_messages_for_memory(messages: list[Any]) -> list[Any]:
         # Skip tool messages and AI messages with tool_calls
 
     return filtered
-
 
 
 

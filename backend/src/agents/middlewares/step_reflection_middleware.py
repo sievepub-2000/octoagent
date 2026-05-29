@@ -44,8 +44,9 @@ from typing import Any, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from langgraph.runtime import Runtime
+
 from src.utils.messages import latest_human_index as _latest_human_index
 
 logger = logging.getLogger(__name__)

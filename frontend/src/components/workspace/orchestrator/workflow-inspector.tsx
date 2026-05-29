@@ -29,6 +29,7 @@ import { ArtifactFileList } from "../artifacts/artifact-file-list";
 
 import { ExecutionConsole } from "./execution-console";
 import { TaskWorkspaceRuntime } from "./task-workspace-runtime";
+import { WorkBusFlow } from "./work-bus-flow";
 
 export function WorkflowInspector({
   className,
@@ -180,7 +181,8 @@ export function WorkflowInspector({
               <TabsTrigger value="plan">{copy.board}</TabsTrigger>
               <TabsTrigger value="artifacts">{t.common.artifacts}</TabsTrigger>
             </TabsList>
-            <TabsContent className="min-h-0 flex-1 p-4" value="plan">
+            <TabsContent className="min-h-0 flex-1 overflow-auto p-4" value="plan">
+              <WorkBusFlow threadId={threadId} />
               <TaskWorkspaceRuntime
                 focus="plan"
                 threadId={threadId}

@@ -19,8 +19,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from src.runtime.config.paths import get_paths
 from src.gateway.observability import record_exception_trace
+from src.runtime.config.paths import get_paths
 
 logger = logging.getLogger(__name__)
 

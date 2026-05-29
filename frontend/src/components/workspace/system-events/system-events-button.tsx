@@ -21,6 +21,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import { useI18n } from "@/core/i18n/hooks";
 import {
   clearSystemEvents,
   markAllSystemEventsRead,
@@ -28,7 +29,6 @@ import {
   type SystemEvent,
   type SystemEventLevel,
 } from "@/core/system-events/store";
-import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
 const ICON_BY_LEVEL: Record<SystemEventLevel, typeof InfoIcon> = {

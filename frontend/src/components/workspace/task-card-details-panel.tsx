@@ -1,7 +1,6 @@
 "use client";
 
 import { DownloadIcon, FolderKanbanIcon } from "lucide-react";
-import { useI18n } from "@/core/i18n/hooks";
 import { useEffect, useState, type ComponentPropsWithoutRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -18,6 +17,7 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getBackendBaseURL } from "@/core/config";
+import { useI18n } from "@/core/i18n/hooks";
 import type {
   AgentHandle,
   TaskArtifactFile,
@@ -270,7 +270,7 @@ export function TaskCardDetailsPanel({
     return () => {
       cancelled = true;
     };
-  }, [selectedDocumentPath, taskWorkspace.task_id]);
+  }, [selectedDocumentPath, t.taskCardDetails.loadCardDocFailed, taskWorkspace.task_id]);
 
   return (
     <Card className="shadow-none" data-testid="task-card-details-panel">

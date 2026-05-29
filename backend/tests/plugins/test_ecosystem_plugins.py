@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from src.tools.plugins import get_plugin_service
 from src.tools.capability_tools import get_plugin_command_tool
+from src.tools.plugins import get_plugin_service
 
 
 def test_ecosystem_plugins_are_registered() -> None:

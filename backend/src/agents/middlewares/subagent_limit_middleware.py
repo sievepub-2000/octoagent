@@ -7,8 +7,8 @@ from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langgraph.runtime import Runtime
 
-from src.runtime.config.subagents_config import get_subagents_app_config
 from src.agents.subagents.policy import is_host_memory_oom_critical
+from src.runtime.config.subagents_config import get_subagents_app_config
 
 logger = logging.getLogger(__name__)
 

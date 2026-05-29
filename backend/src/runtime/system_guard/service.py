@@ -23,9 +23,9 @@ import duckdb
 from src.runtime.config.app_config import AppConfig, get_app_config
 from src.runtime.config.paths import get_paths, resolve_configured_default_model_name
 from src.runtime.config.system_guard_config import get_system_guard_config
+from src.utils.datetime import utc_now_iso as _utc_now
 
 from .vector_store import SystemGuardVectorStore
-from src.utils.datetime import utc_now_iso as _utc_now
 
 logger = logging.getLogger(__name__)
 

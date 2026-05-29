@@ -3,9 +3,9 @@ from __future__ import annotations
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langchain_core.outputs import ChatGeneration, ChatResult
 
-from src.runtime.config.model_config import ModelConfig
 from src.models import factory
 from src.models.error_contracts import NormalizedModelError, normalize_model_exception
+from src.runtime.config.model_config import ModelConfig
 
 
 class _FakeConfig:

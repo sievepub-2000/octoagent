@@ -8,13 +8,13 @@ import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.models.factory import EMBEDDED_BACKUP_MODEL_NAME
+from src.models.interfaces import normalize_interface_type, resolve_model_interface_profile
+from src.models.provider_adapter import resolve_provider_adapter_profile
 from src.runtime.config import get_app_config
 from src.runtime.config.app_config import AppConfig, reload_app_config
 from src.runtime.config.embedded_model_config import get_embedded_model_config
 from src.runtime.config.paths import get_setup_state_file
-from src.models.factory import EMBEDDED_BACKUP_MODEL_NAME
-from src.models.interfaces import normalize_interface_type, resolve_model_interface_profile
-from src.models.provider_adapter import resolve_provider_adapter_profile
 
 router = APIRouter(prefix="/api", tags=["models"])
 _MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")

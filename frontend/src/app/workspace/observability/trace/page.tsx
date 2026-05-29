@@ -57,7 +57,7 @@ export default function TraceViewerPage() {
   }, [limit]);
 
   useEffect(() => {
-    fetchTrace();
+    void fetchTrace();
   }, [fetchTrace]);
 
   const filteredEvents = useMemo(() => {

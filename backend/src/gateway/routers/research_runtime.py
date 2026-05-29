@@ -9,7 +9,6 @@ from src.interfaces.research import (
     ResearchExperimentRunResponse,
     ResearchProgramListResponse,
     ResearchRuntimeCapability,
-    ResearchRuntimeStatusResponse,
     ResearchTrial,
     RunResearchExperimentRequest,
     get_research_runtime_service,

@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import threading
-from datetime import UTC, datetime
 from html import unescape
 from typing import Annotated, Any, NotRequired, override
 

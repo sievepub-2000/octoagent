@@ -8,8 +8,8 @@ from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langgraph.runtime import Runtime
 
-from src.runtime.config.title_config import get_title_config
 from src.models import create_chat_model
+from src.runtime.config.title_config import get_title_config
 
 
 class TitleMiddlewareState(AgentState):

@@ -4,11 +4,11 @@ from __future__ import annotations
 
 from urllib.parse import quote_plus
 
-from src.tools.sandbox.browser import BrowserActionContract, BrowserSessionRequest
 from src.interfaces.research import RunResearchExperimentRequest
 from src.runtime.governance import get_runtime_worker_isolation
-from src.tools.system_execution import SystemExecutionPlanRequest, SystemExecutionStepExecutionRequest
 from src.tools.permissions import normalize_runtime_permission_mode
+from src.tools.sandbox.browser import BrowserActionContract, BrowserSessionRequest
+from src.tools.system_execution import SystemExecutionPlanRequest, SystemExecutionStepExecutionRequest
 
 from .contracts import QueryClientCommand
 

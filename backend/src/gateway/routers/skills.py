@@ -11,8 +11,8 @@ import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from src.runtime.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from src.gateway.path_utils import resolve_thread_virtual_path
+from src.runtime.config.extensions_config import ExtensionsConfig, SkillStateConfig, get_extensions_config, reload_extensions_config
 from src.storage.skills import Skill, load_skills
 from src.storage.skills.agent_templates import (
     AGENCY_AGENTS_DOWNLOAD_URL,

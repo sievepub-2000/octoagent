@@ -33,11 +33,12 @@ from __future__ import annotations
 import logging
 import os
 import time
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import SystemMessage
 from langgraph.runtime import Runtime
 
 from src.harness.hooks import HookContext, HookEvent, get_hook_executor
@@ -47,6 +48,29 @@ logger = logging.getLogger(__name__)
 
 
 _ADVISORY_MARKER = '<harness_budget_advisory origin="budget_middleware"'
+
+_HOOK_THREAD_POOL = ThreadPoolExecutor(
+    max_workers=1,
+    thread_name_prefix="budget-hook-executor",
+)
+
+
+def _run_budget_hook(ctx: HookContext) -> None:
+    get_hook_executor().run_sync(ctx)
+
+
+def _dispatch_budget_hook(ctx: HookContext) -> None:
+    """Dispatch the sync observability hook off the model hot path."""
+
+    future = _HOOK_THREAD_POOL.submit(_run_budget_hook, ctx)
+
+    def _log_failure(done) -> None:  # type: ignore[no-untyped-def]
+        try:
+            done.result()
+        except Exception:
+            logger.exception("BudgetMiddleware: ON_BUDGET_EXCEEDED hook dispatch failed")
+
+    future.add_done_callback(_log_failure)
 
 
 def _env_int(name: str, default: int) -> int:
@@ -63,7 +87,6 @@ def _env_int(name: str, default: int) -> int:
 
 def _env_flag(name: str, default: str = "1") -> bool:
     return os.getenv(name, default).strip().lower() not in ("0", "false", "no", "off", "")
-
 
 
 
@@ -139,22 +162,18 @@ class BudgetMiddleware(AgentMiddleware[AgentState]):
         if reason is None:
             return None
         logger.warning("BudgetMiddleware: %s — injecting advisory only", reason)
-        # Fire observability hook (best-effort, sync mode).
-        try:
-            executor = get_hook_executor()
-            ctx = HookContext(
-                event=HookEvent.ON_BUDGET_EXCEEDED,
-                state=state,
-                annotations={
-                    "reason": reason,
-                    "turn_count": self._turn_count,
-                    "max_turns": self.max_turns,
-                    "max_wallclock_sec": self.max_wallclock_sec,
-                },
-            )
-            executor.run_sync(ctx)
-        except Exception:
-            logger.exception("BudgetMiddleware: ON_BUDGET_EXCEEDED hook dispatch failed")
+        # Fire observability hook (best-effort) outside the model hot path.
+        ctx = HookContext(
+            event=HookEvent.ON_BUDGET_EXCEEDED,
+            state=state,
+            annotations={
+                "reason": reason,
+                "turn_count": self._turn_count,
+                "max_turns": self.max_turns,
+                "max_wallclock_sec": self.max_wallclock_sec,
+            },
+        )
+        _dispatch_budget_hook(ctx)
         return self._build_advisory_update(reason)
 
     async def _acheck_budget(self, state: AgentState) -> dict[str, Any] | None:

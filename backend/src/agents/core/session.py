@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
+
 from src.utils.datetime import utc_now_iso as _utc_now
 
 if TYPE_CHECKING:

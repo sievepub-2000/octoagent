@@ -6,8 +6,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from threading import RLock
 
-from src.runtime.config.paths import get_paths
 from src.runtime.config.effective import RuntimeJsonStore
+from src.runtime.config.paths import get_paths
 
 from .contracts import BrowserExecutionSession
 

@@ -13,9 +13,9 @@ from src.agents.memory.prompt import (
     MEMORY_UPDATE_PROMPT,
     format_conversation_for_update,
 )
+from src.models import create_chat_model
 from src.runtime.config.memory_config import get_memory_config
 from src.runtime.config.paths import get_paths
-from src.models import create_chat_model
 
 logger = logging.getLogger(__name__)
 

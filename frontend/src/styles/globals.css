@@ -890,3 +890,27 @@
   --container-width-md: calc(var(--spacing) * 204);
   --container-width-lg: calc(var(--spacing) * 256);
 }
+
+
+.work-bus-laser {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in oklab, var(--primary) 25%, transparent),
+    color-mix(in oklab, var(--accent) 60%, transparent),
+    color-mix(in oklab, var(--primary) 25%, transparent),
+    transparent
+  );
+  background-size: 220% 100%;
+  box-shadow: 0 0 14px color-mix(in oklab, var(--accent) 45%, transparent);
+  animation: work-bus-laser-flow 1.6s linear infinite;
+}
+
+@keyframes work-bus-laser-flow {
+  from {
+    background-position: 220% 0;
+  }
+  to {
+    background-position: -220% 0;
+  }
+}

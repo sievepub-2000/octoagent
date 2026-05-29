@@ -25,8 +25,8 @@ from uuid import uuid4
 import psutil
 from langchain_core.tools import tool
 
-from src.runtime.config.paths import get_paths
 from src.gateway.observability import record_exception_trace, record_tool_trace
+from src.runtime.config.paths import get_paths
 from src.runtime.governance import get_runtime_worker_isolation
 from src.utils.datetime import utc_now_iso_seconds as _utc_now
 

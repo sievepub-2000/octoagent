@@ -5,9 +5,9 @@ from pathlib import Path
 import yaml
 from fastapi import APIRouter, Header, HTTPException
 
+from src.gateway.security import require_operator_or_403
 from src.runtime.config.app_config import AppConfig, reload_app_config
 from src.runtime.config.integrations_config import SystemExecutionConfig
-from src.gateway.security import require_operator_or_403
 from src.tools.system_execution import (
     SystemExecutionAuditEntry,
     SystemExecutionCapability,

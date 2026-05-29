@@ -18,7 +18,6 @@ from langgraph.types import Command
 from langgraph.typing import ContextT
 
 from src.agents.thread_state import ThreadState
-from src.utils.proxy_env import should_trust_proxy_env
 from src.utils.url_safety import is_url_safe, safe_join_url
 
 logger = logging.getLogger(__name__)

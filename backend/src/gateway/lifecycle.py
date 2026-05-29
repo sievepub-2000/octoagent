@@ -6,9 +6,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from src.runtime.architecture import get_service_bus
-from src.runtime.config.app_config import get_app_config
 from src.gateway.config import get_gateway_config
+from src.governance.about import initialize_internal_secrets as _init_internal_secrets
 from src.harness import (
     init_run_journal,
     mark_orphans_on_startup,
@@ -18,8 +17,8 @@ from src.harness import (
     sweep_orphaned_runs_once,
 )
 from src.harness.dispatcher import start_dispatcher_task, stop_dispatcher_task
-from src.governance.about import initialize_internal_secrets as _init_internal_secrets
-
+from src.runtime.architecture import get_service_bus
+from src.runtime.config.app_config import get_app_config
 from src.runtime.system_guard.service import get_system_guard_service
 
 logger = logging.getLogger(__name__)
