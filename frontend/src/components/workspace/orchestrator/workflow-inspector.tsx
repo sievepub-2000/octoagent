@@ -19,6 +19,7 @@ import { useI18n } from "@/core/i18n/hooks";
 import {
   buildRuntimeSummaryItems,
   buildRuntimeTelemetryEvents,
+  type RuntimeCapabilities,
 } from "@/core/runtime";
 import { useRuntimeCapabilities } from "@/core/runtime";
 import type { AgentThreadState } from "@/core/threads";
@@ -37,6 +38,7 @@ export function WorkflowInspector({
   isStreaming,
   mode,
   onCollapsePanel,
+  runtimeCapabilities,
   threadId,
   threadState,
 }: {
@@ -45,6 +47,7 @@ export function WorkflowInspector({
   isStreaming: boolean;
   mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
   onCollapsePanel?: () => void;
+  runtimeCapabilities?: RuntimeCapabilities;
   threadId: string;
   threadState: AgentThreadState;
 }) {
@@ -53,7 +56,10 @@ export function WorkflowInspector({
   const { selectedArtifact, artifacts } = useArtifacts();
   const { topTab, setTopTab, consoleOpen, setConsoleOpen, appendEvent, events } =
     useWorkflows();
-  const { runtime } = useRuntimeCapabilities();
+  const { runtime: fetchedRuntime } = useRuntimeCapabilities({
+    enabled: runtimeCapabilities == null,
+  });
+  const runtime = runtimeCapabilities ?? fetchedRuntime;
   const telemetryEventKeysRef = useRef<Set<string>>(new Set());
 
   const runtimeSummaryItems = useMemo(

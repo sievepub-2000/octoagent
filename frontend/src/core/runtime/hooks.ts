@@ -11,6 +11,9 @@ import {
   runSystemGuardRepair,
 } from "./api";
 
+const RUNTIME_CAPABILITIES_STALE_MS = 5 * 60_000;
+const RUNTIME_CAPABILITIES_GC_MS = 30 * 60_000;
+
 export function useRuntimeCapabilities({
   enabled = true,
 }: {
@@ -21,6 +24,8 @@ export function useRuntimeCapabilities({
     queryFn: () => loadRuntimeCapabilities(),
     enabled,
     refetchOnWindowFocus: false,
+    staleTime: RUNTIME_CAPABILITIES_STALE_MS,
+    gcTime: RUNTIME_CAPABILITIES_GC_MS,
   });
 
   return { runtime: data, isLoading, error };

@@ -354,6 +354,7 @@ const ChatBox: React.FC<{
                 isStreaming={thread.isLoading}
                 mode={mode}
                 onCollapsePanel={toggleArtifactPanel}
+                runtimeCapabilities={runtime}
                 threadId={threadId}
                 threadState={inspectorThreadState}
               />

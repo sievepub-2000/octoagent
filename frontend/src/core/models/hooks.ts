@@ -3,12 +3,17 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createModel, deleteModel, loadModels, updateModel } from "./api";
 import type { ModelCreateRequest, ModelUpdateRequest } from "./types";
 
+const MODELS_STALE_MS = 5 * 60_000;
+const MODELS_GC_MS = 30 * 60_000;
+
 export function useModels({ enabled = true }: { enabled?: boolean } = {}) {
   const { data, isLoading, error } = useQuery({
     queryKey: ["models"],
     queryFn: () => loadModels(),
     enabled,
     refetchOnWindowFocus: false,
+    staleTime: MODELS_STALE_MS,
+    gcTime: MODELS_GC_MS,
   });
   return { models: data ?? [], isLoading, error };
 }
