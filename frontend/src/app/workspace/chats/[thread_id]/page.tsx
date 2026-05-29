@@ -1,11 +1,14 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { PlayIcon, RotateCcwIcon, SquareIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { useSpecificChatMode } from "@/components/workspace/chats/use-chat-mode";
 import { useThreadChat } from "@/components/workspace/chats/use-thread-chat";
 import { ThreadContext } from "@/components/workspace/messages/context";
@@ -75,6 +78,129 @@ function ChatRouteFallback() {
           Loading runtime inspector...
         </div>
       </aside>
+    </div>
+  );
+}
+
+type RunControlState = {
+  visible: boolean;
+  label: string;
+  detail?: string;
+  level: "info" | "warning" | "error";
+  canRetry: boolean;
+  canResume: boolean;
+};
+
+function resolveRunControlState({
+  isLoading,
+  runtime,
+  error,
+  lastUserText,
+}: {
+  isLoading: boolean;
+  runtime: AgentThreadState["runtime"];
+  error: unknown;
+  lastUserText: string | null;
+}): RunControlState {
+  if (isLoading) {
+    return {
+      visible: true,
+      label: "Running",
+      detail: "Current run is active.",
+      level: "info",
+      canRetry: false,
+      canResume: false,
+    };
+  }
+
+  const recoverable = runtime?.recoverable_failure ?? runtime?.incomplete_state ?? null;
+  const lastRunRecord = runtime?.last_run_record as
+    | { final_evaluation?: { status?: string; reason?: string } }
+    | null
+    | undefined;
+  const finalEvaluation = lastRunRecord?.final_evaluation;
+  const finalStatus = finalEvaluation?.status;
+  const hasRuntimeError = Boolean(error || runtime?.final_error);
+
+  if (recoverable || finalStatus === "failed" || finalStatus === "incomplete" || hasRuntimeError) {
+    const detail =
+      (typeof recoverable?.reason === "string" ? recoverable.reason : undefined) ??
+      finalEvaluation?.reason ??
+      runtime?.final_error ??
+      (error instanceof Error ? error.message : undefined);
+    return {
+      visible: true,
+      label: finalStatus === "incomplete" || recoverable ? "Needs attention" : "Run failed",
+      detail,
+      level: "error",
+      canRetry: Boolean(lastUserText),
+      canResume: true,
+    };
+  }
+
+  if (runtime?.continuation_mode === "resumed" || runtime?.workflow_resume_state === "resumed") {
+    return {
+      visible: true,
+      label: "Resumed",
+      detail: runtime.continuation_source ? `Continued from ${runtime.continuation_source}.` : "Continuation context is active.",
+      level: "info",
+      canRetry: false,
+      canResume: false,
+    };
+  }
+
+  return { visible: false, label: "", level: "info", canRetry: false, canResume: false };
+}
+
+function RunControlBar({
+  state,
+  onStop,
+  onRetry,
+  onResume,
+}: {
+  state: RunControlState;
+  onStop: () => void;
+  onRetry: () => void;
+  onResume: () => void;
+}) {
+  if (!state.visible) return null;
+  const tone =
+    state.level === "error"
+      ? "border-destructive/30 text-destructive"
+      : state.level === "warning"
+        ? "border-amber-500/30 text-amber-600 dark:text-amber-400"
+        : "border-border/70 text-muted-foreground";
+
+  return (
+    <div className="mb-2 rounded-md border border-border/70 bg-background/95 px-3 py-2 text-sm shadow-sm backdrop-blur">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge variant="outline" className={cn("h-6 px-2 text-xs", tone)}>
+          {state.label}
+        </Badge>
+        {state.detail ? (
+          <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">{state.detail}</span>
+        ) : (
+          <span className="min-w-0 flex-1" />
+        )}
+        {state.label === "Running" ? (
+          <Button type="button" variant="outline" size="sm" onClick={onStop} title="Stop current run">
+            <SquareIcon className="size-3.5" />
+            Stop
+          </Button>
+        ) : null}
+        {state.canRetry ? (
+          <Button type="button" variant="outline" size="sm" onClick={onRetry} title="Retry last user message">
+            <RotateCcwIcon className="size-3.5" />
+            Retry
+          </Button>
+        ) : null}
+        {state.canResume ? (
+          <Button type="button" variant="outline" size="sm" onClick={onResume} title="Resume from current state">
+            <PlayIcon className="size-3.5" />
+            Resume
+          </Button>
+        ) : null}
+      </div>
     </div>
   );
 }
@@ -490,6 +616,54 @@ function ChatThreadView({
     await thread.stop();
   }, [t.systemEvents.userAborted, thread]);
 
+  const lastUserText = useMemo(() => {
+    for (let index = thread.messages.length - 1; index >= 0; index -= 1) {
+      const message = thread.messages[index];
+      if (!message || message.type !== "human") continue;
+      const text = (textOfMessage(message) ?? "").trim();
+      if (text) return text;
+    }
+    return null;
+  }, [thread.messages]);
+
+  const runControlState = useMemo(
+    () =>
+      resolveRunControlState({
+        isLoading: thread.isLoading,
+        runtime: thread.values.runtime,
+        error: thread.error,
+        lastUserText,
+      }),
+    [lastUserText, thread.error, thread.isLoading, thread.values.runtime],
+  );
+
+  const handleRetryLastTurn = useCallback(() => {
+    if (!lastUserText || thread.isLoading) {
+      return;
+    }
+    pushSystemEvent({
+      level: "info",
+      message: "Retrying the last user turn.",
+      source: "session",
+    });
+    void sendMessage(threadId, { text: lastUserText, files: [] });
+  }, [lastUserText, sendMessage, thread.isLoading, threadId]);
+
+  const handleResumeRun = useCallback(() => {
+    if (thread.isLoading) {
+      return;
+    }
+    pushSystemEvent({
+      level: "info",
+      message: "Resuming from the current runtime state.",
+      source: "session",
+    });
+    void sendMessage(threadId, {
+      text: "Continue the unfinished work in this conversation. Use the existing runtime state, todos, tool results, and recent context. Start from the next concrete step; if a failure exists, first name the recovery point and then continue.",
+      files: [],
+    });
+  }, [sendMessage, thread.isLoading, threadId]);
+
   const handleContextThreshold = useCallback((usage: ContextTokenUsage) => {
     if (thread.isLoading) {
       return;
@@ -636,6 +810,12 @@ function ChatThreadView({
                     }
                   />
                 </div>
+                <RunControlBar
+                  state={runControlState}
+                  onStop={() => void handleStop()}
+                  onRetry={handleRetryLastTurn}
+                  onResume={handleResumeRun}
+                />
                 <InputBox
                   className={cn(
                     "octo-panel w-full rounded-[1.75rem]",
