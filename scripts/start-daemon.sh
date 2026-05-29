@@ -558,6 +558,60 @@ for item in payload.get("files", []):
     print(item)
 PY
         )
+
+        "$OCTOAGENT_PYTHON_BIN" - "$REPO_ROOT/frontend" <<'PY'
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+from typing import Any
+
+frontend_root = Path(sys.argv[1])
+next_root = frontend_root / ".next"
+manifest_paths = [
+    next_root / "build-manifest.json",
+    next_root / "app-build-manifest.json",
+    next_root / "react-loadable-manifest.json",
+]
+missing: list[str] = []
+
+
+def iter_values(value: Any):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, list):
+        for item in value:
+            yield from iter_values(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            yield from iter_values(item)
+
+
+for manifest_path in manifest_paths:
+    if not manifest_path.exists():
+        continue
+    try:
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        print(f"  Invalid frontend manifest: {manifest_path.relative_to(frontend_root)} ({exc})")
+        raise SystemExit(1)
+    for item in iter_values(payload):
+        relative = None
+        if item.startswith("static/"):
+            relative = item
+        elif item.startswith("/_next/static/"):
+            relative = item[len("/_next/") :]
+        if relative and not (next_root / relative).exists():
+            missing.append(relative)
+
+if missing:
+    for item in sorted(set(missing))[:40]:
+        print(f"  Missing frontend static artifact: {item}")
+    if len(set(missing)) > 40:
+        print(f"  ... and {len(set(missing)) - 40} more missing frontend static artifact(s)")
+    raise SystemExit(1)
+PY
     }
 
     FRONTEND_HASH_FILE="$REPO_ROOT/frontend/.next/.octoagent-src-hash"
