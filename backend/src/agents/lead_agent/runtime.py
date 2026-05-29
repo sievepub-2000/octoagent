@@ -6,7 +6,7 @@ from typing import Any
 
 from langchain_core.runnables import RunnableConfig
 
-from src.agents.dialogue_routing import FAST_ROUTES, classify_dialogue_route
+from src.agents.dialogue_routing import FAST_ROUTES, ROUTE_CONTROL_COMMAND, ROUTE_PLAN_ONLY, classify_dialogue_route
 from src.models import is_embedded_backup_model_name
 from src.runtime.config.agents_config import load_agent_config
 from src.runtime.config.app_config import get_app_config
@@ -193,7 +193,7 @@ class LeadAgentRuntimeResolver:
         system_continue_reason = runtime_config_value(config, "system_continue_reason")
         continue_message_count = runtime_config_value(config, "continue_message_count")
         thread_message_count = runtime_config_value(config, "thread_message_count")
-        if route.kind in FAST_ROUTES and (
+        if route.kind in FAST_ROUTES and route.kind not in {ROUTE_CONTROL_COMMAND, ROUTE_PLAN_ONLY} and (
             continue_trigger == "continue"
             or bool(system_continue_reason)
             or (isinstance(continue_message_count, (int, float)) and int(continue_message_count) >= 1)
@@ -210,6 +210,9 @@ class LeadAgentRuntimeResolver:
                 system_continue_reason,
                 continue_message_count,
             )
+        if route.kind == ROUTE_PLAN_ONLY:
+            is_plan_mode = True
+            subagent_enabled = False
         ml_intern_profile = resolve_ml_intern_profile_name(
             runtime_config_value(config, "ml_intern_profile"),
             permission_mode=permission_mode,

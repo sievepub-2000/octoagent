@@ -14,6 +14,8 @@ from langchain.agents.middleware.types import ModelCallResult, ModelRequest, Mod
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 from langgraph.runtime import Runtime
 
+from src.agents.dialogue_routing import classify_dialogue_route
+
 
 class ClientCommandMiddleware(AgentMiddleware[AgentState]):
     """Expose normalized client intent as hidden context before the agent runs."""
@@ -44,6 +46,10 @@ class ClientCommandMiddleware(AgentMiddleware[AgentState]):
                 messages[-1:-1] = inserted_messages
                 return {"messages": messages}
             return None
+        route_kind = _route_kind(runtime_context) or classify_dialogue_route(str(last_message.content)).kind
+        if route_kind in {"control_command", "plan_only"}:
+            messages[-1:-1] = inserted_messages + [_build_control_route_guard(route_kind)]
+            return {"messages": messages}
 
         if is_flash and inserted_messages:
             compact_lines = ["<client_execution_contract>"]
@@ -156,8 +162,10 @@ def _extract_tagged_json(messages: list[Any], tag: str) -> dict[str, Any] | None
 
 
 def _build_instant_client_answer(messages: list[Any], runtime_context: dict[str, Any]) -> str | None:
-    route = _route_kind(runtime_context)
     user_text = _last_human_text(messages)
+    route = _route_kind(runtime_context) or classify_dialogue_route(user_text).kind
+    if route == "control_command":
+        return _format_control_command_answer(user_text)
     if route == "current_snapshot":
         weather_payload = _extract_tagged_json(messages, "current_weather_snapshot")
         if weather_payload is not None:
@@ -168,6 +176,35 @@ def _build_instant_client_answer(messages: list[Any], runtime_context: dict[str,
     if route == "direct_answer":
         return _try_direct_arithmetic_answer(user_text)
     return None
+
+
+def _build_control_route_guard(route_kind: str) -> SystemMessage:
+    if route_kind == "control_command":
+        guidance = (
+            "The latest user turn is a conversation control command. "
+            "Acknowledge the control intent briefly. Do not run tools or claim external actions unless an explicit runtime control API is invoked outside the model."
+        )
+    else:
+        guidance = (
+            "The latest user turn is planning-only or confirmation-gated. "
+            "Provide analysis, options, and a proposed plan only. Do not execute tools, modify files, run commands, commit, push, or start background work until the user confirms."
+        )
+    return SystemMessage(content=f"<dialogue_control_guard>\n{guidance}\n</dialogue_control_guard>")
+
+
+def _format_control_command_answer(user_text: str) -> str | None:
+    text = user_text.strip().lower()
+    if not text:
+        return None
+    if "/new" in text or "新对话" in user_text or "新会话" in user_text or "新聊天" in user_text or text == "new":
+        return "已识别为新对话控制命令。请使用 WebUI 的新对话入口；当前回合不会启动工具执行。"
+    if "/status" in text or text == "status" or "状态" in user_text or "进度" in user_text:
+        return "已识别为状态查询控制命令。当前回合不会启动新的工具执行。"
+    if "/stop" in text or "/pause" in text or text in {"stop", "pause"} or any(word in user_text for word in ("暂停", "停止", "停下", "中止", "取消")):
+        return "已识别为停止/暂停控制命令。当前回合不会启动新的工具执行。"
+    if "/resume" in text or "/continue" in text or text in {"resume", "continue"} or any(word in user_text for word in ("继续", "接着", "恢复")):
+        return "已识别为继续/恢复控制命令。需要恢复具体任务时，请明确要继续的任务或确认继续上一项待执行工作。"
+    return "已识别为对话控制命令。当前回合不会启动工具执行。"
 
 
 def _try_direct_arithmetic_answer(user_text: str) -> str | None:

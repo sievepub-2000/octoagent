@@ -97,6 +97,51 @@ def test_runtime_resolver_preserves_explicit_direct_route_without_tools() -> Non
     assert options.dialogue_needs_tools is False
 
 
+def test_runtime_resolver_keeps_control_command_lightweight_on_existing_thread() -> None:
+    config = RuntimeConfigStub([_model("local-qwen", "llamacpp")])
+    resolver = LeadAgentRuntimeResolver(
+        app_config_getter=lambda: config,
+        agent_config_loader=lambda _name: None,
+    )
+
+    options = resolver.resolve(
+        {
+            "configurable": {
+                "model_name": "local-qwen",
+                "mode": "flash",
+                "dialogue_text": "开启个新对话/new",
+                "thread_message_count": 8,
+            }
+        }
+    )
+
+    assert options.dialogue_route == "control_command"
+    assert options.dialogue_needs_tools is False
+
+
+def test_runtime_resolver_plan_only_enables_plan_mode_without_tools() -> None:
+    config = RuntimeConfigStub([_model("local-qwen", "llamacpp")])
+    resolver = LeadAgentRuntimeResolver(
+        app_config_getter=lambda: config,
+        agent_config_loader=lambda _name: None,
+    )
+
+    options = resolver.resolve(
+        {
+            "configurable": {
+                "model_name": "local-qwen",
+                "mode": "flash",
+                "dialogue_text": "先给方案，等我确认后再执行",
+                "thread_message_count": 4,
+            }
+        }
+    )
+
+    assert options.dialogue_route == "plan_only"
+    assert options.dialogue_needs_tools is False
+    assert options.is_plan_mode is True
+
+
 def test_runtime_resolver_keeps_flash_empty_turn_lightweight() -> None:
     config = RuntimeConfigStub([_model("local-qwen", "llamacpp")])
     resolver = LeadAgentRuntimeResolver(

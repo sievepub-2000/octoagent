@@ -1114,7 +1114,7 @@ export function useThreadStream({
               dialogue_needs_deep_agent: route.needsDeepAgent,
               permission_mode: permissionMode,
               thinking_enabled: thinkingEnabled,
-              is_plan_mode: route.needsDeepAgent || effectiveMode === "pro" || effectiveMode === "ultra",
+              is_plan_mode: route.kind === "plan_only" || route.needsDeepAgent || effectiveMode === "pro" || effectiveMode === "ultra",
               subagent_enabled: route.needsDeepAgent && effectiveMode === "ultra",
               thread_id: targetThreadId ?? undefined,
             },

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 from src.agents.dialogue_routing import (
     FAST_ROUTES,
+    ROUTE_CONTROL_COMMAND,
     ROUTE_CURRENT_RESEARCH,
     ROUTE_DEEP_AGENT,
     ROUTE_DIRECT_ANSWER,
+    ROUTE_PLAN_ONLY,
     ROUTE_TOOL_ACTION,
     classify_dialogue_route,
 )
@@ -17,8 +19,12 @@ def _route(text: str, **kw) -> str:
 
 
 class TestContinuationKeywords:
-    def test_chinese_continue_word_routes_to_tool_action(self):
-        for word in ["继续", "接着", "下一步", "然后呢", "继续干", "推进一下", "搞定它", "去做", "开始执行", "落实下来"]:
+    def test_chinese_control_words_route_to_control_command(self):
+        for word in ["继续", "接着", "恢复", "暂停", "停止", "状态", "开启个新对话/new", "新建一个新对话"]:
+            assert _route(word) == ROUTE_CONTROL_COMMAND, f"{word!r} should route to control_command, got {_route(word)}"
+
+    def test_chinese_explicit_action_words_still_route_to_tool_action(self):
+        for word in ["继续干", "推进一下", "搞定它", "去做", "开始执行", "落实下来"]:
             assert _route(word) == ROUTE_TOOL_ACTION, f"{word!r} should route to tool_action, got {_route(word)}"
 
     def test_english_tool_action_keywords(self):
@@ -41,10 +47,24 @@ class TestContinuationKeywords:
         assert _route(long_text) == ROUTE_DEEP_AGENT
 
     def test_fast_routes_are_only_two(self):
-        assert FAST_ROUTES == {"direct_answer", "current_snapshot"}
+        assert FAST_ROUTES == {"direct_answer", "control_command", "plan_only", "current_snapshot"}
 
     def test_explicit_route_param_honoured(self):
-        assert classify_dialogue_route("继续", explicit_route="direct_answer").kind == ROUTE_DIRECT_ANSWER
+        assert classify_dialogue_route("你好", explicit_route="direct_answer").kind == ROUTE_DIRECT_ANSWER
+
+    def test_control_command_overrides_bad_client_route(self):
+        assert classify_dialogue_route("继续", explicit_route="direct_answer").kind == ROUTE_CONTROL_COMMAND
+
+    def test_plan_only_confirmation_gate_beats_tool_keywords(self):
+        for text in [
+            "先给出整体优化方案，等我确认后再执行",
+            "只评估一下当前系统，不要修改文件",
+            "plan first, do not execute",
+        ]:
+            route = classify_dialogue_route(text)
+            assert route.kind == ROUTE_PLAN_ONLY
+            assert route.needs_tools is False
+            assert route.needs_memory is True
 
 
 class TestNeedsFlags:
