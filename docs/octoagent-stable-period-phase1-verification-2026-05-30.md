@@ -21,6 +21,9 @@ This phase keeps the stable-period rule: no broad architecture replacement. The 
 - Web research fallback now prefers `scrapling_fetch` for Yahoo Japan topic pages and JavaScript-boilerplate pages when `web_fetch`/readability returns noisy content.
 - Research closure fallback now extracts visible Yahoo topic titles and timestamps from Scrapling text, so interrupted or budget-closed research answers from real evidence instead of returning `0/10`.
 - Left-side management cards now share a compact card style, smaller action buttons, constrained badges, fixed minimum card height, and overflow-safe long text.
+- `web_fetch` now owns a code-level anti-bot recovery harness: blocked HTTP statuses or anti-bot/login/captcha/JavaScript challenge text trigger a same-URL Scrapling retry before RSS or raw HTML fallback. This is implemented in runtime code and covered by unit tests rather than relying on prompt/tool-description memory.
+- `scrapling_fetch` and `scrapling_fetch_stealth` now reject private/internal URLs directly, so Scrapling can safely be used as a broader fallback engine behind the unified reader.
+- `read_webpage` delegates recoverable anti-bot HTTP statuses to the layered `web_fetch` chain, keeping browser-facing page reads aligned with the same Scrapling fallback policy.
 
 ## Verification commands
 
@@ -29,6 +32,7 @@ Backend regression checks:
 ```bash
 cd backend
 .venv/bin/python -m pytest tests/agents/test_tool_recovery_middleware.py tests/agents/test_progress_stall_middleware.py tests/agents/test_task_state_middleware.py
+.venv/bin/python -m pytest tests/tools/test_ddg_web_fetch.py tests/community/test_scrapling_fetch.py tests/tools/test_web_reader_tool.py
 ```
 
 Yahoo/scrapling fallback check:
@@ -47,6 +51,18 @@ answer = _research_closure_fallback_answer(
     tool_names={"web_fetch"},
 )
 assert "可见结果（10/10）" in answer
+PY
+```
+
+Scrapling safety check:
+
+```bash
+cd backend
+.venv/bin/python - <<'PY'
+from src.community.scrapling.tools import scrapling_fetch
+
+result = scrapling_fetch.invoke({"url": "http://127.0.0.1:19804/docs"})
+assert "private/internal" in result
 PY
 ```
 

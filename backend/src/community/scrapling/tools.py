@@ -14,6 +14,8 @@ from typing import Any
 
 from langchain.tools import tool
 
+from src.utils.url_safety import is_url_safe
+
 logger = logging.getLogger(__name__)
 
 _FETCHER = None
@@ -85,9 +87,12 @@ def _fmt_result(url: str, page: Any, *, mode: str, tls_verification: str = "veri
 def scrapling_fetch(url: str) -> str:
     """Fetch a single URL using Scrapling's HTTP Fetcher (TLS impersonation, no browser).
 
-    Use for JS-light pages or when DDG/Tavily failed. Returns JSON
+    Use for JS-light pages or when DDG/Tavily/web_fetch hit blocked-page
+    patterns. Rejects private/internal URLs and returns JSON
     {url, title, content, engine, mode}.
     """
+    if not is_url_safe(url):
+        return json.dumps({"error": "Access to private/internal network addresses is not allowed.", "url": url, "engine": "scrapling"})
     _lazy_init()
     if _FETCHER is None:
         return json.dumps({"error": "scrapling not installed", "url": url})
@@ -111,8 +116,11 @@ def scrapling_fetch(url: str) -> str:
 def scrapling_fetch_stealth(url: str) -> str:
     """Fetch a URL using Scrapling StealthyFetcher (Cloudflare/Turnstile bypass).
 
-    Requires browser deps; gracefully degrades to HTTP fetcher if unavailable.
+    Requires browser deps; rejects private/internal URLs and gracefully degrades
+    to HTTP fetcher if unavailable.
     """
+    if not is_url_safe(url):
+        return json.dumps({"error": "Access to private/internal network addresses is not allowed.", "url": url, "engine": "scrapling"})
     _lazy_init()
     if _STEALTHY is None:
         logger.info("StealthyFetcher unavailable, falling back to HTTP fetcher")

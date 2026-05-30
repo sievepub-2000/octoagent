@@ -2,9 +2,9 @@
 
 Provides:
   - ``web_search_tool``: queries DuckDuckGo via the ``ddgs`` package.
-  - ``web_fetch_tool``: httpx fetch via env-configured proxy, with readability
-    extraction. Falls back to RSS variants for sites known to block scrapers
-    (currently: Bloomberg → ``feeds.bloomberg.com/markets/news.rss``).
+  - ``web_fetch_tool``: safe layered fetch via env-configured proxy, with
+    readability extraction, same-URL Scrapling retry for anti-bot pages, and RSS
+    variants for sites known to expose public feeds.
 
 Why this exists: Tavily/Jina API keys are not provisioned, and Jina reader is
 not reachable from this host. DDG + httpx work today without credentials.
@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 import ssl
 from functools import lru_cache
 from urllib.parse import urlparse
@@ -33,6 +34,35 @@ _DEFAULT_TIMEOUT = 30.0
 _DEFAULT_CONNECT = 15.0
 _USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64; rv:124.0) Gecko/20100101 Firefox/124.0"
 _readability = ReadabilityExtractor()
+
+_SCRAPLING_MIN_CONTENT_CHARS = 160
+_BLOCKED_STATUS_CODES = {401, 403, 407, 408, 409, 418, 423, 425, 429, 451, 503}
+_ANTI_BOT_PATTERNS = tuple(
+    re.compile(pattern, re.IGNORECASE)
+    for pattern in (
+        r"\baccess denied\b",
+        r"\baccess to this page has been denied\b",
+        r"\bakamai\b",
+        r"\battention required\b.*\bcloudflare\b",
+        r"\bbot detection\b",
+        r"\bcaptcha\b",
+        r"\bchecking your browser\b",
+        r"\bcloudflare\b",
+        r"\bddos-guard\b",
+        r"\benable javascript and cookies\b",
+        r"\bforbidden\b",
+        r"\bhuman verification\b",
+        r"\bincapsula\b",
+        r"\bjust a moment\b",
+        r"\bperimeterx\b",
+        r"\bplease verify you are a human\b",
+        r"\brobot check\b",
+        r"\btemporarily blocked\b",
+        r"\bverify you are human\b",
+        r"javascript.*(?:disabled|enable|無効)",
+        r"(?:cookies|cookie).*enable",
+    )
+)
 
 
 # Sites that reliably 403 HTML scrapers but expose RSS / public APIs.
@@ -159,12 +189,13 @@ def _fetch_raw_without_verification(url: str, timeout: float) -> tuple[int, str,
         return r.status_code, (r.headers.get("Content-Type") or ""), body
 
 
-def _scrapling_fallback_markdown(url: str, *, reason: str) -> str | None:
+def _scrapling_fallback_markdown(url: str, *, reason: str, stealth: bool = False) -> str | None:
     """Return cleaner Scrapling text for pages where httpx/readability is noisy."""
     try:
-        from src.community.scrapling.tools import scrapling_fetch
+        from src.community.scrapling.tools import scrapling_fetch, scrapling_fetch_stealth
 
-        raw = scrapling_fetch.invoke({"url": url})
+        fetcher = scrapling_fetch_stealth if stealth else scrapling_fetch
+        raw = fetcher.invoke({"url": url})
         payload = json.loads(raw)
     except Exception as exc:
         logger.info("web_fetch scrapling fallback unavailable for %s: %s", url, exc)
@@ -173,7 +204,7 @@ def _scrapling_fallback_markdown(url: str, *, reason: str) -> str | None:
         logger.info("web_fetch scrapling fallback returned error for %s: %s", url, payload.get("error"))
         return None
     content = str(payload.get("content") or "").strip()
-    if len(content) < 160:
+    if len(content) < _SCRAPLING_MIN_CONTENT_CHARS:
         return None
     title = str(payload.get("title") or url).strip()
     mode = str(payload.get("mode") or "http")
@@ -187,7 +218,22 @@ def _scrapling_fallback_markdown(url: str, *, reason: str) -> str | None:
     )
 
 
-def _should_prefer_scrapling(url: str, content: str) -> str | None:
+def _anti_bot_reason(status: int, content: str) -> str | None:
+    if status in _BLOCKED_STATUS_CODES:
+        return f"HTTP status {status} is commonly returned by blocked or anti-bot pages"
+    normalized = re.sub(r"\s+", " ", content or "")[:80_000]
+    if not normalized:
+        return None
+    hits = [pattern.pattern for pattern in _ANTI_BOT_PATTERNS if pattern.search(normalized)]
+    if len(hits) >= 1:
+        return "page content looks like an anti-bot, login, captcha, or JavaScript challenge"
+    return None
+
+
+def _should_prefer_scrapling(url: str, content: str, *, status: int = 200) -> str | None:
+    anti_bot = _anti_bot_reason(status, content)
+    if anti_bot:
+        return anti_bot
     host = urlparse(url).netloc.lower()
     lowered = content.lower()
     if host.endswith("yahoo.co.jp") and ("javascript" in lowered or "topics" in lowered or "トピックス" in content):
@@ -197,12 +243,17 @@ def _should_prefer_scrapling(url: str, content: str) -> str | None:
     return None
 
 
+def _scrapling_stealth_enabled_for_blocked_pages() -> bool:
+    return os.environ.get("OCTO_WEB_FETCH_SCRAPLING_STEALTH_ON_BLOCK", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
 @tool("web_fetch", parse_docstring=True)
 def web_fetch_tool(url: str) -> str:
     """Fetch a web page and return readable markdown.
 
-    Uses httpx via the system proxy. For sites known to block HTML scrapers
-    (e.g. Bloomberg) automatically falls back to RSS feeds.
+    Uses a safe layered reader: httpx/readability first, Scrapling on the same
+    URL when anti-bot/login/JavaScript challenge text or blocked HTTP statuses
+    are detected, and RSS feeds for known public feed fallbacks.
 
     Args:
         url: The URL to fetch the contents of.
@@ -237,6 +288,17 @@ def web_fetch_tool(url: str) -> str:
             logger.warning("web_fetch initial GET failed for %s: %s", url, exc)
             status, ctype, body = 0, "", ""
 
+    blocked_reason = _anti_bot_reason(status, body)
+    if blocked_reason:
+        logger.info("web_fetch: %s status=%s, retrying same URL with scrapling: %s", url, status, blocked_reason)
+        scrapling_md = _scrapling_fallback_markdown(
+            url,
+            reason=blocked_reason,
+            stealth=_scrapling_stealth_enabled_for_blocked_pages(),
+        )
+        if scrapling_md:
+            return f"{tls_warning}{scrapling_md[:6000]}"
+
     # If blocked or empty, try RSS fallback for known-bad hosts.
     if status in (0, 403, 401, 451, 503) or not body:
         rss = _maybe_rewrite_to_rss(url)
@@ -260,7 +322,7 @@ def web_fetch_tool(url: str) -> str:
         article = _readability.extract_article(body)
         md = article.to_markdown()
         if md and md.strip():
-            reason = _should_prefer_scrapling(url, md)
+            reason = _should_prefer_scrapling(url, md, status=status)
             if reason:
                 scrapling_md = _scrapling_fallback_markdown(url, reason=reason)
                 if scrapling_md:

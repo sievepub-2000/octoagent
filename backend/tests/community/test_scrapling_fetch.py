@@ -42,3 +42,25 @@ def test_scrapling_fetch_retries_public_cert_chain_failures(monkeypatch) -> None
     assert parsed["title"] == "Recovered title"
     assert parsed["tls_verification"] == "disabled_after_certificate_error"
     assert _FakeFetcher.calls[-1]["verify"] is False
+
+
+def test_scrapling_fetch_rejects_private_urls(monkeypatch) -> None:
+    monkeypatch.setattr(scrapling_tools, "_INIT_TRIED", True)
+    monkeypatch.setattr(scrapling_tools, "_FETCHER", _FakeFetcher)
+
+    result = scrapling_tools.scrapling_fetch.invoke({"url": "http://127.0.0.1:19804/docs"})
+    parsed = json.loads(result)
+
+    assert parsed["engine"] == "scrapling"
+    assert "private/internal" in parsed["error"]
+
+
+def test_scrapling_stealth_rejects_private_urls(monkeypatch) -> None:
+    monkeypatch.setattr(scrapling_tools, "_INIT_TRIED", True)
+    monkeypatch.setattr(scrapling_tools, "_STEALTHY", object())
+
+    result = scrapling_tools.scrapling_fetch_stealth.invoke({"url": "http://localhost:19804/docs"})
+    parsed = json.loads(result)
+
+    assert parsed["engine"] == "scrapling"
+    assert "private/internal" in parsed["error"]

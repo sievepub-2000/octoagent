@@ -52,6 +52,7 @@ _LOW_QUALITY_PAGE_PATTERNS = tuple(
         r"enable JavaScript and cookies",
     )
 )
+_RECOVERABLE_HTTP_STATUS_CODES = {401, 403, 407, 408, 409, 418, 423, 425, 429, 451, 503}
 
 
 def _is_github_url(url: str) -> bool:
@@ -118,6 +119,10 @@ def _low_quality_tool_message(url: str, reason: str, tool_call_id: str) -> ToolM
         tool_call_id=tool_call_id,
         status="error",
     )
+
+
+def _is_recoverable_http_status(status_code: int) -> bool:
+    return status_code in _RECOVERABLE_HTTP_STATUS_CODES
 
 
 def _fallback_web_fetch_message(url: str, tool_call_id: str, reason: str) -> ToolMessage:
@@ -213,6 +218,18 @@ def read_webpage_tool(
             resp.raise_for_status()
             html = resp.text
     except httpx.HTTPStatusError as exc:
+        if _is_recoverable_http_status(exc.response.status_code):
+            return Command(
+                update={
+                    "messages": [
+                        _fallback_web_fetch_message(
+                            url,
+                            tool_call_id,
+                            f"HTTP error {exc.response.status_code} looks recoverable by the layered web_fetch/scrapling chain",
+                        )
+                    ]
+                }
+            )
         return Command(
             update={
                 "messages": [

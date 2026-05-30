@@ -35,3 +35,44 @@ def test_ddg_web_fetch_retries_public_cert_chain_failures(monkeypatch) -> None:
 
     assert "TLS certificate verification failed" in result
     assert "Recovered over TLS fallback" in result or "Raw HTML" in result
+
+
+def test_ddg_web_fetch_retries_antibot_status_with_scrapling(monkeypatch) -> None:
+    calls: list[tuple[str, str, bool]] = []
+
+    def fake_fetch_raw(url: str, timeout: float) -> tuple[int, str, str]:
+        assert url == "https://example.com/protected"
+        return 403, "text/html", "<html><title>Forbidden</title><body>Access denied</body></html>"
+
+    def fake_scrapling(url: str, *, reason: str, stealth: bool = False) -> str:
+        calls.append((url, reason, stealth))
+        return "# Recovered\n\nSource: https://example.com/protected\nEngine: scrapling\n\nRecovered protected article text."
+
+    monkeypatch.setattr(ddg_tools, "_fetch_raw", fake_fetch_raw)
+    monkeypatch.setattr(ddg_tools, "_scrapling_fallback_markdown", fake_scrapling)
+
+    result = ddg_tools.web_fetch_tool.invoke({"url": "https://example.com/protected"})
+
+    assert "Recovered protected article text" in result
+    assert calls
+    assert calls[0][0] == "https://example.com/protected"
+    assert "HTTP status 403" in calls[0][1]
+
+
+def test_ddg_web_fetch_retries_antibot_body_with_scrapling(monkeypatch) -> None:
+    calls: list[tuple[str, str]] = []
+
+    def fake_fetch_raw(url: str, timeout: float) -> tuple[int, str, str]:
+        return 200, "text/html", "<html><body><h1>Just a moment</h1><p>Cloudflare verify you are human.</p></body></html>"
+
+    def fake_scrapling(url: str, *, reason: str, stealth: bool = False) -> str:
+        calls.append((url, reason))
+        return "# Recovered\n\nSource: https://example.com/challenge\nEngine: scrapling\n\nRecovered challenge article text."
+
+    monkeypatch.setattr(ddg_tools, "_fetch_raw", fake_fetch_raw)
+    monkeypatch.setattr(ddg_tools, "_scrapling_fallback_markdown", fake_scrapling)
+
+    result = ddg_tools.web_fetch_tool.invoke({"url": "https://example.com/challenge"})
+
+    assert "Recovered challenge article text" in result
+    assert calls == [("https://example.com/challenge", "page content looks like an anti-bot, login, captcha, or JavaScript challenge")]
