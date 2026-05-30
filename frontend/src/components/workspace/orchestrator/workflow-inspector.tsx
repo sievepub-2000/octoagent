@@ -1,6 +1,7 @@
 "use client";
 
 import { FilesIcon, PanelRightCloseIcon, RouteIcon } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef } from "react";
 
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
@@ -30,12 +31,39 @@ import type { AgentThreadState } from "@/core/threads";
 import { useWorkflows } from "@/core/workflows";
 import { cn } from "@/lib/utils";
 
-import { ArtifactFileList } from "../artifacts/artifact-file-list";
-import { RunTimelinePanel } from "../run-timeline-panel";
+const ArtifactFileList = dynamic(
+  () => import("../artifacts/artifact-file-list").then((module) => module.ArtifactFileList),
+  { ssr: false, loading: () => <InspectorSectionFallback /> },
+);
 
-import { ExecutionConsole } from "./execution-console";
-import { TaskWorkspaceRuntime } from "./task-workspace-runtime";
-import { WorkBusFlow } from "./work-bus-flow";
+const ExecutionConsole = dynamic(
+  () => import("./execution-console").then((module) => module.ExecutionConsole),
+  { ssr: false, loading: () => <InspectorSectionFallback /> },
+);
+
+const RunTimelinePanel = dynamic(
+  () => import("../run-timeline-panel").then((module) => module.RunTimelinePanel),
+  { ssr: false, loading: () => <InspectorSectionFallback /> },
+);
+
+const TaskWorkspaceRuntime = dynamic(
+  () => import("./task-workspace-runtime").then((module) => module.TaskWorkspaceRuntime),
+  { ssr: false, loading: () => <InspectorSectionFallback /> },
+);
+
+const WorkBusFlow = dynamic(
+  () => import("./work-bus-flow").then((module) => module.WorkBusFlow),
+  { ssr: false, loading: () => <InspectorSectionFallback /> },
+);
+
+function InspectorSectionFallback() {
+  return (
+    <div
+      aria-busy="true"
+      className="mb-4 min-h-24 rounded-lg border border-border/60 bg-muted/20"
+    />
+  );
+}
 
 export function WorkflowInspector({
   className,
@@ -207,21 +235,25 @@ export function WorkflowInspector({
               <TabsTrigger value="artifacts">{t.common.artifacts}</TabsTrigger>
             </TabsList>
             <TabsContent className="min-h-0 flex-1 overflow-auto p-4" value="plan">
-              <RunTimelinePanel
-                className="mb-4"
-                events={timelineEvents}
-                isLoading={isStreaming}
-                workplans={threadState.runtime?.workplans ?? []}
-              />
-              <WorkBusFlow threadId={threadId} />
-              <TaskWorkspaceRuntime
-                focus="plan"
-                threadId={threadId}
-                threadState={threadState}
-              />
+              {topTab === "plan" ? (
+                <>
+                  <RunTimelinePanel
+                    className="mb-4"
+                    events={timelineEvents}
+                    isLoading={isStreaming}
+                    workplans={threadState.runtime?.workplans ?? []}
+                  />
+                  <WorkBusFlow threadId={threadId} />
+                  <TaskWorkspaceRuntime
+                    focus="plan"
+                    threadId={threadId}
+                    threadState={threadState}
+                  />
+                </>
+              ) : null}
             </TabsContent>
             <TabsContent className="min-h-0 flex-1 p-4" value="artifacts">
-              {threadState.artifacts?.length ? (
+              {topTab !== "artifacts" ? null : threadState.artifacts?.length ? (
                 <ArtifactFileList
                   downloadOnly
                   files={threadState.artifacts}
@@ -259,7 +291,9 @@ export function WorkflowInspector({
             </Button>
           </div>
           <div className="min-h-0 flex-1 p-4">
-            <ExecutionConsole isStreaming={isStreaming} mode={mode} />
+            {consoleOpen ? (
+              <ExecutionConsole isStreaming={isStreaming} mode={mode} />
+            ) : null}
           </div>
         </div>
       </ResizablePanel>

@@ -11,7 +11,7 @@ import {
   NetworkIcon,
   WrenchIcon,
 } from "lucide-react";
-import { useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useDeferredValue, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -90,7 +90,7 @@ function eventText(event: RunEvent) {
   ].filter(Boolean).join("\n");
 }
 
-export function RunTimelinePanel({
+function RunTimelinePanelImpl({
   className,
   events,
   isLoading,
@@ -103,16 +103,21 @@ export function RunTimelinePanel({
 }) {
   const [open, setOpen] = useState(isLoading);
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-  const visibleEvents = useMemo(() => events.slice(0, open ? 12 : 4), [events, open]);
-  const errorCount = events.filter((event) => event.level === "error" || event.kind === "error").length;
-  const latest = events[0];
-  const visibleWorkplans = useMemo(() => workplans.slice(0, 4), [workplans]);
+  const deferredEvents = useDeferredValue(events);
+  const deferredWorkplans = useDeferredValue(workplans);
+  const visibleEvents = useMemo(() => deferredEvents.slice(0, open ? 12 : 4), [deferredEvents, open]);
+  const errorCount = useMemo(
+    () => deferredEvents.filter((event) => event.level === "error" || event.kind === "error").length,
+    [deferredEvents],
+  );
+  const latest = deferredEvents[0];
+  const visibleWorkplans = useMemo(() => deferredWorkplans.slice(0, 4), [deferredWorkplans]);
 
   const copyAll = useCallback(async () => {
-    await copyTextToClipboard(JSON.stringify({ workplans, events }, null, 2));
-  }, [events, workplans]);
+    await copyTextToClipboard(JSON.stringify({ workplans: deferredWorkplans, events: deferredEvents }, null, 2));
+  }, [deferredEvents, deferredWorkplans]);
 
-  if (events.length === 0 && workplans.length === 0) return null;
+  if (deferredEvents.length === 0 && deferredWorkplans.length === 0) return null;
 
   return (
     <Collapsible
@@ -129,9 +134,9 @@ export function RunTimelinePanel({
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
             <span className="shrink-0 font-medium text-foreground">Run timeline</span>
-            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{events.length}</Badge>
-            {workplans.length > 0 ? (
-              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{workplans.length} plan</Badge>
+            <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{deferredEvents.length}</Badge>
+            {deferredWorkplans.length > 0 ? (
+              <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{deferredWorkplans.length} plan</Badge>
             ) : null}
             {errorCount > 0 ? (
               <Badge variant="outline" className="h-5 border-destructive/30 px-1.5 text-[10px] text-destructive">
@@ -238,3 +243,12 @@ export function RunTimelinePanel({
     </Collapsible>
   );
 }
+
+export const RunTimelinePanel = memo(
+  RunTimelinePanelImpl,
+  (previous, next) =>
+    previous.events === next.events &&
+    previous.workplans === next.workplans &&
+    previous.isLoading === next.isLoading &&
+    previous.className === next.className,
+);

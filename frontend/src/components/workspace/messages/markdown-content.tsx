@@ -1,6 +1,6 @@
 "use client";
 
-import { useDeferredValue, useMemo } from "react";
+import { memo, useDeferredValue, useMemo } from "react";
 import type { HTMLAttributes } from "react";
 
 import {
@@ -27,7 +27,7 @@ export type MarkdownContentProps = {
  * markdown re-parse via `useDeferredValue` so the live streaming message
  * stays responsive.
  */
-export function MarkdownContent({
+function MarkdownContentImpl({
   content,
   isLoading,
   rehypePlugins,
@@ -70,3 +70,14 @@ export function MarkdownContent({
     </MessageResponse>
   );
 }
+
+export const MarkdownContent = memo(
+  MarkdownContentImpl,
+  (previous, next) =>
+    previous.content === next.content &&
+    previous.isLoading === next.isLoading &&
+    previous.className === next.className &&
+    previous.rehypePlugins === next.rehypePlugins &&
+    previous.remarkPlugins === next.remarkPlugins &&
+    previous.components === next.components,
+);
