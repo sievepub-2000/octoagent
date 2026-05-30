@@ -16,6 +16,7 @@ import {
   Message as AIElementMessage,
   MessageContent as AIElementMessageContent,
   MessageResponse as AIElementMessageResponse,
+  type MessageResponseProps,
   MessageToolbar,
 } from "@/components/ai-elements/message";
 import {
@@ -190,6 +191,10 @@ function MessageContent_({
   const rehypePlugins = useRehypeSplitWordsIntoSpans(false);
   const isHuman = message.type === "human";
   const { thread_id } = useParams<{ thread_id: string }>();
+  const assistantRehypePlugins = useMemo<MessageResponseProps["rehypePlugins"]>(
+    () => [...rehypePlugins, [rehypeKatex, { output: "html" }]],
+    [rehypePlugins],
+  );
   const components = useMemo(
     () => ({
       img: (props: ImgHTMLAttributes<HTMLImageElement>) => (
@@ -287,7 +292,7 @@ function MessageContent_({
           <MarkdownContent
             content={contentToDisplay}
             isLoading={isLoading}
-            rehypePlugins={[...rehypePlugins, [rehypeKatex, { output: "html" }]]}
+            rehypePlugins={assistantRehypePlugins}
             className="my-3"
             components={components}
           />

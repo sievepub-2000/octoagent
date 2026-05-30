@@ -218,18 +218,30 @@ export function MessageList({
     (_index: number, group: MessageGroup): React.ReactNode => {
       const itemClass =
         "mx-auto w-full max-w-(--container-width-md) px-0 pb-8 [contain-intrinsic-size:1px_180px] [content-visibility:auto]";
+      const groupIsLiveStreaming = Boolean(
+        thread.isLoading &&
+          liveAssistantMessageId &&
+          group.messages.some((message) => message.id === liveAssistantMessageId),
+      );
       if (group.type === "human" || group.type === "assistant") {
         return (
           <div className={itemClass}>
             <div className="flex flex-col gap-8" key={group.id}>
-              {group.messages.map((msg) => (
-                <MessageListItem
-                  key={`${group.id}/${msg.id}`}
-                  message={msg}
-                  isLoading={thread.isLoading}
-                  isLiveStreaming={Boolean(liveAssistantMessageId && msg.id === liveAssistantMessageId)}
-                />
-              ))}
+              {group.messages.map((msg) => {
+                const messageIsLiveStreaming = Boolean(
+                  thread.isLoading &&
+                    liveAssistantMessageId &&
+                    msg.id === liveAssistantMessageId,
+                );
+                return (
+                  <MessageListItem
+                    key={`${group.id}/${msg.id}`}
+                    message={msg}
+                    isLoading={messageIsLiveStreaming}
+                    isLiveStreaming={messageIsLiveStreaming}
+                  />
+                );
+              })}
             </div>
           </div>
         );
@@ -298,7 +310,7 @@ export function MessageList({
               <MessageGroupComponent
                 key={"thinking-group-" + message.id}
                 messages={[message]}
-                isLoading={thread.isLoading}
+                isLoading={groupIsLiveStreaming}
               />,
             );
           }
@@ -315,7 +327,7 @@ export function MessageList({
               <SubtaskCard
                 key={"task-group-" + taskId}
                 taskId={taskId}
-                isLoading={thread.isLoading}
+                isLoading={groupIsLiveStreaming}
               />,
             );
           }
@@ -336,7 +348,7 @@ export function MessageList({
           <MessageGroupComponent
             key={"group-" + group.id}
             messages={group.messages}
-            isLoading={thread.isLoading}
+            isLoading={groupIsLiveStreaming}
           />
         </div>
       );
