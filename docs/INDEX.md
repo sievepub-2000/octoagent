@@ -63,6 +63,8 @@ goal below.
   [`CHANGELOG.md`](../CHANGELOG.md).
 * **Stable-period Phase 1 verification** —
   [`docs/octoagent-stable-period-phase1-verification-2026-05-30.md`](./octoagent-stable-period-phase1-verification-2026-05-30.md).
+* **Dialogue and execution optimization** —
+  [`docs/octoagent-dialogue-and-execution-optimization-2026-05-30.md`](./octoagent-dialogue-and-execution-optimization-2026-05-30.md).
 
 ## Index policy
 

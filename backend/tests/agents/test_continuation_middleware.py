@@ -92,3 +92,40 @@ def test_continuation_context_is_capped_before_injection() -> None:
     assert isinstance(continuation, SystemMessage)
     assert len(str(continuation.content)) <= 8_200
     assert "continuation context shortened" in str(continuation.content)
+
+
+def test_completed_continuation_returns_stop_answer() -> None:
+    answer = ContinuationMiddleware._completed_continuation_answer(
+        {
+            "continue_trigger": "continue",
+            "continue_task_state": {
+                "goal": "Fix the web UI",
+                "status": "completed",
+                "completed_steps": ["Reproduced the issue", "Patched the layout", "Ran regression tests"],
+                "pending_steps": [],
+                "evidence": ["pytest passed"],
+            },
+            "continue_todos": [{"content": "Document result", "status": "completed"}],
+        }
+    )
+
+    assert answer is not None
+    assert "already completed" in answer
+    assert "Fix the web UI" in answer
+    assert "Ran regression tests" in answer
+
+
+def test_completed_continuation_does_not_stop_when_pending_work_exists() -> None:
+    answer = ContinuationMiddleware._completed_continuation_answer(
+        {
+            "continue_trigger": "continue",
+            "continue_task_state": {
+                "goal": "Fix the web UI",
+                "status": "completed",
+                "completed_steps": ["Reproduced the issue"],
+                "pending_steps": ["Run browser verification"],
+            },
+        }
+    )
+
+    assert answer is None

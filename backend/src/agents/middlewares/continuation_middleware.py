@@ -8,7 +8,7 @@ from typing import Any, override
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import ModelCallResult, ModelRequest, ModelResponse
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 _MAX_CONTINUATION_CONTEXT_CHARS = 12_000
 _MAX_CONTINUATION_ITEM_CHARS = 1_200
@@ -42,9 +42,8 @@ class ContinuationMiddleware(AgentMiddleware[AgentState]):
         for item in snapshot:
             role = item.get("role", "message").strip() or "message"
             content = _truncate_text(item.get("content", ""))
-            if not content:
-                continue
-            lines.append(f"- {role}: {content}")
+            if content:
+                lines.append(f"- {role}: {content}")
         return "\n".join(lines)
 
     @staticmethod
@@ -156,14 +155,49 @@ class ContinuationMiddleware(AgentMiddleware[AgentState]):
         lines.append("Continue from the prior conversation state and workflow state unless the user explicitly changes direction. Treat the prior payload as a compressed handoff; do not ask the user to repeat it.")
         lines.append("")
         lines.append("CRITICAL RULES for continuation:")
-        lines.append("1. The task goal in this context is your PRIMARY objective \u2014 do not drift from it")
-        lines.append("2. Execute pending_steps in order; do not repeat completed_steps")
-        lines.append("3. Do not ask the user to re-explain anything already in this context")
-        lines.append("4. Begin your first action immediately \u2014 call a tool or execute the next step")
-        lines.append("5. If the todo list has in_progress items, resume from there")
+        lines.append("1. The task goal in this context is your primary objective; do not drift from it.")
+        lines.append("2. Execute pending_steps in order; do not repeat completed_steps.")
+        lines.append("3. Do not ask the user to re-explain anything already in this context.")
+        lines.append("4. Begin your first action immediately: call a tool or execute the next step.")
+        lines.append("5. If the todo list has in_progress items, resume from there.")
         lines.append("</continue_context>")
 
         return _cap_continuation_message(SystemMessage(content="\n".join(lines), name="workflow_continue"))
+
+    @staticmethod
+    def _completed_continuation_answer(context: dict[str, Any]) -> str | None:
+        if context.get("continue_trigger") != "continue":
+            return None
+        task_state = context.get("continue_task_state")
+        if not isinstance(task_state, dict):
+            return None
+        status = str(task_state.get("status") or "").strip().lower()
+        pending_steps = [str(item).strip() for item in task_state.get("pending_steps", []) if str(item).strip()]
+        todos = context.get("continue_todos") or []
+        pending_todos = [
+            str(todo.get("content") or "").strip()
+            for todo in todos
+            if isinstance(todo, dict)
+            and str(todo.get("status") or "").strip().lower() in {"pending", "in_progress"}
+            and str(todo.get("content") or "").strip()
+        ]
+        if status != "completed" or pending_steps or pending_todos:
+            return None
+        goal = str(task_state.get("goal") or "previous task").strip()
+        completed_steps = [str(item).strip() for item in task_state.get("completed_steps", []) if str(item).strip()]
+        evidence = [str(item).strip() for item in task_state.get("evidence", []) if str(item).strip()]
+        lines = [
+            "This task is already completed, and there are no pending continuation steps.",
+            f"Goal: {_truncate_text(goal, 500)}",
+        ]
+        if completed_steps:
+            lines.append("Completed:")
+            lines.extend(f"- {_truncate_text(item, 260)}" for item in completed_steps[:5])
+        if evidence:
+            lines.append("Completion evidence:")
+            lines.extend(f"- {_truncate_text(item, 260)}" for item in evidence[:4])
+        lines.append("Tell me the new goal or extension direction when you want to continue from here.")
+        return "\n".join(lines)
 
     def _inject(self, messages: list[Any], context: dict[str, Any]) -> list[Any] | None:
         continuation = self._build_message(context)
@@ -188,6 +222,9 @@ class ContinuationMiddleware(AgentMiddleware[AgentState]):
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelCallResult:
+        completed_answer = self._completed_continuation_answer(request.runtime.context or {})
+        if completed_answer is not None:
+            return ModelResponse(result=[AIMessage(content=completed_answer)])
         patched = self._inject(list(request.messages), request.runtime.context or {})
         if patched is not None:
             request = request.override(messages=patched)
@@ -199,6 +236,9 @@ class ContinuationMiddleware(AgentMiddleware[AgentState]):
         request: ModelRequest,
         handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
     ) -> ModelCallResult:
+        completed_answer = self._completed_continuation_answer(request.runtime.context or {})
+        if completed_answer is not None:
+            return ModelResponse(result=[AIMessage(content=completed_answer)])
         patched = self._inject(list(request.messages), request.runtime.context or {})
         if patched is not None:
             request = request.override(messages=patched)
