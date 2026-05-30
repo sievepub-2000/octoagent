@@ -960,21 +960,21 @@ export function TaskWorkspaceRuntime({
   return (
     <div
       className={cn(
-        "grid h-full min-h-0 gap-4",
+        "grid h-full min-h-0 content-start gap-3",
         hasSelectedWorkspace
           ? "xl:grid-cols-[minmax(260px,3.5fr)_minmax(0,6.5fr)]"
           : "xl:grid-cols-1",
       )}
     >
-      <div className="flex min-h-0 flex-col gap-4">
-        <Card className="shadow-none">
-          <CardHeader>
+      <div className="flex min-h-0 flex-col gap-3">
+        <Card className="shrink-0 gap-3 py-3 shadow-none">
+          <CardHeader className="px-4 pt-0 pb-1">
             <CardTitle className="text-sm">{runtimeCopy.realWorkflowRuntimeTitle}</CardTitle>
-            <CardDescription>
+            <CardDescription className="line-clamp-2">
               {runtimeCopy.realWorkflowRuntimeDescription}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-2 px-4 pb-0">
             <div className="space-y-2">
               <label htmlFor="task-workspace-name" className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                 {runtimeCopy.workflowNameLabel}
@@ -988,7 +988,7 @@ export function TaskWorkspaceRuntime({
               <Textarea
                 aria-label={runtimeCopy.goalLabel}
                 id="task-workspace-goal"
-                className="min-h-[104px]"
+                className="min-h-[72px]"
                 value={draftGoal}
                 onChange={(event) => setDraftGoal(event.target.value)}
               />
@@ -1020,7 +1020,7 @@ export function TaskWorkspaceRuntime({
           </CardContent>
         </Card>
         {workspacesLoading ? (
-          <Card className="flex min-h-[240px] items-center justify-center shadow-none">
+          <Card className="flex min-h-28 items-center justify-center shadow-none">
             <CardContent className="text-sm text-muted-foreground">
               {locale === "zh-CN" ? "正在加载工作流运行时…" : locale === "zh-TW" ? "正在載入工作流執行時…" : locale === "ja" ? "ワークフロー実行時を読み込み中…" : locale === "ko" ? "워크플로 런타임을 불러오는 중…" : "Loading workflow runtimes…"}
             </CardContent>

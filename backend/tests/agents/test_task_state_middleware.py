@@ -205,6 +205,32 @@ def test_recovery_continue_does_not_replace_active_task_goal() -> None:
     assert update["task_state"]["pending_steps"] == ["继续排查系统问题"]
 
 
+def test_chinese_recovery_continue_does_not_replace_latest_real_goal() -> None:
+    middleware = TaskStateMiddleware()
+    latest_goal = "查询日本雅虎今天前十大新闻内容"
+    state = {
+        "messages": [
+            HumanMessage(content="检查一下自己的系统情况，汇总报告"),
+            AIMessage(content="系统检查报告已完成。"),
+            HumanMessage(content=latest_goal),
+            HumanMessage(content="继续执行上一段对话中尚未完成的任务。请根据隐藏的接续记忆、todo 状态和最近三轮双方对话，立即继续。"),
+        ],
+        "runtime": {},
+        "task_state": {
+            "goal": "检查一下自己的系统情况，汇总报告",
+            "status": "completed",
+            "completed_steps": ["检查一下自己的系统情况，汇总报告"],
+            "pending_steps": [],
+        },
+    }
+
+    update = middleware.before_agent(state, _Runtime())
+
+    assert update is not None
+    assert update["task_state"]["goal"] == latest_goal
+    assert update["task_state"]["pending_steps"] == [latest_goal]
+
+
 def test_think_only_answer_keeps_task_recoverable_despite_completed_todos() -> None:
     middleware = TaskStateMiddleware()
     state = {

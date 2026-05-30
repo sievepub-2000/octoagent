@@ -37,7 +37,10 @@ _RECOVERY_HUMAN_PATTERN = re.compile(
     r"\[system:\s*session context compressed\b|"
     r"continue the unfinished work in this conversation\b|"
     r"continue the latest unfinished user task\b|"
-    r"continue the current task using the visible conversation context\b"
+    r"continue the current task using the visible conversation context\b|"
+    r"继续执行上一段对话中尚未完成的任务|"
+    r"继续执行当前对话中尚未完成的任务|"
+    r"根据隐藏的接续记忆"
     r")",
     re.IGNORECASE,
 )

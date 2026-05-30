@@ -385,6 +385,12 @@ export function useThreadStream({
         ? (error as { message?: unknown }).message
         : error;
       const errMsg = typeof rawMessage === "string" ? rawMessage : "";
+      if (/UserInterrupt/i.test(errMsg)) {
+        // Historical interrupted runs are expected after a restart or manual
+        // stop. Treat them as a settled history view instead of surfacing a
+        // scary runtime error in the chat/timeline.
+        return;
+      }
       if (/Recursion limit of \d+ reached/i.test(errMsg) || /GraphRecursionError/i.test(errMsg)) {
         const currentThreadId = threadIdRef.current;
         const submit = autoContinueSubmitRef.current;

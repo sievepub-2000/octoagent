@@ -236,8 +236,8 @@ export function WorkflowInspector({
             </TabsList>
             <TabsContent className="min-h-0 flex-1 overflow-hidden p-4" value="plan">
               {topTab === "plan" ? (
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="min-h-0 max-h-[50%] shrink-0 overflow-auto">
+                <div className="flex h-full min-h-0 flex-col gap-3">
+                  <div className="min-h-0 basis-1/2 overflow-auto">
                     <WorkBusFlow threadId={threadId} />
                     <TaskWorkspaceRuntime
                       focus="plan"
@@ -245,7 +245,7 @@ export function WorkflowInspector({
                       threadState={threadState}
                     />
                   </div>
-                  <div className="min-h-0 flex-1 overflow-auto pt-4">
+                  <div className="min-h-0 basis-1/2 overflow-auto">
                     <RunTimelinePanel
                       events={timelineEvents}
                       isLoading={isStreaming}
