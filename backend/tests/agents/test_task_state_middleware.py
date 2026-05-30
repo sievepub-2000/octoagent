@@ -150,6 +150,61 @@ def test_new_complex_user_goal_replaces_stale_task_state() -> None:
     assert update["task_state"]["pending_steps"] == [new_goal]
 
 
+def test_research_goal_replaces_stale_task_state_before_recovery_continue() -> None:
+    middleware = TaskStateMiddleware()
+    research_goal = "帮我查一下今天日本前十大新闻内容，去日本最大的新闻门户网站查找并给出详细新闻内容"
+    state = {
+        "messages": [
+            HumanMessage(content="检查一下自己的系统情况，汇总报告"),
+            AIMessage(content="系统检查报告已完成。"),
+            HumanMessage(content=research_goal),
+            AIMessage(content="我已经按用户指定来源优先进行了查询。"),
+            HumanMessage(
+                content=(
+                    "Continue the unfinished work in this conversation. "
+                    "Use the existing runtime state, todos, tool results, and recent context."
+                )
+            ),
+        ],
+        "runtime": {},
+        "task_state": {
+            "goal": "检查一下自己的系统情况，汇总报告",
+            "status": "completed",
+            "completed_steps": ["检查一下自己的系统情况，汇总报告"],
+            "pending_steps": [],
+        },
+    }
+
+    update = middleware.before_agent(state, _Runtime())
+
+    assert update is not None
+    assert update["task_state"]["goal"] == research_goal
+    assert update["task_state"]["status"] == "active"
+    assert update["task_state"]["pending_steps"] == [research_goal]
+
+
+def test_recovery_continue_does_not_replace_active_task_goal() -> None:
+    middleware = TaskStateMiddleware()
+    state = {
+        "messages": [
+            HumanMessage(content="请完整排查并修复系统问题。"),
+            HumanMessage(content="[system: session context compressed — continue executing]\n继续执行"),
+        ],
+        "runtime": {},
+        "task_state": {
+            "goal": "请完整排查并修复系统问题。",
+            "status": "incomplete",
+            "pending_steps": ["继续排查系统问题"],
+        },
+    }
+
+    update = middleware.before_agent(state, _Runtime())
+
+    assert update is not None
+    assert update["task_state"]["goal"] == "请完整排查并修复系统问题。"
+    assert update["task_state"]["pending_steps"] == ["继续排查系统问题"]
+
+
 def test_think_only_answer_keeps_task_recoverable_despite_completed_todos() -> None:
     middleware = TaskStateMiddleware()
     state = {

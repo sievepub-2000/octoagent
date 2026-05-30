@@ -28,7 +28,17 @@ _MAX_CHECKPOINT_CHARS = 6_000
 
 _COMPLEX_TASK_PATTERN = re.compile(
     r"(修复|重构|实现|优化|分析|评估|排查|检查|测试|验证|继续|完成|全部|系统|"
-    r"部署|方案|建议|推荐|收益|赚钱|具体|research|analy[sz]e|implement|refactor|fix|debug|verify|continue|all)",
+    r"部署|方案|建议|推荐|收益|赚钱|具体|查询|查找|查一下|搜索|新闻|调研|研究|"
+    r"research|analy[sz]e|implement|refactor|fix|debug|verify|continue|all)",
+    re.IGNORECASE,
+)
+_RECOVERY_HUMAN_PATTERN = re.compile(
+    r"^\s*(?:"
+    r"\[system:\s*session context compressed\b|"
+    r"continue the unfinished work in this conversation\b|"
+    r"continue the latest unfinished user task\b|"
+    r"continue the current task using the visible conversation context\b"
+    r")",
     re.IGNORECASE,
 )
 
@@ -129,6 +139,21 @@ def _latest_human_text(messages: list[Any]) -> str:
         if getattr(message, "type", "") == "human":
             return _message_text(message)
     return ""
+
+
+def _latest_user_human_text(messages: list[Any]) -> str:
+    """Return the latest real user request, ignoring synthetic recovery turns."""
+    fallback = ""
+    for message in reversed(messages):
+        if getattr(message, "type", "") != "human":
+            continue
+        text = _message_text(message)
+        if not fallback:
+            fallback = text
+        if _RECOVERY_HUMAN_PATTERN.match(text):
+            continue
+        return text
+    return fallback
 
 
 def _latest_ai_message(messages: list[Any]) -> AIMessage | None:
@@ -346,7 +371,7 @@ class TaskStateMiddleware(AgentMiddleware[TaskStateMiddlewareState]):
         """Inject a compact task checkpoint for complex or resumed work."""
         messages = list(state.get("messages") or [])
         task_state = _merge_context_task_state(state, runtime)
-        latest_goal = _latest_human_text(messages)
+        latest_goal = _latest_user_human_text(messages)
         if _is_new_user_goal(latest_goal, task_state):
             task_state = _new_task_state(latest_goal)
         if task_state is None:
@@ -376,7 +401,7 @@ class TaskStateMiddleware(AgentMiddleware[TaskStateMiddlewareState]):
         """Update persistent task state after an agent run finishes."""
         messages = list(state.get("messages") or [])
         task_state = _normalize_task_state(state.get("task_state"))
-        latest_goal = _latest_human_text(messages)
+        latest_goal = _latest_user_human_text(messages)
         if _is_new_user_goal(latest_goal, task_state):
             task_state = _new_task_state(latest_goal)
         if task_state is None:

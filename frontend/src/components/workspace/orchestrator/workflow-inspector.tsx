@@ -234,22 +234,25 @@ export function WorkflowInspector({
               <TabsTrigger value="plan">{copy.board}</TabsTrigger>
               <TabsTrigger value="artifacts">{t.common.artifacts}</TabsTrigger>
             </TabsList>
-            <TabsContent className="min-h-0 flex-1 overflow-auto p-4" value="plan">
+            <TabsContent className="min-h-0 flex-1 overflow-hidden p-4" value="plan">
               {topTab === "plan" ? (
-                <>
-                  <RunTimelinePanel
-                    className="mb-4"
-                    events={timelineEvents}
-                    isLoading={isStreaming}
-                    workplans={threadState.runtime?.workplans ?? []}
-                  />
-                  <WorkBusFlow threadId={threadId} />
-                  <TaskWorkspaceRuntime
-                    focus="plan"
-                    threadId={threadId}
-                    threadState={threadState}
-                  />
-                </>
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="min-h-0 max-h-[50%] shrink-0 overflow-auto">
+                    <WorkBusFlow threadId={threadId} />
+                    <TaskWorkspaceRuntime
+                      focus="plan"
+                      threadId={threadId}
+                      threadState={threadState}
+                    />
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-auto pt-4">
+                    <RunTimelinePanel
+                      events={timelineEvents}
+                      isLoading={isStreaming}
+                      workplans={threadState.runtime?.workplans ?? []}
+                    />
+                  </div>
+                </div>
               ) : null}
             </TabsContent>
             <TabsContent className="min-h-0 flex-1 p-4" value="artifacts">

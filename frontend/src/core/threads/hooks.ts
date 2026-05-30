@@ -134,6 +134,43 @@ function messageText(message: Message | undefined): string {
     .trim();
 }
 
+function normalizedMessageText(message: Message | undefined): string {
+  return messageText(message).replace(/\s+/g, " ").trim();
+}
+
+function messageHasFiles(message: Message | undefined): boolean {
+  const files = (message?.additional_kwargs as Record<string, unknown> | undefined)?.files;
+  return Array.isArray(files) && files.length > 0;
+}
+
+function isDuplicateOptimisticHuman(
+  optimistic: Message,
+  serverMessages: Message[],
+): boolean {
+  if (optimistic.type !== "human") {
+    return false;
+  }
+  const optimisticText = normalizedMessageText(optimistic);
+  if (!optimisticText) {
+    return false;
+  }
+  const optimisticHasFiles = messageHasFiles(optimistic);
+  for (let index = serverMessages.length - 1; index >= Math.max(0, serverMessages.length - 8); index -= 1) {
+    const serverMessage = serverMessages[index];
+    if (serverMessage?.type !== "human") {
+      continue;
+    }
+    if (normalizedMessageText(serverMessage) !== optimisticText) {
+      continue;
+    }
+    if (optimisticHasFiles && !messageHasFiles(serverMessage)) {
+      continue;
+    }
+    return true;
+  }
+  return false;
+}
+
 function isUnfinishedActionAnnouncement(message: Message | undefined): boolean {
   if (message?.type !== "ai" || (message.tool_calls?.length ?? 0) > 0) {
     return false;
@@ -1195,11 +1232,15 @@ export function useThreadStream({
   );
 
   // Merge thread with optimistic messages for display
-  const mergedThread =
+  const visibleOptimisticMessages =
     optimisticMessages.length > 0
+      ? optimisticMessages.filter((message) => !isDuplicateOptimisticHuman(message, thread.messages))
+      : optimisticMessages;
+  const mergedThread =
+    visibleOptimisticMessages.length > 0
       ? ({
           ...thread,
-          messages: [...thread.messages, ...optimisticMessages],
+          messages: [...thread.messages, ...visibleOptimisticMessages],
         } as typeof thread)
       : thread;
 
