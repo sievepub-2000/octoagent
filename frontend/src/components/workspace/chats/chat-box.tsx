@@ -13,6 +13,7 @@ import { Tooltip } from "@/components/workspace/tooltip";
 import { getAPIClient } from "@/core/api";
 import {
   buildThreadRuntimeTelemetry,
+  type RunEvent,
   useRuntimeCapabilities,
 } from "@/core/runtime";
 import type { AgentThreadState } from "@/core/threads";
@@ -50,6 +51,7 @@ const ChatBox: React.FC<{
   children: React.ReactNode;
   isNewThread: boolean;
   mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
+  runEvents?: RunEvent[];
   threadId: string;
   contextModelName?: string;
 }> = ({
@@ -57,6 +59,7 @@ const ChatBox: React.FC<{
   contextModelName,
   isNewThread,
   mode,
+  runEvents = [],
   threadId,
 }) => {
   const { thread } = useThread();
@@ -354,6 +357,7 @@ const ChatBox: React.FC<{
                 isStreaming={thread.isLoading}
                 mode={mode}
                 onCollapsePanel={toggleArtifactPanel}
+                runEvents={runEvents}
                 runtimeCapabilities={runtime}
                 threadId={threadId}
                 threadState={inspectorThreadState}

@@ -35,6 +35,10 @@ _XMLISH_TOOL_PARAMETER_RE = re.compile(
     r"<parameter=(?P<name>[A-Za-z0-9_.:-]+)>\s*(?P<value>.*?)\s*</parameter>",
     re.DOTALL | re.IGNORECASE,
 )
+_ORPHAN_XMLISH_FUNCTION_RE = re.compile(
+    r"<function=(?P<name>[A-Za-z0-9_.:-]+)>\s*(?P<body>.*?)\s*</function>\s*(?:</tool_call>)?",
+    re.DOTALL | re.IGNORECASE,
+)
 _BARE_XML_TOOL_RE = re.compile(
     r"<(?P<name>[A-Za-z_][A-Za-z0-9_.:-]*)\b[^>]*>\s*(?P<body>.*?)\s*</(?P=name)>",
     re.DOTALL | re.IGNORECASE,
@@ -671,6 +675,35 @@ def _extract_xmlish_tool_calls(content: str) -> tuple[str, list[dict[str, Any]]]
     return _XMLISH_TOOL_CALL_RE.sub("", content).strip(), tool_calls
 
 
+def _extract_orphan_xmlish_function_calls(content: str) -> tuple[str, list[dict[str, Any]]]:
+    tool_calls: list[dict[str, Any]] = []
+    if "<function=" not in content.lower():
+        return content, tool_calls
+
+    for index, match in enumerate(_ORPHAN_XMLISH_FUNCTION_RE.finditer(content), start=1):
+        args: dict[str, Any] = {}
+        for param in _XMLISH_TOOL_PARAMETER_RE.finditer(match.group("body")):
+            args[param.group("name")] = param.group("value").strip()
+        if not args:
+            continue
+        digest = hashlib.sha1(match.group(0).encode("utf-8")).hexdigest()[:12]
+        tool_calls.append(
+            {
+                "name": match.group("name"),
+                "args": args,
+                "id": f"orphan_xmlish_call_{index}_{digest}",
+                "type": "tool_call",
+            }
+        )
+
+    if not tool_calls:
+        return content, tool_calls
+
+    stripped = _ORPHAN_XMLISH_FUNCTION_RE.sub("", content).strip()
+    stripped = re.sub(r"^\s*</think>\s*", "", stripped, flags=re.IGNORECASE).strip()
+    return stripped, tool_calls
+
+
 def _extract_bare_xml_tool_calls(
     content: str,
     *,
@@ -794,6 +827,8 @@ def _normalize_ai_message_tool_calls(message: AIMessage, *, allowed_tool_names: 
     normalized_content, tool_calls = _extract_llamacpp_tool_calls(message.content)
     if not tool_calls:
         normalized_content, tool_calls = _extract_xmlish_tool_calls(message.content)
+    if not tool_calls:
+        normalized_content, tool_calls = _extract_orphan_xmlish_function_calls(message.content)
     if not tool_calls:
         normalized_content, tool_calls = _extract_bare_xml_tool_calls(message.content, allowed_tool_names=allowed_tool_names)
     if not tool_calls:

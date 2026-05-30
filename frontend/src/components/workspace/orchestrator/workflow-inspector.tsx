@@ -19,6 +19,10 @@ import { useI18n } from "@/core/i18n/hooks";
 import {
   buildRuntimeSummaryItems,
   buildRuntimeTelemetryEvents,
+  mergeRunEvents,
+  normalizeRunEvents,
+  normalizeWorkflowRunEvents,
+  type RunEvent,
   type RuntimeCapabilities,
 } from "@/core/runtime";
 import { useRuntimeCapabilities } from "@/core/runtime";
@@ -27,6 +31,7 @@ import { useWorkflows } from "@/core/workflows";
 import { cn } from "@/lib/utils";
 
 import { ArtifactFileList } from "../artifacts/artifact-file-list";
+import { RunTimelinePanel } from "../run-timeline-panel";
 
 import { ExecutionConsole } from "./execution-console";
 import { TaskWorkspaceRuntime } from "./task-workspace-runtime";
@@ -38,6 +43,7 @@ export function WorkflowInspector({
   isStreaming,
   mode,
   onCollapsePanel,
+  runEvents = [],
   runtimeCapabilities,
   threadId,
   threadState,
@@ -47,6 +53,7 @@ export function WorkflowInspector({
   isStreaming: boolean;
   mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
   onCollapsePanel?: () => void;
+  runEvents?: RunEvent[];
   runtimeCapabilities?: RuntimeCapabilities;
   threadId: string;
   threadState: AgentThreadState;
@@ -70,6 +77,18 @@ export function WorkflowInspector({
   const telemetryEvents = useMemo(
     () => buildRuntimeTelemetryEvents(threadState, runtime, copy),
     [copy, runtime, threadState],
+  );
+  const timelineEvents = useMemo(
+    () =>
+      mergeRunEvents(
+        runEvents,
+        [
+          ...normalizeRunEvents(threadState.runtime?.run_events),
+          ...normalizeWorkflowRunEvents(threadState.workflow_events),
+        ],
+        120,
+      ),
+    [runEvents, threadState.runtime?.run_events, threadState.workflow_events],
   );
   useEffect(() => {
     if (topTab === "graph") {
@@ -188,6 +207,12 @@ export function WorkflowInspector({
               <TabsTrigger value="artifacts">{t.common.artifacts}</TabsTrigger>
             </TabsList>
             <TabsContent className="min-h-0 flex-1 overflow-auto p-4" value="plan">
+              <RunTimelinePanel
+                className="mb-4"
+                events={timelineEvents}
+                isLoading={isStreaming}
+                workplans={threadState.runtime?.workplans ?? []}
+              />
               <WorkBusFlow threadId={threadId} />
               <TaskWorkspaceRuntime
                 focus="plan"

@@ -790,7 +790,7 @@ function ChatThreadView({
 
   return (
     <ThreadContext.Provider value={threadContextValue}>
-      <ChatBox contextModelName={typeof settings.context.model_name === "string" ? settings.context.model_name : undefined} isNewThread={isNewThread} mode={settings.context.mode} threadId={threadId}>
+      <ChatBox contextModelName={typeof settings.context.model_name === "string" ? settings.context.model_name : undefined} isNewThread={isNewThread} mode={settings.context.mode} runEvents={runEvents} threadId={threadId}>
         <div className="relative flex size-full min-h-0 justify-between overflow-hidden">
           <div className="octo-grid pointer-events-none absolute inset-0 opacity-65" />
           <h1 className="sr-only">{isNewThread ? t.pages.newChat : thread.values.title}</h1>

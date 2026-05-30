@@ -18,6 +18,10 @@ def _xmlish_call(command: str = 'find /mnt -name "SOUL.md"') -> str:
     return f"<tool_call> <function=bash> <parameter=description> 查找系统核心文档和配置 </parameter> <parameter=command> {command} </parameter> </function> </tool_call>"
 
 
+def _orphan_xmlish_call(command: str = "pwd") -> str:
+    return f"</think>\n\n<function=bash>\n<parameter=description>\nCheck current directory\n</parameter>\n<parameter=command>\n{command}\n</parameter>\n</function>\n</tool_call>"
+
+
 def test_xmlish_assistant_history_is_normalized_and_patched() -> None:
     middleware = DanglingToolCallMiddleware()
     messages = [
@@ -60,6 +64,27 @@ def test_consecutive_runtime_error_tail_is_repaired_before_model_call() -> None:
     assert "Continue the latest unfinished user task" in patched[-1].content
 
 
+def test_orphan_xmlish_assistant_history_is_normalized_and_patched() -> None:
+    middleware = DanglingToolCallMiddleware()
+    messages = [
+        HumanMessage(content="检查一下自己的系统情况，汇总报告"),
+        AIMessage(content=_orphan_xmlish_call("pwd")),
+        AIMessage(content=_orphan_xmlish_call('echo "test"')),
+    ]
+
+    patched = middleware._build_patched_messages(messages)
+
+    assert patched is not None
+    ai_with_tools = [msg for msg in patched if isinstance(msg, AIMessage) and msg.tool_calls]
+    tool_results = [msg for msg in patched if isinstance(msg, ToolMessage)]
+    assert len(ai_with_tools) == 2
+    assert len(tool_results) == 2
+    assert ai_with_tools[0].content == ""
+    assert ai_with_tools[0].tool_calls[0]["name"] == "bash"
+    assert ai_with_tools[0].tool_calls[0]["args"]["command"] == "pwd"
+    assert tool_results[0].status == "error"
+
+
 def test_single_runtime_error_tail_is_repaired_before_model_call() -> None:
     middleware = DanglingToolCallMiddleware()
     messages = [
@@ -85,6 +110,20 @@ def test_xmlish_model_response_is_normalized_before_graph_state() -> None:
     assert message.content == ""
     assert message.tool_calls[0]["name"] == "bash"
     assert message.tool_calls[0]["args"]["command"] == 'find /mnt -name "SOUL.md"'
+
+
+def test_orphan_xmlish_model_response_is_normalized_before_graph_state() -> None:
+    middleware = DanglingToolCallMiddleware()
+    response = ModelResponse(result=[AIMessage(content=_orphan_xmlish_call('echo "test"'))])
+
+    normalized = middleware._normalize_response(response)
+
+    message = normalized.result[0]
+    assert isinstance(message, AIMessage)
+    assert message.content == ""
+    assert message.tool_calls[0]["name"] == "bash"
+    assert message.tool_calls[0]["args"]["description"] == "Check current directory"
+    assert message.tool_calls[0]["args"]["command"] == 'echo "test"'
 
 
 def test_xmlish_model_response_invokes_real_tool() -> None:
