@@ -668,7 +668,7 @@ export default function ChannelsConfigPage() {
                 const statusBadge = connectionStatus(card.channel);
                 const StatusIcon = statusBadge.icon;
                 return (
-                  <article key={card.id} className="octo-panel flex aspect-[2/1] h-auto min-h-0 min-w-0 flex-col justify-between rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
+                  <article key={card.id} className="octo-panel octo-management-card flex min-w-0 flex-col justify-between rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
                     <div className="mb-3 flex items-start justify-between gap-2">
                       <div className="min-w-0 space-y-1">
                         <div className="flex items-center gap-2">
@@ -677,11 +677,11 @@ export default function ChannelsConfigPage() {
                         </div>
                         <p className="line-clamp-2 text-xs text-muted-foreground">{card.channel.description ?? labels.channelDescription}</p>
                       </div>
-                      <div className="flex shrink-0 items-center gap-1">
-                        <Button aria-label={labels.editAria(card.channel.platform_label ?? card.name)} className="size-7" onClick={() => startEdit(card.name, card.channel)} size="icon" title={labels.edit} variant="ghost">
+                      <div className="octo-card-actions">
+                        <Button aria-label={labels.editAria(card.channel.platform_label ?? card.name)} className="octo-card-action" onClick={() => startEdit(card.name, card.channel)} size="icon" title={labels.edit} variant="ghost">
                           <Edit3Icon className="size-3.5 text-muted-foreground hover:text-primary" />
                         </Button>
-                        <Button aria-label={labels.logoutAria(card.channel.platform_label ?? card.name)} className="size-7" disabled={logoutChannelMutation.isPending} onClick={() => void handleLogoutChannel(card.name, card.channel.platform_label)} size="icon" title={labels.logout} variant="ghost">
+                        <Button aria-label={labels.logoutAria(card.channel.platform_label ?? card.name)} className="octo-card-action" disabled={logoutChannelMutation.isPending} onClick={() => void handleLogoutChannel(card.name, card.channel.platform_label)} size="icon" title={labels.logout} variant="ghost">
                           <LogOutIcon className="size-3.5 text-muted-foreground hover:text-destructive" />
                         </Button>
                       </div>
@@ -697,7 +697,7 @@ export default function ChannelsConfigPage() {
                             {labels.channelStatus[statusBadge.labelKey]}
                           </Badge>
                         </div>
-                        <div className="text-[11px] text-muted-foreground">{card.channel.identity_supported ? labels.identityAware : labels.configOnly} · {card.channel.outbound_configured ? labels.replyRelayReady : labels.replyRelayMissing}</div>
+                        <div className="line-clamp-1 text-[11px] text-muted-foreground">{card.channel.identity_supported ? labels.identityAware : labels.configOnly} · {card.channel.outbound_configured ? labels.replyRelayReady : labels.replyRelayMissing}</div>
                       </div>
                       <Switch checked={card.channel.enabled !== false} onCheckedChange={(checked) => void handleToggleEnabled(card.name, checked)} />
                     </div>
@@ -709,7 +709,7 @@ export default function ChannelsConfigPage() {
               const connection = connectionsByToolkit.get(card.item.slug);
               const state = softwareConnectionState(connection);
               return (
-                <article key={card.id} className="octo-panel flex aspect-[2/1] h-auto min-h-0 min-w-0 flex-col justify-between rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
+                <article key={card.id} className="octo-panel octo-management-card flex min-w-0 flex-col justify-between rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="min-w-0 space-y-1">
                       <div className="flex items-center gap-2">
@@ -718,11 +718,11 @@ export default function ChannelsConfigPage() {
                       </div>
                       <p className="line-clamp-2 text-xs text-muted-foreground">{card.item.description}</p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <Button aria-label={labels.manageAria(card.item.name)} className="size-7" onClick={() => void openSoftwareManager(card.item)} size="icon" title={labels.manage} variant="ghost">
+                    <div className="octo-card-actions">
+                      <Button aria-label={labels.manageAria(card.item.name)} className="octo-card-action" onClick={() => void openSoftwareManager(card.item)} size="icon" title={labels.manage} variant="ghost">
                         <Settings2Icon className="size-3.5 text-muted-foreground hover:text-primary" />
                       </Button>
-                      <Button aria-label={labels.logoutAria(card.item.name)} className="size-7" disabled={manageLoading} onClick={() => void handleLogoutSoftware(card.item, connection?.id)} size="icon" title={labels.logout} variant="ghost">
+                      <Button aria-label={labels.logoutAria(card.item.name)} className="octo-card-action" disabled={manageLoading} onClick={() => void handleLogoutSoftware(card.item, connection?.id)} size="icon" title={labels.logout} variant="ghost">
                         <LogOutIcon className="size-3.5 text-muted-foreground hover:text-destructive" />
                       </Button>
                     </div>
@@ -737,7 +737,7 @@ export default function ChannelsConfigPage() {
                       </div>
                       <div className="line-clamp-1 text-[11px] text-muted-foreground">{connectionLabel(connection) ?? labels.oauthManaged}</div>
                     </div>
-                    <Button size="sm" variant={state === "connected" ? "outline" : "default"} onClick={() => void openSoftwareManager(card.item)}>
+                    <Button className="h-7 px-2 text-xs" size="sm" variant={state === "connected" ? "outline" : "default"} onClick={() => void openSoftwareManager(card.item)}>
                       <WrenchIcon className="size-3.5" />
                       {state === "connected" ? labels.manage : labels.connect}
                     </Button>

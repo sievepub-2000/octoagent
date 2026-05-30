@@ -21,6 +21,7 @@ This phase keeps the stable-period rule: no broad architecture replacement. The 
 - Web research fallback now prefers `scrapling_fetch` for Yahoo Japan topic pages and JavaScript-boilerplate pages when `web_fetch`/readability returns noisy content.
 - Research closure fallback now extracts visible Yahoo topic titles and timestamps from Scrapling text, so interrupted or budget-closed research answers from real evidence instead of returning `0/10`.
 - Left-side management cards now share a compact card style, smaller action buttons, constrained badges, fixed minimum card height, and overflow-safe long text.
+- Model pool, MCP service, and software interface cards now use the same `octo-management-card` height and overflow rules as agent, skill, plugin, workflow, and tool cards.
 - `web_fetch` now owns a code-level anti-bot recovery harness: blocked HTTP statuses or anti-bot/login/captcha/JavaScript challenge text trigger a same-URL Scrapling retry before RSS or raw HTML fallback. This is implemented in runtime code and covered by unit tests rather than relying on prompt/tool-description memory.
 - `scrapling_fetch` and `scrapling_fetch_stealth` now reject private/internal URLs directly, so Scrapling can safely be used as a broader fallback engine behind the unified reader.
 - `read_webpage` delegates recoverable anti-bot HTTP statuses to the layered `web_fetch` chain, keeping browser-facing page reads aligned with the same Scrapling fallback policy.
@@ -87,6 +88,7 @@ node scripts/first-turn-chat-regression.cjs http://192.168.110.2:19800
 The smoke script records DOM size, navigation timing, optional JS heap, relevant process RSS lines, console/page/request errors, and the welcome-card versus input-box width assertion.
 
 The management-card smoke checks agents, workflows, tools, skills, plugins, and config sections for child elements escaping `.octo-management-card` bounds.
+As of the latest UI pass it covers model pool, MCP service, and software interface cards as first-class management cards too.
 
 ## Remaining stable-period backlog
 

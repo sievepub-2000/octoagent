@@ -287,19 +287,19 @@ export default function MCPConfigPage() {
             const status = srv.status ?? (srv.enabled ? "ready" : "disabled");
             const statusTone = status === "configuration_error" ? "destructive" : status === "ready" ? "default" : "secondary";
             return (
-              <div key={name} className="octo-panel flex aspect-[2/1] h-auto min-h-0 flex-col justify-between rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
+              <div key={name} className="octo-panel octo-management-card flex min-w-0 flex-col justify-between rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
                 <div className="mb-3">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
                       <ServerIcon className="size-4 shrink-0 text-muted-foreground" />
                       <h2 className="min-w-0 break-words text-sm font-medium text-foreground">{name}</h2>
                     </div>
-                    <div className="flex gap-1">
+                    <div className="octo-card-actions">
                       <Button
                         aria-label={`Edit ${name}`}
                         size="icon"
                         variant="ghost"
-                        className="size-7"
+                        className="octo-card-action"
                         title="Edit"
                         onClick={() => startEdit(name)}
                       >
@@ -309,7 +309,7 @@ export default function MCPConfigPage() {
                         aria-label={`Delete ${name}`}
                         size="icon"
                         variant="ghost"
-                        className="size-7"
+                        className="octo-card-action"
                         title="Delete"
                         onClick={() => {
                           if (window.confirm(`Remove MCP server "${name}"?`)) {
@@ -328,15 +328,15 @@ export default function MCPConfigPage() {
                     <p className="mt-1 break-words line-clamp-2 text-xs text-muted-foreground">{srv.description}</p>
                   )}
                   {srv.status_reason ? (
-                    <p className="mt-2 break-words text-xs text-muted-foreground">{srv.status_reason}</p>
+                    <p className="mt-2 line-clamp-2 break-words text-xs text-muted-foreground">{srv.status_reason}</p>
                   ) : null}
-                  <div className="mt-2 space-y-0.5 text-[11px] font-mono text-muted-foreground">
+                  <div className="mt-2 min-w-0 space-y-0.5 text-[11px] font-mono text-muted-foreground">
                     {srvCmd && <p className="truncate">cmd: {srvCmd} {srvArgs}</p>}
                     {srvUrl && <p className="truncate">url: {srvUrl}</p>}
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex flex-wrap items-center gap-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                     <Badge variant="outline" className="text-[10px] uppercase">{srvType}</Badge>
                     <Badge variant={statusTone} className="text-[10px] uppercase">{status.replace("_", " ")}</Badge>
                   </div>

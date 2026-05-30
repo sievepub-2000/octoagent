@@ -392,7 +392,7 @@ export default function ModelsConfigPage() {
           const connected = provider?.connected === true && Boolean(provider?.credential_ref);
           const actionLabel = template.supports_official_oauth ? "OAuth Login" : "Import models";
           return (
-            <article className="octo-panel flex aspect-[2/1] h-auto min-h-0 min-w-0 flex-col gap-3 rounded-[1rem] p-4" key={template.provider_id}>
+            <article className="octo-panel octo-management-card flex min-w-0 flex-col gap-2 rounded-[1.5rem] p-3" key={template.provider_id}>
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-sm font-medium text-foreground">
@@ -405,17 +405,18 @@ export default function ModelsConfigPage() {
                   {connected ? "connected" : "not linked"}
                 </Badge>
               </div>
-              <div className="grid gap-1 text-[11px] text-muted-foreground">
-                <span className="font-mono">{provider?.model ?? template.default_model}</span>
+              <div className="grid min-w-0 gap-1 text-[11px] text-muted-foreground">
+                <span className="truncate font-mono">{provider?.model ?? template.default_model}</span>
                 <span className="truncate font-mono">{provider?.base_url ?? template.default_base_url}</span>
-                {provider?.account_label ? <span>{provider.account_label}</span> : null}
+                {provider?.account_label ? <span className="truncate">{provider.account_label}</span> : null}
               </div>
               <div className="mt-auto flex flex-wrap gap-1.5">
-                <Button size="sm" variant="outline" disabled={startProviderOAuth.isPending} onClick={() => void handleProviderLogin(template.provider_id)}>
+                <Button className="h-7 px-2 text-xs" size="sm" variant="outline" disabled={startProviderOAuth.isPending} onClick={() => void handleProviderLogin(template.provider_id)}>
                   <Globe2Icon className="size-3.5" />
                   {actionLabel}
                 </Button>
                 <Button
+                  className="h-7 px-2 text-xs"
                   size="sm"
                   variant="ghost"
                   onClick={() => {
@@ -428,6 +429,7 @@ export default function ModelsConfigPage() {
                   Test
                 </Button>
                 <Button
+                  className="h-7 px-2 text-xs"
                   size="sm"
                   variant="ghost"
                   onClick={() => {
@@ -440,7 +442,8 @@ export default function ModelsConfigPage() {
                   Sync
                 </Button>
                 <Button
-                  size="sm"
+                  className="octo-card-action"
+                  size="icon"
                   variant="ghost"
                   onClick={() => {
                     logoutProvider.mutate(template.provider_id, {
@@ -720,11 +723,11 @@ export default function ModelsConfigPage() {
           {models.map((model) => (
             <div
               key={model.id ?? model.name}
-              className={`octo-panel flex aspect-[2/1] h-auto min-h-0 min-w-0 flex-col rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)] ${selected === (model.id ?? model.name) ? "ring-2 ring-primary" : ""}`}
+              className={`octo-panel octo-management-card flex min-w-0 flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)] ${selected === (model.id ?? model.name) ? "ring-2 ring-primary" : ""}`}
             >
-              <div className="mb-2 flex items-start justify-between">
+              <div className="mb-2 flex items-start justify-between gap-2">
                 <h2 className="min-w-0 break-words text-sm font-medium text-foreground">{model.display_name ?? model.name}</h2>
-                <div className="ml-2 flex shrink-0 items-center gap-1">
+                <div className="octo-card-actions ml-2">
                   {model.is_embedded_backup && (
                     <Badge variant="secondary" className="text-[10px]">{copy.modelsPage.backup}</Badge>
                   )}
@@ -733,7 +736,7 @@ export default function ModelsConfigPage() {
                     aria-pressed={selected === (model.id ?? model.name)}
                     size="icon"
                     variant="ghost"
-                    className="size-8"
+                    className="octo-card-action"
                     title="Details"
                     onClick={() => setSelected(selected === (model.id ?? model.name) ? null : (model.id ?? model.name))}
                   >
@@ -744,7 +747,7 @@ export default function ModelsConfigPage() {
                       aria-label={`${copy.modelsPage.editModelTitle}: ${model.display_name ?? model.name}`}
                       size="icon"
                       variant="ghost"
-                      className="size-8"
+                      className="octo-card-action"
                       title={copy.modelsPage.editModelTitle}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -760,7 +763,7 @@ export default function ModelsConfigPage() {
                       aria-label={`Delete ${model.display_name ?? model.name}`}
                       size="icon"
                       variant="ghost"
-                      className="size-8"
+                      className="octo-card-action"
                       onClick={(e) => {
                         e.stopPropagation();
                         if (window.confirm(copy.modelsPage.deleteConfirm(model.display_name ?? model.name))) {
