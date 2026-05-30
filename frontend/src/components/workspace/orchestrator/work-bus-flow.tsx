@@ -11,6 +11,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { getBackendBaseURL } from "@/core/config";
+import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
 type WorkBusEvent = {
@@ -36,6 +37,9 @@ type SocketEnvelope =
 
 function buildWorkBusSocketURL(threadId: string) {
   if (typeof window === "undefined") {
+    return null;
+  }
+  if (env.NEXT_PUBLIC_WORKBUS_LIVE_ENABLED !== "true") {
     return null;
   }
   const baseURL = getBackendBaseURL() || window.location.origin;
