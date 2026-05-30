@@ -18,6 +18,7 @@ from src.agents.middlewares.continuation_middleware import ContinuationMiddlewar
 from src.agents.middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
 from src.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 from src.agents.middlewares.execution_review_middleware import ExecutionReviewMiddleware
+from src.agents.middlewares.execution_mode_middleware import ExecutionModeMiddleware
 from src.agents.middlewares.goal_contract_middleware import GoalContractProducerMiddleware
 from src.agents.middlewares.goal_drift_middleware import GoalDriftMiddleware
 from src.agents.middlewares.instruction_contract_middleware import InstructionContractMiddleware
@@ -256,6 +257,7 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
         UploadsMiddleware(),
         ContinuationMiddleware(),
         ClientCommandMiddleware(),
+        ExecutionModeMiddleware(),
         SandboxMiddleware(),
         DanglingToolCallMiddleware(),
     ]

@@ -20,6 +20,15 @@ The implementation does not copy those prompts. It adapts the principles into Oc
 
 ## Implemented Changes
 
+### Execution Mode Contract
+
+`backend/src/agents/middlewares/execution_mode_middleware.py` adds a hidden per-turn contract that separates two behaviors:
+
+- `assisted`: collaborative mode. The agent should keep the user in the loop, ask one crisp question when credentials, approval, business choice, or missing intent blocks correctness, and avoid silently grinding through repeated failures.
+- `goal_autopilot`: automatic execution mode. The agent should frame the objective, inspect outcomes, form root-cause hypotheses, switch strategies after failure, and try at least two materially different strategies before confirming failure unless a hard external blocker is proven.
+
+This keeps normal chat from behaving like an unattended robot, while giving goal-style runs a stronger deliberate execution loop.
+
 ### Human Collaboration Prompt
 
 `backend/src/agents/lead_agent/prompt.py` now injects a dedicated `<human_collaboration_style>` section into the full lead-agent prompt.
@@ -33,6 +42,15 @@ Key rules:
 - After completing a task, stop executing and do not repeat completed work after restart, compaction, or continuation.
 
 The compact dialogue prompt also gained fast dialogue rules for natural short answers and completed-task stop behavior.
+
+### Reflection and Stall Behavior by Mode
+
+`StepReflectionMiddleware` and `ProgressStallMiddleware` now read `runtime.execution_mode`:
+
+- In `assisted` mode, repeated failures or uncertain branches should lead to a concise evidence summary and a single user question when user input is genuinely required.
+- In `goal_autopilot` mode, failed or partial tool results require a root-cause hypothesis and a materially different next strategy instead of retrying the same tool/arguments.
+
+This turns the existing reflection system into a mode-aware Execute -> Check -> Decide loop.
 
 ### Completed Continuation Stop Guard
 
@@ -66,6 +84,8 @@ cd /home/sieve-pub/public-workspace/octoagent/backend
 .venv/bin/python -m pytest \
   tests/agents/test_instruction_contract_middleware.py \
   tests/agents/test_continuation_middleware.py \
+  tests/agents/test_execution_mode_middleware.py \
+  tests/agents/test_step_reflection_middleware.py \
   tests/agents/test_prompt_human_style.py \
   tests/agents/test_task_state_middleware.py \
   tests/agents/test_tool_recovery_middleware.py
@@ -80,3 +100,4 @@ Result:
 - This is a stability-period optimization, not a large architecture rewrite.
 - The tool repair guard intentionally handles only clear current-research misroutes. It does not override valid web/search/scrapling calls.
 - The completed continuation answer is intentionally conservative: if any pending step or active todo exists, normal continuation behavior remains active.
+- Execution mode detection is conservative: `plan_only`, direct answers, and control commands remain assisted even if a client accidentally sends a thinking flag.

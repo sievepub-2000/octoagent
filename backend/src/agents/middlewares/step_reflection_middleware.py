@@ -79,6 +79,15 @@ def _research_closure_active(state: AgentState) -> bool:
     return isinstance(closure, dict) and closure.get("status") == "must_finalize"
 
 
+def _execution_mode(state: AgentState) -> str:
+    runtime_state = state.get("runtime") or {}
+    if isinstance(runtime_state, dict):
+        mode = runtime_state.get("execution_mode")
+        if isinstance(mode, str) and mode:
+            return mode
+    return "assisted"
+
+
 def _ends_on_tool_batch_boundary(messages: list[Any]) -> bool:
     """True iff the last message is a ToolMessage AND it closes a complete
     batch (the preceding AI message's tool_calls all have matching results)."""
@@ -179,11 +188,31 @@ def _summarise_recent_actions(messages: list[Any]) -> tuple[list[str], list[str]
     return actions, observations
 
 
-def _build_review_message(messages: list[Any], fingerprint: str) -> SystemMessage:
+def _build_review_message(messages: list[Any], fingerprint: str, execution_mode: str = "assisted") -> SystemMessage:
     actions, observations = _summarise_recent_actions(messages)
+    if execution_mode == "goal_autopilot":
+        branch_rules = [
+            "4) 分支：",
+            "   - SUCCESS -> 写出下一步具体动作；如果用户原始任务已经达成，直接给最终答案，不再调工具。",
+            "   - PARTIAL -> 列出已知 vs 还缺什么，并给出能闭合缺口的、明显不同的下一步。",
+            "   - FAILED -> 先给出根因假设，再切换到不同工具/参数/路径/证据来源继续；至少尝试两种不同策略后，才可确认失败。",
+            "5) 如果决定 FAILED 但仍要重试，必须先说明这次和上次的不同点；禁止同参数重试。",
+            "6) 去重检查：检查本轮是否有重复的URL抓取或工具调用。如果有，后续不再重复调用。",
+            "7) 引用检查：如果任务要求提供source URLs，确认已收集的URL数量是否满足要求。",
+        ]
+    else:
+        branch_rules = [
+            "4) 分支：",
+            "   - SUCCESS -> 写出下一步具体动作；如果用户原始任务已经达成，直接给最终答案，不再调工具。",
+            "   - PARTIAL -> 列出已知 vs 还缺什么；如果缺口取决于用户选择/凭据/授权，问一个清晰问题。",
+            "   - FAILED -> 记录错误现象和根因假设，换一种策略；如果已经尝试两种策略仍失败，向用户说明证据并询问下一步。",
+            "5) 如果决定 FAILED 但仍要重试，必须先说明这次和上次的不同点；禁止同参数重试。",
+            "6) 去重检查：检查本轮是否有重复的URL抓取或工具调用。如果有，后续不再重复调用。",
+            "7) 引用检查：如果任务要求提供source URLs，确认已收集的URL数量是否满足要求。",
+        ]
     body = "\n".join(
         [
-            f'{_MARKER} fingerprint="{fingerprint}">',
+            f'{_MARKER} fingerprint="{fingerprint}" execution_mode="{execution_mode}">',
             "你刚刚完成了一组工具调用。下一条助理消息必须先做阶段性自检，再决定是否继续。",
             "",
             "刚刚执行的动作：",
@@ -196,18 +225,7 @@ def _build_review_message(messages: list[Any], fingerprint: str) -> SystemMessag
             "1) 我刚做了什么：1 行（包括用了哪些工具和URL）；",
             "2) 观察到的关键事实：≤3 条要点（只用上面的事实，不要编造）；",
             "3) 结果分类（必填一个）：SUCCESS / PARTIAL / FAILED；",
-            "4) 分支：",
-            "   - SUCCESS → 写出下一步具体动作；如果用户原始任务已经达成，直接给最终答案，不再调工具。",
-            "   - PARTIAL → 列出已知 vs 还缺什么，并给出能闭合缺口的、明显不同的下一步。",
-            "   - FAILED  → 严格执行以下步骤：",
-            "     a) 记录具体错误现象和错误消息",
-            "     b) 分析根本原因（不是简单的'操作失败'）",
-            "     c) 制定与上次完全不同的修正方案（换工具/换参数/换路径/换思路）",
-            "     d) 禁止以相同参数重试；禁止因单次失败就放弃任务",
-            "     e) 如果已尝试2种方案仍失败，考虑是否需要换一个完全不同的方向",
-            "5) 复盘段结束后再继续行动；如果决定 FAILED 但仍要重试，必须先在复盘里说明这次和上次的不同点。",
-            "6) 去重检查：检查本轮是否有重复的URL抓取或工具调用。如果有，后续不再重复调用。",
-            "7) 引用检查：如果任务要求提供source URLs，确认已收集的URL数量是否满足要求。",
+            *branch_rules,
             "</step_review>",
         ]
     )
@@ -251,12 +269,14 @@ class StepReflectionMiddleware(AgentMiddleware[AgentState]):
         for m in reversed(messages[start:]):
             if isinstance(m, SystemMessage) and _MARKER in _content_text(m) and fingerprint in _content_text(m):
                 return None
-        message = _build_review_message(messages, fingerprint)
+        execution_mode = _execution_mode(state)
+        message = _build_review_message(messages, fingerprint, execution_mode)
         runtime_state = dict(state.get("runtime") or {})
         runtime_state["step_review"] = {
             "fingerprint": fingerprint,
             "batches_completed": batches,
             "cadence_every_n": self.every_n,
+            "execution_mode": execution_mode,
         }
         logger.info(
             "StepReflection: injecting step_review fingerprint=%s batches=%d",

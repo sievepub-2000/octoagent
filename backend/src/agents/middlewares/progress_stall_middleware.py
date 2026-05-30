@@ -64,6 +64,15 @@ _SOFT_ESCALATION_MARKER = '<progress_stall_recovery origin="progress_stall_middl
 _REFLECTION_MARKER = '<self_reflection origin="progress_stall_middleware"'
 
 
+def _execution_mode(state: AgentState) -> str:
+    runtime_state = state.get("runtime") or {}
+    if isinstance(runtime_state, dict):
+        mode = runtime_state.get("execution_mode")
+        if isinstance(mode, str) and mode:
+            return mode
+    return "assisted"
+
+
 
 
 
@@ -167,6 +176,7 @@ def _build_reflection_message(
     stall_signature: str,
     per_call_sigs: list[str],
     output_sigs: list[str],
+    execution_mode: str = "assisted",
 ) -> SystemMessage:
     """Compose the Reflexion-style prompt."""
     top_calls = Counter(per_call_sigs).most_common(3)
@@ -187,9 +197,25 @@ def _build_reflection_message(
         snippet = sig[:120] + ("…" if len(sig) > 120 else "")
         output_lines.append(f'  - {count}× "{snippet}"')
 
+    if execution_mode == "goal_autopilot":
+        decision_rules = [
+            "3. 做一个明确决定，并写在最前面：",
+            "   - 决定 A：现有证据已经足够，立即向用户输出最终报告/答案（不要再调用更多工具）。",
+            "   - 决定 B：必须换策略——给出一个与上面重复列表里完全不同的下一步工具调用（不同工具，或显著不同的参数/来源）。",
+            "   - 决定 C：如果已证明存在硬外部阻塞，说明阻塞证据、已尝试策略、以及需要用户提供的唯一信息。",
+            "4. 至少尝试两种不同策略后才可确认失败；空结果本身是证据，不要反复重试。",
+        ]
+    else:
+        decision_rules = [
+            "3. 做一个明确决定，并写在最前面：",
+            "   - 决定 A：现有证据已经足够，立即向用户输出最终报告/答案（不要再调用更多工具）。",
+            "   - 决定 B：换一种明确不同的策略再试一次。",
+            "   - 决定 C：如果已尝试两种策略仍失败，向用户汇报已知事实并问一个清晰问题。",
+            "4. 严禁再以相同参数调用上述重复工具；空结果本身就是确定性答案。",
+        ]
     body = "\n".join(
         [
-            f'{_REFLECTION_MARKER} signature="{stall_signature}">',
+            f'{_REFLECTION_MARKER} signature="{stall_signature}" execution_mode="{execution_mode}">',
             "你陷入了重复执行同一个工具调用、且新产出信息为 0 的循环。",
             "",
             "最近被重复发起的工具调用：",
@@ -201,10 +227,7 @@ def _build_reflection_message(
             "请按下面 4 步在下一条助理消息里完成 自检（self-reflection）：",
             "1. 用 ≤5 行总结当前已经收集到的具体证据（事实，不是推测）。",
             "2. 用 ≤5 行列出仍未知、但用户原始任务真正需要的事实。",
-            "3. 做一个明确决定，并写在最前面：",
-            "   - 决定 A：现有证据已经足够，立即向用户输出最终报告/答案（不要再调用更多工具）。",
-            "   - 决定 B：必须换策略——给出一个与上面重复列表里**完全不同**的下一步工具调用（不同工具，或显著不同的参数）。",
-            "4. 严禁再以相同参数调用上述重复工具；空结果本身就是确定性答案——它意味着该路径无目标存在，应当被采纳为最终结论而不是反复重试。",
+            *decision_rules,
             "</self_reflection>",
         ]
     )
@@ -266,7 +289,7 @@ def _build_ignored_handoff_answer(per_call_sigs: list[str], dup_count: int) -> s
         ]
     )
 
-def _build_soft_escalation_message(per_call_sigs: list[str], dup_count: int, stall_signature: str = "") -> SystemMessage:
+def _build_soft_escalation_message(per_call_sigs: list[str], dup_count: int, stall_signature: str = "", execution_mode: str = "assisted") -> SystemMessage:
     top = Counter(per_call_sigs).most_common(1)
     top_sig = top[0][0] if top else "(unknown)"
     try:
@@ -274,17 +297,28 @@ def _build_soft_escalation_message(per_call_sigs: list[str], dup_count: int, sta
     except ValueError:
         name, payload = top_sig, ""
     payload = payload[:240] + ("…" if len(payload) > 240 else "")
+    if execution_mode == "goal_autopilot":
+        next_actions = (
+            "1) 用事实清单总结已经确认的信息。\n"
+            "2) 明确写出这条路径为何没有新增信息。\n"
+            "3) 选择一个不同工具、不同参数或不同证据来源的下一步并继续执行。\n"
+            "4) 除非出现系统级错误，继续推进用户任务；不要再次调用上述重复工具参数。\n"
+        )
+    else:
+        next_actions = (
+            "1) 用事实清单总结已经确认的信息。\n"
+            "2) 明确写出这条路径为何没有新增信息。\n"
+            "3) 如果还没有尝试过不同策略，换一种策略再试一次。\n"
+            "4) 如果已经尝试过不同策略仍失败，向用户说明卡点并问一个清晰问题。\n"
+        )
     body = (
-        f'{_SOFT_ESCALATION_MARKER} signature="{stall_signature or f"dup={dup_count}"}" dup="{dup_count}">\n'
+        f'{_SOFT_ESCALATION_MARKER} signature="{stall_signature or f"dup={dup_count}"}" dup="{dup_count}" execution_mode="{execution_mode}">\n'
         f"同一工具调用已重复 {dup_count} 次（阈值 {_SOFT_ESCALATION_DUP}），且常规 self-reflection 未打破循环。\n"
-        "这不是系统级错误，不要直接停止任务或把控制权交回用户。请立即切换策略继续执行。\n"
+        "这不是系统级错误。请根据当前 execution_mode 切换策略或询问用户。\n"
         f"重复中的工具： {name}\n"
         f"重复参数 (截取前 240): {payload}\n"
         "\n下一条助理消息必须完成：\n"
-        "1) 用事实清单总结已经确认的信息。\n"
-        "2) 明确写出这条路径为何没有新增信息。\n"
-        "3) 选择一个不同工具、不同参数或不同证据来源的下一步。\n"
-        "4) 除非出现系统级错误，继续推进用户任务；不要再次调用上述重复工具参数。\n"
+        f"{next_actions}"
         "</progress_stall_recovery>"
     )
     return SystemMessage(content=body)
@@ -346,6 +380,7 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
         if signature is None:
             return None
 
+        execution_mode = _execution_mode(state)
         dup_count = _max_dup_count(per_call_sigs)
         prior_reflections = _count_prior_reflections(messages)
         turn_start = _latest_human_index(messages) + 1
@@ -379,15 +414,16 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
         # hard END is the safety net and also an explicit operator opt-in.
         if not already_terminal and (dup_count >= _SOFT_ESCALATION_DUP or (prior_reflections >= _MAX_REFLECTIONS_PER_TURN and dup_count >= _DUP_THRESHOLD)):
             logger.warning(
-                "ProgressStall: escalating signature=%s dup=%d prior_reflections=%d soft_for_sig=%d safety_net=%s",
+                "ProgressStall: escalating signature=%s dup=%d prior_reflections=%d soft_for_sig=%d safety_net=%s mode=%s",
                 signature,
                 dup_count,
                 prior_reflections,
                 soft_for_signature,
                 safety_net_triggered,
+                execution_mode,
             )
             return {
-                "messages": [_build_soft_escalation_message(per_call_sigs, dup_count, signature)],
+                "messages": [_build_soft_escalation_message(per_call_sigs, dup_count, signature, execution_mode)],
                 "runtime": {
                     **dict(state.get("runtime") or {}),
                     "progress_stall": {
@@ -397,6 +433,7 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
                         "escalation": "deep_soft_recovery" if safety_net_triggered else "soft_recovery",
                         "soft_for_signature": soft_for_signature + 1,
                         "hard_stop": False,
+                        "execution_mode": execution_mode,
                     },
                 },
             }
@@ -425,12 +462,14 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
             stall_signature=signature,
             per_call_sigs=per_call_sigs,
             output_sigs=output_sigs,
+            execution_mode=execution_mode,
         )
         runtime_state = dict(state.get("runtime") or {})
         runtime_state["progress_stall"] = {
             "signature": signature,
             "per_call_count": len(per_call_sigs),
             "output_count": len(output_sigs),
+            "execution_mode": execution_mode,
         }
         logger.info("ProgressStall: injecting self_reflection signature=%s", signature)
         return {"messages": [message], "runtime": runtime_state}

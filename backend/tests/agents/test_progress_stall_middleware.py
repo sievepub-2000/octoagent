@@ -131,3 +131,28 @@ def test_ignored_user_handoff_does_not_replace_more_tool_calls_by_default(mw_mod
 def test_no_action_when_below_threshold(mw_module):
     msgs = _make_messages("write_todos", {"todos": ["a"]}, dup=2)
     assert _run(mw_module, msgs) is None
+
+
+def test_goal_autopilot_stall_prompt_requires_different_strategy(mw_module):
+    mw = mw_module.ProgressStallMiddleware()
+    msgs = _make_messages("web_fetch", {"url": "https://example.com"}, dup=3)
+
+    out = mw._maybe_reflect(_State(messages=msgs, runtime={"execution_mode": "goal_autopilot"}))
+
+    assert out is not None
+    content = out["messages"][0].content
+    assert 'execution_mode="goal_autopilot"' in content
+    assert "至少尝试两种不同策略" in content
+    assert out["runtime"]["progress_stall"]["execution_mode"] == "goal_autopilot"
+
+
+def test_assisted_soft_escalation_can_ask_user_after_failed_strategies(mw_module):
+    mw = mw_module.ProgressStallMiddleware()
+    msgs = _make_messages("web_fetch", {"url": "https://example.com"}, dup=6)
+
+    out = mw._maybe_reflect(_State(messages=msgs, runtime={"execution_mode": "assisted"}))
+
+    assert out is not None
+    content = out["messages"][0].content
+    assert 'execution_mode="assisted"' in content
+    assert "问一个清晰问题" in content
