@@ -995,6 +995,34 @@ def _research_closure_evidence_items(
         if len(items) >= limit:
             return items
 
+        source_url_match = re.search(r"(?im)^Source:\s*(https?://\S+)", text)
+        engine_match = re.search(r"(?im)^Engine:\s*scrapling\b", text)
+        if source_url_match and (engine_match or "news.yahoo.co.jp/topics" in source_url_match.group(1)):
+            source_url = source_url_match.group(1).rstrip(".,;")
+            extracted_topics = False
+            if _url_matches_source_domain(source_url, source_domains):
+                topic_pattern = re.compile(
+                    r"(?m)^(?P<title>[^\n]{6,80})\n(?P<date>\d{1,2}/\d{1,2}\([^)]+\)\s+\d{1,2}:\d{2})$"
+                )
+                for match in topic_pattern.finditer(text):
+                    title = _clean_research_excerpt(match.group("title"), 120)
+                    if title in {
+                        "主要トピックス一覧 - Yahoo!ニュース",
+                        "Yahoo!ニュース",
+                        "トピックス一覧",
+                    }:
+                        continue
+                    key = (title, source_url)
+                    if key in seen:
+                        continue
+                    seen.add(key)
+                    items.append((title, source_url, match.group("date")))
+                    extracted_topics = True
+                    if len(items) >= limit:
+                        return items
+            if extracted_topics:
+                continue
+
         if source_domains:
             continue
         urls = list(dict.fromkeys(re.findall(r"https?://[^\s)\]}>'\"]+", text)))[:2]

@@ -255,18 +255,18 @@ export default function SkillsConfigPage() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {filteredSkills.map((skill) => (
-            <div key={skill.name} className="octo-panel flex aspect-[2/1] h-auto min-h-0 flex-col justify-between rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
+            <div key={skill.name} className="octo-panel octo-management-card flex h-auto flex-col justify-between rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
               <div className="mb-3">
                 <div className="flex items-start justify-between gap-2">
                   <h2 className="min-w-0 break-words text-sm font-medium text-foreground">{skill.name}</h2>
-                  <div className="flex gap-1">
+                  <div className="octo-card-actions">
                     {skill.category === "custom" && (
                       <>
                         <Button
                           aria-label={`Edit ${skill.name}`}
                           size="icon"
                           variant="ghost"
-                          className="size-7"
+                          className="octo-card-action"
                           title="Edit"
                           onClick={() => startEdit(skill.name)}
                         >
@@ -276,7 +276,7 @@ export default function SkillsConfigPage() {
                           aria-label={`Delete ${skill.name}`}
                           size="icon"
                           variant="ghost"
-                          className="size-7"
+                          className="octo-card-action"
                           title="Delete"
                           onClick={() => {
                             if (window.confirm(`Delete skill "${skill.name}"?`)) {

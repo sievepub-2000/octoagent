@@ -289,6 +289,38 @@ def test_research_closure_guard_activates_final_answer_mode() -> None:
     )
 
 
+def test_research_closure_fallback_extracts_scrapling_yahoo_topics() -> None:
+    from src.agents.middlewares.tool_budget_middleware import _research_closure_fallback_answer
+
+    content = "\n".join(
+        [
+            "# 主要トピックス一覧 - Yahoo!ニュース",
+            "Source: https://news.yahoo.co.jp/topics/top-picks",
+            "Engine: scrapling (http, tls=verified)",
+            "",
+            "主要トピックス一覧 - Yahoo!ニュース",
+            "Yahoo!ニュース",
+            "トピックス一覧",
+            "1〜25件",
+            "栃木強殺 新たに18歳高校生を逮捕",
+            "5/30(土) 15:24",
+            "マックと対極 バーガーキング社風",
+            "5/30(土) 15:19",
+        ]
+    )
+    messages = [
+        HumanMessage(content="查询日本雅虎今天前十大新闻内容"),
+        ToolMessage(content=content, name="web_fetch", tool_call_id="fetch-1"),
+    ]
+
+    answer = _research_closure_fallback_answer(messages, tool_names={"web_fetch"})
+
+    assert "可见结果（2/10）" in answer
+    assert "栃木強殺 新たに18歳高校生を逮捕" in answer
+    assert "マックと対極 バーガーキング社風" in answer
+    assert "0/10" not in answer
+
+
 def test_write_todos_duplicate_guards_do_not_trigger_final_failure_report() -> None:
     middleware = ToolBudgetMiddleware(final_failure_errors=9)
     messages = [HumanMessage(content="research content subscription saas")]

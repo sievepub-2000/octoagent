@@ -744,7 +744,7 @@ export default function WorkflowsPage() {
                 <div
                   key={ws.task_id}
                   data-testid={`workflow-card-${ws.task_id}`}
-                  className="octo-panel group flex aspect-[2/1] h-auto min-h-0 min-w-0 cursor-pointer flex-col overflow-hidden rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]"
+                  className="octo-panel octo-management-card group flex h-auto min-w-0 cursor-pointer flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]"
                   onClick={(event) => {
                     if (shouldIgnoreCardClick(event.target)) {
                       return;
@@ -831,7 +831,7 @@ export default function WorkflowsPage() {
                             key={modeItem}
                             type="button"
                             className={cn(
-                              "inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] transition-colors",
+                              "inline-flex h-6 items-center rounded-md border px-1.5 py-0.5 text-[10px] transition-colors",
                               active
                                 ? "border-primary bg-primary/10 text-primary"
                                 : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
@@ -865,12 +865,12 @@ export default function WorkflowsPage() {
                     {/* Action buttons */}
                     <div
                       data-card-interactive="true"
-                      className="flex gap-1"
+                      className="octo-card-actions"
                     >
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="size-8"
+                        className="octo-card-action"
                         data-testid={`workflow-card-settings-${ws.task_id}`}
                         aria-label={`${t.common.settings}: ${ws.name || "Untitled"}`}
                         title={isRunning ? "Stop workflow to edit settings" : t.common.settings}
@@ -886,7 +886,7 @@ export default function WorkflowsPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-8 text-green-600"
+                          className="octo-card-action text-green-600"
                           data-testid={`workflow-card-run-${ws.task_id}`}
                           aria-label={`${t.workflows.run}: ${ws.name || "Untitled"}`}
                           title={t.workflows.run}
@@ -902,7 +902,7 @@ export default function WorkflowsPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-8 text-amber-600"
+                          className="octo-card-action text-amber-600"
                           data-testid={`workflow-card-pause-${ws.task_id}`}
                           aria-label={`${t.workflows.pause}: ${ws.name || "Untitled"}`}
                           title={t.workflows.pause}
@@ -918,7 +918,7 @@ export default function WorkflowsPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-8 text-blue-600"
+                          className="octo-card-action text-blue-600"
                           data-testid={`workflow-card-resume-${ws.task_id}`}
                           aria-label={`${t.workflows.resume}: ${ws.name || "Untitled"}`}
                           title={t.workflows.resume}
@@ -934,7 +934,7 @@ export default function WorkflowsPage() {
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-8 text-destructive"
+                          className="octo-card-action text-destructive"
                           data-testid={`workflow-card-stop-${ws.task_id}`}
                           aria-label={`${t.workflows.stop}: ${ws.name || "Untitled"}`}
                           title={t.workflows.stop}
@@ -949,7 +949,7 @@ export default function WorkflowsPage() {
                       <Button
                         size="icon"
                         variant="ghost"
-                        className="size-8 text-destructive"
+                        className="octo-card-action text-destructive"
                         data-testid={`workflow-card-delete-${ws.task_id}`}
                         aria-label={`${t.common.delete}: ${ws.name || "Untitled"}`}
                         title={t.common.delete}

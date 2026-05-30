@@ -499,6 +499,35 @@
     backdrop-filter: blur(26px);
   }
 
+  .octo-management-card {
+    min-height: 176px;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .octo-management-card .octo-card-actions {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.25rem;
+  }
+
+  .octo-management-card .octo-card-action {
+    height: 1.75rem;
+    width: 1.75rem;
+    min-width: 1.75rem;
+  }
+
+  .octo-management-card .octo-card-primary-action {
+    min-width: 0;
+    height: 1.75rem;
+    font-size: 0.75rem;
+    line-height: 1rem;
+  }
+
+  .octo-management-card :where(.badge, [data-slot="badge"]) {
+    max-width: 100%;
+  }
+
   .octo-surface {
     background: linear-gradient(180deg, var(--panel-start), var(--panel-end));
     border: 1px solid color-mix(in srgb, var(--panel-border) 82%, transparent);

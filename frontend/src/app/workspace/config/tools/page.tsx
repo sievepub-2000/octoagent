@@ -699,7 +699,8 @@ export default function ToolsHubPage() {
                     <li
                       key={entry.id}
                       data-testid={`tools-hub-item-${entry.id}`}
-                      className="rounded-lg border border-border bg-card p-3 shadow-sm"
+                      className="octo-management-card min-h-44 rounded-lg border border-border bg-card p-3 shadow-sm"
+                      style={{ minHeight: "176px", overflow: "hidden" }}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
@@ -712,7 +713,7 @@ export default function ToolsHubPage() {
                             </p>
                           ) : null}
                         </div>
-                        <div className="flex flex-col items-end gap-1">
+                        <div className="flex min-w-0 flex-col items-end gap-1">
                           {entry.status ? (
                             <span className="flex items-center gap-1 text-xs text-muted-foreground">
                               {statusIcon(entry.status)}
@@ -720,13 +721,13 @@ export default function ToolsHubPage() {
                             </span>
                           ) : null}
                           {entry.riskLevel ? (
-                            <Badge variant={riskBadgeVariant(entry.riskLevel)} className="uppercase tracking-wide">
+                            <Badge variant={riskBadgeVariant(entry.riskLevel)} className="max-w-full uppercase tracking-wide">
                               <ShieldAlertIcon aria-hidden="true" className="mr-1 size-3" />
                               {entry.riskLevel}
                             </Badge>
                           ) : null}
                           {entry.badge ? (
-                            <Badge variant="outline" className="uppercase tracking-wide">
+                            <Badge variant="outline" className="max-w-full uppercase tracking-wide">
                               {entry.badge}
                             </Badge>
                           ) : null}
@@ -751,11 +752,16 @@ export default function ToolsHubPage() {
                         </div>
                       ) : null}
                       {entry.usage ? (
-                        <details className="mt-2">
+                        <details className="mt-2 max-w-full overflow-hidden">
                           <summary className="cursor-pointer text-xs text-muted-foreground hover:text-foreground">
                             How to use
                           </summary>
-                          <p className="mt-1 text-xs text-muted-foreground">{entry.usage}</p>
+                          <p
+                            className="mt-1 line-clamp-2 max-w-full text-xs text-muted-foreground"
+                            style={{ overflowWrap: "anywhere" }}
+                          >
+                            {entry.usage}
+                          </p>
                         </details>
                       ) : null}
                     </li>

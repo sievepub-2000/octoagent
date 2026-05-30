@@ -178,17 +178,17 @@ export default function PluginsConfigPage() {
           {filteredPlugins.map((plugin) => {
             const entry = registryMap[plugin.plugin_id];
             return (
-              <div key={plugin.plugin_id} className="octo-panel flex min-w-0 flex-col justify-between rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
+              <div key={plugin.plugin_id} className="octo-panel octo-management-card flex min-w-0 flex-col justify-between rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]">
                 <div className="mb-3">
                   <div className="flex items-start justify-between gap-2">
                     <h2 className="min-w-0 break-words text-sm font-medium text-foreground">{plugin.display_name}</h2>
-                    <div className="flex shrink-0 gap-1">
+                    <div className="octo-card-actions">
                       {entry?.installed ? (
                         <Button
                           aria-label={`Delete ${plugin.display_name}`}
                           size="icon"
                           variant="ghost"
-                          className="size-7"
+                          className="octo-card-action"
                           title="Delete"
                           onClick={() => {
                             if (window.confirm(`Uninstall plugin "${plugin.display_name}"?`)) {

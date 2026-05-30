@@ -184,7 +184,7 @@ export function AgentCard({ agent }: AgentCardProps) {
   return (
     <>
       <div
-        className="octo-panel group flex aspect-[2/1] h-auto min-h-0 min-w-0 flex-col overflow-hidden rounded-[1.5rem] p-4 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]"
+        className="octo-panel octo-management-card group flex h-auto min-w-0 flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]"
         data-agent-name={agent.name}
         data-agent-source={agent.source ?? "custom"}
       >
@@ -210,16 +210,16 @@ export function AgentCard({ agent }: AgentCardProps) {
         )}
 
         <div className="mt-auto flex items-center justify-between gap-2">
-          <Button size="sm" className="h-8 flex-1" onClick={handleChat}>
+          <Button size="sm" className="octo-card-primary-action flex-1" onClick={handleChat}>
             <MessageSquareIcon className="mr-1.5 h-3.5 w-3.5" />
             {isTemplate ? t.agents.newAgent : t.agents.chat}
           </Button>
-          <div className="flex gap-1">
+          <div className="octo-card-actions">
             {isEditable ? (
               <Button
                 size="icon"
                 variant="ghost"
-                className="size-8 shrink-0"
+                className="octo-card-action shrink-0"
                 onClick={() => setSettingsOpen(true)}
                 aria-label={`${t.agents.settings}: ${displayName}`}
                 title={t.agents.settings}
@@ -231,7 +231,7 @@ export function AgentCard({ agent }: AgentCardProps) {
               <Button
                 size="icon"
                 variant="ghost"
-                className="size-8 shrink-0 text-destructive hover:text-destructive"
+                className="octo-card-action shrink-0 text-destructive hover:text-destructive"
                 onClick={() => setDeleteOpen(true)}
                 aria-label={`${t.agents.delete}: ${displayName}`}
                 title={t.agents.delete}

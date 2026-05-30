@@ -159,6 +159,44 @@ def _fetch_raw_without_verification(url: str, timeout: float) -> tuple[int, str,
         return r.status_code, (r.headers.get("Content-Type") or ""), body
 
 
+def _scrapling_fallback_markdown(url: str, *, reason: str) -> str | None:
+    """Return cleaner Scrapling text for pages where httpx/readability is noisy."""
+    try:
+        from src.community.scrapling.tools import scrapling_fetch
+
+        raw = scrapling_fetch.invoke({"url": url})
+        payload = json.loads(raw)
+    except Exception as exc:
+        logger.info("web_fetch scrapling fallback unavailable for %s: %s", url, exc)
+        return None
+    if not isinstance(payload, dict) or payload.get("error"):
+        logger.info("web_fetch scrapling fallback returned error for %s: %s", url, payload.get("error"))
+        return None
+    content = str(payload.get("content") or "").strip()
+    if len(content) < 160:
+        return None
+    title = str(payload.get("title") or url).strip()
+    mode = str(payload.get("mode") or "http")
+    tls = str(payload.get("tls_verification") or "verified")
+    return (
+        f"# {title}\n\n"
+        f"Source: {url}\n"
+        f"Engine: scrapling ({mode}, tls={tls})\n"
+        f"Fallback reason: {reason}\n\n"
+        f"{content[:6000]}"
+    )
+
+
+def _should_prefer_scrapling(url: str, content: str) -> str | None:
+    host = urlparse(url).netloc.lower()
+    lowered = content.lower()
+    if host.endswith("yahoo.co.jp") and ("javascript" in lowered or "topics" in lowered or "トピックス" in content):
+        return "Yahoo pages expose cleaner topic text through Scrapling than through readability/httpx"
+    if "javascript" in lowered and ("enable" in lowered or "無効" in content):
+        return "extracted page is dominated by JavaScript-disabled boilerplate"
+    return None
+
+
 @tool("web_fetch", parse_docstring=True)
 def web_fetch_tool(url: str) -> str:
     """Fetch a web page and return readable markdown.
@@ -222,9 +260,17 @@ def web_fetch_tool(url: str) -> str:
         article = _readability.extract_article(body)
         md = article.to_markdown()
         if md and md.strip():
+            reason = _should_prefer_scrapling(url, md)
+            if reason:
+                scrapling_md = _scrapling_fallback_markdown(url, reason=reason)
+                if scrapling_md:
+                    return f"{tls_warning}{scrapling_md[:6000]}"
             return f"{tls_warning}{md[:4096]}"
     except Exception as exc:
         logger.warning("readability failed for %s: %s", url, exc)
 
     # Last resort: truncated raw HTML.
+    scrapling_md = _scrapling_fallback_markdown(url, reason="readability failed or returned no markdown")
+    if scrapling_md:
+        return f"{tls_warning}{scrapling_md[:6000]}"
     return f"{tls_warning}# Raw HTML for {url}\n\n{body[:4096]}"
