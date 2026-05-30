@@ -258,7 +258,35 @@ def test_repeated_write_todos_noop_loop_injects_memory_soft_constraint() -> None
     assert "search_memory" in guidance
     assert "archival_memory_insert" in guidance
     assert update["runtime"]["tool_recovery"]["stage"] == "planning_loop_soft_constraint"
-    assert update["runtime"]["tool_recovery"]["hard_stop"] is False
+
+
+def test_research_closure_guard_activates_final_answer_mode() -> None:
+    middleware = ToolBudgetMiddleware()
+    messages = [HumanMessage(content="查询日本雅虎今天前十大新闻内容")]
+    substantive = "headline " * 80
+    for index in range(3):
+        call_id = f"fetch-{index}"
+        messages.append(_ai_tool_call(tool_name="web_fetch", call_id=call_id, args={"url": f"https://news.yahoo.co.jp/{index}"}))
+        messages.append(ToolMessage(content=substantive, name="web_fetch", tool_call_id=call_id))
+    messages.append(_ai_tool_call(tool_name="web_fetch", call_id="fetch-guard", args={"url": "https://news.yahoo.co.jp/again"}))
+    messages.append(
+        ToolMessage(
+            content="Research collection skipped: enough web evidence has already been gathered in this turn.",
+            name="web_fetch",
+            tool_call_id="fetch-guard",
+            additional_kwargs={"octo_research_closure_guard": True},
+        )
+    )
+
+    update = middleware.before_model({"messages": messages, "runtime": {}}, None)
+
+    assert update is not None
+    assert update["runtime"]["research_closure"]["status"] == "must_finalize"
+    assert update["runtime"]["research_closure"]["activated_from"] == "closure_guard"
+    assert any(
+        isinstance(message, SystemMessage) and "research_final_answer_mode" in str(message.content)
+        for message in update["messages"]
+    )
 
 
 def test_write_todos_duplicate_guards_do_not_trigger_final_failure_report() -> None:

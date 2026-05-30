@@ -61,6 +61,8 @@ goal below.
   [`NOTICE.md`](../NOTICE.md).
 * **Change history** —
   [`CHANGELOG.md`](../CHANGELOG.md).
+* **Stable-period Phase 1 verification** —
+  [`docs/octoagent-stable-period-phase1-verification-2026-05-30.md`](./octoagent-stable-period-phase1-verification-2026-05-30.md).
 
 ## Index policy
 

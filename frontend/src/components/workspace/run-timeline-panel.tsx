@@ -117,7 +117,7 @@ function RunTimelinePanelImpl({
     await copyTextToClipboard(JSON.stringify({ workplans: deferredWorkplans, events: deferredEvents }, null, 2));
   }, [deferredEvents, deferredWorkplans]);
 
-  if (deferredEvents.length === 0 && deferredWorkplans.length === 0) return null;
+  const isEmpty = deferredEvents.length === 0 && deferredWorkplans.length === 0;
 
   return (
     <Collapsible
@@ -138,7 +138,7 @@ function RunTimelinePanelImpl({
             {deferredWorkplans.length > 0 ? (
               <Badge variant="outline" className="h-5 px-1.5 text-[10px]">{deferredWorkplans.length} plan</Badge>
             ) : null}
-            {errorCount > 0 ? (
+            {!isEmpty && errorCount > 0 ? (
               <Badge variant="outline" className="h-5 border-destructive/30 px-1.5 text-[10px] text-destructive">
                 {errorCount} error
               </Badge>
@@ -146,7 +146,11 @@ function RunTimelinePanelImpl({
           </div>
           {latest ? (
             <div className="truncate text-xs text-muted-foreground">{latest.title}</div>
-          ) : null}
+          ) : isLoading ? (
+            <div className="truncate text-xs text-muted-foreground">Waiting for runtime events.</div>
+          ) : (
+            <div className="truncate text-xs text-muted-foreground">No runtime events yet.</div>
+          )}
         </div>
         <Button type="button" variant="ghost" size="icon-sm" aria-label="Copy timeline" title="Copy timeline" onClick={() => void copyAll()}>
           <ClipboardCopyIcon className="size-3.5" />
@@ -154,7 +158,11 @@ function RunTimelinePanelImpl({
       </div>
       <CollapsibleContent>
         <div className="border-t border-border/60 px-3 py-2">
-          {visibleWorkplans.length > 0 ? (
+          {isEmpty ? (
+            <div className="rounded-md border border-dashed border-border/60 bg-muted/15 px-3 py-4 text-xs text-muted-foreground">
+              Runtime events will appear here when the agent starts planning, calling tools, writing, or completing the run.
+            </div>
+          ) : visibleWorkplans.length > 0 ? (
             <div className="mb-2 space-y-1.5">
               {visibleWorkplans.map((plan) => {
                 const planId = plan.workplan_id ?? "workplan";
@@ -191,7 +199,7 @@ function RunTimelinePanelImpl({
               })}
             </div>
           ) : null}
-          <ol className="space-y-1.5">
+          {!isEmpty ? <ol className="space-y-1.5">
             {visibleEvents.map((event) => {
               const Icon = iconForEvent(event.kind, event.level);
               const expanded = expandedIds.has(event.id);
@@ -237,7 +245,7 @@ function RunTimelinePanelImpl({
                 </li>
               );
             })}
-          </ol>
+          </ol> : null}
         </div>
       </CollapsibleContent>
     </Collapsible>

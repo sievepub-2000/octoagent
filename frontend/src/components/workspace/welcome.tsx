@@ -124,7 +124,7 @@ export function Welcome({
   return (
     <div
       className={cn(
-        "mx-auto flex w-full flex-col items-center justify-center gap-2 px-4 py-2 text-center md:px-6",
+        "mx-auto flex w-full max-w-5xl flex-col items-center justify-center gap-2 px-4 py-2 text-center md:px-6",
         className,
       )}
     >

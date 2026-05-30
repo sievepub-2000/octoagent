@@ -1165,6 +1165,31 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
                 }
 
         closure_needed, research_total, research_fetches, research_substantive = _research_closure_needed(messages)
+        if closure_needed and not _research_closure_active_for_turn(runtime_state_current, messages) and _research_closure_guard_count(messages) > 0:
+            runtime_state = dict(runtime_state_current)
+            runtime_state["research_closure"] = {
+                "status": "must_finalize",
+                "tool_messages": research_total,
+                "fetch_messages": research_fetches,
+                "substantive_results": research_substantive,
+                "tool_limit": _RESEARCH_CLOSURE_TOOL_LIMIT,
+                "fetch_limit": _RESEARCH_CLOSURE_FETCH_LIMIT,
+                "activated_from": "closure_guard",
+                **(_latest_human_turn_marker(messages) or {}),
+            }
+            compacted_messages, compacted = _compact_research_evidence_for_final(messages)
+            runtime_state["research_evidence_compaction"] = {
+                "status": "compacted_for_final",
+                "messages": compacted,
+                "max_chars_per_message": _RESEARCH_COMPACT_CHARS,
+            }
+            return {
+                "messages": [
+                    *compacted_messages,
+                    SystemMessage(content=_research_final_only_guidance(compacted)),
+                ],
+                "runtime": runtime_state,
+            }
         if closure_needed and not _research_closure_already_injected(messages):
             runtime_state = dict(state.get("runtime") or {})
             runtime_state["research_closure"] = {
