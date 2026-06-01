@@ -83,6 +83,26 @@ def _user_decision_for_pending(messages: list[Any], pending: dict[str, Any] | No
     return None
 
 
+def _confirmation_already_visible(messages: list[Any], signature: str) -> bool:
+    """True if a confirmation prompt for ``signature`` is already the most recent
+    bot output and the user has not replied since.
+
+    Used to avoid re-emitting an identical confirmation message every time the
+    tool node re-enters while ``dangerous_tool_pending`` is set. Fail-open: if no
+    matching marker is found we return ``False`` so the prompt is emitted.
+    """
+    if not signature:
+        return False
+    marker = f'signature="{signature}"'
+    for message in reversed(messages):
+        if getattr(message, "type", "") == "human":
+            return False
+        text = _message_text(message)
+        if _MARKER in text and marker in text:
+            return True
+    return False
+
+
 def _runtime_state(request: ToolCallRequest) -> dict[str, Any]:
     state = getattr(request, "state", None)
     if isinstance(state, dict):
@@ -173,6 +193,9 @@ class DangerousToolConfirmationMiddleware(AgentMiddleware[DangerousToolConfirmat
                     },
                     goto=END,
                 )
+            if _confirmation_already_visible(messages, pending_signature):
+                _set_runtime_state(request, runtime_state)
+                return Command(update={"runtime": runtime_state}, goto=END)
             return Command(
                 update={
                     "messages": [
@@ -210,6 +233,9 @@ class DangerousToolConfirmationMiddleware(AgentMiddleware[DangerousToolConfirmat
                 goto=END,
             )
 
+        if _confirmation_already_visible(messages, sig):
+            _set_runtime_state(request, runtime_state)
+            return Command(update={"runtime": runtime_state}, goto=END)
         runtime_state["dangerous_tool_pending"] = {
             "tool_name": tool_name,
             "signature": sig,

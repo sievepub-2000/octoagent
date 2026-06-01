@@ -39,6 +39,55 @@ logger = logging.getLogger(__name__)
 class OctoAgentAsyncPostgresSaverMixin:
     """LangGraph maintenance hooks for the Postgres checkpointer."""
 
+    async def acopy_thread(
+        self,
+        source_thread_id: str | None = None,
+        target_thread_id: str | None = None,
+        **kwargs: object,
+    ) -> None:
+        """Bulk-copy a thread's checkpoints/blobs/writes within Postgres.
+
+        Replaces the langgraph_api generic fallback that re-inserts
+        checkpoints one-by-one via aput/aput_writes (slow). ON CONFLICT
+        DO NOTHING makes the copy idempotent and safe for a fresh target.
+        """
+        source = str(source_thread_id) if source_thread_id is not None else None
+        target = str(target_thread_id) if target_thread_id is not None else None
+        if not source:
+            source = str(kwargs.get("source") or kwargs.get("from_thread_id") or "")
+        if not target:
+            target = str(kwargs.get("target") or kwargs.get("to_thread_id") or "")
+        if not source or not target:
+            raise ValueError("acopy_thread requires source and target thread ids")
+        async with self._cursor(pipeline=True) as cur:
+            await cur.execute(
+                """
+                INSERT INTO checkpoint_blobs (thread_id, checkpoint_ns, channel, version, type, blob)
+                SELECT %s, checkpoint_ns, channel, version, type, blob
+                FROM checkpoint_blobs WHERE thread_id = %s
+                ON CONFLICT (thread_id, checkpoint_ns, channel, version) DO NOTHING
+                """,
+                (target, source),
+            )
+            await cur.execute(
+                """
+                INSERT INTO checkpoints (thread_id, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata)
+                SELECT %s, checkpoint_ns, checkpoint_id, parent_checkpoint_id, type, checkpoint, metadata
+                FROM checkpoints WHERE thread_id = %s
+                ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id) DO NOTHING
+                """,
+                (target, source),
+            )
+            await cur.execute(
+                """
+                INSERT INTO checkpoint_writes (thread_id, checkpoint_ns, checkpoint_id, task_id, idx, channel, type, blob, task_path)
+                SELECT %s, checkpoint_ns, checkpoint_id, task_id, idx, channel, type, blob, task_path
+                FROM checkpoint_writes WHERE thread_id = %s
+                ON CONFLICT (thread_id, checkpoint_ns, checkpoint_id, task_id, idx) DO NOTHING
+                """,
+                (target, source),
+            )
+
     async def adelete_for_runs(self, run_ids: Iterable[str]) -> None:
         normalized = [str(run_id) for run_id in run_ids if run_id]
         if not normalized:

@@ -44,3 +44,39 @@
 
 - 整改前队列空闲（`n_pending=0, n_running=0`），经 `scripts/stop-services.sh` + `scripts/start-daemon.sh` 受控重启以加载新配置与代码。
 - 验证项：gateway `/health`、langgraph `/ok`、frontend、WebUI 入口均返回正常；日志不再出现新的本地模型超时与 DuckDB 锁冲突。
+
+## 更正与第二阶段落地（2026-06-01 续作）
+
+> 重要更正：上文 A 项（P0-1）关于「LangGraph 重启即丢失 checkpoint」的前提**有误**。复核实时 PostgreSQL 后确认：自定义 Postgres checkpointer 经 `backend/langgraph.json` 的 `checkpointer` 钩子 + `runtime/config/config.yaml` 的 `checkpointer.type: postgres` **早已生效**，对话状态持久化在 PG 中（实测 `checkpoints` 30,860 行、`checkpoint_writes` 44,901 行、`checkpoint_blobs` 16,792 行）。日志中的 `langgraph_runtime_inmem` 仅指**瞬时 run 调度队列**（在途任务排程，可安全丢失），并非会话状态。
+
+### A'. P0-1 真正缺口：缺失 `acopy_thread`（已修复并实测）
+
+- **真实问题**：自定义 checkpointer 缺少 `acopy_thread`，导致 `POST /threads/<id>/copy` 走 langgraph_api 的通用回退路径（逐条 `aput`/`aput_writes` 重插），复制大会话很慢；启动日志反复打印 `Custom checkpointer missing acopy_thread: using generic fallback (functional but slower)`。
+- **修复**：在 `backend/src/agents/checkpointer/async_provider.py` 的 `OctoAgentAsyncPostgresSaverMixin` 上实现 `acopy_thread`，用三条 `INSERT ... SELECT ... ON CONFLICT DO NOTHING` 在库内整体复制 `checkpoint_blobs`/`checkpoints`/`checkpoint_writes`，幂等、对空目标安全。
+- **实测**：对实时 PG 选取最大会话（2,713 checkpoints）复制到临时 thread，校验 `checkpoints=2713 / writes=3768 / blobs=1409` 完全匹配后清理临时 thread；adapter 的 `_is_overridden` 检测为 True。
+- **重启验证**：`sudo systemctl restart octoagent-local.service` 后，langgraph 日志**不再出现** `missing acopy_thread` 警告；端口 8000/19800/19802/19804/19806 全部 OPEN，WebUI 307→200、标题 `OctoAgent`。
+
+### B'. HITL 危险工具确认去重（P1-2，已修复并测试）
+
+- **保留结论**：只读 git 仍为 `directory` 范围，不会被判危险，无需改分级。
+- **新增修复**：危险工具待确认（`dangerous_tool_pending`）置位时，工具节点每次重入都会重复发出**同一 signature** 的确认提示。新增 `_confirmation_already_visible(messages, signature)`，仅当用户当前可见的最近一条机器人输出正是该 signature 的确认提示、且其后无新的人类消息时，**静默 `goto=END` 不再重复发消息**；否则照常发出（fail-open）。
+- **安全性**：去重按 signature 精确匹配、按线程内消息序列判断、失败即放行——绝不会跨线程或对不同工具误抑制安全确认。
+- **测试**：新增 2 条回归测试（重复抑制 + 人类回复后仍照常发出）；`tests/agents/test_dangerous_tool_confirmation_middleware.py` 8 passed，`tests/agents` 全量 **170 passed**，零回归。
+
+### C'. DuckDB 单写收敛设计（计划项，已给出方案）
+
+- **现状**：退避重试已缓解瞬时锁争用（P1-1 已落地），但 gateway 与 LangGraph 两进程仍同时以 RW 打开 `octoagent_rag.duckdb`，根因未除。
+- **目标架构**：写入收敛到单一属主进程（gateway），LangGraph 侧改为只读连接。
+  1. gateway 持有唯一 RW 连接，暴露内部写入接口（`store.add/update/delete`）。
+  2. LangGraph worker 内 `UnifiedRAGStore` 以 `read_only=True` 打开，所有写请求经 gateway 内部 API/IPC 转发。
+  3. 读路径维持各自只读连接（DuckDB 允许多读）。
+  4. 迁移期：保留 `_connect()` 退避重试作为兜底；切换后逐步移除写侧并发。
+- **风险**：涉及跨进程写入通道，需在测试环境验证一致性与吞吐后再切，单独排期。
+
+## 下一步计划（按优先级）
+
+1. **DuckDB 单写收敛（C' 实施）**：测试环境实现 gateway 唯一写属主 + LangGraph 只读，压测一致性/吞吐，灰度上线，再移除退避重试兜底。
+2. **acopy_thread 端到端回归**：在测试环境对 `POST /threads/<id>/copy` 做真实 API 级验证（含大会话计时对比），纳入自动化测试。
+3. **HITL 同轮并行去重**：当前去重覆盖「跨轮重入重复」；若出现单个 LLM 轮内并行多危险工具调用的重复，再评估实例级（按线程标识）守卫，仍坚持 fail-open。
+4. **持久化健康巡检**：将 PG checkpoint 行数与增长纳入 `/health` 或定时巡检，避免误判 in-memory。
+5. **超时级联回归监测**：观察本地模型 `request_timeout: 300` 下是否仍有孤儿 run / SSE 断流，必要时按模型分档调参。

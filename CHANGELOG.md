@@ -1,3 +1,9 @@
+## 2026-06-01 - Stability remediation phase 2 (checkpointer acopy_thread + HITL confirmation de-dup)
+
+- Implemented `acopy_thread` on the custom async Postgres checkpointer (`backend/src/agents/checkpointer/async_provider.py`) so `POST /threads/<id>/copy` no longer falls back to the slow generic per-checkpoint copy path; verified against live Postgres (2,713 checkpoints copied 1:1) and the `missing acopy_thread` warning is gone after restart. This corrects the earlier assumption that LangGraph state was non-persistent — the custom Postgres checkpointer has been active all along (30k+ checkpoints persisted via `backend/langgraph.json` + `checkpointer.type: postgres`).
+- Added safe, fail-open de-duplication of repeated dangerous-tool confirmation prompts in `backend/src/agents/middlewares/dangerous_tool_confirmation_middleware.py`: a re-emission is suppressed only while an identical-signature confirmation is already the most recent bot output with no human reply since, never across threads or for a different tool. Added 2 regression tests; `tests/agents` 170 passed.
+- Documented the corrected P0-1 finding and a DuckDB single-writer convergence design in `docs/octoagent-stability-remediation-2026-06-01.md`.
+
 ## 2026-06-01 - Stability remediation (local model timeout + DuckDB lock retry)
 
 - Raised the local `qwen3.6-35b-a3b-q8-mm-prod` model card `request_timeout` from 120s to 300s in the runtime config to stop the timeout -> free-model fallback -> orphan-run -> SSE-drop cascade on long agent generations (P0-2/P0-3/P1-3).
