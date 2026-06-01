@@ -8,7 +8,7 @@ printf 'OctoAgent tool policy\n'
 printf '  backend venv: %s\n' "$BACKEND_BIN"
 printf '  managed bin : %s\n' "$MANAGED_BIN"
 printf '  node bin    : %s\n' "$NODE_BIN"
-for name in python ruff pytest bandit trivy semgrep docker git ssh scp psql sqlite3 node npm npx pnpm; do
+for name in python ruff pytest bandit trivy docker git ssh scp psql sqlite3 node npm npx pnpm; do
   found=""
   for candidate in "$BACKEND_BIN/$name" "$MANAGED_BIN/$name" "$NODE_BIN/$name"; do
     if [ -x "$candidate" ]; then found="$candidate"; break; fi

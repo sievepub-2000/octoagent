@@ -102,19 +102,6 @@ def _mcp_command_missing(cfg: dict) -> bool:
         return not (os.path.exists(resolved) and os.access(resolved, os.X_OK))
     return not bool(shutil.which(resolved))
 
-
-def _semgrep_status() -> str:
-    """Report isolated semgrep status (installed via pipx, never in backend/.venv)."""
-    exe = _which("semgrep")
-    if not exe:
-        return "not installed (run scripts/tools/install-system-tools.sh semgrep; isolated via pipx to avoid backend MCP dependency conflict)"
-    try:
-        out = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=15)
-        text = (out.stdout or out.stderr or "").strip()
-        version = text.splitlines()[0] if text else "unknown"
-    except Exception:
-        version = "unknown"
-    return f"enabled (isolated pipx) {exe} v{version}"
 os.environ.setdefault("NPM_CONFIG_CACHE", str(_MANAGED_TOOLS_DIR / "npm-cache"))
 os.environ.setdefault("npm_config_cache", os.environ["NPM_CONFIG_CACHE"])
 
@@ -702,9 +689,7 @@ def dependency_audit_tool(scope: str = "all") -> str:
 def static_security_scan_tool(root: str = "backend/src", timeout_seconds: int = 900) -> str:
     """Run backend-venv-compatible static security checks.
 
-    Semgrep is intentionally not installed in backend/.venv because current
-    semgrep releases downgrade the MCP dependency used by OctoAgent. This
-    replacement combines Ruff security rules and Bandit when available.
+    Combines Ruff security (S) rules and Bandit when available.
 
     Args:
         root: Path to scan.
@@ -720,7 +705,7 @@ def static_security_scan_tool(root: str = "backend/src", timeout_seconds: int = 
         results["bandit"] = _run([bandit, "-r", str(path), "-f", "json"], timeout=timeout, tool_name="static_security_scan")
     else:
         results["bandit"] = {"available": False, "error": "bandit is not installed in backend/.venv"}
-    return _json({"generated_at": _now(), "replacement_for": "semgrep_scan", "results": results})
+    return _json({"generated_at": _now(), "results": results})
 
 
 @tool("bandit_scan", parse_docstring=True)
@@ -1084,7 +1069,7 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
     checks: dict[str, Any] = {}
     checks["services"] = {svc: _run(["systemctl", "is-active", svc], timeout=5, tool_name="octo_doctor", artifact=False) for svc in ("octoagent-local.service", "llamacpp.service", "mihomo.service")}
     checks["binaries"] = {name: _which(name) for name in ("npx", "node", "docker", "git", "ssh", "psql", "sqlite3", "pytest", "ruff", "bandit", "trivy")}
-    checks["tool_policy"] = {"backend_venv": str(_BACKEND_VENV_BIN), "managed_bin": str(_MANAGED_BIN), "node_tools_bin": str(_NODE_TOOLS_BIN), "semgrep": _semgrep_status()}
+    checks["tool_policy"] = {"backend_venv": str(_BACKEND_VENV_BIN), "managed_bin": str(_MANAGED_BIN), "node_tools_bin": str(_NODE_TOOLS_BIN)}
     cfg_path = _REPO_ROOT / "extensions_config.json"
     if cfg_path.exists():
         data = json.loads(cfg_path.read_text())
