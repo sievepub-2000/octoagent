@@ -1,9 +1,8 @@
 """Single-writer convergence guard for the shared RAG DuckDB file.
 
-`connect_duckdb_with_retry` defaults to retry-only behaviour (no lock, identical
-to historical behaviour). When ``OCTOAGENT_DUCKDB_SERIALIZE`` is enabled it must
-serialize cross-process access with an advisory readers-writer file lock and
-release that lock exactly once when the connection is closed.
+`connect_duckdb_with_retry` now defaults to single-writer serialization (an
+advisory readers-writer file lock released exactly once on close). Set
+``OCTOAGENT_DUCKDB_SERIALIZE=0`` to fall back to retry-only behaviour.
 """
 
 from __future__ import annotations
@@ -42,14 +41,28 @@ def _sh_lock_free(lock_path: str) -> bool:
         os.close(fd)
 
 
-def test_default_off_is_retry_only(tmp_path, monkeypatch) -> None:
+def test_default_on_is_serialized(tmp_path, monkeypatch) -> None:
     monkeypatch.delenv("OCTOAGENT_DUCKDB_SERIALIZE", raising=False)
+    db = tmp_path / "rag.duckdb"
+    lock_path = str(db) + ".rwlock"
+    with connect_duckdb_with_retry(db) as conn:
+        conn.execute("CREATE TABLE t (id INTEGER)")
+        conn.execute("INSERT INTO t VALUES (1)")
+        assert conn.execute("SELECT count(*) FROM t").fetchone()[0] == 1
+        # Single-writer convergence is on by default: a sidecar lock is held.
+        assert os.path.exists(lock_path)
+        assert _ex_lock_free(lock_path) is False
+    assert _ex_lock_free(lock_path) is True
+
+
+def test_explicit_off_is_retry_only(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("OCTOAGENT_DUCKDB_SERIALIZE", "0")
     db = tmp_path / "rag.duckdb"
     with connect_duckdb_with_retry(db) as conn:
         conn.execute("CREATE TABLE t (id INTEGER)")
         conn.execute("INSERT INTO t VALUES (1)")
         assert conn.execute("SELECT count(*) FROM t").fetchone()[0] == 1
-    # No sidecar lock file is created when serialization is off.
+    # No sidecar lock file is created when serialization is explicitly off.
     assert not (tmp_path / "rag.duckdb.rwlock").exists()
 
 

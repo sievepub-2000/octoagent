@@ -21,6 +21,15 @@ from .contracts import (
     make_id,
     utc_now,
 )
+from .durable_execution import (
+    IdempotentRunner,
+    ReplayJournal,
+    Saga,
+    SagaAborted,
+    SagaResult,
+    StepStatus,
+    make_idempotency_key,
+)
 from .runtime_contracts import (
     TaskArtifactFile,
     TaskStudioAgentSummary,
@@ -85,6 +94,13 @@ __all__ = [
     "safe_auto_execute_workspace",
     "make_id",
     "utc_now",
+    "IdempotentRunner",
+    "ReplayJournal",
+    "Saga",
+    "SagaAborted",
+    "SagaResult",
+    "StepStatus",
+    "make_idempotency_key",
 ]
 
 

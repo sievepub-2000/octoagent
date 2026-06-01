@@ -18,6 +18,7 @@ export OCTOAGENT_TOOLS_DIR="${OCTOAGENT_TOOLS_DIR:-$REPO_ROOT/runtime/tools}"
 export NPM_CONFIG_CACHE="${NPM_CONFIG_CACHE:-$REPO_ROOT/runtime/tools/npm-cache}"
 export npm_config_cache="$NPM_CONFIG_CACHE"
 export TRIVY_CACHE_DIR="${TRIVY_CACHE_DIR:-$REPO_ROOT/runtime/tools/trivy-cache}"
+export OCTOAGENT_DUCKDB_SERIALIZE="${OCTOAGENT_DUCKDB_SERIALIZE:-1}"
 
 usage() {
     cat <<USAGE

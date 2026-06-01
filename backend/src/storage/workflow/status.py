@@ -6,7 +6,7 @@ from src.storage.task_workspaces.contracts import TaskWorkspace, TaskWorkspaceSt
 
 TERMINAL_WORKSPACE_STATUSES = {"completed", "failed", "terminated"}
 
-# Slice C / D extended vocabulary for Hermes-style lifecycle states
+# Slice C / D extended vocabulary for durable-workflow lifecycle states
 LIFECYCLE_STATES = {
     "signal_wait",
     "human_review_required",
@@ -33,7 +33,7 @@ def workflow_stage_for_status(status: str) -> str:
         return "failed"
     if status == "terminated":
         return "terminated"
-    # Hermes-style extended states
+    # durable-workflow extended states
     if status == "signal_wait":
         return "waiting"
     if status == "human_review_required":

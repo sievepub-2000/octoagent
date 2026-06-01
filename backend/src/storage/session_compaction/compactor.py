@@ -33,7 +33,7 @@ class CompactionConfig(BaseModel):
         default="summarize",
         description="Compaction strategy: 'summarize' (review/compress), 'hybrid', or emergency 'truncate'",
     )
-    preflight_ratio: float = Field(default=0.5, ge=0.1, le=1.0, description="Hermes-style preflight compaction threshold")
+    preflight_ratio: float = Field(default=0.5, ge=0.1, le=1.0, description="Preflight compaction threshold (durable-workflow inspired)")
     aggressive_ratio: float = Field(default=0.85, ge=0.1, le=1.0, description="Gateway-style aggressive compaction threshold")
     min_turns_before_compact: int = Field(default=10, description="Minimum turns before compaction triggers")
     preserve_anchors: bool = Field(default=True, description="Keep messages flagged as important anchors")

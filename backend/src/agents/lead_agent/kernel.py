@@ -7,7 +7,7 @@ from langchain_core.runnables import RunnableConfig
 from .builder import LeadAgentBuilder
 from .runtime import LeadAgentRuntimeOptions, LeadAgentRuntimeResolver
 
-_DEFAULT_HERMES_LIFECYCLE_STATES = (
+_DEFAULT_OCTO_LIFECYCLE_STATES = (
     "builder_applying",
     "checkpoint_ready",
     "hook_executing",
@@ -22,7 +22,7 @@ def _resolve_lifecycle_states() -> tuple[str, ...]:
 
         return tuple(sorted(LIFECYCLE_STATES))
     except Exception:
-        return _DEFAULT_HERMES_LIFECYCLE_STATES
+        return _DEFAULT_OCTO_LIFECYCLE_STATES
 
 
 @dataclass(frozen=True, slots=True)
@@ -36,8 +36,8 @@ class LeadAgentKernelContract:
     lifecycle_states: tuple[str, ...]
 
 
-class HermesLeadAgentKernel:
-    """Compatibility facade that expresses the default single-agent path as a Hermes-style kernel."""
+class OctoLeadAgentKernel:
+    """Compatibility facade that expresses the default single-agent path as an Octo-native kernel."""
 
     def __init__(
         self,
@@ -50,9 +50,9 @@ class HermesLeadAgentKernel:
 
     def contract(self) -> LeadAgentKernelContract:
         return LeadAgentKernelContract(
-            name="hermes_compatible",
+            name="octo_native",
             execution_mode="single_default",
-            lifecycle_model="hermes_compatible",
+            lifecycle_model="octo_native",
             runtime_contract_version="v1",
             memory_contract="layered_v1",
             capability_contract="registry_v1",

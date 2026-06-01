@@ -55,6 +55,10 @@ jobs:
         working-directory: backend
         run: PYTHONPATH=. .venv/bin/python -m compileall -q src scripts
 
+      - name: Backend regression tests (self-contained)
+        working-directory: backend
+        run: PYTHONPATH=. .venv/bin/python -m pytest tests/storage/test_duckdb_serialize.py tests/storage/test_durable_execution.py tests/agents/test_conversation_robustness.py -q
+
   frontend:
     runs-on: ubuntu-latest
     timeout-minutes: 20

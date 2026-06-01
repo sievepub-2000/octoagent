@@ -1,4 +1,4 @@
 from .agent import make_lead_agent
-from .kernel import HermesLeadAgentKernel, LeadAgentKernelContract
+from .kernel import LeadAgentKernelContract, OctoLeadAgentKernel
 
-__all__ = ["make_lead_agent", "HermesLeadAgentKernel", "LeadAgentKernelContract"]
+__all__ = ["make_lead_agent", "OctoLeadAgentKernel", "LeadAgentKernelContract"]

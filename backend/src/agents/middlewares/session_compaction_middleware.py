@@ -428,7 +428,7 @@ class SessionCompactionMiddleware(AgentMiddleware):
     def before_model(self, state: AgentState, runtime: Runtime) -> dict | None:
         """Check context pressure and compact if over budget.
 
-        Tiered strategy selection follows the Hermes-style pressure gates:
+        Tiered strategy selection follows the durable-workflow pressure gates:
           - < 85% of window  → no message rewriting on healthy hosts
           - >= 85%           → aggressive gateway compaction
           - OOM critical     → allow oversized-message truncation as a last resort

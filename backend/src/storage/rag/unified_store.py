@@ -29,8 +29,8 @@ _SERIALIZE_ACQUIRE_DELAY = 0.1
 
 
 def _duckdb_serialize_enabled() -> bool:
-    """Single-writer convergence opt-in. Default OFF (retry-only behaviour)."""
-    return os.getenv(_DUCKDB_SERIALIZE_ENV, "0").strip().lower() in {"1", "true", "yes", "on"}
+    """Single-writer convergence. Default ON; set OCTOAGENT_DUCKDB_SERIALIZE=0 to opt out (retry-only)."""
+    return os.getenv(_DUCKDB_SERIALIZE_ENV, "1").strip().lower() in {"1", "true", "yes", "on"}
 
 
 class _GuardedDuckDBConnection:
@@ -51,7 +51,7 @@ class _GuardedDuckDBConnection:
             object.__setattr__(self, "_released", True)
             object.__getattribute__(self, "_release")()
 
-    def __enter__(self) -> "_GuardedDuckDBConnection":
+    def __enter__(self) -> _GuardedDuckDBConnection:
         return self
 
     def __exit__(self, exc_type, exc, tb) -> bool:

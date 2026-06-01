@@ -5,7 +5,7 @@ from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.runnables import RunnableConfig
 
 from src.agents.lead_agent.builder import LeadAgentBuilder
-from src.agents.lead_agent.kernel import HermesLeadAgentKernel
+from src.agents.lead_agent.kernel import OctoLeadAgentKernel
 from src.agents.lead_agent.prompt import apply_prompt_template
 from src.agents.lead_agent.runtime import (
     LeadAgentRuntimeResolver,
@@ -18,8 +18,8 @@ from src.agents.middlewares.continuation_middleware import ContinuationMiddlewar
 from src.agents.middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
 from src.agents.middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
 from src.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
-from src.agents.middlewares.execution_review_middleware import ExecutionReviewMiddleware
 from src.agents.middlewares.execution_mode_middleware import ExecutionModeMiddleware
+from src.agents.middlewares.execution_review_middleware import ExecutionReviewMiddleware
 from src.agents.middlewares.goal_contract_middleware import GoalContractProducerMiddleware
 from src.agents.middlewares.goal_drift_middleware import GoalDriftMiddleware
 from src.agents.middlewares.instruction_contract_middleware import InstructionContractMiddleware
@@ -359,7 +359,7 @@ def make_lead_agent(config: RunnableConfig):
     from src.tools import get_available_tools
     from src.tools.builtins import setup_agent
 
-    kernel = HermesLeadAgentKernel(
+    kernel = OctoLeadAgentKernel(
         runtime_resolver=LeadAgentRuntimeResolver(
             app_config_getter=get_app_config,
         ),
