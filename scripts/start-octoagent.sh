@@ -44,7 +44,7 @@ systemctl_cmd() {
 wait_ready() {
     local elapsed=0
     while [ "$elapsed" -lt 120 ]; do
-        if curl -fsS "http://127.0.0.1:${ENTRY_PORT}/api/models" >/dev/null 2>&1; then
+        if curl -fsS --max-time 5 "http://127.0.0.1:${ENTRY_PORT}/api/models" >/dev/null 2>&1; then
             return 0
         fi
         sleep 1
@@ -93,10 +93,18 @@ run_supervised() {
     echo "$(date -Is) OctoAgent ready on http://127.0.0.1:${ENTRY_PORT}" >> "$SUPERVISOR_LOG"
     trap 'echo "$(date -Is) supervisor stopping" >> "$SUPERVISOR_LOG"; stop_runtime || true; exit 0' INT TERM
 
+    local health_fails=0
+    local health_max_fails="${OCTOAGENT_HEALTH_MAX_FAILURES:-3}"
     while true; do
         sleep "$HEALTH_INTERVAL_SECONDS"
-        if ! curl -fsS "http://127.0.0.1:${ENTRY_PORT}/api/models" >/dev/null 2>&1; then
-            echo "$(date -Is) health check failed on port ${ENTRY_PORT}; exiting for systemd restart" >> "$SUPERVISOR_LOG"
+        if curl -fsS --max-time 5 "http://127.0.0.1:${ENTRY_PORT}/api/models" >/dev/null 2>&1; then
+            health_fails=0
+            continue
+        fi
+        health_fails=$((health_fails + 1))
+        echo "$(date -Is) health probe failed (${health_fails}/${health_max_fails}) on port ${ENTRY_PORT}" >> "$SUPERVISOR_LOG"
+        if [ "$health_fails" -ge "$health_max_fails" ]; then
+            echo "$(date -Is) health check failed ${health_max_fails}x consecutively; exiting for systemd restart" >> "$SUPERVISOR_LOG"
             stop_runtime || true
             exit 1
         fi

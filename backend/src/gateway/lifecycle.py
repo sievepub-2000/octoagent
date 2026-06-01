@@ -23,6 +23,9 @@ from src.runtime.system_guard.service import get_system_guard_service
 
 logger = logging.getLogger(__name__)
 
+# Process-scoped at-most-once guard for startup orphan recovery (see durable_execution).
+_ORPHAN_RECOVERY_RUNNER = None
+
 
 def _initialize_configuration():
     try:
@@ -196,18 +199,40 @@ def _recover_orphaned_task_workspaces() -> None:
 
         orphaned = recoverable_orphaned_workspaces()
         if orphaned:
+            from src.storage.workflow.durable_execution import IdempotentRunner, make_idempotency_key
+
+            global _ORPHAN_RECOVERY_RUNNER
+            if _ORPHAN_RECOVERY_RUNNER is None:
+                _ORPHAN_RECOVERY_RUNNER = IdempotentRunner()
+            runner = _ORPHAN_RECOVERY_RUNNER
+
             logger.info(
                 "Recovering %d orphaned 'running' task workspace(s) on startup: %s",
                 len(orphaned),
                 [ws.task_id for ws in orphaned],
             )
-            for ws in orphaned:
+
+            def _schedule_recovery(ws: object) -> str:
                 _startup_asyncio.create_task(
                     safe_auto_execute_workspace(
                         ws,
                         merge_workspace_metadata=_merge_workspace_metadata,
                         workflow_module_factory=TaskWorkflowModule,
                     )
+                )
+                return ws.task_id
+
+            skipped = 0
+            for ws in orphaned:
+                key = make_idempotency_key("recover_orphan_workspace", ws.task_id)
+                if runner.store.get(key) is not None:
+                    skipped += 1
+                # at-most-once: a repeat/concurrent sweep replays instead of re-dispatching
+                runner.run(key, lambda ws=ws: _schedule_recovery(ws), name="recover_orphan_workspace")
+            if skipped:
+                logger.info(
+                    "Orphan recovery idempotency guard skipped %d already-recovered workspace(s)",
+                    skipped,
                 )
         else:
             logger.info("No orphaned task workspaces to recover on startup.")
