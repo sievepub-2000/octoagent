@@ -25,7 +25,6 @@ class ClientCommandMiddleware(AgentMiddleware[AgentState]):
         runtime_context = runtime.context or {}
         client_command = runtime_context.get("client_command")
         governance = runtime_context.get("session_governance")
-        is_flash = runtime_context.get("mode") == "flash"
         messages = list(state.get("messages", []))
         if not messages:
             return None
@@ -33,31 +32,18 @@ class ClientCommandMiddleware(AgentMiddleware[AgentState]):
         if not isinstance(last_message, HumanMessage):
             return None
 
-        inserted_messages: list[SystemMessage] = []
-        weather_snapshot = _maybe_build_weather_snapshot(str(last_message.content))
-        if weather_snapshot is not None:
-            inserted_messages.append(weather_snapshot)
-        tools_snapshot = _maybe_build_system_tools_snapshot(str(last_message.content))
-        if tools_snapshot is not None:
-            inserted_messages.append(tools_snapshot)
-
+        # The conversation middleware never pre-computes or injects a
+        # user-facing answer (e.g. weather/tool "snapshots"), and never tells
+        # the model to skip tools for fresh-information requests. Pre-baked
+        # answers caused parroting, stale-city leaks, and "answer without
+        # reading the question" failures that generalize far beyond weather.
+        # The model owns the answer; tools own the facts; this middleware only
+        # supplies neutral context (route guards + governance metadata).
         if not isinstance(client_command, dict):
-            if inserted_messages:
-                messages[-1:-1] = inserted_messages
-                return {"messages": messages}
             return None
         route_kind = _route_kind(runtime_context) or classify_dialogue_route(str(last_message.content)).kind
         if route_kind in {"control_command", "plan_only"}:
-            messages[-1:-1] = inserted_messages + [_build_control_route_guard(route_kind)]
-            return {"messages": messages}
-
-        if is_flash and inserted_messages:
-            compact_lines = ["<client_execution_contract>"]
-            compact_lines.append("Current-information snapshot is already supplied by the server. Answer directly from it; do not run extra tools unless the snapshot is empty or the user requests verification.")
-            compact_lines.append(f"Intent: {client_command.get('intent', 'conversation')}")
-            compact_lines.append(f"Execution target: {client_command.get('execution_target', 'repo_read')}")
-            compact_lines.append("</client_execution_contract>")
-            messages[-1:-1] = inserted_messages + [SystemMessage(content="\n".join(compact_lines))]
+            messages[-1:-1] = [_build_control_route_guard(route_kind)]
             return {"messages": messages}
 
         contract_lines = ["<client_execution_contract>"]
@@ -96,7 +82,7 @@ class ClientCommandMiddleware(AgentMiddleware[AgentState]):
         # instead of mutating the HumanMessage content (which would leak
         # the raw XML into the chat stream visible to the user).
         contract_msg = SystemMessage(content="\n".join(contract_lines))
-        messages[-1:-1] = inserted_messages + [contract_msg]
+        messages[-1:-1] = [contract_msg]
         return {"messages": messages}
 
     @override
@@ -166,13 +152,9 @@ def _build_instant_client_answer(messages: list[Any], runtime_context: dict[str,
     route = _route_kind(runtime_context) or classify_dialogue_route(user_text).kind
     if route == "control_command":
         return _format_control_command_answer(user_text)
-    if route == "current_snapshot":
-        weather_payload = _extract_tagged_json(messages, "current_weather_snapshot")
-        if weather_payload is not None:
-            return _format_weather_answer(weather_payload)
-        tools_payload = _extract_tagged_json(messages, "system_tools_snapshot")
-        if tools_payload is not None:
-            return _format_system_tools_answer(tools_payload)
+    # "current_snapshot" intentionally no longer short-circuits the model.
+    # Real-time/factual answers must flow through the model + tool loop so the
+    # response is grounded in THIS turn's request and freshly fetched data.
     if route == "direct_answer":
         return _try_direct_arithmetic_answer(user_text)
     return None

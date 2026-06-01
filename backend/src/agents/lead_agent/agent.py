@@ -15,6 +15,7 @@ from src.agents.lead_agent.runtime import (
 from src.agents.middlewares.clarification_middleware import ClarificationMiddleware
 from src.agents.middlewares.client_command_middleware import ClientCommandMiddleware
 from src.agents.middlewares.continuation_middleware import ContinuationMiddleware
+from src.agents.middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
 from src.agents.middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
 from src.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
 from src.agents.middlewares.execution_review_middleware import ExecutionReviewMiddleware
@@ -344,6 +345,9 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
         middlewares.append(SkillEvolutionMiddleware(data_dir=data_dir, skills_root=skills_root))
     except Exception:
         logger.warning("SkillEvolutionMiddleware not loaded", exc_info=True)
+
+    # ConversationIntegrityMiddleware - collapse degenerate repeated output
+    middlewares.append(ConversationIntegrityMiddleware())
 
     # ClarificationMiddleware should always be last
     middlewares.append(ClarificationMiddleware())
