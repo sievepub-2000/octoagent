@@ -50,7 +50,7 @@ def _source_root() -> Path:
 def _source_paths() -> dict[CapabilityCategory, Path]:
     root = _source_root()
     return {
-        "skills": root / ".github" / "skills",
+        "skills": root / "skills",
         "agents": root / ".github" / "agents",
         "instructions": root / ".github" / "instructions",
         "hooks": root / ".github" / "hooks",
@@ -61,7 +61,7 @@ def _source_paths() -> dict[CapabilityCategory, Path]:
 def _repo_paths() -> dict[CapabilityCategory, Path]:
     root = _repo_root()
     return {
-        "skills": root / "skills" / "custom",
+        "skills": root / "skills",
         "agents": root / ".github" / "agents",
         "instructions": root / ".github" / "instructions",
         "hooks": root / ".github" / "hooks",
@@ -73,6 +73,25 @@ def _list_dir_names(path: Path) -> list[str]:
     if not path.exists():
         return []
     return sorted(entry.name for entry in path.iterdir() if entry.is_dir())
+
+
+_SKILL_SUBDIRS = ("public", "custom")
+
+
+def _iter_skill_entries(skills_root: Path) -> list[tuple[str, str]]:
+    entries: list[tuple[str, str]] = []
+    for subdir in _SKILL_SUBDIRS:
+        sub_path = skills_root / subdir
+        if not sub_path.exists():
+            continue
+        for entry in sub_path.iterdir():
+            if entry.is_dir():
+                entries.append((subdir, entry.name))
+    return sorted(entries)
+
+
+def _list_skill_names(skills_root: Path) -> list[str]:
+    return sorted({name for _, name in _iter_skill_entries(skills_root)})
 
 
 def _list_file_names(path: Path, suffix: str) -> list[str]:
@@ -188,7 +207,7 @@ class CapabilityCoreService:
         repo_paths = _repo_paths()
         config = ExtensionsConfig.from_file(str(repo_paths["mcp"])) if repo_paths["mcp"].exists() else ExtensionsConfig()
         return {
-            "skills": _list_dir_names(repo_paths["skills"]),
+            "skills": _list_skill_names(repo_paths["skills"]),
             "agents": _list_file_names(repo_paths["agents"], ".agent.md"),
             "instructions": _list_file_names(repo_paths["instructions"], ".instructions.md"),
             "hooks": _list_dir_names(repo_paths["hooks"]),
@@ -198,7 +217,7 @@ class CapabilityCoreService:
     def _source_snapshot(self) -> dict[CapabilityCategory, list[str]]:
         source_paths = _source_paths()
         return {
-            "skills": _list_dir_names(source_paths["skills"]),
+            "skills": _list_skill_names(source_paths["skills"]),
             "agents": _list_file_names(source_paths["agents"], ".agent.md"),
             "instructions": _list_file_names(source_paths["instructions"], ".instructions.md"),
             "hooks": _list_dir_names(source_paths["hooks"]),
@@ -661,8 +680,11 @@ class CapabilityCoreService:
 
         for category in selected:
             if category == "skills":
-                for skill_name in _list_dir_names(source_paths[category]):
-                    status, message = _copy_directory(source_paths[category] / skill_name, repo_paths[category] / skill_name)
+                for skill_subdir, skill_name in _iter_skill_entries(source_paths[category]):
+                    status, message = _copy_directory(
+                        source_paths[category] / skill_subdir / skill_name,
+                        repo_paths[category] / skill_subdir / skill_name,
+                    )
                     config.skills.setdefault(skill_name, SkillStateConfig(enabled=True))
                     results.append({"category": category, "name": skill_name, "status": status, "message": message})
             elif category == "agents":
