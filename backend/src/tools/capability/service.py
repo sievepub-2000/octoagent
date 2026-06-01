@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import shutil
@@ -15,7 +14,6 @@ from src.runtime.config.extensions_config import (
     CompatCapabilityStateConfig,
     ExtensionsConfig,
     HookStateConfig,
-    McpServerConfig,
     SkillStateConfig,
     get_extensions_config,
     reload_extensions_config,
@@ -47,26 +45,28 @@ def _source_root() -> Path:
     return Path(os.getenv("OCTO_AGENT_CAPABILITY_SOURCE", str(_repo_root()))).expanduser().resolve()
 
 
+# Source and installed trees share one relative layout per category so the
+# inventory is symmetric by construction (identity mapping when no external
+# OCTO_AGENT_CAPABILITY_SOURCE override is configured).
+_CATEGORY_RELATIVE_PATHS: dict[CapabilityCategory, tuple[str, ...]] = {
+    "skills": ("skills",),
+    "agents": (".github", "agents"),
+    "instructions": (".github", "instructions"),
+    "hooks": (".github", "hooks"),
+    "mcp": ("extensions_config.json",),
+}
+
+
+def _category_paths(root: Path) -> dict[CapabilityCategory, Path]:
+    return {category: root.joinpath(*parts) for category, parts in _CATEGORY_RELATIVE_PATHS.items()}
+
+
 def _source_paths() -> dict[CapabilityCategory, Path]:
-    root = _source_root()
-    return {
-        "skills": root / "skills",
-        "agents": root / ".github" / "agents",
-        "instructions": root / ".github" / "instructions",
-        "hooks": root / ".github" / "hooks",
-        "mcp": root / ".vscode" / "mcp.json",
-    }
+    return _category_paths(_source_root())
 
 
 def _repo_paths() -> dict[CapabilityCategory, Path]:
-    root = _repo_root()
-    return {
-        "skills": root / "skills",
-        "agents": root / ".github" / "agents",
-        "instructions": root / ".github" / "instructions",
-        "hooks": root / ".github" / "hooks",
-        "mcp": root / "extensions_config.json",
-    }
+    return _category_paths(_repo_root())
 
 
 def _list_dir_names(path: Path) -> list[str]:
@@ -100,12 +100,10 @@ def _list_file_names(path: Path, suffix: str) -> list[str]:
     return sorted(entry.name for entry in path.iterdir() if entry.is_file() and entry.name.endswith(suffix))
 
 
-def _load_source_mcp_servers(path: Path) -> dict[str, dict]:
+def _load_mcp_server_names(path: Path) -> list[str]:
     if not path.exists():
-        return {}
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    servers = payload.get("servers", {})
-    return servers if isinstance(servers, dict) else {}
+        return []
+    return sorted(ExtensionsConfig.from_file(str(path)).mcp_servers.keys())
 
 
 def _copy_directory(source: Path, target: Path) -> tuple[Literal["installed", "skipped"], str]:
@@ -203,26 +201,21 @@ class CapabilityCoreService:
         self._record_audit("workspace.created", {"task_id": payload.get("task_id")})
         logger.debug("CapabilityCore: workspace created %s", payload.get("task_id", "?"))
 
-    def _installed_snapshot(self) -> dict[CapabilityCategory, list[str]]:
-        repo_paths = _repo_paths()
-        config = ExtensionsConfig.from_file(str(repo_paths["mcp"])) if repo_paths["mcp"].exists() else ExtensionsConfig()
+    @staticmethod
+    def _snapshot(paths: dict[CapabilityCategory, Path]) -> dict[CapabilityCategory, list[str]]:
         return {
-            "skills": _list_skill_names(repo_paths["skills"]),
-            "agents": _list_file_names(repo_paths["agents"], ".agent.md"),
-            "instructions": _list_file_names(repo_paths["instructions"], ".instructions.md"),
-            "hooks": _list_dir_names(repo_paths["hooks"]),
-            "mcp": sorted(config.mcp_servers.keys()),
+            "skills": _list_skill_names(paths["skills"]),
+            "agents": _list_file_names(paths["agents"], ".agent.md"),
+            "instructions": _list_file_names(paths["instructions"], ".instructions.md"),
+            "hooks": _list_dir_names(paths["hooks"]),
+            "mcp": _load_mcp_server_names(paths["mcp"]),
         }
 
+    def _installed_snapshot(self) -> dict[CapabilityCategory, list[str]]:
+        return self._snapshot(_repo_paths())
+
     def _source_snapshot(self) -> dict[CapabilityCategory, list[str]]:
-        source_paths = _source_paths()
-        return {
-            "skills": _list_skill_names(source_paths["skills"]),
-            "agents": _list_file_names(source_paths["agents"], ".agent.md"),
-            "instructions": _list_file_names(source_paths["instructions"], ".instructions.md"),
-            "hooks": _list_dir_names(source_paths["hooks"]),
-            "mcp": sorted(_load_source_mcp_servers(source_paths["mcp"]).keys()),
-        }
+        return self._snapshot(_source_paths())
 
     def build_inventory(self) -> dict[str, object]:
         if self._cached_inventory is not None:
@@ -701,18 +694,18 @@ class CapabilityCoreService:
                     config.hooks.setdefault(hook_name, HookStateConfig(enabled=True))
                     results.append({"category": category, "name": hook_name, "status": status, "message": message})
             elif category == "mcp":
-                servers = _load_source_mcp_servers(source_paths[category])
-                if not servers:
-                    results.append({"category": category, "name": "mcp", "status": "error", "message": "source mcp.json not found or empty"})
+                source_mcp_path = source_paths[category]
+                source_mcp_config = ExtensionsConfig.from_file(str(source_mcp_path)) if source_mcp_path.exists() else None
+                if source_mcp_config is None or not source_mcp_config.mcp_servers:
+                    results.append({"category": category, "name": "mcp", "status": "error", "message": "source extensions_config.json not found or has no mcp servers"})
                     continue
-                for server_name, raw_server in sorted(servers.items()):
-                    if not isinstance(raw_server, dict):
-                        results.append({"category": category, "name": server_name, "status": "error", "message": "invalid source server payload"})
+                for server_name, server_config in sorted(source_mcp_config.mcp_servers.items()):
+                    existing = config.mcp_servers.get(server_name)
+                    if existing is not None and existing == server_config:
+                        results.append({"category": category, "name": server_name, "status": "skipped", "message": "already up to date"})
                         continue
-                    status = "updated" if server_name in config.mcp_servers else "installed"
-                    payload = dict(raw_server)
-                    payload.setdefault("enabled", True)
-                    config.mcp_servers[server_name] = McpServerConfig.model_validate(payload)
+                    status = "updated" if existing is not None else "installed"
+                    config.mcp_servers[server_name] = server_config
                     results.append({"category": category, "name": server_name, "status": status, "message": "merged into extensions_config.json"})
 
         write_json_atomic(repo_paths["mcp"], config.to_serializable_dict())
