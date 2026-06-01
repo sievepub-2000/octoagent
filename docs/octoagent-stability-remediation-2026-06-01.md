@@ -80,3 +80,32 @@
 3. **HITL 同轮并行去重**：当前去重覆盖「跨轮重入重复」；若出现单个 LLM 轮内并行多危险工具调用的重复，再评估实例级（按线程标识）守卫，仍坚持 fail-open。
 4. **持久化健康巡检**：将 PG checkpoint 行数与增长纳入 `/health` 或定时巡检，避免误判 in-memory。
 5. **超时级联回归监测**：观察本地模型 `request_timeout: 300` 下是否仍有孤儿 run / SSE 断流，必要时按模型分档调参。
+
+## 第二轮整改与下一步计划落地（2026-06-01 续）
+
+承接本文上半部分列出的「需计划窗口执行的高风险项」，本轮在**不做线上不可逆架构变更**的前提下，落地了 5 项前瞻计划中的安全部分，并对其余高风险部分给出明确排期边界。全部改动均通过 `py_compile`、单元测试与线上实测验证。
+
+### #6 DuckDB 写入安全（item C 的安全步，非全量 IPC 收敛）
+
+- **背景**：上一轮只对 `UnifiedRAGStore._connect()` 加了锁冲突退避重试，但实际静默丢数据的写路径是 `SystemRAGStore._connect()`（`SimpleMemBridge store.add` → 系统记忆写入），它指向同一个 `octoagent_rag.duckdb`（`self._db_path = self._rag.db_path`）却是**裸 `duckdb.connect`、无重试**。
+- **修复**：在 `unified_store.py` 抽出模块级 `connect_duckdb_with_retry(db_path, *, read_only=False, attempts=6, base_delay=0.25, max_delay=2.0)`，`UnifiedRAGStore._connect` 与 `SystemRAGStore._connect` 统一委托到它。两进程瞬时争用期内重试取代静默丢弃。
+- **未做（按风险排期）**：将所有写入收敛到单一进程、LangGraph 侧 `read_only=True` 的全量单写 IPC 架构改造，属对在线多用户系统的重大变更，仍列为独立计划窗口项。
+
+### #4 持久化健康巡检
+
+- gateway `/health` 新增 `persistence` 字段，并提供独立 `/health/persistence`。探针带 30s 缓存、2s 连接超时、`asyncio.to_thread` 不阻塞事件循环、任何异常都不抛出（健康检查永不因探测失败而 500）。DSN 来自 `get_app_config().checkpointer.connection_string`（仅 `type==postgres` 时探测）。
+- **线上实测**：`{"backend":"postgres","ok":true,"checkpoints":31043,"threads":78}`。
+
+### #3 HITL 同轮并行去重
+
+- 在 `dangerous_tool_confirmation_middleware` 增加实例级 `_claim_emission(messages)` 守卫：同一节点并行 fan-out 的多个危险工具调用共享同一个内存 `messages` 列表对象，仅首个 claim 者弹确认，其余在 3s 窗口内按列表 `id()` 命中后静默 `goto=END`。
+- **安全性**：两个**存活**对象的 `id()` 不可能相同，故并发处理不同 `messages` 列表不会误判；极端的 id 复用（仅在前一列表被回收后才可能）最坏只是抑制一次弹窗并停在本轮（用户重发即恢复），**绝不会让未授权工具执行**（fail-safe 偏向不执行）；任何簿记异常 fail-open。
+- 新增 2 条回归测试，`tests/agents` 共 **172 passed**。
+
+### #2 acopy_thread API 级端到端回归
+
+- 直接对 langgraph dev 原生 `POST /threads/<id>/copy` 实测：复制一个 2713 checkpoint 的会话，结果 **checkpoints 2713 + blobs 1409 + writes 3768，与源 1:1**，耗时 **0.59s**；随后 `DELETE /threads/<id>` 返回 204，复制线程残留清零。证实上一轮新增的 Postgres `acopy_thread` 快路径在真实 API 调用下生效。
+
+### #5 超时级联监测
+
+- 重启后扫描 `logs/langgraph.log` / `logs/gateway.log`：**0 孤儿取消、0 超时、0 SSE 断流**；启动巡检 `runs_cancelled: 0`、`journal_stale: 0`。证实 `request_timeout: 300` 已消除「超时→回退→孤儿→断流」级联，属观测项、无需额外代码改动。

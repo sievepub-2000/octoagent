@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import threading
 from collections.abc import Awaitable, Callable
 from typing import Annotated, Any, override
 
@@ -16,6 +17,9 @@ from langgraph.types import Command
 
 from src.agents.thread_state import merge_runtime_state
 from src.utils.messages import message_text as _message_text
+
+_EMIT_INIT_LOCK = threading.Lock()
+_NODE_EMIT_WINDOW = 3.0
 
 _APPROVAL_WORDS = ("确认", "同意", "批准", "允许", "继续", "yes", "y", "approve", "approved", "confirm", "confirmed", "go ahead")
 _DENY_WORDS = ("取消", "拒绝", "不同意", "不要", "停止", "no", "deny", "denied", "cancel", "stop")
@@ -168,6 +172,33 @@ class DangerousToolConfirmationMiddleware(AgentMiddleware[DangerousToolConfirmat
 
     state_schema = DangerousToolConfirmationState
 
+    def _claim_emission(self, messages: list[Any]) -> bool:
+        """Return True if this handler may emit a confirmation for the current node pass.
+
+        Parallel dangerous tool calls in one node pass share the same ``messages``
+        list object; only the first claimant emits, siblings (same list identity
+        within ``_NODE_EMIT_WINDOW`` seconds) halt silently. Fail-open on any error.
+        """
+        import time as _time
+
+        try:
+            if getattr(self, "_emit_lock", None) is None:
+                with _EMIT_INIT_LOCK:
+                    if getattr(self, "_emit_lock", None) is None:
+                        self._emit_node_id = None
+                        self._emit_node_ts = 0.0
+                        self._emit_lock = threading.Lock()
+            node_id = id(messages)
+            now = _time.monotonic()
+            with self._emit_lock:
+                if self._emit_node_id == node_id and (now - self._emit_node_ts) < _NODE_EMIT_WINDOW:
+                    return False
+                self._emit_node_id = node_id
+                self._emit_node_ts = now
+                return True
+        except Exception:  # noqa: BLE001 - never block tool flow on dedup bookkeeping
+            return True
+
     def _maybe_block(self, request: ToolCallRequest) -> Command | None:
         tool_name = _tool_name(request)
         args = request.tool_call.get("args", {})
@@ -196,6 +227,8 @@ class DangerousToolConfirmationMiddleware(AgentMiddleware[DangerousToolConfirmat
             if _confirmation_already_visible(messages, pending_signature):
                 _set_runtime_state(request, runtime_state)
                 return Command(update={"runtime": runtime_state}, goto=END)
+            if not self._claim_emission(messages):
+                return Command(goto=END)
             return Command(
                 update={
                     "messages": [
@@ -236,6 +269,8 @@ class DangerousToolConfirmationMiddleware(AgentMiddleware[DangerousToolConfirmat
         if _confirmation_already_visible(messages, sig):
             _set_runtime_state(request, runtime_state)
             return Command(update={"runtime": runtime_state}, goto=END)
+        if not self._claim_emission(messages):
+            return Command(goto=END)
         runtime_state["dangerous_tool_pending"] = {
             "tool_name": tool_name,
             "signature": sig,

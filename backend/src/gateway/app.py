@@ -61,14 +61,65 @@ def create_app() -> FastAPI:
 
     register_routers(app)
 
+    _persistence_cache: dict = {"ts": 0.0, "data": None}
+    _persistence_ttl = 30.0
+
+    def _probe_persistence() -> dict:
+        """Best-effort LangGraph checkpoint persistence probe (cached, never raises)."""
+        import time as _time
+
+        now = _time.monotonic()
+        cached = _persistence_cache.get("data")
+        if cached is not None and (now - _persistence_cache["ts"]) < _persistence_ttl:
+            return cached
+        result: dict = {"backend": "unknown", "ok": False}
+        try:
+            from src.runtime.config.app_config import get_app_config
+
+            cfg = getattr(get_app_config(), "checkpointer", None)
+            ctype = getattr(cfg, "type", None) if cfg else None
+            dsn = getattr(cfg, "connection_string", None) if cfg else None
+            if ctype != "postgres" or not dsn:
+                result = {"backend": ctype or "memory", "ok": cfg is not None}
+            else:
+                import psycopg
+
+                with psycopg.connect(dsn, connect_timeout=2) as conn, conn.cursor() as cur:
+                    cur.execute("SELECT count(*) FROM checkpoints")
+                    checkpoints = int(cur.fetchone()[0])
+                    cur.execute("SELECT count(DISTINCT thread_id) FROM checkpoints")
+                    threads = int(cur.fetchone()[0])
+                result = {
+                    "backend": "postgres",
+                    "ok": True,
+                    "checkpoints": checkpoints,
+                    "threads": threads,
+                }
+        except Exception as exc:  # noqa: BLE001 - health probe must never raise
+            result = {"backend": "postgres", "ok": False, "error": str(exc)[:200]}
+        _persistence_cache["data"] = result
+        _persistence_cache["ts"] = now
+        return result
+
     @app.get("/health", tags=["health"])
     async def health_check() -> dict:
         """Health check endpoint.
 
         Returns:
-            Service health status information.
+            Service health status information, including a cached LangGraph
+            checkpoint persistence summary.
         """
-        return {"status": "healthy", "service": "octoagent-gateway"}
+        import asyncio
+
+        persistence = await asyncio.to_thread(_probe_persistence)
+        return {"status": "healthy", "service": "octoagent-gateway", "persistence": persistence}
+
+    @app.get("/health/persistence", tags=["health"])
+    async def health_persistence() -> dict:
+        """LangGraph checkpoint persistence detail (cached 30s, never raises)."""
+        import asyncio
+
+        return await asyncio.to_thread(_probe_persistence)
 
     return app
 

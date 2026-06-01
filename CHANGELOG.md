@@ -1,3 +1,12 @@
+## 2026-06-01 - Stability remediation round 2 (persistence health + DuckDB writer safety + HITL parallel de-dup)
+
+- Shared a single `connect_duckdb_with_retry()` helper from `backend/src/storage/rag/unified_store.py` and routed both `UnifiedRAGStore._connect()` and the previously-unprotected `SystemRAGStore._connect()` through it, so system-memory writes (`SimpleMemBridge store.add`) on the shared `octoagent_rag.duckdb` are no longer silently dropped under cross-process lock contention (P1-1 follow-up / item C safe step).
+- Surfaced LangGraph checkpoint persistence health in the gateway: `/health` now includes a cached (30s TTL, 2s connect timeout, never-raising, off-event-loop) Postgres checkpoint summary, plus a dedicated `/health/persistence` route. Verified live: `{"backend":"postgres","ok":true,"checkpoints":31043,"threads":78}`.
+- Added an instance-level same-pass parallel de-dup guard to the dangerous-tool confirmation middleware: when one node fans out several dangerous tool calls sharing the same in-memory `messages` list, only the first handler emits the confirmation prompt; siblings halt silently. Keyed on list identity within a 3s window, fail-open, and fail-safe toward NOT executing the tool (P1-2 follow-up). 2 regression tests added; 172 agent tests pass.
+- Verified the Postgres `acopy_thread` fast path end-to-end at the API level: `POST /threads/<id>/copy` copied a 2713-checkpoint thread 1:1 (2713 checkpoints + 1409 blobs + 3768 writes) in 0.59s, then cleaned up via `DELETE /threads/<id>` (204).
+- Confirmed the `request_timeout: 300` change closed the timeout cascade: post-restart langgraph/gateway logs show 0 orphan cancels, 0 timeouts, 0 SSE drops (startup sweep `runs_cancelled: 0`).
+
+
 ## 2026-06-01 - Stability remediation phase 2 (checkpointer acopy_thread + HITL confirmation de-dup)
 
 - Implemented `acopy_thread` on the custom async Postgres checkpointer (`backend/src/agents/checkpointer/async_provider.py`) so `POST /threads/<id>/copy` no longer falls back to the slow generic per-checkpoint copy path; verified against live Postgres (2,713 checkpoints copied 1:1) and the `missing acopy_thread` warning is gone after restart. This corrects the earlier assumption that LangGraph state was non-persistent — the custom Postgres checkpointer has been active all along (30k+ checkpoints persisted via `backend/langgraph.json` + `checkpointer.type: postgres`).

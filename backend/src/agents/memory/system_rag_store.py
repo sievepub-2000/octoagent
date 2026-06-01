@@ -32,6 +32,7 @@ from src.agents.memory.governance import (
 )
 from src.runtime.config.memory_config import get_memory_config
 from src.storage.rag import get_unified_rag_store
+from src.storage.rag.unified_store import connect_duckdb_with_retry
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ class SystemRAGStore:
         self._initialize()
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
-        return duckdb.connect(str(self._db_path))
+        return connect_duckdb_with_retry(self._db_path)
 
     def _initialize(self) -> None:
         with self._connect() as conn:

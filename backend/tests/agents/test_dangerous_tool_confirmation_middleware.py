@@ -144,3 +144,29 @@ def test_new_confirmation_still_emitted_after_human_reply() -> None:
     # A human spoke after the prior prompt -> fail-open: a fresh prompt is emitted.
     assert isinstance(blocked, Command)
     assert blocked.update.get("messages")
+
+
+def test_parallel_dangerous_calls_emit_single_prompt() -> None:
+    """Two dangerous calls in one node pass share a messages list; only the first prompts."""
+    middleware = DangerousToolConfirmationMiddleware()
+    shared_messages = [SimpleNamespace(type="human", content="reboot services")]
+    first = _request(messages=shared_messages, command="systemctl restart octoagent-local.service")
+    second = _request(messages=shared_messages, command="systemctl restart nginx.service")
+
+    blocked_first = middleware._maybe_block(first)
+    blocked_second = middleware._maybe_block(second)
+
+    assert isinstance(blocked_first, Command)
+    assert (blocked_first.update or {}).get("messages")
+    assert isinstance(blocked_second, Command)
+    assert not (blocked_second.update or {}).get("messages")
+
+
+def test_parallel_guard_does_not_suppress_new_messages_list() -> None:
+    """A genuinely new node pass (distinct messages list) is never suppressed."""
+    middleware = DangerousToolConfirmationMiddleware()
+    first = _request(messages=[SimpleNamespace(type="human", content="reboot")], command="systemctl restart a.service")
+    second = _request(messages=[SimpleNamespace(type="human", content="reboot")], command="systemctl restart b.service")
+
+    assert (middleware._maybe_block(first).update or {}).get("messages")
+    assert (middleware._maybe_block(second).update or {}).get("messages")
