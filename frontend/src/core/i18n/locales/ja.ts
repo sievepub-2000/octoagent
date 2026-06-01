@@ -477,8 +477,8 @@ export const ja: Translations = {
       terminalDescription:
         "既存のサーバー側実行サービスを通して、境界付きの workspace または system CLI コマンドを実行します。",
       terminalScope: "スコープ",
-      workspaceScope: "Workspace CLI",
-      systemScope: "System CLI",
+      workspaceScope: "ワークスペース CLI",
+      systemScope: "システム CLI",
       terminalReady: "準備完了",
       terminalUnavailable: "利用不可",
       commandLabel: "コマンド",

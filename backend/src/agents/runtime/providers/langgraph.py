@@ -156,6 +156,12 @@ class LangGraphRuntimeProvider:
             run_config["metadata"]["langgraph_graph_id"] = graph_id
             run_config["configurable"]["langgraph_graph_id"] = graph_id
 
+        permission_mode_hint = _workspace_hint(request.workspace_metadata, "default_permission_mode")
+        if permission_mode_hint:
+            run_context["permission_mode"] = permission_mode_hint
+            run_config["metadata"]["permission_mode"] = permission_mode_hint
+            run_config["configurable"]["permission_mode"] = permission_mode_hint
+
         for key in ("session_mode", "coordination_strategy", "langgraph_thread_scope"):
             value = _workspace_hint(request.workspace_metadata, key)
             if value is None:
@@ -178,6 +184,9 @@ class LangGraphRuntimeProvider:
             session = get_query_engine_service().get_session(request.query_session_id)
             if session is not None:
                 permission_mode = str(session.metadata.get("permission_mode") or "workspace")
+                run_context["permission_mode"] = permission_mode
+                run_config["metadata"]["permission_mode"] = permission_mode
+                run_config["configurable"]["permission_mode"] = permission_mode
                 operation_plan = get_query_engine_service().plan_operation(
                     QueryOperationPlanRequest(
                         user_message=request.prompt,

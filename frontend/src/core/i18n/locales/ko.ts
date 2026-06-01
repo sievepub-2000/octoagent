@@ -472,8 +472,8 @@ export const ko: Translations = {
       terminalDescription:
         "기존 서버 측 실행 서비스를 통해 경계가 있는 workspace 또는 system CLI 명령을 실행합니다.",
       terminalScope: "범위",
-      workspaceScope: "Workspace CLI",
-      systemScope: "System CLI",
+      workspaceScope: "워크스페이스 CLI",
+      systemScope: "시스템 CLI",
       terminalReady: "준비됨",
       terminalUnavailable: "사용 불가",
       commandLabel: "명령",

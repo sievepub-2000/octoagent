@@ -77,7 +77,10 @@ class TaskWorkspaceBlueprintFactory:
 
     def default_permission_mode(self, mode: TaskExecutionMode) -> str:
         _ = mode
-        return "approval"
+        # Workflow tasks default to full system-level execution (no per-tool
+        # confirmation). Host/system tools are exposed and run without pausing
+        # for user approval.
+        return "system"
 
     def effective_mode_from_builder(
         self,

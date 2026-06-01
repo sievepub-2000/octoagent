@@ -66,6 +66,9 @@ class TaskWorkspaceService:
         workspace: TaskWorkspace,
         agent: AgentHandle | None,
     ) -> str:
+        workspace_default = str(workspace.metadata.get("default_permission_mode") or "").strip()
+        if workspace_default:
+            return normalize_runtime_permission_mode(workspace_default)
         if agent is not None and agent.linked_card_id is not None:
             linked_card = next(
                 (card for card in workspace.card_graph.cards if card.card_id == agent.linked_card_id),
@@ -73,8 +76,7 @@ class TaskWorkspaceService:
             )
             if linked_card is not None:
                 return normalize_runtime_permission_mode(linked_card.permission_mode)
-        mode = str(workspace.metadata.get("default_permission_mode") or "approval")
-        return normalize_runtime_permission_mode(mode)
+        return normalize_runtime_permission_mode("approval")
 
     def _update_workspace_record(
         self,

@@ -35,3 +35,10 @@ Default locale: `en-US`.
 1. Add the key to the `Translations` interface in `types.ts`.
 2. Add a value in all five locale files. TypeScript will fail-compile if any are missing.
 3. Reference via `const { t } = useI18n(); t.<group>.<key>`.
+
+
+## 2026-06-02 — 五语言一致性对齐复核
+
+- 自动键集复核：`en-US/ja/ko/zh-CN/zh-TW` 各 **900 键，零缺失零多余**（`types.ts` 接口强制，`tsc --noEmit` 通过）。
+- ja/ko 的 inspector 作用域标签 `workspaceScope`/`systemScope` 由英文本地化为 ja「ワークスペース CLI／システム CLI」、ko「워크스페이스 CLI／시스템 CLI」，对齐 zh-CN/zh-TW 既有本地化。
+- 有意保留的语言中性值（跨全部 5 语言一致）：产品/品牌名 `Pro`/`Ultra`/`Composio`、技术词 `Hooks`/`Hook`/`Raw JSON`/`Agent-Skills Compat`，以及代码/ID 占位符 `pnpm typecheck`/`system-exec-...`/`code, chromium, finder`。这些不视为漏译。

@@ -1,3 +1,10 @@
+## 2026-06-02 - 工作流任务默认系统级执行（消除子智能体确认门）+ 五语言翻译一致性对齐
+
+- 权限传导根因修复：`backend/src/agents/runtime/providers/langgraph.py` 在组装远程 run 的 `run_config["configurable"]/["metadata"]` 时此前从未注入 `permission_mode`，导致 lead agent 的 `runtime_config_value(config, "permission_mode")` 恒为 `None` → 归一化为 `approval`，使 `spawn_subagent`（directory scope）等工具即便在 system/directory 模式下仍触发 `dangerous_tool_confirmation` 人工确认门。现从会话/工作区元数据解析 `permission_mode` 并注入 `configurable`/`metadata`/`run_context`（会话解析值优先，工作区 `default_permission_mode` 兜底）。
+- 工作流任务默认系统级：`backend/src/storage/task_workspaces/defaults.py` 的 `default_permission_mode()` 返回 `system`；并让工作区 `default_permission_mode` 在 `TaskWorkspaceService._agent_card_permission_mode` 与 `QueryEngineService._agent_permission_mode` 中优先于默认蓝图卡片（原解析为 `workspace`/`directory`）。新建工作流任务现默认全程允许系统级执行，无需逐次人工确认即可派发子智能体。
+- i18n 一致性：`frontend/src/core/i18n/locales/{ja,ko}.ts` 将 inspector 的 `workspaceScope`/`systemScope` 由英文 "Workspace CLI"/"System CLI" 本地化为 ja「ワークスペース CLI／システム CLI」、ko「워크스페이스 CLI／시스템 CLI」，与 zh-CN/zh-TW 既有本地化深度对齐。五语言键集仍为 900/900 完全一致（`types.ts` 强制），其余英文一致项（Pro/Ultra/Composio/Raw JSON/Hooks 及 `pnpm typecheck`、`system-exec-...` 等代码占位符）为有意保留。
+- Version: backend `2026.6.2`，frontend `20260602.1`。验证：`frontend tsc --noEmit` 干净（exit=0）；后端三处补丁 `py_compile` 通过；服务重启后入口 `/api/task-workspaces` 200、langgraph/uvicorn/前端四端口监听正常、`llama-server:8000` 未受影响；新建三个工作流任务（group/single）run-log 均无 `dangerous_tool_confirmation` 确认门。
+
 ## 2026-06-01 - WebUI 工作流模块改版（子卡片栅格 → 传统项目表格视图）
 
 - `frontend/src/app/workspace/workflows/page.tsx`：移除原有的「子卡片栅格」展示（`sm:grid-cols-2 xl:grid-cols-4` 管理卡片），改为主流的项目管理**表格视图**。每个 task workspace 现以一行呈现：项目名+目标、状态徽标、进度（completed/total cards + active agents 迷你进度条）、运行时与拓扑、运行模式（chat/cron/yolo 可点击进入设置）、更新时间、行内操作（设置/运行/暂停/恢复/停止/删除）。行点击进入 `/workspace/workflows/[task_id]` 的 LangGraph 运行时详情（保持不变；单一事实仍在 task_workspaces，projection/studio 契约不受影响）。所有既有处理函数、状态机动作与创建向导/编辑弹窗均保留。

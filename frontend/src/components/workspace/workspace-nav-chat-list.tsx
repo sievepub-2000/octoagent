@@ -43,17 +43,6 @@ export function WorkspaceNavChatList() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              isActive={pathname.startsWith("/workspace/agents")}
-              asChild
-            >
-              <Link className="text-sidebar-foreground" href="/workspace/agents" prefetch={false}>
-                <BotIcon size={18} />
-                <span>{t.sidebar.agents}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
               isActive={pathname.startsWith("/workspace/workflows") || pathname.startsWith("/workspace/tasks")}
               asChild
             >
@@ -86,6 +75,21 @@ export function WorkspaceNavChatList() {
                 >
                   <CpuIcon size={18} />
                   <span>{t.sidebar.models}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                isActive={pathname.startsWith("/workspace/agents")}
+                asChild
+              >
+                <Link
+                  className="text-sidebar-foreground"
+                  href="/workspace/agents"
+                  prefetch={false}
+                >
+                  <BotIcon size={18} />
+                  <span>{t.sidebar.agents}</span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

@@ -691,14 +691,17 @@ class QueryEngineService:
         return session
 
     def _agent_permission_mode(self, workspace, agent) -> str:
+        workspace_metadata = getattr(workspace, "metadata", {}) or {}
+        workspace_default = str(workspace_metadata.get("default_permission_mode") or "").strip()
+        if workspace_default:
+            return normalize_runtime_permission_mode(workspace_default)
         linked_card_id = getattr(agent, "linked_card_id", None)
         linked_card = next((card for card in workspace.card_graph.cards if getattr(card, "card_id", None) == linked_card_id), None)
         if linked_card is not None:
             mode = getattr(linked_card, "permission_mode", "approval")
             return normalize_runtime_permission_mode(str(mode))
         agent_metadata = getattr(agent, "metadata", {}) or {}
-        workspace_metadata = getattr(workspace, "metadata", {}) or {}
-        mode = str(agent_metadata.get("permission_mode") or workspace_metadata.get("default_permission_mode") or "approval")
+        mode = str(agent_metadata.get("permission_mode") or "approval")
         return normalize_runtime_permission_mode(mode)
 
     def _build_task_analysis(self, workspace, agent, prompt_stack, *, session_id: str):
