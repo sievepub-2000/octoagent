@@ -10,6 +10,8 @@ Environment checked on 2号机 `192.168.110.2`.
 - Gateway: `uvicorn src.gateway.app:app` on `127.0.0.1:19802`
 - Disk: root filesystem 1.9T total, 168G used, 1.6T available
 - Memory: 121Gi total, 89Gi used, 32Gi available, swap essentially unused
+- Pre-restart sampled `langgraph_cli dev` RSS: about 4.2 GB
+- Post-restart sampled `langgraph_cli dev` RSS: about 486 MB
 
 Validation commands:
 
@@ -70,12 +72,12 @@ Recommended next WebUI work:
 
 Current sampled resource hotspots:
 
-- `langgraph_cli dev`: about 4.2 GB RSS, around 4% CPU at sampling
-- `uvicorn` gateway: about 551 MB RSS
+- `langgraph_cli dev`: about 4.2 GB RSS before restart, about 486 MB RSS immediately after restart
+- `uvicorn` gateway: about 551 MB RSS before restart, about 485 MB RSS immediately after restart
 - PostgreSQL has one larger checkpointer process and several idle octoagent sessions
 - `next-server`: about 106 MB RSS
 
-Assessment: backend runtime, especially LangGraph dev mode, remains the main memory target. WebUI should not be treated as the primary performance problem.
+Assessment: backend runtime, especially LangGraph dev mode, remains the main memory target. The restart delta suggests memory growth/caching during long-running sessions, not just high cold-start cost. WebUI should not be treated as the primary performance problem.
 
 Recommended resource work:
 
