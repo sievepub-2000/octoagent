@@ -273,6 +273,14 @@ export interface Translations {
     resume: string;
     back: string;
     create: string;
+    colProject: string;
+    colStatus: string;
+    colProgress: string;
+    colRuntime: string;
+    colRunMode: string;
+    colUpdated: string;
+    colActions: string;
+    activeShort: string;
     noGoal: string;
     resultTitle: string;
     resultContent: string;
@@ -565,8 +573,14 @@ export interface Translations {
     logoutConfirm: (name: string) => string;
     requestFailed: (status: number) => string;
     loggedInAs: (name: string, id?: number) => string;
-    channelStatus: { healthy: string; degraded: string; stopped: string; };
-    connectionState: { connected: string; pending: string; expired: string; error: string; disconnected: string; };
+    channelStatus: { healthy: string; degraded: string; stopped: string };
+    connectionState: {
+      connected: string;
+      pending: string;
+      expired: string;
+      error: string;
+      disconnected: string;
+    };
     categories: {
       communication: string;
       office: string;
@@ -579,8 +593,8 @@ export interface Translations {
       social_media: string;
       automation: string;
     };
-    scopes: { read: string; write: string; admin: string; };
-    scopeDescriptions: { read: string; write: string; admin: string; };
+    scopes: { read: string; write: string; admin: string };
+    scopeDescriptions: { read: string; write: string; admin: string };
     qrUnavailable: string;
     networkError: string;
     channelLoginSucceeded: string;
@@ -1050,5 +1064,4 @@ export interface Translations {
     verifying: string;
     verifyAndEnter: string;
   };
-
 }

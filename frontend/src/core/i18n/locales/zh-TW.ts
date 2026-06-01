@@ -88,14 +88,12 @@ export const zhTW: Translations = {
     flashMode: "閃電",
     flashModeDescription: "快速高效，但可能精確度較低",
     reasoningMode: "推理",
-    reasoningModeDescription:
-      "先推理後行動，在時間和精確度之間取得平衡",
+    reasoningModeDescription: "先推理後行動，在時間和精確度之間取得平衡",
     proMode: "Pro",
     proModeDescription:
       "推理、規劃、執行，提供更精確的結果，但可能需要更多時間",
     ultraMode: "Ultra",
-    ultraModeDescription:
-      "在 Pro 模式基礎上加入子代理，最適合複雜的多步驟任務",
+    ultraModeDescription: "在 Pro 模式基礎上加入子代理，最適合複雜的多步驟任務",
     reasoningEffort: "推理深度",
     reasoningEffortMinimal: "最小",
     reasoningEffortMinimalDescription: "搜尋 + 直接輸出",
@@ -104,8 +102,7 @@ export const zhTW: Translations = {
     reasoningEffortMedium: "中",
     reasoningEffortMediumDescription: "多層邏輯分析 + 基本驗證",
     reasoningEffortHigh: "高",
-    reasoningEffortHighDescription:
-      "全維度邏輯推理 + 多路徑驗證 + 反向檢查",
+    reasoningEffortHighDescription: "全維度邏輯推理 + 多路徑驗證 + 反向檢查",
     searchModels: "搜尋模型...",
     surpriseMe: "給我驚喜",
     surpriseMePrompt: "給我一個驚喜",
@@ -117,8 +114,7 @@ export const zhTW: Translations = {
       },
       {
         suggestion: "研究",
-        prompt:
-          "請深入研究[主題]並彙整結果。",
+        prompt: "請深入研究[主題]並彙整結果。",
         icon: MicroscopeIcon,
       },
       {
@@ -217,31 +213,26 @@ export const zhTW: Translations = {
   // Agents
   agents: {
     title: "代理",
-    description:
-      "建立和管理具有專屬提示詞和功能的自訂代理。",
+    description: "建立和管理具有專屬提示詞和功能的自訂代理。",
     newAgent: "新增代理",
     emptyTitle: "尚無自訂代理",
-    emptyDescription:
-      "建立您的第一個具有專屬系統提示詞的自訂代理。",
+    emptyDescription: "建立您的第一個具有專屬系統提示詞的自訂代理。",
     loadFailedTitle: "無法載入代理",
     loadFailedDescription: "代理清單請求失敗。",
     reloadAgents: "重新載入代理",
     chat: "對話",
     delete: "刪除",
-    deleteConfirm:
-      "確定要刪除此代理嗎？此操作無法復原。",
+    deleteConfirm: "確定要刪除此代理嗎？此操作無法復原。",
     deleteSuccess: "代理已刪除",
     newChat: "新對話",
     createPageTitle: "設計代理",
-    createPageSubtitle:
-      "請描述您想要的代理 — 我們將通過對話協助您建立。",
+    createPageSubtitle: "請描述您想要的代理 — 我們將通過對話協助您建立。",
     nameStepTitle: "為新代理命名",
     nameStepHint:
       "僅限英文字母、數字和連字號 — 將以小寫儲存（例如：code-reviewer）",
     nameStepPlaceholder: "例如：code-reviewer",
     nameStepContinue: "繼續",
-    nameStepInvalidError:
-      "名稱無效 — 僅限使用英文字母、數字和連字號",
+    nameStepInvalidError: "名稱無效 — 僅限使用英文字母、數字和連字號",
     nameStepAlreadyExistsError: "已存在同名代理",
     nameStepCheckError: "無法確認名稱是否可用 — 請重試",
     nameStepBootstrapMessage:
@@ -330,6 +321,14 @@ export const zhTW: Translations = {
     resume: "恢復",
     back: "上一步",
     create: "建立",
+    colProject: "專案",
+    colStatus: "狀態",
+    colProgress: "進度",
+    colRuntime: "執行環境",
+    colRunMode: "執行模式",
+    colUpdated: "更新時間",
+    colActions: "操作",
+    activeShort: "活躍",
     noGoal: "未設定目標",
     resultTitle: "執行結果",
     resultContent: "結果詳情",
@@ -368,7 +367,8 @@ export const zhTW: Translations = {
     sandboxLocal: "本機執行",
     sandboxLocalDesc: "命令直接在主機系統上執行。快速簡單，但隔離性較低。",
     sandboxDocker: "Docker 沙箱",
-    sandboxDockerDesc: "命令在隔離的 Docker 容器中執行。適合執行不受信任的程式碼。",
+    sandboxDockerDesc:
+      "命令在隔離的 Docker 容器中執行。適合執行不受信任的程式碼。",
     complete: "設定完成！",
     completeDesc: "工作區設定已完成。您可以隨時從側邊欄選單進行更改。",
     next: "下一步",
@@ -413,7 +413,8 @@ export const zhTW: Translations = {
     about: "關於 OctoAgent",
     inspector: {
       title: "執行檢視器",
-      parallelSummary: (branches: number, agents: number) => `${branches} 路並行 / ${agents} 個代理`,
+      parallelSummary: (branches: number, agents: number) =>
+        `${branches} 路並行 / ${agents} 個代理`,
       resetView: "重設視圖",
       board: "面板",
       canvas: "畫布",
@@ -431,14 +432,18 @@ export const zhTW: Translations = {
       reasoningVisibility: "推理可見性",
       hidden: "隱藏",
       enabled: "開啟",
-      thinkingFlashDescription: "主要回答保持簡潔，內部推理預設折疊，只有模型升級判斷時才展開。",
-      thinkingEnabledDescription: "已啟用推理顯示，長鏈路思考保留在下方面板，最終輸出仍顯示在主對話區。",
-      streamingDescription: "執行階段正在更新目前步驟，主代理審核節點仍是整個循環的邊界。",
+      thinkingFlashDescription:
+        "主要回答保持簡潔，內部推理預設折疊，只有模型升級判斷時才展開。",
+      thinkingEnabledDescription:
+        "已啟用推理顯示，長鏈路思考保留在下方面板，最終輸出仍顯示在主對話區。",
+      streamingDescription:
+        "執行階段正在更新目前步驟，主代理審核節點仍是整個循環的邊界。",
       idleDescription: "目前閒置。啟動任務或送出訊息後，這裡會顯示執行檢查點。",
       noCommandActivityYet: "尚無命令活動",
       noCommandActivityDescription: "工具呼叫與命令執行摘要會顯示在這裡。",
       terminalHeadline: "服務端 CLI 操作台",
-      terminalDescription: "透過既有的服務端執行服務執行受邊界控制的 workspace 或 system CLI 命令。",
+      terminalDescription:
+        "透過既有的服務端執行服務執行受邊界控制的 workspace 或 system CLI 命令。",
       terminalScope: "範圍",
       workspaceScope: "工作區 CLI",
       systemScope: "系統 CLI",
@@ -456,7 +461,8 @@ export const zhTW: Translations = {
       sessionLookupRequired: "請先輸入會話 ID。",
       sessionLookupNotFound: "找不到對應的會話。",
       sessionLookupFailed: "載入此會話失敗。",
-      terminalRunHint: "命令會重用既有 system execution 會話模型，並返回受邊界控制的輸出與審計歷史。",
+      terminalRunHint:
+        "命令會重用既有 system execution 會話模型，並返回受邊界控制的輸出與審計歷史。",
       runCommand: "執行命令",
       runningCommand: "執行中...",
       terminalRequestFailed: "CLI 請求失敗",
@@ -475,10 +481,12 @@ export const zhTW: Translations = {
       recentCommands: "最近命令",
       auditTrail: "審計軌跡",
       noTerminalOutputYet: "尚無終端輸出",
-      noTerminalOutputDescription: "執行一次工作區或系統 CLI 命令後，這裡會顯示操作台輸出。",
+      noTerminalOutputDescription:
+        "執行一次工作區或系統 CLI 命令後，這裡會顯示操作台輸出。",
       noTerminalAuditYet: "尚無 CLI 審計記錄。",
       noRuntimeEventsYet: "尚無執行時事件",
-      noRuntimeEventsDescription: "子任務開始執行後，檢查點、重試與失敗事件會顯示在這裡。",
+      noRuntimeEventsDescription:
+        "子任務開始執行後，檢查點、重試與失敗事件會顯示在這裡。",
       runtimeEvent: "執行時事件",
       returnedToMainAgent: "已返回主代理",
       stepFailed: "步驟失敗",
@@ -488,7 +496,11 @@ export const zhTW: Translations = {
       continuation: "續接來源",
       workflowState: "工作流狀態",
       agentBudget: "子代理限制",
-      agentBudgetValue: (maxActivePerThread: number, maxTotalPerThread: number, maxConcurrentGlobal: number) =>
+      agentBudgetValue: (
+        maxActivePerThread: number,
+        maxTotalPerThread: number,
+        maxConcurrentGlobal: number,
+      ) =>
         `執行緒活躍 ${maxActivePerThread} · 執行緒總委派 ${maxTotalPerThread} · 全域並發 ${maxConcurrentGlobal}`,
       memoryGuard: "記憶體守護",
       unavailable: "不可用",
@@ -498,18 +510,24 @@ export const zhTW: Translations = {
       workflowResumed: (count: number) => `已恢復 ${count} 個工作流卡片`,
       workflowLoaded: (count: number) => `已載入 ${count} 個工作流卡片`,
       continuationLoadedTitle: "已載入續接來源",
-      continuationLoadedDetail: (source: string) => `目前會話從 ${source} 恢復。`,
+      continuationLoadedDetail: (source: string) =>
+        `目前會話從 ${source} 恢復。`,
       workflowRestoredTitle: "已恢復工作流狀態",
-      workflowRestoredDetail: (count: number) => `此執行緒已恢復 ${count} 個工作流卡片。`,
+      workflowRestoredDetail: (count: number) =>
+        `此執行緒已恢復 ${count} 個工作流卡片。`,
       fallbackReadyTitle: "降級鏈路已就緒",
-      fallbackReadyDetail: (model: string, chain: string) => `${model} 可在需要時降級到 ${chain}。`,
+      fallbackReadyDetail: (model: string, chain: string) =>
+        `${model} 可在需要時降級到 ${chain}。`,
       memoryGuardTightTitle: "記憶體守護偏緊",
-      memoryGuardTightDetail: "啟動新的重型工作流前，請先降低分支寬度或減少子代理數量。",
+      memoryGuardTightDetail:
+        "啟動新的重型工作流前，請先降低分支寬度或減少子代理數量。",
       memoryGuardTruncated: "超大上下文訊息已縮短",
       memoryGuardTruncatedTitle: "上下文守護已縮短超大訊息",
-      memoryGuardTruncatedDetail: "有一則超大上下文訊息已在模型呼叫前縮短，避免對話超過目前模型上下文視窗。",
+      memoryGuardTruncatedDetail:
+        "有一則超大上下文訊息已在模型呼叫前縮短，避免對話超過目前模型上下文視窗。",
       embeddedBackupOnlyTitle: "僅剩內建備援",
-      embeddedBackupOnlyDetail: "目前沒有設定主模型，執行階段只能以緊急備援模式繼續。",
+      embeddedBackupOnlyDetail:
+        "目前沒有設定主模型，執行階段只能以緊急備援模式繼續。",
     },
   },
 
@@ -544,8 +562,7 @@ export const zhTW: Translations = {
     searchFor: (query: string) => `搜尋「${query}」`,
     searchForRelatedInfo: "搜尋相關資訊",
     searchForRelatedImages: "搜尋相關圖片",
-    searchForRelatedImagesFor: (query: string) =>
-      `搜尋「${query}」的相關圖片`,
+    searchForRelatedImagesFor: (query: string) => `搜尋「${query}」的相關圖片`,
     searchOnWebFor: (query: string) => `在網路上搜尋「${query}」`,
     viewWebPage: "查看網頁",
     listFolder: "列出資料夾",
@@ -571,7 +588,8 @@ export const zhTW: Translations = {
     stopped: "已停止",
     liveGateway: "即時閘道",
     notConfigured: "未設定",
-    notConfiguredDescription: "設定 OCTOAGENT_COMPOSIO_BASE_URL 與 OCTOAGENT_COMPOSIO_API_KEY 後即可啟用真實 OAuth、動作、作用域與觸發器。",
+    notConfiguredDescription:
+      "設定 OCTOAGENT_COMPOSIO_BASE_URL 與 OCTOAGENT_COMPOSIO_API_KEY 後即可啟用真實 OAuth、動作、作用域與觸發器。",
     catalogTitle: "Composio 軟體介面",
     catalogDescription: "依 Composio 契約瀏覽、連接、管理與中斷應用整合。",
     all: "全部",
@@ -616,7 +634,8 @@ export const zhTW: Translations = {
     scopesSaveFailed: "儲存作用域偏好失敗。",
     noEditableFields: "此連接器沒有可編輯設定欄位。",
     editDescription: "設定此通訊介面的執行欄位，變更會儲存到 config.yaml。",
-    manageDescription: "連接帳號、查看活動連接、檢查動作結構，並設定 read/write/admin 權限閘門。",
+    manageDescription:
+      "連接帳號、查看活動連接、檢查動作結構，並設定 read/write/admin 權限閘門。",
     editTitle: (name: string) => `編輯軟體介面：${name}`,
     manageTitle: (name: string) => `管理 ${name}`,
     manageAria: (name: string) => `管理 ${name}`,
@@ -626,12 +645,38 @@ export const zhTW: Translations = {
 
 支援時會登出上游帳號，並保留可重用的軟體介面範本。`,
     requestFailed: (status: number) => `請求失敗（狀態：${status}）`,
-    loggedInAs: (name: string, id?: number) => `已登入：${name}${id ? `（${id}）` : ""}`,
-    channelStatus: { healthy: "連接健康", degraded: "連接降級", stopped: "連接停止" },
-    connectionState: { connected: "已連接", pending: "等待中", expired: "已過期", error: "異常", disconnected: "未連接" },
-    categories: { communication: "通訊", office: "辦公", mail_calendar: "郵件與行事曆", docs_storage: "文件與儲存", project_management: "專案管理", development: "開發", crm_sales: "CRM 與銷售", commerce_payments: "商務與支付", social_media: "社群媒體", automation: "自動化" },
+    loggedInAs: (name: string, id?: number) =>
+      `已登入：${name}${id ? `（${id}）` : ""}`,
+    channelStatus: {
+      healthy: "連接健康",
+      degraded: "連接降級",
+      stopped: "連接停止",
+    },
+    connectionState: {
+      connected: "已連接",
+      pending: "等待中",
+      expired: "已過期",
+      error: "異常",
+      disconnected: "未連接",
+    },
+    categories: {
+      communication: "通訊",
+      office: "辦公",
+      mail_calendar: "郵件與行事曆",
+      docs_storage: "文件與儲存",
+      project_management: "專案管理",
+      development: "開發",
+      crm_sales: "CRM 與銷售",
+      commerce_payments: "商務與支付",
+      social_media: "社群媒體",
+      automation: "自動化",
+    },
     scopes: { read: "讀取", write: "寫入", admin: "管理" },
-    scopeDescriptions: { read: "允許唯讀擷取動作。", write: "允許建立與更新動作。", admin: "允許破壞性或管理類動作。" },
+    scopeDescriptions: {
+      read: "允許唯讀擷取動作。",
+      write: "允許建立與更新動作。",
+      admin: "允許破壞性或管理類動作。",
+    },
     qrUnavailable: "QR Code 暫不可用，或此通道不支援掃碼登入。",
     networkError: "取得 QR Code 時發生網路錯誤。",
     channelLoginSucceeded: "通道登入成功。",
@@ -690,9 +735,11 @@ export const zhTW: Translations = {
       runtimeOverview: "執行期概覽",
       repoOverview: "倉庫能力概覽",
       registryTitle: "能力註冊表",
-      registryDescription: "查看執行期能力項目，包括 compat 投影出的 command、agent persona 與 reference。",
+      registryDescription:
+        "查看執行期能力項目，包括 compat 投影出的 command、agent persona 與 reference。",
       compatPreviewTitle: "Agent-Skills Compat",
-      compatPreviewDescription: "在啟用前預覽 upstream agent-skills 匯入內容，檢查衝突並控制信任等級。",
+      compatPreviewDescription:
+        "在啟用前預覽 upstream agent-skills 匯入內容，檢查衝突並控制信任等級。",
       sourceInventory: "VS Code 來源清單",
       installedInventory: "OctoAgent 已安裝",
       matchedInventory: "已完成匹配",
@@ -701,7 +748,8 @@ export const zhTW: Translations = {
       migrating: "遷移中...",
       noResults: "尚未執行遷移。",
       lastRun: "最近一次遷移結果",
-      sourceUnavailable: "找不到來源工作區。請設定 OCTO_AGENT_CAPABILITY_SOURCE 或檢查預設工作區路徑。",
+      sourceUnavailable:
+        "找不到來源工作區。請設定 OCTO_AGENT_CAPABILITY_SOURCE 或檢查預設工作區路徑。",
       capabilityRuntime: "能力執行狀態",
       capabilityAudit: "能力審計狀態",
       cacheWarm: "熱快取",
@@ -712,7 +760,8 @@ export const zhTW: Translations = {
       auditTrail: "最近審計軌跡",
       noAuditEntries: "目前沒有能力審計事件。",
       registryEmpty: "目前篩選條件下沒有能力項目。",
-      compatSourceUnavailable: "找不到 agent-skills 來源能力包。請設定 sourceRoot，或加入 references/_clones/agent-skills。",
+      compatSourceUnavailable:
+        "找不到 agent-skills 來源能力包。請設定 sourceRoot，或加入 references/_clones/agent-skills。",
       compatImportLabel: "Compat 匯入",
       compatImportEnabled: "Compat 匯入已啟用",
       compatImportDisabled: "Compat 匯入已停用",
@@ -778,7 +827,8 @@ export const zhTW: Translations = {
     },
     globalMemory: {
       title: "全域記憶",
-      description: "手動新增或匯入全域記憶條目，它們會作為系統級上下文注入到每次對話中。",
+      description:
+        "手動新增或匯入全域記憶條目，它們會作為系統級上下文注入到每次對話中。",
       empty: "暫無全域記憶條目。",
       addEntry: "新增條目",
       editEntry: "編輯條目",
@@ -812,9 +862,11 @@ export const zhTW: Translations = {
     },
     hooks: {
       title: "倉庫 Hooks",
-      description: "查看已安裝的 hook 資料夾、觸發器覆蓋情況，並透過 extensions_config 啟用或停用它們。",
+      description:
+        "查看已安裝的 hook 資料夾、觸發器覆蓋情況，並透過 extensions_config 啟用或停用它們。",
       emptyTitle: "尚未安裝任何倉庫 Hooks",
-      emptyDescription: "可先從 VS Code 工作區遷移，或直接在 .github/hooks 下加入 hook 資料夾。",
+      emptyDescription:
+        "可先從 VS Code 工作區遷移，或直接在 .github/hooks 下加入 hook 資料夾。",
     },
     skills: {
       title: "代理技能",
@@ -829,11 +881,9 @@ export const zhTW: Translations = {
     },
     notification: {
       title: "通知",
-      description:
-        "OctoAgent 僅在視窗非活動時發送完成通知。適用於長時間任務。",
+      description: "OctoAgent 僅在視窗非活動時發送完成通知。適用於長時間任務。",
       requestPermission: "請求通知權限",
-      deniedHint:
-        "通知權限已被拒絕。您可以在瀏覽器網站設定中啟用。",
+      deniedHint: "通知權限已被拒絕。您可以在瀏覽器網站設定中啟用。",
       testButton: "發送測試通知",
       testTitle: "OctoAgent",
       testBody: "這是一則測試通知。",
@@ -846,7 +896,8 @@ export const zhTW: Translations = {
     },
     bootstrap: {
       title: "內嵌啟動模型",
-      description: "內嵌一個輕量級本地模型，用於啟動引導、輕量語義檢索以及離線安全的首次使用體驗。",
+      description:
+        "內嵌一個輕量級本地模型，用於啟動引導、輕量語義檢索以及離線安全的首次使用體驗。",
       recommendedRuntime: "推薦的內嵌執行環境",
       modelStatus: "模型狀態",
       installed: "已安裝",
@@ -867,7 +918,8 @@ export const zhTW: Translations = {
     },
     systemGuard: {
       title: "系統守護",
-      description: "執行階段生命週期快照的運維可視化與控制，包含手動修復、簽名匯出和保留狀態。",
+      description:
+        "執行階段生命週期快照的運維可視化與控制，包含手動修復、簽名匯出和保留狀態。",
       unavailable: "系統守護不可用",
       unavailableDesc: "無法載入執行階段生命週期狀態。",
       lifecycleActive: "生命週期持久化已啟動",
@@ -891,7 +943,8 @@ export const zhTW: Translations = {
       snapshotCount: "快照數量：",
       retentionLimit: "保留限制：",
       unbounded: "無限制",
-      retentionHelpText: "簽名匯出會保留近期生命週期窗口以便離線檢查。手動修復會在同一命名空間中持久化新快照。",
+      retentionHelpText:
+        "簽名匯出會保留近期生命週期窗口以便離線檢查。手動修復會在同一命名空間中持久化新快照。",
       recentSnapshots: "近期生命週期快照",
       refresh: "重新整理",
       metadata: "元資料",
@@ -911,7 +964,8 @@ export const zhTW: Translations = {
     },
     systemExecution: {
       title: "系統執行",
-      description: "檢查系統級執行能力狀態，並為未來的桌面代理流程產生模擬執行契約。",
+      description:
+        "檢查系統級執行能力狀態，並為未來的桌面代理流程產生模擬執行契約。",
       unavailable: "系統執行不可用",
       unavailableDesc: "無法載入系統執行能力狀態。",
       currentCapability: "當前執行能力",
@@ -956,9 +1010,11 @@ export const zhTW: Translations = {
       applyUpdate: "立即更新",
       upToDate: "已是最新版本。",
       noUpdateDialogTitle: "無需更新",
-      noUpdateDialogDescription: (version: string) => `系統目前已是最新版本 ${version}，無需更新。`,
+      noUpdateDialogDescription: (version: string) =>
+        `系統目前已是最新版本 ${version}，無需更新。`,
       confirmUpdateDialogTitle: "更新系統",
-      confirmUpdateDialogDescription: (version: string) => `最新版本為 ${version}，是否現在更新系統？`,
+      confirmUpdateDialogDescription: (version: string) =>
+        `最新版本為 ${version}，是否現在更新系統？`,
       updatingStatus: "正在更新系統，並等待服務重新啟動……",
       autoUpdate: "自動更新",
       autoUpdateLabel: "啟用自動更新",
@@ -972,9 +1028,11 @@ export const zhTW: Translations = {
     title: "系統事件",
     clear: "清空",
     empty: "暫無系統事件",
-    description: "執行期的提示資訊、警告與非致命錯誤統一收集在此。致命錯誤仍會透過彈窗提示。",
+    description:
+      "執行期的提示資訊、警告與非致命錯誤統一收集在此。致命錯誤仍會透過彈窗提示。",
     runtimeAlerts: "執行時",
-    threadLoadFailed: "歷史會話狀態暫時不可讀，已保留當前會話入口並繼續載入對話介面。",
+    threadLoadFailed:
+      "歷史會話狀態暫時不可讀，已保留當前會話入口並繼續載入對話介面。",
     autoContinueResume: "已載入上一段對話的壓縮記憶和待辦，正在自動繼續執行。",
     userAborted: "已由使用者中止當前任務",
   },
@@ -986,7 +1044,8 @@ export const zhTW: Translations = {
     directory: "目錄",
     directoryDescription: "允許倉庫/任務目錄內操作；不暴露 host/system 工具。",
     system: "系統",
-    systemDescription: "允許系統級 host/shell/network/process 工具，所有命令可追蹤。",
+    systemDescription:
+      "允許系統級 host/shell/network/process 工具，所有命令可追蹤。",
     label: "權限模式",
     conversationContext: "對話上下文",
   },
@@ -1012,7 +1071,8 @@ export const zhTW: Translations = {
   ragSettings: {
     sectionTitle: "RAG 檢索",
     sectionDescription: "嵌入與重排模型配置",
-    sectionFullDescription: "配置嵌入模型與重排模型；模型從 Hugging Face 下載到 ~/.cache/huggingface/hub/。",
+    sectionFullDescription:
+      "配置嵌入模型與重排模型；模型從 Hugging Face 下載到 ~/.cache/huggingface/hub/。",
     loadFailed: "載入配置失敗：",
     unknownError: "未知錯誤",
     savedToast: "RAG 配置已儲存",
@@ -1050,11 +1110,14 @@ export const zhTW: Translations = {
     noDownloadableResult: "當前工作流還沒有可下載的結果文件。",
   },
   threadEvents: {
-    recursionLimit: "偵測到超出遞迴步數上限（瀏覽器可能快取了舊限制值），正在以安全上限自動繼續。若頻繁出現，請硬重新整理頁面 Ctrl+Shift+R。",
-    contextHandoffSubmitted: "上下文壓縮接續已提交，但尚未在執行時狀態中觀察到確認標記。系統會繼續保留當前對話狀態。",
+    recursionLimit:
+      "偵測到超出遞迴步數上限（瀏覽器可能快取了舊限制值），正在以安全上限自動繼續。若頻繁出現，請硬重新整理頁面 Ctrl+Shift+R。",
+    contextHandoffSubmitted:
+      "上下文壓縮接續已提交，但尚未在執行時狀態中觀察到確認標記。系統會繼續保留當前對話狀態。",
     autoContinueAction: "偵測到未完成的動作，正在自動繼續。",
     contextLimitHandoff: "上下文已達到限制，正在歸檔並切換新對話以繼續任務。",
-    incompleteRetryWithReason: "偵測到可恢復的未完成任務（{reason}），正在第 {attempt} 次自動繼續（最大 {max} 次）。",
+    incompleteRetryWithReason:
+      "偵測到可恢復的未完成任務（{reason}），正在第 {attempt} 次自動繼續（最大 {max} 次）。",
     incompleteRetry: "偵測到可恢復的未完成任務，正在自動繼續。",
     watchdogLongRun: "助手仍在執行長任務，正在保持會話存活並輪詢執行狀態。",
     sessionRefreshed: "會話已刷新，正在新對話中重發您的訊息。",

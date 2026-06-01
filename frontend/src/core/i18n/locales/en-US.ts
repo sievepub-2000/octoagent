@@ -46,7 +46,8 @@ export const enUS: Translations = {
     all: "All",
     continueTask: "Continue",
     deleteAll: "Delete All",
-    deleteAllConfirm: "Are you sure you want to delete all content? This cannot be undone.",
+    deleteAllConfirm:
+      "Are you sure you want to delete all content? This cannot be undone.",
     deleteAllSuccess: "All content deleted",
     deleteConfirm: "Are you sure you want to delete this item?",
   },
@@ -176,22 +177,28 @@ export const enUS: Translations = {
     mcp: "MCP Servers",
     models: "Model Pool",
     evolution: "Skill Evolution",
-    evolutionDesc: "Self-evolving skills with quality monitoring — powered by OpenSpace engine.",
+    evolutionDesc:
+      "Self-evolving skills with quality monitoring — powered by OpenSpace engine.",
     plugins: "Plugins",
-    pluginsDesc: "Manage plugin capabilities, engineering workflows, and hook pipeline.",
+    pluginsDesc:
+      "Manage plugin capabilities, engineering workflows, and hook pipeline.",
     channels: "Software Interfaces",
-    channelsDesc: "Manage IM channel connectors for Feishu, Slack, and Telegram.",
+    channelsDesc:
+      "Manage IM channel connectors for Feishu, Slack, and Telegram.",
     // Evolution page
     evolutionEnabled: "Evolution Engine",
-    evolutionEnabledDesc: "Enable automatic skill evolution after task execution.",
+    evolutionEnabledDesc:
+      "Enable automatic skill evolution after task execution.",
     autoFix: "Auto-Fix",
     autoFixDesc: "Automatically repair broken or outdated skill instructions.",
     autoDerive: "Auto-Derive",
     autoDeriveDesc: "Create enhanced versions from successful skill patterns.",
     autoCapture: "Auto-Capture",
-    autoCaptureDesc: "Extract novel reusable patterns from successful executions.",
+    autoCaptureDesc:
+      "Extract novel reusable patterns from successful executions.",
     qualityMonitoring: "Quality Monitoring",
-    qualityMonitoringDesc: "Track skill health metrics (success rate, latency, applied rate).",
+    qualityMonitoringDesc:
+      "Track skill health metrics (success rate, latency, applied rate).",
     cloudSync: "Cloud Sync",
     cloudSyncDesc: "Sync evolved skills with the OpenSpace cloud community.",
     qualityMetrics: "Quality Metrics",
@@ -268,8 +275,10 @@ export const enUS: Translations = {
     modelNone: "Default",
     templateLabel: "Template",
     templateNone: "Start from scratch",
-    templateHint: "Choose a template to prefill description and SOUL from installed skills.",
-    templateInstallHint: "Install Agency Agents to unlock upstream specialist templates here.",
+    templateHint:
+      "Choose a template to prefill description and SOUL from installed skills.",
+    templateInstallHint:
+      "Install Agency Agents to unlock upstream specialist templates here.",
     installAgencyAgents: "Install Agency Agents",
     installingAgencyAgents: "Installing Agency Agents...",
     installAgencyAgentsFailed: "Failed to install Agency Agents",
@@ -282,7 +291,8 @@ export const enUS: Translations = {
   // Workflows
   workflows: {
     title: "Workflows",
-    description: "Create and manage automated workflows that orchestrate agents together.",
+    description:
+      "Create and manage automated workflows that orchestrate agents together.",
     newWorkflow: "New Workflow",
     emptyTitle: "No workflows yet",
     emptyDescription: "Create your first workflow to orchestrate agents.",
@@ -293,11 +303,16 @@ export const enUS: Translations = {
     modeCron: "Scheduled",
     modeYolo: "YOLO Autonomous",
     modeChatDesc: "Interactive dialogue-driven execution with human oversight.",
-    modeCronDesc: "Runs on a schedule (cron) automatically without manual trigger.",
-    modeYoloDesc: "Fully autonomous mode — agents run independently until completion.",
-    scheduleHint: "Set Year / Month / Day / Hour / Minute / Second in UTC for scheduled execution.",
-    scheduleEmptyRunsNow: "Leave all fields empty to run immediately right after workflow creation.",
-    scheduleInvalid: "Scheduled time is incomplete or invalid. Fill all 6 fields or leave all empty.",
+    modeCronDesc:
+      "Runs on a schedule (cron) automatically without manual trigger.",
+    modeYoloDesc:
+      "Fully autonomous mode — agents run independently until completion.",
+    scheduleHint:
+      "Set Year / Month / Day / Hour / Minute / Second in UTC for scheduled execution.",
+    scheduleEmptyRunsNow:
+      "Leave all fields empty to run immediately right after workflow creation.",
+    scheduleInvalid:
+      "Scheduled time is incomplete or invalid. Fill all 6 fields or leave all empty.",
     chain: "Chain",
     branch: "Branch",
     swarm: "Swarm",
@@ -337,6 +352,14 @@ export const enUS: Translations = {
     resume: "Resume",
     back: "Back",
     create: "Create",
+    colProject: "Project",
+    colStatus: "Status",
+    colProgress: "Progress",
+    colRuntime: "Runtime",
+    colRunMode: "Run Mode",
+    colUpdated: "Updated",
+    colActions: "Actions",
+    activeShort: "active",
     noGoal: "No goal set",
     resultTitle: "Execution Result",
     resultContent: "Result Details",
@@ -348,15 +371,18 @@ export const enUS: Translations = {
     downloadResult: "Download Result",
     langgraphTopologyLabel: "LangGraph Workflow Topology",
     executionLogsTitle: "Execution Logs",
-    executionLogsDescription: "Raw intermediate records, mixed labels, and runtime event details.",
+    executionLogsDescription:
+      "Raw intermediate records, mixed labels, and runtime event details.",
     noExecutionLogs: "No execution logs recorded yet.",
     noResultYet: "No result available yet.",
     failureAnalysis: "Failure Analysis",
     failureReason: "Failure Reason",
     failureOutput: "Error Output",
     possibleSolutions: "Possible Solutions",
-    solutionCheckLog: "Check the run log for detailed error traces and context.",
-    solutionCheckConfig: "Verify workflow configuration, agent permissions, and model settings.",
+    solutionCheckLog:
+      "Check the run log for detailed error traces and context.",
+    solutionCheckConfig:
+      "Verify workflow configuration, agent permissions, and model settings.",
     solutionRetry: "Re-run the workflow after addressing the root cause.",
   },
 
@@ -365,19 +391,25 @@ export const enUS: Translations = {
     title: "🚀 Welcome to OctoAgent",
     subtitle: "Let's set up your workspace in a few quick steps.",
     stepWorkspace: "Workspace Path",
-    stepWorkspaceDesc: "Set the default directory where OctoAgent stores conversations, skills, and generated artifacts. This is the root folder for all your projects.",
+    stepWorkspaceDesc:
+      "Set the default directory where OctoAgent stores conversations, skills, and generated artifacts. This is the root folder for all your projects.",
     stepWorkspaceHint: "e.g. ./workspace or /home/user/workspace",
     stepModel: "Default Model",
-    stepModelDesc: "Choose the default language model for all new conversations. You can always switch models per-chat later. The model handles planning, code generation, and tool orchestration.",
+    stepModelDesc:
+      "Choose the default language model for all new conversations. You can always switch models per-chat later. The model handles planning, code generation, and tool orchestration.",
     stepModelHint: "Select a model from the configured pool",
     stepSandbox: "Execution Mode",
-    stepSandboxDesc: "Choose how OctoAgent runs code and tools. This determines the isolation level of command execution.",
+    stepSandboxDesc:
+      "Choose how OctoAgent runs code and tools. This determines the isolation level of command execution.",
     sandboxLocal: "Local Execution",
-    sandboxLocalDesc: "Commands run directly on your host system. Fast and simple, but less isolated.",
+    sandboxLocalDesc:
+      "Commands run directly on your host system. Fast and simple, but less isolated.",
     sandboxDocker: "Docker Sandbox",
-    sandboxDockerDesc: "Commands run in an isolated Docker container. Safer for untrusted code execution.",
+    sandboxDockerDesc:
+      "Commands run in an isolated Docker container. Safer for untrusted code execution.",
     complete: "Setup Complete!",
-    completeDesc: "Your workspace is configured. You can change these settings anytime from the sidebar menu.",
+    completeDesc:
+      "Your workspace is configured. You can change these settings anytime from the sidebar menu.",
     next: "Next",
     skip: "Skip",
     finish: "Start Using OctoAgent",
@@ -389,7 +421,8 @@ export const enUS: Translations = {
     currentBackendPath: "Current backend path",
     modelsReady: "models ready",
     skillsAvailable: "skills",
-    noModelsYet: "No models configured yet. You can add them later in Models settings.",
+    noModelsYet:
+      "No models configured yet. You can add them later in Models settings.",
     applying: "Applying...",
     browse: "Browse",
     selectFolder: "Select Folder",
@@ -399,7 +432,8 @@ export const enUS: Translations = {
     confirmSelect: "Select",
     newFolderName: "Folder name",
     createFolderError: "Failed to create folder",
-    networkError: "Network error. Please check the gateway connection and try again.",
+    networkError:
+      "Network error. Please check the gateway connection and try again.",
   },
 
   // Breadcrumb
@@ -420,7 +454,8 @@ export const enUS: Translations = {
     about: "About OctoAgent",
     inspector: {
       title: "Runtime Inspector",
-      parallelSummary: (branches: number, agents: number) => `${branches} parallel / ${agents} agents`,
+      parallelSummary: (branches: number, agents: number) =>
+        `${branches} parallel / ${agents} agents`,
       resetView: "Reset View",
       board: "Board",
       canvas: "Canvas",
@@ -431,21 +466,28 @@ export const enUS: Translations = {
       active: "Active",
       info: "Info",
       noArtifactsYet: "No artifacts yet",
-      noArtifactsDescription: "Artifacts, reports, and generated files will show up here.",
+      noArtifactsDescription:
+        "Artifacts, reports, and generated files will show up here.",
       thinkingTab: "Thinking",
       terminalTab: "Terminal",
       eventsTab: "Events",
       reasoningVisibility: "Reasoning visibility",
       hidden: "Hidden",
       enabled: "Enabled",
-      thinkingFlashDescription: "Main answers stay clean. Internal reasoning remains collapsed unless the model escalates.",
-      thinkingEnabledDescription: "Reasoning is enabled. Keep long chain-of-thought in the lower pane and final output in the main conversation.",
-      streamingDescription: "The runtime is actively updating the current step. Main-agent review checkpoints remain the loop boundary.",
-      idleDescription: "Idle. Start a task or send a message to populate runtime checkpoints.",
+      thinkingFlashDescription:
+        "Main answers stay clean. Internal reasoning remains collapsed unless the model escalates.",
+      thinkingEnabledDescription:
+        "Reasoning is enabled. Keep long chain-of-thought in the lower pane and final output in the main conversation.",
+      streamingDescription:
+        "The runtime is actively updating the current step. Main-agent review checkpoints remain the loop boundary.",
+      idleDescription:
+        "Idle. Start a task or send a message to populate runtime checkpoints.",
       noCommandActivityYet: "No command activity yet",
-      noCommandActivityDescription: "Tool calls and command execution summaries will appear here.",
+      noCommandActivityDescription:
+        "Tool calls and command execution summaries will appear here.",
       terminalHeadline: "Server CLI operator console",
-      terminalDescription: "Run bounded workspace or system CLI commands through the existing server-side execution service.",
+      terminalDescription:
+        "Run bounded workspace or system CLI commands through the existing server-side execution service.",
       terminalScope: "Scope",
       workspaceScope: "Workspace CLI",
       systemScope: "System CLI",
@@ -454,7 +496,8 @@ export const enUS: Translations = {
       commandLabel: "Command",
       commandPlaceholder: "pnpm typecheck",
       noteLabel: "Operator note",
-      notePlaceholder: "Optional context for the audit trail or approval review.",
+      notePlaceholder:
+        "Optional context for the audit trail or approval review.",
       taskFilterLabel: "Task filter",
       allTasks: "All tasks",
       sessionLookupLabel: "Session lookup",
@@ -463,7 +506,8 @@ export const enUS: Translations = {
       sessionLookupRequired: "Enter a session id before loading.",
       sessionLookupNotFound: "No session matched this id.",
       sessionLookupFailed: "Failed to load this session.",
-      terminalRunHint: "Commands run through the existing system execution session model and return bounded output plus audit history.",
+      terminalRunHint:
+        "Commands run through the existing system execution session model and return bounded output plus audit history.",
       runCommand: "Run command",
       runningCommand: "Running...",
       terminalRequestFailed: "CLI request failed",
@@ -482,10 +526,12 @@ export const enUS: Translations = {
       recentCommands: "Recent commands",
       auditTrail: "Audit trail",
       noTerminalOutputYet: "No terminal output yet",
-      noTerminalOutputDescription: "Run a workspace or system CLI command to populate the operator console.",
+      noTerminalOutputDescription:
+        "Run a workspace or system CLI command to populate the operator console.",
       noTerminalAuditYet: "No CLI audit entries yet.",
       noRuntimeEventsYet: "No runtime events yet",
-      noRuntimeEventsDescription: "Checkpoint, retry, and failure events will appear once subtask execution starts.",
+      noRuntimeEventsDescription:
+        "Checkpoint, retry, and failure events will appear once subtask execution starts.",
       runtimeEvent: "Runtime event",
       returnedToMainAgent: "Returned to main agent",
       stepFailed: "Step failed",
@@ -495,7 +541,11 @@ export const enUS: Translations = {
       continuation: "Continuation",
       workflowState: "Workflow state",
       agentBudget: "Agent budget",
-      agentBudgetValue: (maxActivePerThread: number, maxTotalPerThread: number, maxConcurrentGlobal: number) =>
+      agentBudgetValue: (
+        maxActivePerThread: number,
+        maxTotalPerThread: number,
+        maxConcurrentGlobal: number,
+      ) =>
         `${maxActivePerThread} active/thread · ${maxTotalPerThread} delegated/thread · ${maxConcurrentGlobal} global concurrent`,
       memoryGuard: "Memory guard",
       unavailable: "Unavailable",
@@ -507,16 +557,21 @@ export const enUS: Translations = {
       continuationLoadedTitle: "Continuation source loaded",
       continuationLoadedDetail: (source: string) => `Resumed from ${source}.`,
       workflowRestoredTitle: "Workflow state restored",
-      workflowRestoredDetail: (count: number) => `${count} workflow card(s) resumed in this thread.`,
+      workflowRestoredDetail: (count: number) =>
+        `${count} workflow card(s) resumed in this thread.`,
       fallbackReadyTitle: "Fallback chain ready",
-      fallbackReadyDetail: (model: string, chain: string) => `${model} can degrade to ${chain}.`,
+      fallbackReadyDetail: (model: string, chain: string) =>
+        `${model} can degrade to ${chain}.`,
       memoryGuardTightTitle: "Memory guard is tight",
-      memoryGuardTightDetail: "Reduce branch width or subagent count before starting another heavy workflow.",
+      memoryGuardTightDetail:
+        "Reduce branch width or subagent count before starting another heavy workflow.",
       memoryGuardTruncated: "Oversized context message shortened",
       memoryGuardTruncatedTitle: "Context guard shortened an oversized message",
-      memoryGuardTruncatedDetail: "One oversized context message was shortened before the model call so the conversation stays inside the selected model context window.",
+      memoryGuardTruncatedDetail:
+        "One oversized context message was shortened before the model call so the conversation stays inside the selected model context window.",
       embeddedBackupOnlyTitle: "Embedded backup only",
-      embeddedBackupOnlyDetail: "No primary model is configured. The runtime can continue only in emergency backup mode.",
+      embeddedBackupOnlyDetail:
+        "No primary model is configured. The runtime can continue only in emergency backup mode.",
     },
   },
 
@@ -571,20 +626,25 @@ export const enUS: Translations = {
 
   softwareInterfaces: {
     title: "Software Interfaces",
-    description: "Manage messaging connectors and Composio-compatible software integrations from one place.",
+    description:
+      "Manage messaging connectors and Composio-compatible software integrations from one place.",
     refresh: "Refresh",
     runtimeTitle: "Connector Runtime",
-    runtimeDescription: "Runtime state for native messaging bridges and Composio OAuth integrations.",
+    runtimeDescription:
+      "Runtime state for native messaging bridges and Composio OAuth integrations.",
     running: "Running",
     stopped: "Stopped",
     liveGateway: "Live gateway",
     notConfigured: "Not configured",
-    notConfiguredDescription: "Set OCTOAGENT_COMPOSIO_BASE_URL and OCTOAGENT_COMPOSIO_API_KEY to enable live OAuth, actions, scopes, and triggers.",
+    notConfiguredDescription:
+      "Set OCTOAGENT_COMPOSIO_BASE_URL and OCTOAGENT_COMPOSIO_API_KEY to enable live OAuth, actions, scopes, and triggers.",
     catalogTitle: "Composio software interfaces",
-    catalogDescription: "Browse, connect, manage, and disconnect app integrations using the Composio contract.",
+    catalogDescription:
+      "Browse, connect, manage, and disconnect app integrations using the Composio contract.",
     all: "All",
     totalCount: (count: number) => `${count} interfaces`,
-    messagingCount: (count: number) => `${count} messaging connector${count === 1 ? "" : "s"}`,
+    messagingCount: (count: number) =>
+      `${count} messaging connector${count === 1 ? "" : "s"}`,
     integrationSource: "Composio",
     native: "native",
     unknown: "unknown",
@@ -622,9 +682,12 @@ export const enUS: Translations = {
     authorizeFailed: "Failed to start authorization.",
     scopesSaved: "Scope preferences saved.",
     scopesSaveFailed: "Failed to save scope preferences.",
-    noEditableFields: "No editable configuration fields are available for this connector.",
-    editDescription: "Configure runtime fields for this communication interface. Changes are persisted to config.yaml.",
-    manageDescription: "Connect accounts, review active connections, inspect action schemas, and set read/write/admin scope gates.",
+    noEditableFields:
+      "No editable configuration fields are available for this connector.",
+    editDescription:
+      "Configure runtime fields for this communication interface. Changes are persisted to config.yaml.",
+    manageDescription:
+      "Connect accounts, review active connections, inspect action schemas, and set read/write/admin scope gates.",
     editTitle: (name: string) => `Edit software interface: ${name}`,
     manageTitle: (name: string) => `Manage ${name}`,
     manageAria: (name: string) => `Manage ${name}`,
@@ -634,19 +697,47 @@ export const enUS: Translations = {
 
 This signs out the upstream account when supported and keeps the reusable interface template.`,
     requestFailed: (status: number) => `Request failed (status: ${status})`,
-    loggedInAs: (name: string, id?: number) => `Logged in: ${name}${id ? ` (${id})` : ""}`,
-    channelStatus: { healthy: "Link healthy", degraded: "Link degraded", stopped: "Link stopped" },
-    connectionState: { connected: "Connected", pending: "Pending", expired: "Expired", error: "Error", disconnected: "Disconnected" },
-    categories: { communication: "Communication", office: "Office", mail_calendar: "Mail & Calendar", docs_storage: "Docs & Storage", project_management: "Project Management", development: "Development", crm_sales: "CRM & Sales", commerce_payments: "Commerce & Payments", social_media: "Social Media", automation: "Automation" },
+    loggedInAs: (name: string, id?: number) =>
+      `Logged in: ${name}${id ? ` (${id})` : ""}`,
+    channelStatus: {
+      healthy: "Link healthy",
+      degraded: "Link degraded",
+      stopped: "Link stopped",
+    },
+    connectionState: {
+      connected: "Connected",
+      pending: "Pending",
+      expired: "Expired",
+      error: "Error",
+      disconnected: "Disconnected",
+    },
+    categories: {
+      communication: "Communication",
+      office: "Office",
+      mail_calendar: "Mail & Calendar",
+      docs_storage: "Docs & Storage",
+      project_management: "Project Management",
+      development: "Development",
+      crm_sales: "CRM & Sales",
+      commerce_payments: "Commerce & Payments",
+      social_media: "Social Media",
+      automation: "Automation",
+    },
     scopes: { read: "Read", write: "Write", admin: "Admin" },
-    scopeDescriptions: { read: "Allow read-only retrieval actions.", write: "Allow create and update actions.", admin: "Allow destructive or administrative actions." },
-    qrUnavailable: "QR code is not available yet, or this channel does not support QR login.",
+    scopeDescriptions: {
+      read: "Allow read-only retrieval actions.",
+      write: "Allow create and update actions.",
+      admin: "Allow destructive or administrative actions.",
+    },
+    qrUnavailable:
+      "QR code is not available yet, or this channel does not support QR login.",
     networkError: "Network error fetching QR code.",
     channelLoginSucceeded: "Channel login succeeded.",
     channelLoginStatus: "Channel login status",
     qrLogin: "QR code login",
     channelLoggedIn: "The underlying channel account is logged in.",
-    qrLoginDescription: "Scan the QR code with the mobile client when the bridge exposes one.",
+    qrLoginDescription:
+      "Scan the QR code with the mobile client when the bridge exposes one.",
     unknownUser: "Unknown user",
     fetchingQr: "Fetching QR code...",
     qrAlt: "Login QR code",
@@ -694,13 +785,16 @@ This signs out the upstream account when supported and keeps the reusable interf
     },
     system: {
       title: "System Overview",
-      description: "Inspect runtime configuration, repository-installed capabilities, and one-click migration status.",
+      description:
+        "Inspect runtime configuration, repository-installed capabilities, and one-click migration status.",
       runtimeOverview: "Runtime Overview",
       repoOverview: "Repository Overview",
       registryTitle: "Capability Registry",
-      registryDescription: "Inspect runtime capability items, including compat-projected commands, agent personas, and references.",
+      registryDescription:
+        "Inspect runtime capability items, including compat-projected commands, agent personas, and references.",
       compatPreviewTitle: "Agent-Skills Compat",
-      compatPreviewDescription: "Preview upstream agent-skills imports, review conflicts, and control trust before activation.",
+      compatPreviewDescription:
+        "Preview upstream agent-skills imports, review conflicts, and control trust before activation.",
       sourceInventory: "VS Code source inventory",
       installedInventory: "Installed in OctoAgent",
       matchedInventory: "Already matched",
@@ -709,7 +803,8 @@ This signs out the upstream account when supported and keeps the reusable interf
       migrating: "Migrating...",
       noResults: "No migration has been run yet.",
       lastRun: "Latest migration results",
-      sourceUnavailable: "Source workspace not found. Set OCTO_AGENT_CAPABILITY_SOURCE or check the default workspace path.",
+      sourceUnavailable:
+        "Source workspace not found. Set OCTO_AGENT_CAPABILITY_SOURCE or check the default workspace path.",
       capabilityRuntime: "Capability Runtime",
       capabilityAudit: "Capability Audit",
       cacheWarm: "Warm cache",
@@ -720,7 +815,8 @@ This signs out the upstream account when supported and keeps the reusable interf
       auditTrail: "Recent audit trail",
       noAuditEntries: "No capability audit events yet.",
       registryEmpty: "No capability items matched the current filter.",
-      compatSourceUnavailable: "No agent-skills source pack was found. Configure sourceRoot or add references/_clones/agent-skills.",
+      compatSourceUnavailable:
+        "No agent-skills source pack was found. Configure sourceRoot or add references/_clones/agent-skills.",
       compatImportLabel: "Compat import",
       compatImportEnabled: "Compat import enabled",
       compatImportDisabled: "Compat import disabled",
@@ -786,7 +882,8 @@ This signs out the upstream account when supported and keeps the reusable interf
     },
     globalMemory: {
       title: "Global Memory",
-      description: "Manually add or import global memory entries that are injected as system-level context into every conversation.",
+      description:
+        "Manually add or import global memory entries that are injected as system-level context into every conversation.",
       empty: "No global memory entries yet.",
       addEntry: "New Entry",
       editEntry: "Edit Entry",
@@ -820,9 +917,11 @@ This signs out the upstream account when supported and keeps the reusable interf
     },
     hooks: {
       title: "Repository Hooks",
-      description: "Inspect installed hook folders, trigger coverage, and enable or disable them through extensions_config.",
+      description:
+        "Inspect installed hook folders, trigger coverage, and enable or disable them through extensions_config.",
       emptyTitle: "No repository hooks installed",
-      emptyDescription: "Migrate hooks from the VS Code workspace or add hook folders under .github/hooks.",
+      emptyDescription:
+        "Migrate hooks from the VS Code workspace or add hook folders under .github/hooks.",
     },
     skills: {
       title: "Agent Skills",
@@ -855,7 +954,8 @@ This signs out the upstream account when supported and keeps the reusable interf
     },
     bootstrap: {
       title: "Embedded Bootstrap Model",
-      description: "A tiny local model is embedded for startup guidance, lightweight semantic retrieval, and offline-safe first-run onboarding.",
+      description:
+        "A tiny local model is embedded for startup guidance, lightweight semantic retrieval, and offline-safe first-run onboarding.",
       recommendedRuntime: "Recommended embedded runtime",
       modelStatus: "Model status",
       installed: "Installed",
@@ -871,12 +971,14 @@ This signs out the upstream account when supported and keeps the reusable interf
       generating: "Generating...",
       generateGuide: "Generate guide",
       starterPrompts: "Starter prompts:",
-      installHint: "Install the embedded model, then generate a local first-run guide here.",
+      installHint:
+        "Install the embedded model, then generate a local first-run guide here.",
       indexedLocalDocs: "Indexed local docs",
     },
     systemGuard: {
       title: "System Guard",
-      description: "Operational visibility and control for runtime lifecycle snapshots, manual repair, signed export, and retention state.",
+      description:
+        "Operational visibility and control for runtime lifecycle snapshots, manual repair, signed export, and retention state.",
       unavailable: "System guard unavailable",
       unavailableDesc: "Failed to load runtime lifecycle state.",
       lifecycleActive: "Lifecycle persistence active",
@@ -900,7 +1002,8 @@ This signs out the upstream account when supported and keeps the reusable interf
       snapshotCount: "Snapshot count:",
       retentionLimit: "Retention limit:",
       unbounded: "unbounded",
-      retentionHelpText: "Signed exports preserve the recent lifecycle window for offline inspection. Manual repair persists a fresh snapshot in the same namespace.",
+      retentionHelpText:
+        "Signed exports preserve the recent lifecycle window for offline inspection. Manual repair persists a fresh snapshot in the same namespace.",
       recentSnapshots: "Recent lifecycle snapshots",
       refresh: "Refresh",
       metadata: "Metadata",
@@ -920,7 +1023,8 @@ This signs out the upstream account when supported and keeps the reusable interf
     },
     systemExecution: {
       title: "System Execution",
-      description: "Inspect system-level execution capability status and generate dry-run execution contracts for future desktop-agent flows.",
+      description:
+        "Inspect system-level execution capability status and generate dry-run execution contracts for future desktop-agent flows.",
       unavailable: "System execution unavailable",
       unavailableDesc: "Failed to load system execution capability state.",
       currentCapability: "Current capability",
@@ -933,9 +1037,11 @@ This signs out the upstream account when supported and keeps the reusable interf
       yes: "yes",
       no: "no",
       dryRunPlanner: "Dry-run planner",
-      dryRunPlannerDesc: "This generates a bounded execution contract. It does not run OS-level actions.",
+      dryRunPlannerDesc:
+        "This generates a bounded execution contract. It does not run OS-level actions.",
       goal: "Goal",
-      goalPlaceholder: "Open the editor, load the target file, and verify the expected screen state.",
+      goalPlaceholder:
+        "Open the editor, load the target file, and verify the expected screen state.",
       target: "Target",
       allowedApps: "Allowed Apps",
       allowedAppsPlaceholder: "code, chromium, finder",
@@ -965,13 +1071,16 @@ This signs out the upstream account when supported and keeps the reusable interf
       applyUpdate: "Update Now",
       upToDate: "You are up to date.",
       noUpdateDialogTitle: "No Update Available",
-      noUpdateDialogDescription: (version: string) => `The system is already on the latest version ${version}. No update is required.`,
+      noUpdateDialogDescription: (version: string) =>
+        `The system is already on the latest version ${version}. No update is required.`,
       confirmUpdateDialogTitle: "Update System",
-      confirmUpdateDialogDescription: (version: string) => `The latest version is ${version}. Update the system now?`,
+      confirmUpdateDialogDescription: (version: string) =>
+        `The latest version is ${version}. Update the system now?`,
       updatingStatus: "Updating system and waiting for services to restart...",
       autoUpdate: "Auto Update",
       autoUpdateLabel: "Enable automatic updates",
-      autoUpdateDesc: "Checks the repository once daily and applies updates automatically.",
+      autoUpdateDesc:
+        "Checks the repository once daily and applies updates automatically.",
       lastCheck: "Last checked",
     },
   },
@@ -981,21 +1090,27 @@ This signs out the upstream account when supported and keeps the reusable interf
     title: "System Events",
     clear: "Clear",
     empty: "No system events yet",
-    description: "Runtime notices, warnings, and non-fatal errors are collected here. Fatal errors still appear as popup alerts.",
+    description:
+      "Runtime notices, warnings, and non-fatal errors are collected here. Fatal errors still appear as popup alerts.",
     runtimeAlerts: "Runtime",
-    threadLoadFailed: "Past conversation state is temporarily unreadable; the existing thread entry was preserved and the dialogue UI continues to load.",
-    autoContinueResume: "Compressed memory and todos from the previous conversation were loaded; auto-continuing execution.",
+    threadLoadFailed:
+      "Past conversation state is temporarily unreadable; the existing thread entry was preserved and the dialogue UI continues to load.",
+    autoContinueResume:
+      "Compressed memory and todos from the previous conversation were loaded; auto-continuing execution.",
     userAborted: "Current task aborted by the user.",
   },
 
   // PermissionMode
   permissionMode: {
     approval: "Approval",
-    approvalDescription: "Default approval flow; system-level tools are hidden and sensitive actions require confirmation.",
+    approvalDescription:
+      "Default approval flow; system-level tools are hidden and sensitive actions require confirmation.",
     directory: "Directory",
-    directoryDescription: "Allow operations within the repository/task directory; host/system tools remain hidden.",
+    directoryDescription:
+      "Allow operations within the repository/task directory; host/system tools remain hidden.",
     system: "System",
-    systemDescription: "Allow system-level host/shell/network/process tools; every command is auditable.",
+    systemDescription:
+      "Allow system-level host/shell/network/process tools; every command is auditable.",
     label: "Permission mode",
     conversationContext: "Conversation context",
   },
@@ -1021,7 +1136,8 @@ This signs out the upstream account when supported and keeps the reusable interf
   ragSettings: {
     sectionTitle: "RAG retrieval",
     sectionDescription: "Embedding and reranker model configuration",
-    sectionFullDescription: "Configure embedding and reranker models. Models are downloaded from Hugging Face to ~/.cache/huggingface/hub/.",
+    sectionFullDescription:
+      "Configure embedding and reranker models. Models are downloaded from Hugging Face to ~/.cache/huggingface/hub/.",
     loadFailed: "Failed to load configuration:",
     unknownError: "Unknown error",
     savedToast: "RAG configuration saved",
@@ -1035,7 +1151,8 @@ This signs out the upstream account when supported and keeps the reusable interf
     download: "Download",
     rerankerTitle: "Reranker model (Cross-Encoder)",
     rerankerEnable: "Enable second-pass reranking",
-    rerankerHint: "Apply Cross-Encoder reranking on hybrid retrieval results, keeping top_k candidates.",
+    rerankerHint:
+      "Apply Cross-Encoder reranking on hybrid retrieval results, keeping top_k candidates.",
     rerankerModel: "Reranker model",
     paramsTitle: "Retrieval parameters",
     defaultTopK: "Default top_k",
@@ -1056,17 +1173,24 @@ This signs out the upstream account when supported and keeps the reusable interf
     noBoundDocument: "This card has no bound document.",
     loadingCardDoc: "Loading card document…",
     cardDocEmpty: "Card document is empty.",
-    noDownloadableResult: "The current workflow has no downloadable result files yet.",
+    noDownloadableResult:
+      "The current workflow has no downloadable result files yet.",
   },
   threadEvents: {
-    recursionLimit: "Detected recursion-step limit exceeded (browser may be caching an older limit). Auto-continuing with safe limit. If this recurs, hard-refresh (Ctrl+Shift+R).",
-    contextHandoffSubmitted: "Context-compression handoff submitted but not yet observed in runtime state. The system will continue with the current conversation state.",
+    recursionLimit:
+      "Detected recursion-step limit exceeded (browser may be caching an older limit). Auto-continuing with safe limit. If this recurs, hard-refresh (Ctrl+Shift+R).",
+    contextHandoffSubmitted:
+      "Context-compression handoff submitted but not yet observed in runtime state. The system will continue with the current conversation state.",
     autoContinueAction: "Unfinished action detected. Auto-continuing.",
-    contextLimitHandoff: "Context limit reached. Archiving and switching to a new conversation to continue the task.",
-    incompleteRetryWithReason: "Detected recoverable incomplete task ({reason}). Auto-continuing attempt {attempt} (max {max}).",
+    contextLimitHandoff:
+      "Context limit reached. Archiving and switching to a new conversation to continue the task.",
+    incompleteRetryWithReason:
+      "Detected recoverable incomplete task ({reason}). Auto-continuing attempt {attempt} (max {max}).",
     incompleteRetry: "Detected recoverable incomplete task. Auto-continuing.",
-    watchdogLongRun: "Assistant is still running a long task. Keeping the session alive and polling runtime state.",
-    sessionRefreshed: "Session refreshed. Re-sending your message in a new conversation.",
+    watchdogLongRun:
+      "Assistant is still running a long task. Keeping the session alive and polling runtime state.",
+    sessionRefreshed:
+      "Session refreshed. Re-sending your message in a new conversation.",
   },
   register: {
     authSuccess: "Authentication successful. Entering workspace.",

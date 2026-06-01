@@ -1,3 +1,9 @@
+## 2026-06-01 - WebUI 工作流模块改版（子卡片栅格 → 传统项目表格视图）
+
+- `frontend/src/app/workspace/workflows/page.tsx`：移除原有的「子卡片栅格」展示（`sm:grid-cols-2 xl:grid-cols-4` 管理卡片），改为主流的项目管理**表格视图**。每个 task workspace 现以一行呈现：项目名+目标、状态徽标、进度（completed/total cards + active agents 迷你进度条）、运行时与拓扑、运行模式（chat/cron/yolo 可点击进入设置）、更新时间、行内操作（设置/运行/暂停/恢复/停止/删除）。行点击进入 `/workspace/workflows/[task_id]` 的 LangGraph 运行时详情（保持不变；单一事实仍在 task_workspaces，projection/studio 契约不受影响）。所有既有处理函数、状态机动作与创建向导/编辑弹窗均保留。
+- i18n：为 5 个语言（en-US/zh-CN/zh-TW/ja/ko）及 `types.ts` 新增表格列头键 `colProject/colStatus/colProgress/colRuntime/colRunMode/colUpdated/colActions/activeShort`，保持类型对齐。
+- Version: frontend `20260601.3`。验证：`tsc --noEmit` 与 `eslint` 干净，`next build` 成功；编译产物含新 `workflow-row-` 行标识与 `colProject` 列键、旧 `grid-cols-4` 卡片栅格计数为 0；服务重启后入口 `/api/models` 200、`/api/task-workspaces` 健康，创建一个测试项目确认表格渲染后已删除（remaining=0）。
+
 ## 2026-06-01 - Hardening round 4 (idempotent orphan recovery + tolerant health probe)
 
 - `gateway/lifecycle`: the startup orphaned-workspace recovery sweep is now guarded by a process-scoped `IdempotentRunner` (from `storage.workflow.durable_execution`). A repeated or concurrent sweep replays the prior dispatch decision instead of re-invoking `safe_auto_execute_workspace` for the same `task_id`, closing the in-flight recovery race window (recovery scheduled but agent messages not yet persisted). Adds `backend/tests/gateway/test_orphan_recovery_idempotency.py` (at-most-once across two adversarial sweeps).

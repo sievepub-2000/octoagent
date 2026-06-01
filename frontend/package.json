@@ -1,6 +1,6 @@
 {
   "name": "octoagent-frontend",
-  "version": "20260601.2",
+  "version": "20260601.3",
   "private": true,
   "type": "module",
   "scripts": {

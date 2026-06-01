@@ -46,7 +46,8 @@ export const ja: Translations = {
     all: "すべて",
     continueTask: "続行",
     deleteAll: "すべて削除",
-    deleteAllConfirm: "すべてのコンテンツを削除しますか？この操作は取り消せません。",
+    deleteAllConfirm:
+      "すべてのコンテンツを削除しますか？この操作は取り消せません。",
     deleteAllSuccess: "すべてのコンテンツを削除しました",
     deleteConfirm: "このアイテムを削除してもよろしいですか？",
   },
@@ -88,8 +89,7 @@ export const ja: Translations = {
     flashMode: "フラッシュ",
     flashModeDescription: "高速で効率的ですが、精度が低い場合があります",
     reasoningMode: "推論",
-    reasoningModeDescription:
-      "行動前に推論し、時間と精度のバランスを取ります",
+    reasoningModeDescription: "行動前に推論し、時間と精度のバランスを取ります",
     proMode: "Pro",
     proModeDescription:
       "推論、計画、実行を行い、より正確な結果を得ますが、時間がかかる場合があります",
@@ -117,8 +117,7 @@ export const ja: Translations = {
       },
       {
         suggestion: "調査",
-        prompt:
-          "[トピック]について深く調査し、結果をまとめてください。",
+        prompt: "[トピック]について深く調査し、結果をまとめてください。",
         icon: MicroscopeIcon,
       },
       {
@@ -176,8 +175,11 @@ export const ja: Translations = {
     evolution: "スキル進化",
     evolutionDesc: "OpenSpaceエンジンによる自己進化スキルと品質監視。",
     plugins: "プラグイン",
-    pluginsDesc: "プラグイン機能、エンジニアリングワークフロー、フックパイプラインの管理。",    channels: "ソフトウェアインターフェース",
-    channelsDesc: "Feishu、Slack、Telegram のIMチャンネルコネクターを管理。",    evolutionEnabled: "進化エンジン",
+    pluginsDesc:
+      "プラグイン機能、エンジニアリングワークフロー、フックパイプラインの管理。",
+    channels: "ソフトウェアインターフェース",
+    channelsDesc: "Feishu、Slack、Telegram のIMチャンネルコネクターを管理。",
+    evolutionEnabled: "進化エンジン",
     evolutionEnabledDesc: "タスク実行後に自動でスキル進化を実行します。",
     autoFix: "自動修復",
     autoFixDesc: "破損または古くなったスキルを自動修復します。",
@@ -186,7 +188,8 @@ export const ja: Translations = {
     autoCapture: "自動キャプチャ",
     autoCaptureDesc: "成功実行から再利用可能なパターンを抽出します。",
     qualityMonitoring: "品質監視",
-    qualityMonitoringDesc: "スキルヘルス指標を追跡します（成功率、遅延、適用率）。",
+    qualityMonitoringDesc:
+      "スキルヘルス指標を追跡します（成功率、遅延、適用率）。",
     cloudSync: "クラウド同期",
     cloudSyncDesc: "OpenSpaceクラウドコミュニティと進化スキルを同期します。",
     qualityMetrics: "品質メトリクス",
@@ -242,7 +245,8 @@ export const ja: Translations = {
     nameStepInvalidError:
       "無効な名前です — 英字、数字、ハイフンのみ使用できます",
     nameStepAlreadyExistsError: "この名前のエージェントは既に存在します",
-    nameStepCheckError: "名前の利用可否を確認できませんでした — もう一度お試しください",
+    nameStepCheckError:
+      "名前の利用可否を確認できませんでした — もう一度お試しください",
     nameStepBootstrapMessage:
       "新しいカスタムエージェントの名前は {name} です。**SOUL** の生成を開始しましょう。",
     agentCreated: "エージェントが作成されました！",
@@ -263,7 +267,8 @@ export const ja: Translations = {
     templateLabel: "テンプレート",
     templateNone: "空白から開始",
     templateHint: "テンプレートを選ぶと、説明と SOUL が自動入力されます。",
-    templateInstallHint: "Agency Agents をインストールすると、ここで上流の専門家テンプレートを選べます。",
+    templateInstallHint:
+      "Agency Agents をインストールすると、ここで上流の専門家テンプレートを選べます。",
     installAgencyAgents: "Agency Agents をインストール",
     installingAgencyAgents: "Agency Agents をインストール中...",
     installAgencyAgentsFailed: "Agency Agents のインストールに失敗しました",
@@ -276,10 +281,12 @@ export const ja: Translations = {
   // Workflows
   workflows: {
     title: "ワークフロー",
-    description: "エージェントを連携させる自動化ワークフローを作成・管理します。",
+    description:
+      "エージェントを連携させる自動化ワークフローを作成・管理します。",
     newWorkflow: "新規ワークフロー",
     emptyTitle: "ワークフローはまだありません",
-    emptyDescription: "最初のワークフローを作成してエージェントを連携させましょう。",
+    emptyDescription:
+      "最初のワークフローを作成してエージェントを連携させましょう。",
     loadFailedTitle: "ワークフローを読み込めません",
     loadFailedDescription: "ワークフロー一覧のリクエストに失敗しました。",
     reloadWorkflows: "ワークフローを再読み込み",
@@ -289,9 +296,12 @@ export const ja: Translations = {
     modeChatDesc: "人間の監督のもとでインタラクティブに対話を実行します。",
     modeCronDesc: "スケジュールに従って自動的に実行されます。",
     modeYoloDesc: "完全自律モード — エージェントが完了まで独立して動作します。",
-    scheduleHint: "予約実行のために UTC の年/月/日/時/分/秒を設定してください。",
-    scheduleEmptyRunsNow: "すべて空欄の場合、ワークフロー作成直後に即時実行します。",
-    scheduleInvalid: "予約時刻が不完全または無効です。6項目すべて入力するか、すべて空欄にしてください。",
+    scheduleHint:
+      "予約実行のために UTC の年/月/日/時/分/秒を設定してください。",
+    scheduleEmptyRunsNow:
+      "すべて空欄の場合、ワークフロー作成直後に即時実行します。",
+    scheduleInvalid:
+      "予約時刻が不完全または無効です。6項目すべて入力するか、すべて空欄にしてください。",
     chain: "チェーン",
     branch: "ブランチ",
     swarm: "スウォーム",
@@ -311,7 +321,8 @@ export const ja: Translations = {
     singleAgent: "メインエージェント",
     singleAgentDesc: "メインエージェントが単独で計画・実行・報告します。",
     multiAgent: "サブエージェント",
-    multiAgentDesc: "メインエージェントが計画・派遣・監督・報告し、サブエージェントが協力実行します。",
+    multiAgentDesc:
+      "メインエージェントが計画・派遣・監督・報告し、サブエージェントが協力実行します。",
     wizardSubAgents: "サブエージェント",
     chainDesc: "エージェントが順番に実行されます。",
     branchDesc: "リーダーエージェントがサブタスクを分配します。",
@@ -329,6 +340,14 @@ export const ja: Translations = {
     resume: "再開",
     back: "戻る",
     create: "作成",
+    colProject: "プロジェクト",
+    colStatus: "ステータス",
+    colProgress: "進捗",
+    colRuntime: "ランタイム",
+    colRunMode: "実行モード",
+    colUpdated: "更新日時",
+    colActions: "操作",
+    activeShort: "アクティブ",
     noGoal: "目標未設定",
     resultTitle: "実行結果",
     resultContent: "結果の詳細",
@@ -340,15 +359,18 @@ export const ja: Translations = {
     downloadResult: "結果をダウンロード",
     langgraphTopologyLabel: "LangGraph ワークフロートポロジー",
     executionLogsTitle: "実行ログ",
-    executionLogsDescription: "途中経過の記録、混在したラベル、ランタイムイベントの詳細を表示します。",
+    executionLogsDescription:
+      "途中経過の記録、混在したラベル、ランタイムイベントの詳細を表示します。",
     noExecutionLogs: "実行ログはまだ記録されていません。",
     noResultYet: "まだ結果がありません。",
     failureAnalysis: "失敗分析",
     failureReason: "失敗の原因",
     failureOutput: "エラー出力",
     possibleSolutions: "考えられる解決策",
-    solutionCheckLog: "実行ログを確認して、詳細なエラートレースとコンテキストを取得してください。",
-    solutionCheckConfig: "ワークフロー設定、エージェント権限、モデル設定が正しいか確認してください。",
+    solutionCheckLog:
+      "実行ログを確認して、詳細なエラートレースとコンテキストを取得してください。",
+    solutionCheckConfig:
+      "ワークフロー設定、エージェント権限、モデル設定が正しいか確認してください。",
     solutionRetry: "根本原因を解消した後、ワークフローを再実行してください。",
   },
 
@@ -357,19 +379,25 @@ export const ja: Translations = {
     title: "🚀 OctoAgent へようこそ",
     subtitle: "いくつかの簡単なステップでワークスペースを設定しましょう。",
     stepWorkspace: "ワークスペースパス",
-    stepWorkspaceDesc: "OctoAgent が会話、スキル、生成物を保存するデフォルトディレクトリを設定します。",
+    stepWorkspaceDesc:
+      "OctoAgent が会話、スキル、生成物を保存するデフォルトディレクトリを設定します。",
     stepWorkspaceHint: "例: ./workspace または /home/user/workspace",
     stepModel: "デフォルトモデル",
-    stepModelDesc: "すべての新しい会話のデフォルト言語モデルを選択します。後で会話ごとにモデルを切り替えることができます。",
+    stepModelDesc:
+      "すべての新しい会話のデフォルト言語モデルを選択します。後で会話ごとにモデルを切り替えることができます。",
     stepModelHint: "設定済みのモデルプールから選択",
     stepSandbox: "実行モード",
-    stepSandboxDesc: "OctoAgent がコードとツールをどのように実行するかを選択します。",
+    stepSandboxDesc:
+      "OctoAgent がコードとツールをどのように実行するかを選択します。",
     sandboxLocal: "ローカル実行",
-    sandboxLocalDesc: "コマンドはホストシステムで直接実行されます。高速でシンプルですが、分離性は低めです。",
+    sandboxLocalDesc:
+      "コマンドはホストシステムで直接実行されます。高速でシンプルですが、分離性は低めです。",
     sandboxDocker: "Docker サンドボックス",
-    sandboxDockerDesc: "コマンドは分離された Docker コンテナで実行されます。信頼できないコードの実行に安全です。",
+    sandboxDockerDesc:
+      "コマンドは分離された Docker コンテナで実行されます。信頼できないコードの実行に安全です。",
     complete: "セットアップ完了！",
-    completeDesc: "ワークスペースの設定が完了しました。サイドバーメニューからいつでも変更できます。",
+    completeDesc:
+      "ワークスペースの設定が完了しました。サイドバーメニューからいつでも変更できます。",
     next: "次へ",
     skip: "スキップ",
     finish: "OctoAgent を使い始める",
@@ -381,7 +409,8 @@ export const ja: Translations = {
     currentBackendPath: "現在のバックエンドパス",
     modelsReady: "モデル準備完了",
     skillsAvailable: "スキル",
-    noModelsYet: "モデルがまだ設定されていません。後でモデル設定から追加できます。",
+    noModelsYet:
+      "モデルがまだ設定されていません。後でモデル設定から追加できます。",
     applying: "適用中...",
     browse: "参照",
     selectFolder: "フォルダを選択",
@@ -391,7 +420,8 @@ export const ja: Translations = {
     confirmSelect: "選択",
     newFolderName: "フォルダ名",
     createFolderError: "フォルダの作成に失敗しました",
-    networkError: "ネットワークエラーです。Gateway 接続を確認して再試行してください。",
+    networkError:
+      "ネットワークエラーです。Gateway 接続を確認して再試行してください。",
   },
 
   // Breadcrumb
@@ -412,7 +442,8 @@ export const ja: Translations = {
     about: "OctoAgent について",
     inspector: {
       title: "実行インスペクター",
-      parallelSummary: (branches: number, agents: number) => `${branches} 並列 / ${agents} エージェント`,
+      parallelSummary: (branches: number, agents: number) =>
+        `${branches} 並列 / ${agents} エージェント`,
       resetView: "表示をリセット",
       board: "ボード",
       canvas: "キャンバス",
@@ -423,21 +454,28 @@ export const ja: Translations = {
       active: "正常",
       info: "情報",
       noArtifactsYet: "生成ファイルはまだありません",
-      noArtifactsDescription: "成果物、レポート、生成ファイルがここに表示されます。",
+      noArtifactsDescription:
+        "成果物、レポート、生成ファイルがここに表示されます。",
       thinkingTab: "思考",
       terminalTab: "ターミナル",
       eventsTab: "イベント",
       reasoningVisibility: "推論の可視性",
       hidden: "非表示",
       enabled: "有効",
-      thinkingFlashDescription: "主回答は簡潔に保たれ、内部推論はモデルが昇格判断するまで折りたたまれます。",
-      thinkingEnabledDescription: "推論表示が有効です。長い思考連鎖は下部パネルに保ち、最終出力は主会話に表示します。",
-      streamingDescription: "ランタイムが現在のステップを更新中です。メインエージェントのレビュー境界はそのまま維持されます。",
-      idleDescription: "現在はアイドル状態です。タスク開始またはメッセージ送信後にランタイムのチェックポイントが表示されます。",
+      thinkingFlashDescription:
+        "主回答は簡潔に保たれ、内部推論はモデルが昇格判断するまで折りたたまれます。",
+      thinkingEnabledDescription:
+        "推論表示が有効です。長い思考連鎖は下部パネルに保ち、最終出力は主会話に表示します。",
+      streamingDescription:
+        "ランタイムが現在のステップを更新中です。メインエージェントのレビュー境界はそのまま維持されます。",
+      idleDescription:
+        "現在はアイドル状態です。タスク開始またはメッセージ送信後にランタイムのチェックポイントが表示されます。",
       noCommandActivityYet: "コマンド履歴はまだありません",
-      noCommandActivityDescription: "ツール呼び出しとコマンド実行の要約がここに表示されます。",
+      noCommandActivityDescription:
+        "ツール呼び出しとコマンド実行の要約がここに表示されます。",
       terminalHeadline: "サーバー CLI オペレーターコンソール",
-      terminalDescription: "既存のサーバー側実行サービスを通して、境界付きの workspace または system CLI コマンドを実行します。",
+      terminalDescription:
+        "既存のサーバー側実行サービスを通して、境界付きの workspace または system CLI コマンドを実行します。",
       terminalScope: "スコープ",
       workspaceScope: "Workspace CLI",
       systemScope: "System CLI",
@@ -455,7 +493,8 @@ export const ja: Translations = {
       sessionLookupRequired: "先にセッション ID を入力してください。",
       sessionLookupNotFound: "該当するセッションが見つかりません。",
       sessionLookupFailed: "このセッションの読み込みに失敗しました。",
-      terminalRunHint: "コマンドは既存の system execution セッションモデルを再利用し、制限付き出力と監査履歴を返します。",
+      terminalRunHint:
+        "コマンドは既存の system execution セッションモデルを再利用し、制限付き出力と監査履歴を返します。",
       runCommand: "コマンド実行",
       runningCommand: "実行中...",
       terminalRequestFailed: "CLI リクエストに失敗しました",
@@ -474,10 +513,12 @@ export const ja: Translations = {
       recentCommands: "最近のコマンド",
       auditTrail: "監査ログ",
       noTerminalOutputYet: "ターミナル出力はまだありません",
-      noTerminalOutputDescription: "Workspace または system CLI コマンドを実行すると、ここにオペレーター出力が表示されます。",
+      noTerminalOutputDescription:
+        "Workspace または system CLI コマンドを実行すると、ここにオペレーター出力が表示されます。",
       noTerminalAuditYet: "CLI 監査エントリはまだありません。",
       noRuntimeEventsYet: "ランタイムイベントはまだありません",
-      noRuntimeEventsDescription: "サブタスクの実行が始まると、チェックポイント、リトライ、失敗イベントがここに表示されます。",
+      noRuntimeEventsDescription:
+        "サブタスクの実行が始まると、チェックポイント、リトライ、失敗イベントがここに表示されます。",
       runtimeEvent: "ランタイムイベント",
       returnedToMainAgent: "メインエージェントへ戻りました",
       stepFailed: "ステップに失敗しました",
@@ -487,28 +528,41 @@ export const ja: Translations = {
       continuation: "継続元",
       workflowState: "ワークフロー状態",
       agentBudget: "サブエージェント制限",
-      agentBudgetValue: (maxActivePerThread: number, maxTotalPerThread: number, maxConcurrentGlobal: number) =>
+      agentBudgetValue: (
+        maxActivePerThread: number,
+        maxTotalPerThread: number,
+        maxConcurrentGlobal: number,
+      ) =>
         `スレッド内アクティブ ${maxActivePerThread} ・ スレッド内総委譲 ${maxTotalPerThread} ・ グローバル同時実行 ${maxConcurrentGlobal}`,
       memoryGuard: "メモリガード",
       unavailable: "利用不可",
       noFallbackChain: "フォールバック連鎖なし",
       freshThread: "新規スレッド",
       noSavedWorkflow: "保存済みワークフローなし",
-      workflowResumed: (count: number) => `${count} 件のワークフローカードを復元`,
-      workflowLoaded: (count: number) => `${count} 件のワークフローカードを読み込み`,
+      workflowResumed: (count: number) =>
+        `${count} 件のワークフローカードを復元`,
+      workflowLoaded: (count: number) =>
+        `${count} 件のワークフローカードを読み込み`,
       continuationLoadedTitle: "継続元を読み込みました",
-      continuationLoadedDetail: (source: string) => `${source} から再開しました。`,
+      continuationLoadedDetail: (source: string) =>
+        `${source} から再開しました。`,
       workflowRestoredTitle: "ワークフロー状態を復元しました",
-      workflowRestoredDetail: (count: number) => `このスレッドで ${count} 件のワークフローカードを復元しました。`,
+      workflowRestoredDetail: (count: number) =>
+        `このスレッドで ${count} 件のワークフローカードを復元しました。`,
       fallbackReadyTitle: "フォールバック連鎖の準備完了",
-      fallbackReadyDetail: (model: string, chain: string) => `${model} は必要時に ${chain} へ切り替えできます。`,
+      fallbackReadyDetail: (model: string, chain: string) =>
+        `${model} は必要時に ${chain} へ切り替えできます。`,
       memoryGuardTightTitle: "メモリガードが逼迫しています",
-      memoryGuardTightDetail: "新しい重いワークフローを始める前に、分岐幅かサブエージェント数を減らしてください。",
+      memoryGuardTightDetail:
+        "新しい重いワークフローを始める前に、分岐幅かサブエージェント数を減らしてください。",
       memoryGuardTruncated: "大きすぎるコンテキストメッセージを短縮済み",
-      memoryGuardTruncatedTitle: "コンテキストガードが大きすぎるメッセージを短縮しました",
-      memoryGuardTruncatedDetail: "選択中モデルのコンテキスト上限内に収まるよう、モデル呼び出し前に大きすぎるコンテキストメッセージを短縮しました。",
+      memoryGuardTruncatedTitle:
+        "コンテキストガードが大きすぎるメッセージを短縮しました",
+      memoryGuardTruncatedDetail:
+        "選択中モデルのコンテキスト上限内に収まるよう、モデル呼び出し前に大きすぎるコンテキストメッセージを短縮しました。",
       embeddedBackupOnlyTitle: "内蔵バックアップのみ",
-      embeddedBackupOnlyDetail: "主モデルが設定されていないため、ランタイムは緊急バックアップモードでのみ継続できます。",
+      embeddedBackupOnlyDetail:
+        "主モデルが設定されていないため、ランタイムは緊急バックアップモードでのみ継続できます。",
     },
   },
 
@@ -543,8 +597,7 @@ export const ja: Translations = {
     searchFor: (query: string) => `"${query}" を検索`,
     searchForRelatedInfo: "関連情報を検索",
     searchForRelatedImages: "関連画像を検索",
-    searchForRelatedImagesFor: (query: string) =>
-      `"${query}" の関連画像を検索`,
+    searchForRelatedImagesFor: (query: string) => `"${query}" の関連画像を検索`,
     searchOnWebFor: (query: string) => `Web で "${query}" を検索`,
     viewWebPage: "Webページを表示",
     listFolder: "フォルダを一覧表示",
@@ -562,17 +615,21 @@ export const ja: Translations = {
 
   softwareInterfaces: {
     title: "ソフトウェアインターフェース",
-    description: "メッセージングコネクタと Composio 互換のソフトウェア連携を一元管理します。",
+    description:
+      "メッセージングコネクタと Composio 互換のソフトウェア連携を一元管理します。",
     refresh: "更新",
     runtimeTitle: "コネクタランタイム",
-    runtimeDescription: "ネイティブ通信ブリッジと Composio OAuth 連携の状態を確認します。",
+    runtimeDescription:
+      "ネイティブ通信ブリッジと Composio OAuth 連携の状態を確認します。",
     running: "実行中",
     stopped: "停止中",
     liveGateway: "ライブゲートウェイ",
     notConfigured: "未設定",
-    notConfiguredDescription: "OCTOAGENT_COMPOSIO_BASE_URL と OCTOAGENT_COMPOSIO_API_KEY を設定すると、実際の OAuth、アクション、スコープ、トリガーを有効化できます。",
+    notConfiguredDescription:
+      "OCTOAGENT_COMPOSIO_BASE_URL と OCTOAGENT_COMPOSIO_API_KEY を設定すると、実際の OAuth、アクション、スコープ、トリガーを有効化できます。",
     catalogTitle: "Composio ソフトウェアインターフェース",
-    catalogDescription: "Composio 契約に従って、アプリ連携の閲覧、接続、管理、切断を行います。",
+    catalogDescription:
+      "Composio 契約に従って、アプリ連携の閲覧、接続、管理、切断を行います。",
     all: "すべて",
     totalCount: (count: number) => `${count} 件のインターフェース`,
     messagingCount: (count: number) => `${count} 件のメッセージングコネクタ`,
@@ -588,7 +645,8 @@ export const ja: Translations = {
     restart: "再起動",
     saveScopes: "スコープを保存",
     connections: "接続アカウント",
-    noConnections: "このインターフェースにはまだアカウントが接続されていません。",
+    noConnections:
+      "このインターフェースにはまだアカウントが接続されていません。",
     extraParams: "プロバイダー項目 JSON",
     scopePreferences: "スコープ設定",
     actions: "アクション",
@@ -614,8 +672,10 @@ export const ja: Translations = {
     scopesSaved: "スコープ設定を保存しました。",
     scopesSaveFailed: "スコープ設定の保存に失敗しました。",
     noEditableFields: "このコネクタには編集可能な設定項目がありません。",
-    editDescription: "この通信インターフェースの実行時項目を設定します。変更は config.yaml に保存されます。",
-    manageDescription: "アカウント接続、接続一覧、アクションスキーマ、read/write/admin の権限ゲートを管理します。",
+    editDescription:
+      "この通信インターフェースの実行時項目を設定します。変更は config.yaml に保存されます。",
+    manageDescription:
+      "アカウント接続、接続一覧、アクションスキーマ、read/write/admin の権限ゲートを管理します。",
     editTitle: (name: string) => `ソフトウェアインターフェースを編集: ${name}`,
     manageTitle: (name: string) => `${name} を管理`,
     manageAria: (name: string) => `${name} を管理`,
@@ -624,20 +684,49 @@ export const ja: Translations = {
     logoutConfirm: (name: string) => `「${name}」からログアウトしますか？
 
 対応している場合は上流アカウントからサインアウトし、再利用可能なインターフェーステンプレートは保持します。`,
-    requestFailed: (status: number) => `リクエストに失敗しました（ステータス: ${status}）`,
-    loggedInAs: (name: string, id?: number) => `ログイン中: ${name}${id ? `（${id}）` : ""}`,
-    channelStatus: { healthy: "リンク正常", degraded: "リンク低下", stopped: "リンク停止" },
-    connectionState: { connected: "接続済み", pending: "保留中", expired: "期限切れ", error: "エラー", disconnected: "未接続" },
-    categories: { communication: "コミュニケーション", office: "オフィス", mail_calendar: "メールとカレンダー", docs_storage: "ドキュメントとストレージ", project_management: "プロジェクト管理", development: "開発", crm_sales: "CRM と営業", commerce_payments: "コマースと決済", social_media: "ソーシャルメディア", automation: "自動化" },
+    requestFailed: (status: number) =>
+      `リクエストに失敗しました（ステータス: ${status}）`,
+    loggedInAs: (name: string, id?: number) =>
+      `ログイン中: ${name}${id ? `（${id}）` : ""}`,
+    channelStatus: {
+      healthy: "リンク正常",
+      degraded: "リンク低下",
+      stopped: "リンク停止",
+    },
+    connectionState: {
+      connected: "接続済み",
+      pending: "保留中",
+      expired: "期限切れ",
+      error: "エラー",
+      disconnected: "未接続",
+    },
+    categories: {
+      communication: "コミュニケーション",
+      office: "オフィス",
+      mail_calendar: "メールとカレンダー",
+      docs_storage: "ドキュメントとストレージ",
+      project_management: "プロジェクト管理",
+      development: "開発",
+      crm_sales: "CRM と営業",
+      commerce_payments: "コマースと決済",
+      social_media: "ソーシャルメディア",
+      automation: "自動化",
+    },
     scopes: { read: "読み取り", write: "書き込み", admin: "管理" },
-    scopeDescriptions: { read: "読み取り専用の取得アクションを許可します。", write: "作成と更新アクションを許可します。", admin: "破壊的または管理系アクションを許可します。" },
-    qrUnavailable: "QR コードはまだ利用できないか、このチャネルは QR ログインに対応していません。",
+    scopeDescriptions: {
+      read: "読み取り専用の取得アクションを許可します。",
+      write: "作成と更新アクションを許可します。",
+      admin: "破壊的または管理系アクションを許可します。",
+    },
+    qrUnavailable:
+      "QR コードはまだ利用できないか、このチャネルは QR ログインに対応していません。",
     networkError: "QR コード取得中にネットワークエラーが発生しました。",
     channelLoginSucceeded: "チャネルログインに成功しました。",
     channelLoginStatus: "チャネルログイン状態",
     qrLogin: "QR コードログイン",
     channelLoggedIn: "基盤チャネルアカウントはログイン済みです。",
-    qrLoginDescription: "ブリッジが QR コードを公開している場合は、モバイルクライアントでスキャンしてください。",
+    qrLoginDescription:
+      "ブリッジが QR コードを公開している場合は、モバイルクライアントでスキャンしてください。",
     unknownUser: "不明なユーザー",
     fetchingQr: "QR コードを取得中...",
     qrAlt: "ログイン QR コード",
@@ -685,13 +774,16 @@ export const ja: Translations = {
     },
     system: {
       title: "システム概要",
-      description: "ランタイム設定、リポジトリに導入済みの能力、ワンクリック移行の状態を確認します。",
+      description:
+        "ランタイム設定、リポジトリに導入済みの能力、ワンクリック移行の状態を確認します。",
       runtimeOverview: "ランタイム概要",
       repoOverview: "リポジトリ概要",
       registryTitle: "Capability レジストリ",
-      registryDescription: "Compat で投影された command、agent persona、reference を含むランタイム能力項目を確認します。",
+      registryDescription:
+        "Compat で投影された command、agent persona、reference を含むランタイム能力項目を確認します。",
       compatPreviewTitle: "Agent-Skills Compat",
-      compatPreviewDescription: "有効化前に upstream agent-skills の取り込み内容をプレビューし、競合と信頼レベルを確認します。",
+      compatPreviewDescription:
+        "有効化前に upstream agent-skills の取り込み内容をプレビューし、競合と信頼レベルを確認します。",
       sourceInventory: "VS Code ソース一覧",
       installedInventory: "OctoAgent に導入済み",
       matchedInventory: "すでに一致",
@@ -700,7 +792,8 @@ export const ja: Translations = {
       migrating: "移行中...",
       noResults: "まだ移行は実行されていません。",
       lastRun: "最新の移行結果",
-      sourceUnavailable: "ソースワークスペースが見つかりません。OCTO_AGENT_CAPABILITY_SOURCE を設定するか、既定のパスを確認してください。",
+      sourceUnavailable:
+        "ソースワークスペースが見つかりません。OCTO_AGENT_CAPABILITY_SOURCE を設定するか、既定のパスを確認してください。",
       capabilityRuntime: "Capability ランタイム",
       capabilityAudit: "Capability 監査",
       cacheWarm: "ウォームキャッシュ",
@@ -711,7 +804,8 @@ export const ja: Translations = {
       auditTrail: "最近の監査トレイル",
       noAuditEntries: "Capability の監査イベントはまだありません。",
       registryEmpty: "現在のフィルターに一致する能力項目はありません。",
-      compatSourceUnavailable: "agent-skills ソースパックが見つかりません。sourceRoot を設定するか、references/_clones/agent-skills を追加してください。",
+      compatSourceUnavailable:
+        "agent-skills ソースパックが見つかりません。sourceRoot を設定するか、references/_clones/agent-skills を追加してください。",
       compatImportLabel: "Compat 取り込み",
       compatImportEnabled: "Compat 取り込み有効",
       compatImportDisabled: "Compat 取り込み無効",
@@ -777,7 +871,8 @@ export const ja: Translations = {
     },
     globalMemory: {
       title: "グローバルメモリ",
-      description: "グローバルメモリエントリを手動で追加またはインポートします。すべての会話にシステムレベルのコンテキストとして注入されます。",
+      description:
+        "グローバルメモリエントリを手動で追加またはインポートします。すべての会話にシステムレベルのコンテキストとして注入されます。",
       empty: "グローバルメモリエントリはありません。",
       addEntry: "新規エントリ",
       editEntry: "エントリを編集",
@@ -811,9 +906,11 @@ export const ja: Translations = {
     },
     hooks: {
       title: "リポジトリ Hooks",
-      description: "導入済み hook フォルダ、トリガーのカバー状況、extensions_config による有効/無効を確認します。",
+      description:
+        "導入済み hook フォルダ、トリガーのカバー状況、extensions_config による有効/無効を確認します。",
       emptyTitle: "リポジトリ Hooks はまだありません",
-      emptyDescription: "VS Code ワークスペースから移行するか、.github/hooks に hook フォルダを追加してください。",
+      emptyDescription:
+        "VS Code ワークスペースから移行するか、.github/hooks に hook フォルダを追加してください。",
     },
     skills: {
       title: "エージェントスキル",
@@ -845,7 +942,8 @@ export const ja: Translations = {
     },
     bootstrap: {
       title: "組み込みブートストラップモデル",
-      description: "起動ガイダンス、軽量セマンティック検索、オフラインセーフな初回オンボーディングのための小型ローカルモデルが組み込まれています。",
+      description:
+        "起動ガイダンス、軽量セマンティック検索、オフラインセーフな初回オンボーディングのための小型ローカルモデルが組み込まれています。",
       recommendedRuntime: "推奨の組み込みランタイム",
       modelStatus: "モデルステータス",
       installed: "インストール済み",
@@ -861,12 +959,14 @@ export const ja: Translations = {
       generating: "生成中...",
       generateGuide: "ガイドを生成",
       starterPrompts: "スタータープロンプト：",
-      installHint: "組み込みモデルをインストールしてから、ここでローカル初回ガイドを生成してください。",
+      installHint:
+        "組み込みモデルをインストールしてから、ここでローカル初回ガイドを生成してください。",
       indexedLocalDocs: "インデックス済みローカルドキュメント",
     },
     systemGuard: {
       title: "システムガード",
-      description: "ランタイムライフサイクルスナップショットの運用可視性と制御。手動修復、署名付きエクスポート、保持状態を含みます。",
+      description:
+        "ランタイムライフサイクルスナップショットの運用可視性と制御。手動修復、署名付きエクスポート、保持状態を含みます。",
       unavailable: "システムガードは利用不可",
       unavailableDesc: "ランタイムライフサイクル状態の読み込みに失敗しました。",
       lifecycleActive: "ライフサイクル永続化がアクティブ",
@@ -890,12 +990,14 @@ export const ja: Translations = {
       snapshotCount: "スナップショット数：",
       retentionLimit: "保持制限：",
       unbounded: "無制限",
-      retentionHelpText: "署名付きエクスポートは、オフライン検査のために最近のライフサイクルウィンドウを保存します。手動修復は同じネームスペースに新しいスナップショットを永続化します。",
+      retentionHelpText:
+        "署名付きエクスポートは、オフライン検査のために最近のライフサイクルウィンドウを保存します。手動修復は同じネームスペースに新しいスナップショットを永続化します。",
       recentSnapshots: "最近のライフサイクルスナップショット",
       refresh: "更新",
       metadata: "メタデータ",
       state: "状態",
-      noSnapshotsYet: "ライフサイクルスナップショットはまだ永続化されていません。",
+      noSnapshotsYet:
+        "ライフサイクルスナップショットはまだ永続化されていません。",
       latestRepairResult: "最新の修復結果",
       outcome: "結果",
       persistedPhase: "永続化フェーズ",
@@ -906,11 +1008,13 @@ export const ja: Translations = {
       advisoryGenerated: "修復アドバイザリが生成されました。",
       repairFinished: "システムガード修復が完了しました。",
       repairWithIssues: "システムガード修復が完了しましたが、問題があります。",
-      exportDownloaded: "署名付きスナップショットエクスポートがダウンロードされました。",
+      exportDownloaded:
+        "署名付きスナップショットエクスポートがダウンロードされました。",
     },
     systemExecution: {
       title: "システム実行",
-      description: "システムレベルの実行能力状態を検査し、将来のデスクトップエージェントフローのためのドライラン実行契約を生成します。",
+      description:
+        "システムレベルの実行能力状態を検査し、将来のデスクトップエージェントフローのためのドライラン実行契約を生成します。",
       unavailable: "システム実行は利用不可",
       unavailableDesc: "システム実行能力状態の読み込みに失敗しました。",
       currentCapability: "現在の実行能力",
@@ -923,14 +1027,17 @@ export const ja: Translations = {
       yes: "はい",
       no: "いいえ",
       dryRunPlanner: "ドライランプランナー",
-      dryRunPlannerDesc: "バウンドされた実行契約を生成します。OSレベルのアクションは実行しません。",
+      dryRunPlannerDesc:
+        "バウンドされた実行契約を生成します。OSレベルのアクションは実行しません。",
       goal: "目標",
-      goalPlaceholder: "エディタを開き、対象ファイルを読み込み、期待される画面状態を確認します。",
+      goalPlaceholder:
+        "エディタを開き、対象ファイルを読み込み、期待される画面状態を確認します。",
       target: "ターゲット",
       allowedApps: "許可されたアプリ",
       allowedAppsPlaceholder: "code, chromium, finder",
       expectedOutcome: "期待される結果",
-      expectedOutcomePlaceholder: "対象ファイルが表示されたエディタにフォーカス",
+      expectedOutcomePlaceholder:
+        "対象ファイルが表示されたエディタにフォーカス",
       planning: "計画中...",
       generatePlan: "ドライランプランを生成",
       creating: "作成中...",
@@ -955,13 +1062,16 @@ export const ja: Translations = {
       applyUpdate: "今すぐ更新",
       upToDate: "最新の状態です。",
       noUpdateDialogTitle: "更新は不要です",
-      noUpdateDialogDescription: (version: string) => `システムはすでに最新バージョン ${version} です。更新は不要です。`,
+      noUpdateDialogDescription: (version: string) =>
+        `システムはすでに最新バージョン ${version} です。更新は不要です。`,
       confirmUpdateDialogTitle: "システムを更新",
-      confirmUpdateDialogDescription: (version: string) => `最新バージョンは ${version} です。今すぐシステムを更新しますか？`,
+      confirmUpdateDialogDescription: (version: string) =>
+        `最新バージョンは ${version} です。今すぐシステムを更新しますか？`,
       updatingStatus: "システムを更新し、サービスの再起動を待機しています...",
       autoUpdate: "自動更新",
       autoUpdateLabel: "自動更新を有効にする",
-      autoUpdateDesc: "リポジトリを毎日1回チェックし、新バージョンがあれば自動的に更新します。",
+      autoUpdateDesc:
+        "リポジトリを毎日1回チェックし、新バージョンがあれば自動的に更新します。",
       lastCheck: "最終確認",
     },
   },
@@ -971,21 +1081,27 @@ export const ja: Translations = {
     title: "システムイベント",
     clear: "クリア",
     empty: "システムイベントはありません",
-    description: "実行中の通知・警告・非致命的なエラーをここに集約します。致命的なエラーはダイアログで表示されます。",
+    description:
+      "実行中の通知・警告・非致命的なエラーをここに集約します。致命的なエラーはダイアログで表示されます。",
     runtimeAlerts: "ランタイム",
-    threadLoadFailed: "過去の対話状態が一時的に読み込めません。現行スレッドのエントリーを保持し、対話 UI のロードを継続します。",
-    autoContinueResume: "前の対話の圧縮メモリとタスクリストを読み込みました。自動で実行を継続します。",
+    threadLoadFailed:
+      "過去の対話状態が一時的に読み込めません。現行スレッドのエントリーを保持し、対話 UI のロードを継続します。",
+    autoContinueResume:
+      "前の対話の圧縮メモリとタスクリストを読み込みました。自動で実行を継続します。",
     userAborted: "ユーザーにより現在のタスクは中止されました。",
   },
 
   // PermissionMode
   permissionMode: {
     approval: "承認",
-    approvalDescription: "既定の承認フロー。システムレベルのツールは非表示で、機密操作には事前確認が必要です。",
+    approvalDescription:
+      "既定の承認フロー。システムレベルのツールは非表示で、機密操作には事前確認が必要です。",
     directory: "ディレクトリ",
-    directoryDescription: "リポジトリ/タスク・ディレクトリ内の操作を許可。ホスト/システムツールは公開されません。",
+    directoryDescription:
+      "リポジトリ/タスク・ディレクトリ内の操作を許可。ホスト/システムツールは公開されません。",
     system: "システム",
-    systemDescription: "システムレベルの host/shell/network/process ツールを許可。すべてのコマンドは監査可能です。",
+    systemDescription:
+      "システムレベルの host/shell/network/process ツールを許可。すべてのコマンドは監査可能です。",
     label: "権限モード",
     conversationContext: "対話コンテキスト",
   },
@@ -1011,11 +1127,13 @@ export const ja: Translations = {
   ragSettings: {
     sectionTitle: "RAG 検索",
     sectionDescription: "埋め込みとリランカーのモデル設定",
-    sectionFullDescription: "埋め込みとリランカーのモデルを設定します。モデルは Hugging Face から ~/.cache/huggingface/hub/ にダウンロードされます。",
+    sectionFullDescription:
+      "埋め込みとリランカーのモデルを設定します。モデルは Hugging Face から ~/.cache/huggingface/hub/ にダウンロードされます。",
     loadFailed: "設定の読み込みに失敗しました：",
     unknownError: "不明なエラー",
     savedToast: "RAG 設定を保存しました",
-    downloadStart: "{model} のダウンロードを開始しました（数分かかる場合があります）…",
+    downloadStart:
+      "{model} のダウンロードを開始しました（数分かかる場合があります）…",
     downloadDone: "{model} のダウンロードが完了しました",
     embeddingTitle: "埋め込みモデル (Embedding)",
     modelLabel: "モデル",
@@ -1025,7 +1143,8 @@ export const ja: Translations = {
     download: "ダウンロード",
     rerankerTitle: "リランカーモデル (Cross-Encoder)",
     rerankerEnable: "二次リランクを有効化",
-    rerankerHint: "ハイブリッド検索結果に Cross-Encoder リランクを適用し、上位 top_k 件を残します。",
+    rerankerHint:
+      "ハイブリッド検索結果に Cross-Encoder リランクを適用し、上位 top_k 件を残します。",
     rerankerModel: "リランカーモデル",
     paramsTitle: "検索パラメータ",
     defaultTopK: "既定の top_k",
@@ -1046,17 +1165,26 @@ export const ja: Translations = {
     noBoundDocument: "このカードには関連付けられたドキュメントがありません。",
     loadingCardDoc: "カードドキュメントを読み込み中…",
     cardDocEmpty: "カードドキュメントが空です。",
-    noDownloadableResult: "現在のワークフローにはまだダウンロード可能な結果ファイルがありません。",
+    noDownloadableResult:
+      "現在のワークフローにはまだダウンロード可能な結果ファイルがありません。",
   },
   threadEvents: {
-    recursionLimit: "再帰ステップ上限の超過を検出しました（ブラウザが古い制限値をキャッシュしている可能性があります）。安全な上限で自動継続します。頻発する場合はハードリロード（Ctrl+Shift+R）してください。",
-    contextHandoffSubmitted: "コンテキスト圧縮ハンドオフは送信されましたが、ランタイム状態でまだ確認標識が観測されていません。システムは現在の会話状態を維持して続行します。",
-    autoContinueAction: "未完了のアクションを検出しました。自動的に続行します。",
-    contextLimitHandoff: "コンテキストの上限に達しました。アーカイブして新しい会話に切り替えてタスクを続行します。",
-    incompleteRetryWithReason: "回復可能な未完了タスクを検出しました（{reason}）。{attempt} 回目を自動継続中（最大 {max} 回）。",
-    incompleteRetry: "回復可能な未完了タスクを検出しました。自動的に続行します。",
-    watchdogLongRun: "アシスタントが長時間タスクを実行中です。セッションを維持してランタイム状態をポーリングしています。",
-    sessionRefreshed: "セッションを更新しました。新しい会話でメッセージを再送信します。",
+    recursionLimit:
+      "再帰ステップ上限の超過を検出しました（ブラウザが古い制限値をキャッシュしている可能性があります）。安全な上限で自動継続します。頻発する場合はハードリロード（Ctrl+Shift+R）してください。",
+    contextHandoffSubmitted:
+      "コンテキスト圧縮ハンドオフは送信されましたが、ランタイム状態でまだ確認標識が観測されていません。システムは現在の会話状態を維持して続行します。",
+    autoContinueAction:
+      "未完了のアクションを検出しました。自動的に続行します。",
+    contextLimitHandoff:
+      "コンテキストの上限に達しました。アーカイブして新しい会話に切り替えてタスクを続行します。",
+    incompleteRetryWithReason:
+      "回復可能な未完了タスクを検出しました（{reason}）。{attempt} 回目を自動継続中（最大 {max} 回）。",
+    incompleteRetry:
+      "回復可能な未完了タスクを検出しました。自動的に続行します。",
+    watchdogLongRun:
+      "アシスタントが長時間タスクを実行中です。セッションを維持してランタイム状態をポーリングしています。",
+    sessionRefreshed:
+      "セッションを更新しました。新しい会話でメッセージを再送信します。",
   },
   register: {
     authSuccess: "認証に成功しました。ワークスペースに移動します。",

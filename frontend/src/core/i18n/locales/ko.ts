@@ -46,7 +46,8 @@ export const ko: Translations = {
     all: "전체",
     continueTask: "계속",
     deleteAll: "모두 삭제",
-    deleteAllConfirm: "모든 콘텐츠를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+    deleteAllConfirm:
+      "모든 콘텐츠를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
     deleteAllSuccess: "모든 콘텐츠가 삭제되었습니다",
     deleteConfirm: "이 항목을 삭제하시겠습니까?",
   },
@@ -117,8 +118,7 @@ export const ko: Translations = {
       },
       {
         suggestion: "조사",
-        prompt:
-          "[주제]에 대해 깊이 조사하고 결과를 요약해 주세요.",
+        prompt: "[주제]에 대해 깊이 조사하고 결과를 요약해 주세요.",
         icon: MicroscopeIcon,
       },
       {
@@ -188,7 +188,8 @@ export const ko: Translations = {
     autoCapture: "자동 캡처",
     autoCaptureDesc: "성공적인 실행에서 재사용 가능한 패턴을 추출합니다.",
     qualityMonitoring: "품질 모니터링",
-    qualityMonitoringDesc: "스킬 건강 지표를 추적합니다 (성공률, 지연, 적용률).",
+    qualityMonitoringDesc:
+      "스킬 건강 지표를 추적합니다 (성공률, 지연, 적용률).",
     cloudSync: "클라우드 동기화",
     cloudSyncDesc: "OpenSpace 클라우드 커뮤니티와 진화 스킬을 동기화합니다.",
     qualityMetrics: "품질 메트릭",
@@ -244,7 +245,8 @@ export const ko: Translations = {
     nameStepInvalidError:
       "유효하지 않은 이름 — 영문자, 숫자, 하이픈만 사용 가능합니다",
     nameStepAlreadyExistsError: "이미 존재하는 에이전트 이름입니다",
-    nameStepCheckError: "이름 사용 가능 여부를 확인할 수 없습니다 — 다시 시도하세요",
+    nameStepCheckError:
+      "이름 사용 가능 여부를 확인할 수 없습니다 — 다시 시도하세요",
     nameStepBootstrapMessage:
       "새 사용자 정의 에이전트의 이름은 {name}입니다. **SOUL** 생성을 시작합시다.",
     agentCreated: "에이전트가 생성되었습니다!",
@@ -265,7 +267,8 @@ export const ko: Translations = {
     templateLabel: "템플릿",
     templateNone: "빈 상태로 시작",
     templateHint: "템플릿을 선택하면 설명과 SOUL이 자동으로 채워집니다.",
-    templateInstallHint: "Agency Agents를 설치하면 여기서 상위 전문가 템플릿을 선택할 수 있습니다.",
+    templateInstallHint:
+      "Agency Agents를 설치하면 여기서 상위 전문가 템플릿을 선택할 수 있습니다.",
     installAgencyAgents: "Agency Agents 설치",
     installingAgencyAgents: "Agency Agents 설치 중...",
     installAgencyAgentsFailed: "Agency Agents 설치에 실패했습니다",
@@ -292,8 +295,10 @@ export const ko: Translations = {
     modeCronDesc: "일정에 따라 자동으로 실행됩니다.",
     modeYoloDesc: "완전 자율 모드 — 에이전트가 완료까지 독립적으로 동작합니다.",
     scheduleHint: "예약 실행을 위해 UTC 기준 연/월/일/시/분/초를 설정하세요.",
-    scheduleEmptyRunsNow: "모든 값을 비워두면 워크플로 생성 직후 즉시 실행됩니다.",
-    scheduleInvalid: "예약 시간이 불완전하거나 유효하지 않습니다. 6개 필드를 모두 입력하거나 모두 비워두세요.",
+    scheduleEmptyRunsNow:
+      "모든 값을 비워두면 워크플로 생성 직후 즉시 실행됩니다.",
+    scheduleInvalid:
+      "예약 시간이 불완전하거나 유효하지 않습니다. 6개 필드를 모두 입력하거나 모두 비워두세요.",
     chain: "체인",
     branch: "브랜치",
     swarm: "스웜",
@@ -313,7 +318,8 @@ export const ko: Translations = {
     singleAgent: "기본 에이전트",
     singleAgentDesc: "기본 에이전트가 단독으로 계획·실행·보고합니다.",
     multiAgent: "서브 에이전트",
-    multiAgentDesc: "기본 에이전트가 계획·배분·감독·보고하고, 서브 에이전트가 협력 실행합니다.",
+    multiAgentDesc:
+      "기본 에이전트가 계획·배분·감독·보고하고, 서브 에이전트가 협력 실행합니다.",
     wizardSubAgents: "서브 에이전트",
     chainDesc: "에이전트가 순서대로 실행됩니다.",
     branchDesc: "리더 에이전트가 하위 태스크를 분배합니다.",
@@ -331,6 +337,14 @@ export const ko: Translations = {
     resume: "재개",
     back: "뒤로",
     create: "생성",
+    colProject: "프로젝트",
+    colStatus: "상태",
+    colProgress: "진행률",
+    colRuntime: "런타임",
+    colRunMode: "실행 모드",
+    colUpdated: "업데이트",
+    colActions: "작업",
+    activeShort: "활성",
     noGoal: "목표 미설정",
     resultTitle: "실행 결과",
     resultContent: "결과 상세",
@@ -342,15 +356,18 @@ export const ko: Translations = {
     downloadResult: "결과 다운로드",
     langgraphTopologyLabel: "LangGraph 워크플로 토폴로지",
     executionLogsTitle: "실행 로그",
-    executionLogsDescription: "중간 과정 기록, 혼합 라벨, 런타임 이벤트 세부 정보를 표시합니다.",
+    executionLogsDescription:
+      "중간 과정 기록, 혼합 라벨, 런타임 이벤트 세부 정보를 표시합니다.",
     noExecutionLogs: "아직 기록된 실행 로그가 없습니다.",
     noResultYet: "아직 결과가 없습니다.",
     failureAnalysis: "실패 분석",
     failureReason: "실패 원인",
     failureOutput: "오류 출력",
     possibleSolutions: "가능한 해결 방법",
-    solutionCheckLog: "실행 로그를 확인하여 상세한 오류 추적 및 컨텍스트를 확인하세요.",
-    solutionCheckConfig: "워크플로우 설정, 에이전트 권한, 모델 설정이 올바른지 확인하세요.",
+    solutionCheckLog:
+      "실행 로그를 확인하여 상세한 오류 추적 및 컨텍스트를 확인하세요.",
+    solutionCheckConfig:
+      "워크플로우 설정, 에이전트 권한, 모델 설정이 올바른지 확인하세요.",
     solutionRetry: "근본 원인을 해결한 후 워크플로우를 다시 실행하세요.",
   },
 
@@ -359,19 +376,24 @@ export const ko: Translations = {
     title: "🚀 OctoAgent에 오신 것을 환영합니다",
     subtitle: "몇 가지 간단한 단계로 워크스페이스를 설정합시다.",
     stepWorkspace: "워크스페이스 경로",
-    stepWorkspaceDesc: "OctoAgent가 대화, 스킬, 생성물을 저장할 기본 디렉토리를 설정합니다.",
+    stepWorkspaceDesc:
+      "OctoAgent가 대화, 스킬, 생성물을 저장할 기본 디렉토리를 설정합니다.",
     stepWorkspaceHint: "예: ./workspace 또는 /home/user/workspace",
     stepModel: "기본 모델",
-    stepModelDesc: "모든 새 대화의 기본 언어 모델을 선택합니다. 나중에 대화별로 모델을 변경할 수 있습니다.",
+    stepModelDesc:
+      "모든 새 대화의 기본 언어 모델을 선택합니다. 나중에 대화별로 모델을 변경할 수 있습니다.",
     stepModelHint: "설정된 모델 풀에서 선택",
     stepSandbox: "실행 모드",
     stepSandboxDesc: "OctoAgent가 코드와 도구를 실행하는 방법을 선택합니다.",
     sandboxLocal: "로컬 실행",
-    sandboxLocalDesc: "명령이 호스트 시스템에서 직접 실행됩니다. 빠르고 간단하지만 격리성이 낮습니다.",
+    sandboxLocalDesc:
+      "명령이 호스트 시스템에서 직접 실행됩니다. 빠르고 간단하지만 격리성이 낮습니다.",
     sandboxDocker: "Docker 샌드박스",
-    sandboxDockerDesc: "명령이 격리된 Docker 컨테이너에서 실행됩니다. 신뢰할 수 없는 코드 실행에 안전합니다.",
+    sandboxDockerDesc:
+      "명령이 격리된 Docker 컨테이너에서 실행됩니다. 신뢰할 수 없는 코드 실행에 안전합니다.",
     complete: "설정 완료!",
-    completeDesc: "워크스페이스 설정이 완료되었습니다. 사이드바 메뉴에서 언제든지 변경할 수 있습니다.",
+    completeDesc:
+      "워크스페이스 설정이 완료되었습니다. 사이드바 메뉴에서 언제든지 변경할 수 있습니다.",
     next: "다음",
     skip: "건너뛰기",
     finish: "OctoAgent 시작하기",
@@ -383,7 +405,8 @@ export const ko: Translations = {
     currentBackendPath: "현재 백엔드 경로",
     modelsReady: "모델 준비 완료",
     skillsAvailable: "스킬",
-    noModelsYet: "아직 맨된 모델이 없습니다. 나중에 모델 설정에서 추가할 수 있습니다.",
+    noModelsYet:
+      "아직 맨된 모델이 없습니다. 나중에 모델 설정에서 추가할 수 있습니다.",
     applying: "적용 중...",
     browse: "찾아보기",
     selectFolder: "폴더 선택",
@@ -393,7 +416,8 @@ export const ko: Translations = {
     confirmSelect: "선택",
     newFolderName: "폴더 이름",
     createFolderError: "폴더 생성 실패",
-    networkError: "네트워크 오류입니다. Gateway 연결을 확인한 뒤 다시 시도하세요.",
+    networkError:
+      "네트워크 오류입니다. Gateway 연결을 확인한 뒤 다시 시도하세요.",
   },
 
   // Breadcrumb
@@ -414,7 +438,8 @@ export const ko: Translations = {
     about: "OctoAgent 정보",
     inspector: {
       title: "실행 인스펙터",
-      parallelSummary: (branches: number, agents: number) => `${branches}개 병렬 / ${agents}개 에이전트`,
+      parallelSummary: (branches: number, agents: number) =>
+        `${branches}개 병렬 / ${agents}개 에이전트`,
       resetView: "보기 초기화",
       board: "보드",
       canvas: "캔버스",
@@ -432,14 +457,20 @@ export const ko: Translations = {
       reasoningVisibility: "추론 가시성",
       hidden: "숨김",
       enabled: "활성",
-      thinkingFlashDescription: "주요 답변은 간결하게 유지되고, 내부 추론은 모델이 승격 판단하기 전까지 접혀 있습니다.",
-      thinkingEnabledDescription: "추론 표시가 활성화되었습니다. 긴 사고 과정은 아래 패널에 두고 최종 출력은 메인 대화에 유지합니다.",
-      streamingDescription: "런타임이 현재 단계를 갱신 중입니다. 메인 에이전트 검토 체크포인트는 그대로 경계 역할을 합니다.",
-      idleDescription: "현재 유휴 상태입니다. 작업을 시작하거나 메시지를 보내면 런타임 체크포인트가 여기에 표시됩니다.",
+      thinkingFlashDescription:
+        "주요 답변은 간결하게 유지되고, 내부 추론은 모델이 승격 판단하기 전까지 접혀 있습니다.",
+      thinkingEnabledDescription:
+        "추론 표시가 활성화되었습니다. 긴 사고 과정은 아래 패널에 두고 최종 출력은 메인 대화에 유지합니다.",
+      streamingDescription:
+        "런타임이 현재 단계를 갱신 중입니다. 메인 에이전트 검토 체크포인트는 그대로 경계 역할을 합니다.",
+      idleDescription:
+        "현재 유휴 상태입니다. 작업을 시작하거나 메시지를 보내면 런타임 체크포인트가 여기에 표시됩니다.",
       noCommandActivityYet: "명령 활동이 아직 없습니다",
-      noCommandActivityDescription: "도구 호출과 명령 실행 요약이 여기에 표시됩니다.",
+      noCommandActivityDescription:
+        "도구 호출과 명령 실행 요약이 여기에 표시됩니다.",
       terminalHeadline: "서버 CLI 오퍼레이터 콘솔",
-      terminalDescription: "기존 서버 측 실행 서비스를 통해 경계가 있는 workspace 또는 system CLI 명령을 실행합니다.",
+      terminalDescription:
+        "기존 서버 측 실행 서비스를 통해 경계가 있는 workspace 또는 system CLI 명령을 실행합니다.",
       terminalScope: "범위",
       workspaceScope: "Workspace CLI",
       systemScope: "System CLI",
@@ -457,7 +488,8 @@ export const ko: Translations = {
       sessionLookupRequired: "먼저 세션 ID를 입력하세요.",
       sessionLookupNotFound: "해당 세션을 찾을 수 없습니다.",
       sessionLookupFailed: "이 세션을 불러오지 못했습니다.",
-      terminalRunHint: "명령은 기존 system execution 세션 모델을 재사용하며, 제한된 출력과 감사 이력을 반환합니다.",
+      terminalRunHint:
+        "명령은 기존 system execution 세션 모델을 재사용하며, 제한된 출력과 감사 이력을 반환합니다.",
       runCommand: "명령 실행",
       runningCommand: "실행 중...",
       terminalRequestFailed: "CLI 요청 실패",
@@ -476,10 +508,12 @@ export const ko: Translations = {
       recentCommands: "최근 명령",
       auditTrail: "감사 추적",
       noTerminalOutputYet: "터미널 출력이 아직 없습니다",
-      noTerminalOutputDescription: "Workspace 또는 system CLI 명령을 실행하면 여기에서 오퍼레이터 출력을 볼 수 있습니다.",
+      noTerminalOutputDescription:
+        "Workspace 또는 system CLI 명령을 실행하면 여기에서 오퍼레이터 출력을 볼 수 있습니다.",
       noTerminalAuditYet: "CLI 감사 항목이 아직 없습니다.",
       noRuntimeEventsYet: "런타임 이벤트가 아직 없습니다",
-      noRuntimeEventsDescription: "하위 작업 실행이 시작되면 체크포인트, 재시도, 실패 이벤트가 여기에 표시됩니다.",
+      noRuntimeEventsDescription:
+        "하위 작업 실행이 시작되면 체크포인트, 재시도, 실패 이벤트가 여기에 표시됩니다.",
       runtimeEvent: "런타임 이벤트",
       returnedToMainAgent: "메인 에이전트로 돌아갔습니다",
       stepFailed: "단계 실패",
@@ -489,7 +523,11 @@ export const ko: Translations = {
       continuation: "이어받기 원본",
       workflowState: "워크플로 상태",
       agentBudget: "하위 에이전트 제한",
-      agentBudgetValue: (maxActivePerThread: number, maxTotalPerThread: number, maxConcurrentGlobal: number) =>
+      agentBudgetValue: (
+        maxActivePerThread: number,
+        maxTotalPerThread: number,
+        maxConcurrentGlobal: number,
+      ) =>
         `스레드당 활성 ${maxActivePerThread} · 스레드당 총 위임 ${maxTotalPerThread} · 전역 동시 ${maxConcurrentGlobal}`,
       memoryGuard: "메모리 가드",
       unavailable: "사용 불가",
@@ -499,18 +537,24 @@ export const ko: Translations = {
       workflowResumed: (count: number) => `${count}개의 워크플로 카드를 복원함`,
       workflowLoaded: (count: number) => `${count}개의 워크플로 카드를 불러옴`,
       continuationLoadedTitle: "이어받기 원본을 불러왔습니다",
-      continuationLoadedDetail: (source: string) => `${source}에서 다시 시작했습니다.`,
+      continuationLoadedDetail: (source: string) =>
+        `${source}에서 다시 시작했습니다.`,
       workflowRestoredTitle: "워크플로 상태를 복원했습니다",
-      workflowRestoredDetail: (count: number) => `이 스레드에서 ${count}개의 워크플로 카드를 복원했습니다.`,
+      workflowRestoredDetail: (count: number) =>
+        `이 스레드에서 ${count}개의 워크플로 카드를 복원했습니다.`,
       fallbackReadyTitle: "폴백 체인 준비 완료",
-      fallbackReadyDetail: (model: string, chain: string) => `${model}은 필요 시 ${chain}(으)로 전환할 수 있습니다.`,
+      fallbackReadyDetail: (model: string, chain: string) =>
+        `${model}은 필요 시 ${chain}(으)로 전환할 수 있습니다.`,
       memoryGuardTightTitle: "메모리 가드가 빡빡합니다",
-      memoryGuardTightDetail: "새로운 고부하 워크플로를 시작하기 전에 분기 폭이나 하위 에이전트 수를 줄이세요.",
+      memoryGuardTightDetail:
+        "새로운 고부하 워크플로를 시작하기 전에 분기 폭이나 하위 에이전트 수를 줄이세요.",
       memoryGuardTruncated: "큰 컨텍스트 메시지를 줄였습니다",
       memoryGuardTruncatedTitle: "컨텍스트 가드가 큰 메시지를 줄였습니다",
-      memoryGuardTruncatedDetail: "선택한 모델의 컨텍스트 창 안에 유지되도록 모델 호출 전에 큰 컨텍스트 메시지를 줄였습니다.",
+      memoryGuardTruncatedDetail:
+        "선택한 모델의 컨텍스트 창 안에 유지되도록 모델 호출 전에 큰 컨텍스트 메시지를 줄였습니다.",
       embeddedBackupOnlyTitle: "내장 백업만 사용 가능",
-      embeddedBackupOnlyDetail: "주 모델이 설정되지 않아 런타임은 긴급 백업 모드로만 계속할 수 있습니다.",
+      embeddedBackupOnlyDetail:
+        "주 모델이 설정되지 않아 런타임은 긴급 백업 모드로만 계속할 수 있습니다.",
     },
   },
 
@@ -545,8 +589,7 @@ export const ko: Translations = {
     searchFor: (query: string) => `"${query}" 검색`,
     searchForRelatedInfo: "관련 정보 검색",
     searchForRelatedImages: "관련 이미지 검색",
-    searchForRelatedImagesFor: (query: string) =>
-      `"${query}" 관련 이미지 검색`,
+    searchForRelatedImagesFor: (query: string) => `"${query}" 관련 이미지 검색`,
     searchOnWebFor: (query: string) => `웹에서 "${query}" 검색`,
     viewWebPage: "웹 페이지 보기",
     listFolder: "폴더 목록",
@@ -564,17 +607,21 @@ export const ko: Translations = {
 
   softwareInterfaces: {
     title: "소프트웨어 인터페이스",
-    description: "메시징 커넥터와 Composio 호환 소프트웨어 연동을 한 곳에서 관리합니다.",
+    description:
+      "메시징 커넥터와 Composio 호환 소프트웨어 연동을 한 곳에서 관리합니다.",
     refresh: "새로 고침",
     runtimeTitle: "커넥터 런타임",
-    runtimeDescription: "네이티브 메시징 브리지와 Composio OAuth 연동 상태를 확인합니다.",
+    runtimeDescription:
+      "네이티브 메시징 브리지와 Composio OAuth 연동 상태를 확인합니다.",
     running: "실행 중",
     stopped: "중지됨",
     liveGateway: "라이브 게이트웨이",
     notConfigured: "미설정",
-    notConfiguredDescription: "OCTOAGENT_COMPOSIO_BASE_URL 및 OCTOAGENT_COMPOSIO_API_KEY를 설정하면 실제 OAuth, 액션, 스코프, 트리거를 사용할 수 있습니다.",
+    notConfiguredDescription:
+      "OCTOAGENT_COMPOSIO_BASE_URL 및 OCTOAGENT_COMPOSIO_API_KEY를 설정하면 실제 OAuth, 액션, 스코프, 트리거를 사용할 수 있습니다.",
     catalogTitle: "Composio 소프트웨어 인터페이스",
-    catalogDescription: "Composio 계약에 따라 앱 연동을 탐색, 연결, 관리, 해제합니다.",
+    catalogDescription:
+      "Composio 계약에 따라 앱 연동을 탐색, 연결, 관리, 해제합니다.",
     all: "전체",
     totalCount: (count: number) => `${count}개 인터페이스`,
     messagingCount: (count: number) => `${count}개 메시징 커넥터`,
@@ -616,8 +663,10 @@ export const ko: Translations = {
     scopesSaved: "스코프 기본값을 저장했습니다.",
     scopesSaveFailed: "스코프 기본값 저장에 실패했습니다.",
     noEditableFields: "이 커넥터에는 편집 가능한 설정 필드가 없습니다.",
-    editDescription: "이 통신 인터페이스의 런타임 필드를 설정합니다. 변경 사항은 config.yaml에 저장됩니다.",
-    manageDescription: "계정 연결, 활성 연결, 액션 스키마, read/write/admin 권한 게이트를 관리합니다.",
+    editDescription:
+      "이 통신 인터페이스의 런타임 필드를 설정합니다. 변경 사항은 config.yaml에 저장됩니다.",
+    manageDescription:
+      "계정 연결, 활성 연결, 액션 스키마, read/write/admin 권한 게이트를 관리합니다.",
     editTitle: (name: string) => `소프트웨어 인터페이스 편집: ${name}`,
     manageTitle: (name: string) => `${name} 관리`,
     manageAria: (name: string) => `${name} 관리`,
@@ -627,19 +676,47 @@ export const ko: Translations = {
 
 지원되는 경우 upstream 계정에서 로그아웃하며 재사용 가능한 인터페이스 템플릿은 유지됩니다.`,
     requestFailed: (status: number) => `요청 실패(상태: ${status})`,
-    loggedInAs: (name: string, id?: number) => `로그인됨: ${name}${id ? ` (${id})` : ""}`,
-    channelStatus: { healthy: "연결 정상", degraded: "연결 저하", stopped: "연결 중지" },
-    connectionState: { connected: "연결됨", pending: "대기 중", expired: "만료됨", error: "오류", disconnected: "연결 안 됨" },
-    categories: { communication: "커뮤니케이션", office: "오피스", mail_calendar: "메일 및 캘린더", docs_storage: "문서 및 저장소", project_management: "프로젝트 관리", development: "개발", crm_sales: "CRM 및 영업", commerce_payments: "커머스 및 결제", social_media: "소셜 미디어", automation: "자동화" },
+    loggedInAs: (name: string, id?: number) =>
+      `로그인됨: ${name}${id ? ` (${id})` : ""}`,
+    channelStatus: {
+      healthy: "연결 정상",
+      degraded: "연결 저하",
+      stopped: "연결 중지",
+    },
+    connectionState: {
+      connected: "연결됨",
+      pending: "대기 중",
+      expired: "만료됨",
+      error: "오류",
+      disconnected: "연결 안 됨",
+    },
+    categories: {
+      communication: "커뮤니케이션",
+      office: "오피스",
+      mail_calendar: "메일 및 캘린더",
+      docs_storage: "문서 및 저장소",
+      project_management: "프로젝트 관리",
+      development: "개발",
+      crm_sales: "CRM 및 영업",
+      commerce_payments: "커머스 및 결제",
+      social_media: "소셜 미디어",
+      automation: "자동화",
+    },
     scopes: { read: "읽기", write: "쓰기", admin: "관리" },
-    scopeDescriptions: { read: "읽기 전용 조회 액션을 허용합니다.", write: "생성 및 업데이트 액션을 허용합니다.", admin: "파괴적이거나 관리용 액션을 허용합니다." },
-    qrUnavailable: "QR 코드를 아직 사용할 수 없거나 이 채널은 QR 로그인을 지원하지 않습니다.",
+    scopeDescriptions: {
+      read: "읽기 전용 조회 액션을 허용합니다.",
+      write: "생성 및 업데이트 액션을 허용합니다.",
+      admin: "파괴적이거나 관리용 액션을 허용합니다.",
+    },
+    qrUnavailable:
+      "QR 코드를 아직 사용할 수 없거나 이 채널은 QR 로그인을 지원하지 않습니다.",
     networkError: "QR 코드를 가져오는 중 네트워크 오류가 발생했습니다.",
     channelLoginSucceeded: "채널 로그인에 성공했습니다.",
     channelLoginStatus: "채널 로그인 상태",
     qrLogin: "QR 코드 로그인",
     channelLoggedIn: "기반 채널 계정이 로그인되어 있습니다.",
-    qrLoginDescription: "브리지가 QR 코드를 제공하면 모바일 클라이언트로 스캔하세요.",
+    qrLoginDescription:
+      "브리지가 QR 코드를 제공하면 모바일 클라이언트로 스캔하세요.",
     unknownUser: "알 수 없는 사용자",
     fetchingQr: "QR 코드를 가져오는 중...",
     qrAlt: "로그인 QR 코드",
@@ -687,13 +764,16 @@ export const ko: Translations = {
     },
     system: {
       title: "시스템 개요",
-      description: "런타임 설정, 저장소에 설치된 기능, 원클릭 마이그레이션 상태를 확인합니다.",
+      description:
+        "런타임 설정, 저장소에 설치된 기능, 원클릭 마이그레이션 상태를 확인합니다.",
       runtimeOverview: "런타임 개요",
       repoOverview: "저장소 개요",
       registryTitle: "Capability 레지스트리",
-      registryDescription: "Compat 로 투영된 command, agent persona, reference 를 포함한 런타임 capability 항목을 확인합니다.",
+      registryDescription:
+        "Compat 로 투영된 command, agent persona, reference 를 포함한 런타임 capability 항목을 확인합니다.",
       compatPreviewTitle: "Agent-Skills Compat",
-      compatPreviewDescription: "활성화 전에 upstream agent-skills 가져오기 내용을 미리 보고, 충돌과 신뢰 수준을 검토합니다.",
+      compatPreviewDescription:
+        "활성화 전에 upstream agent-skills 가져오기 내용을 미리 보고, 충돌과 신뢰 수준을 검토합니다.",
       sourceInventory: "VS Code 원본 인벤토리",
       installedInventory: "OctoAgent 설치됨",
       matchedInventory: "이미 일치",
@@ -702,7 +782,8 @@ export const ko: Translations = {
       migrating: "마이그레이션 중...",
       noResults: "아직 마이그레이션을 실행하지 않았습니다.",
       lastRun: "최근 마이그레이션 결과",
-      sourceUnavailable: "원본 워크스페이스를 찾을 수 없습니다. OCTO_AGENT_CAPABILITY_SOURCE 를 설정하거나 기본 경로를 확인하세요.",
+      sourceUnavailable:
+        "원본 워크스페이스를 찾을 수 없습니다. OCTO_AGENT_CAPABILITY_SOURCE 를 설정하거나 기본 경로를 확인하세요.",
       capabilityRuntime: "Capability 런타임",
       capabilityAudit: "Capability 감사",
       cacheWarm: "웜 캐시",
@@ -713,7 +794,8 @@ export const ko: Translations = {
       auditTrail: "최근 감사 추적",
       noAuditEntries: "Capability 감사 이벤트가 아직 없습니다.",
       registryEmpty: "현재 필터와 일치하는 capability 항목이 없습니다.",
-      compatSourceUnavailable: "agent-skills 소스 팩을 찾을 수 없습니다. sourceRoot 를 설정하거나 references/_clones/agent-skills 를 추가하세요.",
+      compatSourceUnavailable:
+        "agent-skills 소스 팩을 찾을 수 없습니다. sourceRoot 를 설정하거나 references/_clones/agent-skills 를 추가하세요.",
       compatImportLabel: "Compat 가져오기",
       compatImportEnabled: "Compat 가져오기 활성",
       compatImportDisabled: "Compat 가져오기 비활성",
@@ -779,7 +861,8 @@ export const ko: Translations = {
     },
     globalMemory: {
       title: "글로벌 메모리",
-      description: "글로벌 메모리 항목을 수동으로 추가하거나 가져옵니다. 모든 대화에 시스템 수준의 컨텍스트로 주입됩니다.",
+      description:
+        "글로벌 메모리 항목을 수동으로 추가하거나 가져옵니다. 모든 대화에 시스템 수준의 컨텍스트로 주입됩니다.",
       empty: "글로벌 메모리 항목이 없습니다.",
       addEntry: "새 항목",
       editEntry: "항목 편집",
@@ -803,7 +886,8 @@ export const ko: Translations = {
       dark: "다크",
       systemDescription: "OS 설정에 자동으로 맞춥니다.",
       lightDescription: "밝은 색상 배합으로 낮에 사용하기 좋습니다.",
-      darkDescription: "어두운 색상 배합으로 눈부심을 줄이고 집중할 수 있습니다.",
+      darkDescription:
+        "어두운 색상 배합으로 눈부심을 줄이고 집중할 수 있습니다.",
       languageTitle: "언어 설정",
       languageDescription: "언어를 전환합니다.",
     },
@@ -813,9 +897,11 @@ export const ko: Translations = {
     },
     hooks: {
       title: "저장소 Hooks",
-      description: "설치된 hook 폴더, 트리거 범위, extensions_config 기반 활성 상태를 확인합니다.",
+      description:
+        "설치된 hook 폴더, 트리거 범위, extensions_config 기반 활성 상태를 확인합니다.",
       emptyTitle: "설치된 저장소 Hooks가 없습니다",
-      emptyDescription: "VS Code 워크스페이스에서 마이그레이션하거나 .github/hooks 아래에 hook 폴더를 추가하세요.",
+      emptyDescription:
+        "VS Code 워크스페이스에서 마이그레이션하거나 .github/hooks 아래에 hook 폴더를 추가하세요.",
     },
     skills: {
       title: "에이전트 스킬",
@@ -847,7 +933,8 @@ export const ko: Translations = {
     },
     bootstrap: {
       title: "내장 부트스트랩 모델",
-      description: "시작 안내, 경량 시맨틱 검색, 오프라인 안전 초기 온보딩을 위한 소형 로컬 모델이 내장되어 있습니다.",
+      description:
+        "시작 안내, 경량 시맨틱 검색, 오프라인 안전 초기 온보딩을 위한 소형 로컬 모델이 내장되어 있습니다.",
       recommendedRuntime: "권장 내장 런타임",
       modelStatus: "모델 상태",
       installed: "설치됨",
@@ -863,12 +950,14 @@ export const ko: Translations = {
       generating: "생성 중...",
       generateGuide: "가이드 생성",
       starterPrompts: "시작 프롬프트:",
-      installHint: "내장 모델을 설치한 후 여기에서 로컬 초기 가이드를 생성하세요.",
+      installHint:
+        "내장 모델을 설치한 후 여기에서 로컬 초기 가이드를 생성하세요.",
       indexedLocalDocs: "인덱스된 로컬 문서",
     },
     systemGuard: {
       title: "시스템 가드",
-      description: "런타임 라이프사이클 스냅샷의 운영 가시성 및 제어. 수동 복구, 서명된 내보내기, 보존 상태를 포함합니다.",
+      description:
+        "런타임 라이프사이클 스냅샷의 운영 가시성 및 제어. 수동 복구, 서명된 내보내기, 보존 상태를 포함합니다.",
       unavailable: "시스템 가드 사용 불가",
       unavailableDesc: "런타임 라이프사이클 상태를 로드하지 못했습니다.",
       lifecycleActive: "라이프사이클 영속화 활성",
@@ -892,7 +981,8 @@ export const ko: Translations = {
       snapshotCount: "스냅샷 수:",
       retentionLimit: "보존 제한:",
       unbounded: "무제한",
-      retentionHelpText: "서명된 내보내기는 오프라인 검사를 위해 최근 라이프사이클 창을 보존합니다. 수동 복구는 동일한 네임스페이스에 새 스냅샷을 영속화합니다.",
+      retentionHelpText:
+        "서명된 내보내기는 오프라인 검사를 위해 최근 라이프사이클 창을 보존합니다. 수동 복구는 동일한 네임스페이스에 새 스냅샷을 영속화합니다.",
       recentSnapshots: "최근 라이프사이클 스냅샷",
       refresh: "새로고침",
       metadata: "메타데이터",
@@ -912,7 +1002,8 @@ export const ko: Translations = {
     },
     systemExecution: {
       title: "시스템 실행",
-      description: "시스템 레벨 실행 능력 상태를 검사하고 미래의 데스크톱 에이전트 플로우를 위한 드라이런 실행 계약을 생성합니다.",
+      description:
+        "시스템 레벨 실행 능력 상태를 검사하고 미래의 데스크톱 에이전트 플로우를 위한 드라이런 실행 계약을 생성합니다.",
       unavailable: "시스템 실행 사용 불가",
       unavailableDesc: "시스템 실행 능력 상태를 로드하지 못했습니다.",
       currentCapability: "현재 실행 능력",
@@ -925,9 +1016,11 @@ export const ko: Translations = {
       yes: "예",
       no: "아니오",
       dryRunPlanner: "드라이런 플래너",
-      dryRunPlannerDesc: "바운드된 실행 계약을 생성합니다. OS 레벨 작업은 실행하지 않습니다.",
+      dryRunPlannerDesc:
+        "바운드된 실행 계약을 생성합니다. OS 레벨 작업은 실행하지 않습니다.",
       goal: "목표",
-      goalPlaceholder: "에디터를 열고, 대상 파일을 로드하고, 예상 화면 상태를 확인합니다.",
+      goalPlaceholder:
+        "에디터를 열고, 대상 파일을 로드하고, 예상 화면 상태를 확인합니다.",
       target: "타겟",
       allowedApps: "허용된 앱",
       allowedAppsPlaceholder: "code, chromium, finder",
@@ -957,13 +1050,17 @@ export const ko: Translations = {
       applyUpdate: "지금 업데이트",
       upToDate: "최신 상태입니다.",
       noUpdateDialogTitle: "업데이트가 필요하지 않습니다",
-      noUpdateDialogDescription: (version: string) => `시스템이 이미 최신 버전 ${version} 상태입니다. 업데이트할 필요가 없습니다.`,
+      noUpdateDialogDescription: (version: string) =>
+        `시스템이 이미 최신 버전 ${version} 상태입니다. 업데이트할 필요가 없습니다.`,
       confirmUpdateDialogTitle: "시스템 업데이트",
-      confirmUpdateDialogDescription: (version: string) => `최신 버전은 ${version}입니다. 지금 시스템을 업데이트할까요?`,
-      updatingStatus: "시스템을 업데이트하고 서비스 재시작을 기다리는 중입니다...",
+      confirmUpdateDialogDescription: (version: string) =>
+        `최신 버전은 ${version}입니다. 지금 시스템을 업데이트할까요?`,
+      updatingStatus:
+        "시스템을 업데이트하고 서비스 재시작을 기다리는 중입니다...",
       autoUpdate: "자동 업데이트",
       autoUpdateLabel: "자동 업데이트 활성화",
-      autoUpdateDesc: "매일 한 번 저장소를 확인하고 새 버전이 있으면 자동으로 업데이트합니다.",
+      autoUpdateDesc:
+        "매일 한 번 저장소를 확인하고 새 버전이 있으면 자동으로 업데이트합니다.",
       lastCheck: "마지막 확인",
     },
   },
@@ -973,21 +1070,27 @@ export const ko: Translations = {
     title: "시스템 이벤트",
     clear: "지우기",
     empty: "시스템 이벤트가 없습니다",
-    description: "런타임 알림, 경고 및 치명적이지 않은 오류가 여기에 수집됩니다. 치명적 오류는 별도의 팝업으로 표시됩니다.",
+    description:
+      "런타임 알림, 경고 및 치명적이지 않은 오류가 여기에 수집됩니다. 치명적 오류는 별도의 팝업으로 표시됩니다.",
     runtimeAlerts: "런타임",
-    threadLoadFailed: "이전 대화 상태를 일시적으로 읽을 수 없어 현재 스레드 진입점을 유지한 채 대화 UI를 계속 로드합니다.",
-    autoContinueResume: "이전 대화의 압축 메모리와 할 일을 로드했습니다. 자동으로 실행을 이어갑니다.",
+    threadLoadFailed:
+      "이전 대화 상태를 일시적으로 읽을 수 없어 현재 스레드 진입점을 유지한 채 대화 UI를 계속 로드합니다.",
+    autoContinueResume:
+      "이전 대화의 압축 메모리와 할 일을 로드했습니다. 자동으로 실행을 이어갑니다.",
     userAborted: "사용자에 의해 현재 작업이 중단되었습니다.",
   },
 
   // PermissionMode
   permissionMode: {
     approval: "승인",
-    approvalDescription: "기본 승인 흐름. 시스템 수준 도구는 숨겨지고 민감한 작업은 확인이 필요합니다.",
+    approvalDescription:
+      "기본 승인 흐름. 시스템 수준 도구는 숨겨지고 민감한 작업은 확인이 필요합니다.",
     directory: "디렉터리",
-    directoryDescription: "저장소/작업 디렉터리 내 작업을 허용. 호스트/시스템 도구는 노출되지 않습니다.",
+    directoryDescription:
+      "저장소/작업 디렉터리 내 작업을 허용. 호스트/시스템 도구는 노출되지 않습니다.",
     system: "시스템",
-    systemDescription: "시스템 수준의 host/shell/network/process 도구를 허용. 모든 명령은 감사됩니다.",
+    systemDescription:
+      "시스템 수준의 host/shell/network/process 도구를 허용. 모든 명령은 감사됩니다.",
     label: "권한 모드",
     conversationContext: "대화 컨텍스트",
   },
@@ -1013,7 +1116,8 @@ export const ko: Translations = {
   ragSettings: {
     sectionTitle: "RAG 검색",
     sectionDescription: "임베딩 및 리랭커 모델 설정",
-    sectionFullDescription: "임베딩과 리랭커 모델을 설정합니다. 모델은 Hugging Face에서 ~/.cache/huggingface/hub/로 다운로드됩니다.",
+    sectionFullDescription:
+      "임베딩과 리랭커 모델을 설정합니다. 모델은 Hugging Face에서 ~/.cache/huggingface/hub/로 다운로드됩니다.",
     loadFailed: "구성을 불러오지 못했습니다:",
     unknownError: "알 수 없는 오류",
     savedToast: "RAG 구성이 저장되었습니다",
@@ -1027,7 +1131,8 @@ export const ko: Translations = {
     download: "다운로드",
     rerankerTitle: "리랭커 모델 (Cross-Encoder)",
     rerankerEnable: "2차 리랭킹 활성화",
-    rerankerHint: "하이브리드 검색 결과에 Cross-Encoder 리랭킹을 적용해 상위 top_k 후보를 유지합니다.",
+    rerankerHint:
+      "하이브리드 검색 결과에 Cross-Encoder 리랭킹을 적용해 상위 top_k 후보를 유지합니다.",
     rerankerModel: "리랭커 모델",
     paramsTitle: "검색 매개변수",
     defaultTopK: "기본 top_k",
@@ -1048,17 +1153,26 @@ export const ko: Translations = {
     noBoundDocument: "이 카드에는 연결된 문서가 없습니다.",
     loadingCardDoc: "카드 문서를 불러오는 중…",
     cardDocEmpty: "카드 문서가 비어 있습니다.",
-    noDownloadableResult: "현재 워크플로우에는 아직 다운로드 가능한 결과 파일이 없습니다.",
+    noDownloadableResult:
+      "현재 워크플로우에는 아직 다운로드 가능한 결과 파일이 없습니다.",
   },
   threadEvents: {
-    recursionLimit: "재귀 단계 한도 초과를 감지했습니다(브라우저가 이전 제한값을 캐시할 수 있음). 안전 한도로 자동 계속합니다. 자주 발생하면 하드 새로고침(Ctrl+Shift+R)하세요.",
-    contextHandoffSubmitted: "컨텍스트 압축 핸드오프가 제출되었지만 런타임 상태에서 아직 확인 표시가 관찰되지 않았습니다. 시스템은 현재 대화 상태를 유지하며 계속합니다.",
-    autoContinueAction: "완료되지 않은 작업을 감지했습니다. 자동으로 계속합니다.",
-    contextLimitHandoff: "컨텍스트 한도에 도달했습니다. 보관 후 새 대화로 전환해 작업을 계속합니다.",
-    incompleteRetryWithReason: "복구 가능한 미완료 작업({reason})을 감지했습니다. {attempt}번째 자동 계속 중(최대 {max}회).",
-    incompleteRetry: "복구 가능한 미완료 작업을 감지했습니다. 자동으로 계속합니다.",
-    watchdogLongRun: "어시스턴트가 장시간 작업을 실행 중입니다. 세션을 유지하며 런타임 상태를 폴링합니다.",
-    sessionRefreshed: "세션이 갱신되었습니다. 새 대화에서 메시지를 다시 전송합니다.",
+    recursionLimit:
+      "재귀 단계 한도 초과를 감지했습니다(브라우저가 이전 제한값을 캐시할 수 있음). 안전 한도로 자동 계속합니다. 자주 발생하면 하드 새로고침(Ctrl+Shift+R)하세요.",
+    contextHandoffSubmitted:
+      "컨텍스트 압축 핸드오프가 제출되었지만 런타임 상태에서 아직 확인 표시가 관찰되지 않았습니다. 시스템은 현재 대화 상태를 유지하며 계속합니다.",
+    autoContinueAction:
+      "완료되지 않은 작업을 감지했습니다. 자동으로 계속합니다.",
+    contextLimitHandoff:
+      "컨텍스트 한도에 도달했습니다. 보관 후 새 대화로 전환해 작업을 계속합니다.",
+    incompleteRetryWithReason:
+      "복구 가능한 미완료 작업({reason})을 감지했습니다. {attempt}번째 자동 계속 중(최대 {max}회).",
+    incompleteRetry:
+      "복구 가능한 미완료 작업을 감지했습니다. 자동으로 계속합니다.",
+    watchdogLongRun:
+      "어시스턴트가 장시간 작업을 실행 중입니다. 세션을 유지하며 런타임 상태를 폴링합니다.",
+    sessionRefreshed:
+      "세션이 갱신되었습니다. 새 대화에서 메시지를 다시 전송합니다.",
   },
   register: {
     authSuccess: "인증에 성공했습니다. 작업 공간으로 이동합니다.",

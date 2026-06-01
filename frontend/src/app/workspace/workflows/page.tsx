@@ -69,8 +69,10 @@ import type {
 import { cn } from "@/lib/utils";
 
 function shouldIgnoreCardClick(target: EventTarget | null): boolean {
-  return target instanceof HTMLElement
-    && target.closest("[data-card-interactive='true']") !== null;
+  return (
+    target instanceof HTMLElement &&
+    target.closest("[data-card-interactive='true']") !== null
+  );
 }
 
 // ── Extended types for workflow topology + run mode ─────────────────────────
@@ -177,12 +179,12 @@ function toScheduleIso(parts: WorkflowScheduleParts): {
   };
 
   if (
-    !Number.isInteger(asNumbers.year)
-    || !Number.isInteger(asNumbers.month)
-    || !Number.isInteger(asNumbers.day)
-    || !Number.isInteger(asNumbers.hour)
-    || !Number.isInteger(asNumbers.minute)
-    || !Number.isInteger(asNumbers.second)
+    !Number.isInteger(asNumbers.year) ||
+    !Number.isInteger(asNumbers.month) ||
+    !Number.isInteger(asNumbers.day) ||
+    !Number.isInteger(asNumbers.hour) ||
+    !Number.isInteger(asNumbers.minute) ||
+    !Number.isInteger(asNumbers.second)
   ) {
     return { valid: false, scheduledAt: null };
   }
@@ -209,12 +211,12 @@ function toScheduleIso(parts: WorkflowScheduleParts): {
   }
 
   const matchesInput =
-    candidate.getUTCFullYear() === asNumbers.year
-    && candidate.getUTCMonth() + 1 === asNumbers.month
-    && candidate.getUTCDate() === asNumbers.day
-    && candidate.getUTCHours() === asNumbers.hour
-    && candidate.getUTCMinutes() === asNumbers.minute
-    && candidate.getUTCSeconds() === asNumbers.second;
+    candidate.getUTCFullYear() === asNumbers.year &&
+    candidate.getUTCMonth() + 1 === asNumbers.month &&
+    candidate.getUTCDate() === asNumbers.day &&
+    candidate.getUTCHours() === asNumbers.hour &&
+    candidate.getUTCMinutes() === asNumbers.minute &&
+    candidate.getUTCSeconds() === asNumbers.second;
   if (!matchesInput) {
     return { valid: false, scheduledAt: null };
   }
@@ -237,6 +239,14 @@ function formatScheduledAtLabel(iso?: string): string | null {
   const mm = String(date.getUTCMinutes()).padStart(2, "0");
   const s = String(date.getUTCSeconds()).padStart(2, "0");
   return `${y}/${m}/${d} ${h}:${mm}:${s} UTC`;
+}
+
+function formatUpdatedAt(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleString();
 }
 
 // ── Status helpers ─────────────────────────────────────────────────────────
@@ -340,27 +350,35 @@ export default function WorkflowsPage() {
 
   const { agents: availableAgents } = useAgents();
   const executableAgents = useMemo(
-    () => availableAgents.filter((agent) => agent.chat_enabled !== false && agent.source !== "template"),
+    () =>
+      availableAgents.filter(
+        (agent) => agent.chat_enabled !== false && agent.source !== "template",
+      ),
     [availableAgents],
   );
 
   const [createOpen, setCreateOpen] = useState(false);
   const [editTaskId, setEditTaskId] = useState<string | null>(null);
-  const { taskWorkspace: editableTaskWorkspace } = useTaskWorkspace(editTaskId, {
-    enabled: editTaskId != null,
-  });
+  const { taskWorkspace: editableTaskWorkspace } = useTaskWorkspace(
+    editTaskId,
+    {
+      enabled: editTaskId != null,
+    },
+  );
   const updateTaskMutation = useUpdateTaskWorkspace(editTaskId ?? "");
   const [deletingAll, setDeletingAll] = useState(false);
   const [editName, setEditName] = useState("");
   const [editGoal, setEditGoal] = useState("");
   const [editTopology, setEditTopology] = useState<WorkflowTopology>("chain");
   const [editRunMode, setEditRunMode] = useState<WorkflowRunMode>("chat");
-  const [editProvider, setEditProvider] = useState<TaskAgentRuntimeProvider>("langgraph");
+  const [editProvider, setEditProvider] =
+    useState<TaskAgentRuntimeProvider>("langgraph");
   const [editPrimaryAgent, setEditPrimaryAgent] = useState<string>("");
   const [editSubAgents, setEditSubAgents] = useState<string[]>([]);
   const [editScheduleParts, setEditScheduleParts] =
     useState<WorkflowScheduleParts>(EMPTY_SCHEDULE_PARTS);
-  const [pendingEditRunMode, setPendingEditRunMode] = useState<WorkflowRunMode | null>(null);
+  const [pendingEditRunMode, setPendingEditRunMode] =
+    useState<WorkflowRunMode | null>(null);
 
   // ── Wizard state ──
   const [wizardStep, setWizardStep] = useState<WizardStep>("task");
@@ -369,13 +387,17 @@ export default function WorkflowsPage() {
   const [agentMode, setAgentMode] = useState<"single" | "multi">("single");
   const [topology, setTopology] = useState<WorkflowTopology>("chain");
   const [runMode, setRunMode] = useState<WorkflowRunMode>("chat");
-  const [runtimeProvider, setRuntimeProvider] = useState<TaskAgentRuntimeProvider>("langgraph");
+  const [runtimeProvider, setRuntimeProvider] =
+    useState<TaskAgentRuntimeProvider>("langgraph");
   const [selectedAgents, setSelectedAgents] = useState<string[]>([]);
   const [primaryAgent, setPrimaryAgent] = useState<string>("");
   const [scheduleParts, setScheduleParts] =
     useState<WorkflowScheduleParts>(EMPTY_SCHEDULE_PARTS);
 
-  const wizardSteps = useMemo<WizardStep[]>(() => ["task", "agent", "topology", "execution"], []);
+  const wizardSteps = useMemo<WizardStep[]>(
+    () => ["task", "agent", "topology", "execution"],
+    [],
+  );
 
   const wizardStepIndex = wizardSteps.indexOf(wizardStep);
   const isLastStep = wizardStepIndex === wizardSteps.length - 1;
@@ -420,7 +442,10 @@ export default function WorkflowsPage() {
       toast.error(t.workflows.scheduleInvalid);
       return;
     }
-    const scheduledAt = runMode === "cron" ? scheduleResult.scheduledAt ?? undefined : undefined;
+    const scheduledAt =
+      runMode === "cron"
+        ? (scheduleResult.scheduledAt ?? undefined)
+        : undefined;
 
     try {
       const created = await createMutation.mutateAsync({
@@ -443,7 +468,9 @@ export default function WorkflowsPage() {
             `/workspace/agents/${encodeURIComponent(primaryAgent.trim())}/chats/new?from_workflow=${encodeURIComponent(created.task_id)}`,
           );
         } else {
-          router.push(`/workspace/chats/new?from_workflow=${encodeURIComponent(created.task_id)}`);
+          router.push(
+            `/workspace/chats/new?from_workflow=${encodeURIComponent(created.task_id)}`,
+          );
         }
       }
 
@@ -523,11 +550,17 @@ export default function WorkflowsPage() {
   const getDisplayInfo = (ws: TaskWorkspaceSummary) => {
     const parsed = parseWorkflowMeta(ws.summary);
     const topo: WorkflowTopology =
-      parsed.topology
-      ?? (ws.mode === "single" ? "chain" : ws.mode === "branch" ? "branch" : "swarm");
+      parsed.topology ??
+      (ws.mode === "single"
+        ? "chain"
+        : ws.mode === "branch"
+          ? "branch"
+          : "swarm");
     const runModeValue = parsed.runMode;
     const runMode: WorkflowRunMode =
-      runModeValue === "chat" || runModeValue === "cron" || runModeValue === "yolo"
+      runModeValue === "chat" ||
+      runModeValue === "cron" ||
+      runModeValue === "yolo"
         ? runModeValue
         : "chat";
     return {
@@ -575,7 +608,9 @@ export default function WorkflowsPage() {
     setEditPrimaryAgent(parsed.primaryAgent ?? "");
     setEditSubAgents(parsed.subAgents ?? []);
     setEditScheduleParts(schedulePartsFromIso(parsed.scheduledAt));
-    setEditProvider(editableTaskWorkspace.agent_runtime_provider ?? "langgraph");
+    setEditProvider(
+      editableTaskWorkspace.agent_runtime_provider ?? "langgraph",
+    );
     setPendingEditRunMode(null);
   }, [editableTaskWorkspace, pendingEditRunMode]);
 
@@ -619,7 +654,12 @@ export default function WorkflowsPage() {
     } finally {
       setDeletingAll(false);
     }
-  }, [deleteMutation, t.common.deleteAllConfirm, t.common.deleteAllSuccess, workspaces]);
+  }, [
+    deleteMutation,
+    t.common.deleteAllConfirm,
+    t.common.deleteAllSuccess,
+    workspaces,
+  ]);
 
   const handleSaveWorkflow = useCallback(async () => {
     if (!editTaskId || !editName.trim()) {
@@ -630,7 +670,10 @@ export default function WorkflowsPage() {
       toast.error(t.workflows.scheduleInvalid);
       return;
     }
-    const editScheduledAt = editRunMode === "cron" ? editScheduleResult.scheduledAt ?? undefined : undefined;
+    const editScheduledAt =
+      editRunMode === "cron"
+        ? (editScheduleResult.scheduledAt ?? undefined)
+        : undefined;
     try {
       await updateTaskMutation.mutateAsync({
         name: editName.trim(),
@@ -651,7 +694,21 @@ export default function WorkflowsPage() {
     } catch {
       toast.error("Failed to update workflow");
     }
-  }, [editGoal, editName, editPrimaryAgent, editProvider, editRunMode, editScheduleParts, editSubAgents, editTaskId, editTopology, refetch, t.common.save, t.workflows.scheduleInvalid, updateTaskMutation]);
+  }, [
+    editGoal,
+    editName,
+    editPrimaryAgent,
+    editProvider,
+    editRunMode,
+    editScheduleParts,
+    editSubAgents,
+    editTaskId,
+    editTopology,
+    refetch,
+    t.common.save,
+    t.workflows.scheduleInvalid,
+    updateTaskMutation,
+  ]);
 
   return (
     <div className="flex h-full flex-col overflow-y-auto">
@@ -659,7 +716,7 @@ export default function WorkflowsPage() {
       <div className="flex items-center justify-between border-b px-6 py-4">
         <div>
           <h1 className="text-lg font-semibold">{t.workflows.title}</h1>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-muted-foreground text-sm">
             {t.workflows.description}
           </p>
         </div>
@@ -691,16 +748,20 @@ export default function WorkflowsPage() {
       {/* Workflow Cards */}
       <div className="flex-1 p-6">
         {isLoading ? (
-          <div className="flex items-center justify-center py-16 text-muted-foreground">
+          <div className="text-muted-foreground flex items-center justify-center py-16">
             <Loader2Icon className="size-5 animate-spin" />
           </div>
         ) : error ? (
-          <div className="flex flex-col items-center justify-center gap-3 py-16 text-center text-muted-foreground">
+          <div className="text-muted-foreground flex flex-col items-center justify-center gap-3 py-16 text-center">
             <AlertCircleIcon className="size-10" />
             <div>
-              <p className="font-medium text-foreground">{t.workflows.loadFailedTitle}</p>
+              <p className="text-foreground font-medium">
+                {t.workflows.loadFailedTitle}
+              </p>
               <p className="mt-1 max-w-sm text-sm">
-                {error instanceof Error ? error.message : t.workflows.loadFailedDescription}
+                {error instanceof Error
+                  ? error.message
+                  : t.workflows.loadFailedDescription}
               </p>
             </div>
             <Button variant="outline" onClick={() => void refetch()}>
@@ -708,7 +769,7 @@ export default function WorkflowsPage() {
             </Button>
           </div>
         ) : workspaces.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <div className="text-muted-foreground flex flex-col items-center justify-center py-16">
             <GitMergeIcon className="mb-3 size-10 opacity-30" />
             <p className="font-medium">{t.workflows.emptyTitle}</p>
             <p className="mt-1 text-sm">{t.workflows.emptyDescription}</p>
@@ -725,248 +786,278 @@ export default function WorkflowsPage() {
             </Button>
           </div>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {workspaces.map((ws) => {
-              const info = getDisplayInfo(ws);
-              const canRun =
-                ws.status === "created" || ws.status === "planned";
-              const canPause = ws.status === "running";
-              const canResume =
-                ws.status === "paused" || ws.status === "waiting_review";
-              const canStop =
-                ws.status === "running" ||
-                ws.status === "paused" ||
-                ws.status === "waiting_review";
+          <div className="border-border/60 overflow-x-auto rounded-2xl border">
+            <table className="w-full min-w-[920px] border-collapse text-sm">
+              <thead>
+                <tr className="border-border/60 bg-muted/30 text-muted-foreground border-b text-left text-xs font-medium">
+                  <th className="px-4 py-2.5">{t.workflows.colProject}</th>
+                  <th className="px-3 py-2.5">{t.workflows.colStatus}</th>
+                  <th className="px-3 py-2.5">{t.workflows.colProgress}</th>
+                  <th className="px-3 py-2.5">{t.workflows.colRuntime}</th>
+                  <th className="px-3 py-2.5">{t.workflows.colRunMode}</th>
+                  <th className="px-3 py-2.5">{t.workflows.colUpdated}</th>
+                  <th className="px-4 py-2.5 text-right">
+                    {t.workflows.colActions}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {workspaces.map((ws) => {
+                  const info = getDisplayInfo(ws);
+                  const canRun =
+                    ws.status === "created" || ws.status === "planned";
+                  const canPause = ws.status === "running";
+                  const canResume =
+                    ws.status === "paused" || ws.status === "waiting_review";
+                  const canStop =
+                    ws.status === "running" ||
+                    ws.status === "paused" ||
+                    ws.status === "waiting_review";
+                  const isRunning = ws.status === "running";
 
-              const isRunning = ws.status === "running";
-
-              return (
-                <div
-                  key={ws.task_id}
-                  data-testid={`workflow-card-${ws.task_id}`}
-                  className="octo-panel octo-management-card group flex h-auto min-w-0 cursor-pointer flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),_-3px_-3px_7px_var(--neu-light-strong)]"
-                  onClick={(event) => {
-                    if (shouldIgnoreCardClick(event.target)) {
-                      return;
-                    }
-                    router.push(`/workspace/workflows/${ws.task_id}`);
-                  }}
-                >
-                  {/* Top row: name + status */}
-                  <div className="mb-1.5 flex items-start justify-between gap-2">
-                    <h2 className="min-w-0 break-words text-sm font-medium text-foreground">
-                      {ws.name || "Untitled"}
-                    </h2>
-                    {statusBadge(ws.status, t)}
-                  </div>
-
-                  {/* Goal */}
-                  <p className="mb-2 min-h-0 shrink break-words line-clamp-1 text-xs text-muted-foreground">
-                    {ws.goal || t.workflows.noGoal}
-                  </p>
-
-                  {/* Progress bar */}
-                  {ws.progress.total_cards > 0 && (
-                    <div className="mb-2">
-                      <div className="mb-1 flex justify-between text-[10px] text-muted-foreground">
-                        <span>
-                          {ws.progress.completed_cards}/{ws.progress.total_cards}
-                        </span>
-                        <span>
-                          {ws.progress.active_agents} active
-                        </span>
-                      </div>
-                      <progress
-                        className="h-1 w-full overflow-hidden rounded-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:rounded-full [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:rounded-full [&::-moz-progress-bar]:bg-primary"
-                        max={ws.progress.total_cards}
-                        value={ws.progress.completed_cards}
-                      />
-                    </div>
-                  )}
-
-                  {/* Badges + Controls */}
-                  <div className="mt-auto flex items-center justify-between gap-2">
-                    <div
-                      data-card-interactive="true"
-                      className="flex min-w-0 flex-wrap gap-1"
+                  return (
+                    <tr
+                      key={ws.task_id}
+                      data-testid={`workflow-row-${ws.task_id}`}
+                      className="group border-border/40 hover:bg-muted/40 cursor-pointer border-b align-middle transition-colors last:border-0"
+                      onClick={(event) => {
+                        if (shouldIgnoreCardClick(event.target)) {
+                          return;
+                        }
+                        router.push(`/workspace/workflows/${ws.task_id}`);
+                      }}
                     >
-                      <Badge
-                        variant="outline"
-                        className="border-primary/30 text-[10px] text-primary"
-                      >
-                        {info.topology === "chain" ? (
-                          <UserIcon className="mr-0.5 size-3" />
-                        ) : (
-                          <UsersIcon className="mr-0.5 size-3" />
-                        )}
-                        {ws.mode === "single"
-                          ? t.workflows.singleAgent
-                          : t.workflows.multiAgent}
-                      </Badge>
-                      {ws.mode !== "single" && (
-                        <Badge
-                          variant="outline"
-                          className="border-primary/30 text-[10px] text-primary"
-                        >
-                          {topoIcon(info.topology)}
-                          <span className="ml-0.5">
-                            {topoLabel(info.topology)}
+                      <td className="max-w-[280px] px-4 py-3">
+                        <div className="flex min-w-0 flex-col gap-0.5">
+                          <span className="text-foreground truncate text-sm font-medium">
+                            {ws.name || "Untitled"}
                           </span>
-                        </Badge>
-                      )}
-                      <Badge
-                        variant="outline"
-                        className="border-primary/30 text-[10px] text-primary"
-                      >
-                        {formatTaskRuntimeProvider(ws.agent_runtime_provider)}
-                      </Badge>
-                      {([
-                        "chat",
-                        "cron",
-                        "yolo",
-                      ] as const).map((modeItem) => {
-                        const active = info.runMode === modeItem;
-                        return (
-                          <button
-                            key={modeItem}
-                            type="button"
-                            className={cn(
-                              "inline-flex h-6 items-center rounded-md border px-1.5 py-0.5 text-[10px] transition-colors",
-                              active
-                                ? "border-primary bg-primary/10 text-primary"
-                                : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                          <span className="text-muted-foreground truncate text-xs">
+                            {ws.goal || t.workflows.noGoal}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">{statusBadge(ws.status, t)}</td>
+                      <td className="px-3 py-3">
+                        {ws.progress.total_cards > 0 ? (
+                          <div className="flex w-32 flex-col gap-1">
+                            <div className="text-muted-foreground flex justify-between text-[10px]">
+                              <span>
+                                {ws.progress.completed_cards}/
+                                {ws.progress.total_cards}
+                              </span>
+                              <span>
+                                {ws.progress.active_agents}{" "}
+                                {t.workflows.activeShort}
+                              </span>
+                            </div>
+                            <progress
+                              className="[&::-webkit-progress-bar]:bg-muted [&::-webkit-progress-value]:bg-primary [&::-moz-progress-bar]:bg-primary h-1 w-full overflow-hidden rounded-full [&::-moz-progress-bar]:rounded-full [&::-webkit-progress-bar]:rounded-full [&::-webkit-progress-value]:rounded-full"
+                              max={ws.progress.total_cards}
+                              value={ws.progress.completed_cards}
+                            />
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">
+                            &mdash;
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3">
+                        <div className="flex flex-wrap items-center gap-1">
+                          <Badge
+                            variant="outline"
+                            className="border-primary/30 text-primary text-[10px]"
+                          >
+                            {formatTaskRuntimeProvider(
+                              ws.agent_runtime_provider,
                             )}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              openWorkflowSettings(ws.task_id, modeItem);
+                          </Badge>
+                          <Badge
+                            variant="outline"
+                            className="border-primary/30 text-primary text-[10px]"
+                          >
+                            {info.topology === "chain" ? (
+                              <UserIcon className="mr-0.5 size-3" />
+                            ) : (
+                              <UsersIcon className="mr-0.5 size-3" />
+                            )}
+                            {ws.mode === "single"
+                              ? t.workflows.singleAgent
+                              : t.workflows.multiAgent}
+                          </Badge>
+                          {ws.mode !== "single" && (
+                            <Badge
+                              variant="outline"
+                              className="border-primary/30 text-primary text-[10px]"
+                            >
+                              {topoIcon(info.topology)}
+                              <span className="ml-0.5">
+                                {topoLabel(info.topology)}
+                              </span>
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <div
+                          data-card-interactive="true"
+                          className="flex flex-wrap gap-1"
+                        >
+                          {(["chat", "cron", "yolo"] as const).map(
+                            (modeItem) => {
+                              const active = info.runMode === modeItem;
+                              return (
+                                <button
+                                  key={modeItem}
+                                  type="button"
+                                  className={cn(
+                                    "inline-flex h-6 items-center rounded-md border px-1.5 py-0.5 text-[10px] transition-colors",
+                                    active
+                                      ? "border-primary bg-primary/10 text-primary"
+                                      : "border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+                                  )}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    openWorkflowSettings(ws.task_id, modeItem);
+                                  }}
+                                >
+                                  {modeItem === "chat" ? (
+                                    <MessageSquareIcon className="mr-1 size-3" />
+                                  ) : modeItem === "cron" ? (
+                                    <TimerIcon className="mr-1 size-3" />
+                                  ) : (
+                                    <ZapIcon className="mr-1 size-3" />
+                                  )}
+                                  {runModeLabel(modeItem)}
+                                </button>
+                              );
+                            },
+                          )}
+                          {info.runMode === "cron" && info.scheduledAt ? (
+                            <Badge
+                              variant="outline"
+                              className="max-w-full border-amber-500/30 bg-amber-500/5 text-[10px] break-all text-amber-700 dark:text-amber-300"
+                            >
+                              {formatScheduledAtLabel(info.scheduledAt)}
+                            </Badge>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="text-muted-foreground px-3 py-3 text-xs whitespace-nowrap">
+                        {formatUpdatedAt(ws.updated_at)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div
+                          data-card-interactive="true"
+                          className="flex items-center justify-end gap-1"
+                        >
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="octo-card-action"
+                            data-testid={`workflow-card-settings-${ws.task_id}`}
+                            aria-label={`${t.common.settings}: ${ws.name || "Untitled"}`}
+                            title={
+                              isRunning
+                                ? "Stop workflow to edit settings"
+                                : t.common.settings
+                            }
+                            disabled={isRunning}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openWorkflowSettings(ws.task_id);
                             }}
                           >
-                            {modeItem === "chat" ? (
-                              <MessageSquareIcon className="mr-1 size-3" />
-                            ) : modeItem === "cron" ? (
-                              <TimerIcon className="mr-1 size-3" />
-                            ) : (
-                              <ZapIcon className="mr-1 size-3" />
-                            )}
-                            {runModeLabel(modeItem)}
-                          </button>
-                        );
-                      })}
-                      {info.runMode === "cron" && info.scheduledAt ? (
-                        <Badge
-                          variant="outline"
-                          className="max-w-full break-all border-amber-500/30 bg-amber-500/5 text-[10px] text-amber-700 dark:text-amber-300"
-                        >
-                          {formatScheduledAtLabel(info.scheduledAt)}
-                        </Badge>
-                      ) : null}
-                    </div>
-
-                    {/* Action buttons */}
-                    <div
-                      data-card-interactive="true"
-                      className="octo-card-actions"
-                    >
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="octo-card-action"
-                        data-testid={`workflow-card-settings-${ws.task_id}`}
-                        aria-label={`${t.common.settings}: ${ws.name || "Untitled"}`}
-                        title={isRunning ? "Stop workflow to edit settings" : t.common.settings}
-                        disabled={isRunning}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openWorkflowSettings(ws.task_id);
-                        }}
-                      >
-                        <SettingsIcon className="size-3.5" />
-                      </Button>
-                      {canRun && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="octo-card-action text-green-600"
-                          data-testid={`workflow-card-run-${ws.task_id}`}
-                          aria-label={`${t.workflows.run}: ${ws.name || "Untitled"}`}
-                          title={t.workflows.run}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleAction(ws.task_id, "run", ws.mode);
-                          }}
-                        >
-                          <PlayIcon className="size-3.5" />
-                        </Button>
-                      )}
-                      {canPause && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="octo-card-action text-amber-600"
-                          data-testid={`workflow-card-pause-${ws.task_id}`}
-                          aria-label={`${t.workflows.pause}: ${ws.name || "Untitled"}`}
-                          title={t.workflows.pause}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleAction(ws.task_id, "pause");
-                          }}
-                        >
-                          <PauseIcon className="size-3.5" />
-                        </Button>
-                      )}
-                      {canResume && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="octo-card-action text-blue-600"
-                          data-testid={`workflow-card-resume-${ws.task_id}`}
-                          aria-label={`${t.workflows.resume}: ${ws.name || "Untitled"}`}
-                          title={t.workflows.resume}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleAction(ws.task_id, "resume");
-                          }}
-                        >
-                          <PlayIcon className="size-3.5" />
-                        </Button>
-                      )}
-                      {canStop && (
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="octo-card-action text-destructive"
-                          data-testid={`workflow-card-stop-${ws.task_id}`}
-                          aria-label={`${t.workflows.stop}: ${ws.name || "Untitled"}`}
-                          title={t.workflows.stop}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleAction(ws.task_id, "terminate");
-                          }}
-                        >
-                          <SquareIcon className="size-3.5" />
-                        </Button>
-                      )}
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="octo-card-action text-destructive"
-                        data-testid={`workflow-card-delete-${ws.task_id}`}
-                        aria-label={`${t.common.delete}: ${ws.name || "Untitled"}`}
-                        title={t.common.delete}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (window.confirm(t.common.deleteAllConfirm)) {
-                            void handleDeleteWorkflow(ws.task_id);
-                          }
-                        }}
-                      >
-                        <Trash2Icon className="size-3.5" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+                            <SettingsIcon className="size-3.5" />
+                          </Button>
+                          {canRun && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="octo-card-action text-green-600"
+                              data-testid={`workflow-card-run-${ws.task_id}`}
+                              aria-label={`${t.workflows.run}: ${ws.name || "Untitled"}`}
+                              title={t.workflows.run}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleAction(ws.task_id, "run", ws.mode);
+                              }}
+                            >
+                              <PlayIcon className="size-3.5" />
+                            </Button>
+                          )}
+                          {canPause && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="octo-card-action text-amber-600"
+                              data-testid={`workflow-card-pause-${ws.task_id}`}
+                              aria-label={`${t.workflows.pause}: ${ws.name || "Untitled"}`}
+                              title={t.workflows.pause}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleAction(ws.task_id, "pause");
+                              }}
+                            >
+                              <PauseIcon className="size-3.5" />
+                            </Button>
+                          )}
+                          {canResume && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="octo-card-action text-blue-600"
+                              data-testid={`workflow-card-resume-${ws.task_id}`}
+                              aria-label={`${t.workflows.resume}: ${ws.name || "Untitled"}`}
+                              title={t.workflows.resume}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleAction(ws.task_id, "resume");
+                              }}
+                            >
+                              <PlayIcon className="size-3.5" />
+                            </Button>
+                          )}
+                          {canStop && (
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="octo-card-action text-destructive"
+                              data-testid={`workflow-card-stop-${ws.task_id}`}
+                              aria-label={`${t.workflows.stop}: ${ws.name || "Untitled"}`}
+                              title={t.workflows.stop}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                void handleAction(ws.task_id, "terminate");
+                              }}
+                            >
+                              <SquareIcon className="size-3.5" />
+                            </Button>
+                          )}
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="octo-card-action text-destructive"
+                            data-testid={`workflow-card-delete-${ws.task_id}`}
+                            aria-label={`${t.common.delete}: ${ws.name || "Untitled"}`}
+                            title={t.common.delete}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (window.confirm(t.common.deleteAllConfirm)) {
+                                void handleDeleteWorkflow(ws.task_id);
+                              }
+                            }}
+                          >
+                            <Trash2Icon className="size-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
@@ -979,7 +1070,7 @@ export default function WorkflowsPage() {
           if (!o) resetWizard();
         }}
       >
-        <DialogContent className="flex w-[min(96vw,52rem)] max-h-[calc(100vh-4rem)] flex-col overflow-hidden sm:max-w-2xl">
+        <DialogContent className="flex max-h-[calc(100vh-4rem)] w-[min(96vw,52rem)] flex-col overflow-hidden sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{t.workflows.newWorkflow}</DialogTitle>
             <DialogDescription>{t.workflows.description}</DialogDescription>
@@ -1010,7 +1101,7 @@ export default function WorkflowsPage() {
                     className={cn(
                       "max-w-[8rem] truncate text-xs",
                       i <= wizardStepIndex
-                        ? "font-medium text-foreground"
+                        ? "text-foreground font-medium"
                         : "text-muted-foreground",
                     )}
                   >
@@ -1033,28 +1124,31 @@ export default function WorkflowsPage() {
           {wizardStep === "task" && (
             <div className="min-h-0 overflow-y-auto py-2">
               <div className="flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label htmlFor="workflow-task-name" className="text-sm font-medium">
-                  {t.workflows.taskName}
-                </label>
-                <Input
-                  id="workflow-task-name"
-                  value={taskName}
-                  onChange={(e) => setTaskName(e.target.value)}
-                  placeholder="my-workflow"
-                />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">
-                  {t.workflows.taskGoal}
-                </span>
-                <Textarea
-                  value={taskGoal}
-                  onChange={(e) => setTaskGoal(e.target.value)}
-                  rows={3}
-                  placeholder={t.workflows.taskGoal}
-                />
-              </div>
+                <div className="flex flex-col gap-1.5">
+                  <label
+                    htmlFor="workflow-task-name"
+                    className="text-sm font-medium"
+                  >
+                    {t.workflows.taskName}
+                  </label>
+                  <Input
+                    id="workflow-task-name"
+                    value={taskName}
+                    onChange={(e) => setTaskName(e.target.value)}
+                    placeholder="my-workflow"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">
+                    {t.workflows.taskGoal}
+                  </span>
+                  <Textarea
+                    value={taskGoal}
+                    onChange={(e) => setTaskGoal(e.target.value)}
+                    rows={3}
+                    placeholder={t.workflows.taskGoal}
+                  />
+                </div>
               </div>
             </div>
           )}
@@ -1063,202 +1157,218 @@ export default function WorkflowsPage() {
           {wizardStep === "agent" && (
             <div className="min-h-0 overflow-y-auto py-2 pr-1">
               <div className="flex flex-col gap-4">
-              {/* Mode selector */}
-              <div className="grid gap-2 sm:grid-cols-2">
-                <button
-                  type="button"
-                  className={cn(
-                    "flex min-w-0 items-start gap-3 rounded-lg border p-3 text-left transition-colors",
-                    agentMode === "single"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40",
-                  )}
-                  onClick={() => {
-                    setAgentMode("single");
-                    setTopology("chain");
-                    setSelectedAgents([]);
-                  }}
-                >
-                  <UserIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">
-                      {t.workflows.singleAgent}
+                {/* Mode selector */}
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex min-w-0 items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+                      agentMode === "single"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40",
+                    )}
+                    onClick={() => {
+                      setAgentMode("single");
+                      setTopology("chain");
+                      setSelectedAgents([]);
+                    }}
+                  >
+                    <UserIcon className="text-primary mt-0.5 size-4 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">
+                        {t.workflows.singleAgent}
+                      </div>
+                      <div className="text-muted-foreground mt-1 text-xs break-words">
+                        {t.workflows.singleAgentDesc}
+                      </div>
                     </div>
-                    <div className="mt-1 break-words text-xs text-muted-foreground">
-                      {t.workflows.singleAgentDesc}
+                  </button>
+                  <button
+                    type="button"
+                    className={cn(
+                      "flex min-w-0 items-start gap-3 rounded-lg border p-3 text-left transition-colors",
+                      agentMode === "multi"
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40",
+                    )}
+                    onClick={() => setAgentMode("multi")}
+                  >
+                    <UsersIcon className="text-primary mt-0.5 size-4 shrink-0" />
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">
+                        {t.workflows.multiAgent}
+                      </div>
+                      <div className="text-muted-foreground mt-1 text-xs break-words">
+                        {t.workflows.multiAgentDesc}
+                      </div>
                     </div>
-                  </div>
-                </button>
-                <button
-                  type="button"
-                  className={cn(
-                    "flex min-w-0 items-start gap-3 rounded-lg border p-3 text-left transition-colors",
-                    agentMode === "multi"
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40",
-                  )}
-                  onClick={() => setAgentMode("multi")}
-                >
-                  <UsersIcon className="mt-0.5 size-4 shrink-0 text-primary" />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">
-                      {t.workflows.multiAgent}
-                    </div>
-                    <div className="mt-1 break-words text-xs text-muted-foreground">
-                      {t.workflows.multiAgentDesc}
-                    </div>
-                  </div>
-                </button>
-              </div>
+                  </button>
+                </div>
 
-              {/* Primary agent dropdown */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">
-                  {agentMode === "single"
-                    ? t.workflows.wizardStepAgent
-                    : t.workflows.wizardPrimaryAgent}
-                </span>
-                <Select
-                  value={primaryAgent || "__default__"}
-                  onValueChange={(v) => setPrimaryAgent(v === "__default__" ? "" : v)}
-                >
-                  <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="max-w-[min(42rem,calc(100vw-2rem))] border-primary/20 bg-popover text-popover-foreground">
-                    <SelectItem value="__default__">
-                      {t.workflows.systemDefault}
-                    </SelectItem>
-                    {executableAgents.map((ag) => (
-                      <SelectItem key={ag.id ?? ag.name} value={ag.name} className="items-start py-2">
-                        <div className="min-w-0 whitespace-normal">
-                          <div className="break-words font-medium">{ag.name}</div>
-                          {ag.description ? (
-                            <div className="mt-0.5 break-words text-xs text-muted-foreground">
-                              {ag.description}
-                            </div>
-                          ) : null}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Multi-agent: sub-agents */}
-              {agentMode === "multi" && (
+                {/* Primary agent dropdown */}
                 <div className="flex flex-col gap-1.5">
                   <span className="text-sm font-medium">
-                    {t.workflows.wizardSubAgents}
+                    {agentMode === "single"
+                      ? t.workflows.wizardStepAgent
+                      : t.workflows.wizardPrimaryAgent}
                   </span>
-                  <div className="mt-1 grid max-h-64 gap-2 overflow-y-auto rounded-lg border border-border/60 bg-muted/10 p-2">
-                    {executableAgents
-                      .filter((ag) => ag.name !== primaryAgent)
-                      .map((ag) => {
-                        const isSelected = selectedAgents.includes(ag.name);
-                        return (
-                          <button
-                            key={ag.id ?? ag.name}
-                            type="button"
-                            className={cn(
-                              "flex min-w-0 items-start gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                              isSelected
-                                ? "border-primary bg-primary/5"
-                                : "border-border hover:border-primary/40",
-                            )}
-                            onClick={() => {
-                              setSelectedAgents((prev) =>
-                                isSelected
-                                  ? prev.filter((n) => n !== ag.name)
-                                  : [...prev, ag.name],
-                              );
-                            }}
-                          >
-                            <div className={cn(
-                              "flex size-4 items-center justify-center rounded border",
-                              isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
-                            )}>
-                              {isSelected && <CheckCircle2Icon className="size-3" />}
+                  <Select
+                    value={primaryAgent || "__default__"}
+                    onValueChange={(v) =>
+                      setPrimaryAgent(v === "__default__" ? "" : v)
+                    }
+                  >
+                    <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-primary/20 bg-popover text-popover-foreground max-w-[min(42rem,calc(100vw-2rem))]">
+                      <SelectItem value="__default__">
+                        {t.workflows.systemDefault}
+                      </SelectItem>
+                      {executableAgents.map((ag) => (
+                        <SelectItem
+                          key={ag.id ?? ag.name}
+                          value={ag.name}
+                          className="items-start py-2"
+                        >
+                          <div className="min-w-0 whitespace-normal">
+                            <div className="font-medium break-words">
+                              {ag.name}
                             </div>
-                            <div className="min-w-0">
-                              <div className="break-words font-medium text-foreground">{ag.name}</div>
-                              {ag.description ? (
-                                <div className="mt-0.5 break-words text-xs text-muted-foreground">
-                                  {ag.description}
-                                </div>
-                              ) : null}
-                            </div>
-                          </button>
-                        );
-                      })}
-                  </div>
+                            {ag.description ? (
+                              <div className="text-muted-foreground mt-0.5 text-xs break-words">
+                                {ag.description}
+                              </div>
+                            ) : null}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
+
+                {/* Multi-agent: sub-agents */}
+                {agentMode === "multi" && (
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-sm font-medium">
+                      {t.workflows.wizardSubAgents}
+                    </span>
+                    <div className="border-border/60 bg-muted/10 mt-1 grid max-h-64 gap-2 overflow-y-auto rounded-lg border p-2">
+                      {executableAgents
+                        .filter((ag) => ag.name !== primaryAgent)
+                        .map((ag) => {
+                          const isSelected = selectedAgents.includes(ag.name);
+                          return (
+                            <button
+                              key={ag.id ?? ag.name}
+                              type="button"
+                              className={cn(
+                                "flex min-w-0 items-start gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                                isSelected
+                                  ? "border-primary bg-primary/5"
+                                  : "border-border hover:border-primary/40",
+                              )}
+                              onClick={() => {
+                                setSelectedAgents((prev) =>
+                                  isSelected
+                                    ? prev.filter((n) => n !== ag.name)
+                                    : [...prev, ag.name],
+                                );
+                              }}
+                            >
+                              <div
+                                className={cn(
+                                  "flex size-4 items-center justify-center rounded border",
+                                  isSelected
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-muted-foreground/30",
+                                )}
+                              >
+                                {isSelected && (
+                                  <CheckCircle2Icon className="size-3" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="text-foreground font-medium break-words">
+                                  {ag.name}
+                                </div>
+                                {ag.description ? (
+                                  <div className="text-muted-foreground mt-0.5 text-xs break-words">
+                                    {ag.description}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
-
-
 
           {/* Step: Topology (multi-agent only) */}
           {wizardStep === "topology" && (
             <div className="min-h-0 overflow-y-auto py-2 pr-1">
               <div className="flex flex-col gap-3">
-              {agentMode === "single" ? (
-                <div className="rounded-lg border border-primary/30 bg-primary/5 p-4">
-                  <div className="flex items-start gap-3">
-                    <LinkIcon className="mt-0.5 size-5 shrink-0 text-primary" />
-                    <div>
-                      <div className="text-sm font-medium">{topoLabel("chain")}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {t.workflows.singleAgentDesc}
+                {agentMode === "single" ? (
+                  <div className="border-primary/30 bg-primary/5 rounded-lg border p-4">
+                    <div className="flex items-start gap-3">
+                      <LinkIcon className="text-primary mt-0.5 size-5 shrink-0" />
+                      <div>
+                        <div className="text-sm font-medium">
+                          {topoLabel("chain")}
+                        </div>
+                        <div className="text-muted-foreground mt-1 text-xs">
+                          {t.workflows.singleAgentDesc}
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                (
-                  [
-                    {
-                      key: "chain" as const,
-                      icon: LinkIcon,
-                      desc: t.workflows.chainDesc,
-                    },
-                    {
-                      key: "branch" as const,
-                      icon: GitBranchIcon,
-                      desc: t.workflows.branchDesc,
-                    },
-                    {
-                      key: "swarm" as const,
-                      icon: NetworkIcon,
-                      desc: t.workflows.swarmDesc,
-                    },
-                  ] as const
-                ).map((item) => (
-                  <button
-                    key={item.key}
-                    type="button"
-                    className={cn(
-                      "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
-                      topology === item.key
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/40",
-                    )}
-                    onClick={() => setTopology(item.key)}
-                  >
-                    <item.icon className="mt-0.5 size-5 text-primary" />
-                    <div>
-                      <div className="text-sm font-medium">
-                        {topoLabel(item.key)}
+                ) : (
+                  (
+                    [
+                      {
+                        key: "chain" as const,
+                        icon: LinkIcon,
+                        desc: t.workflows.chainDesc,
+                      },
+                      {
+                        key: "branch" as const,
+                        icon: GitBranchIcon,
+                        desc: t.workflows.branchDesc,
+                      },
+                      {
+                        key: "swarm" as const,
+                        icon: NetworkIcon,
+                        desc: t.workflows.swarmDesc,
+                      },
+                    ] as const
+                  ).map((item) => (
+                    <button
+                      key={item.key}
+                      type="button"
+                      className={cn(
+                        "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
+                        topology === item.key
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-primary/40",
+                      )}
+                      onClick={() => setTopology(item.key)}
+                    >
+                      <item.icon className="text-primary mt-0.5 size-5" />
+                      <div>
+                        <div className="text-sm font-medium">
+                          {topoLabel(item.key)}
+                        </div>
+                        <div className="text-muted-foreground mt-0.5 text-xs">
+                          {item.desc}
+                        </div>
                       </div>
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {item.desc}
-                      </div>
-                    </div>
-                  </button>
-                ))
-              )}
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -1267,96 +1377,98 @@ export default function WorkflowsPage() {
           {wizardStep === "execution" && (
             <div className="min-h-0 overflow-y-auto py-2 pr-1">
               <div className="flex flex-col gap-3">
-              {(
-                [
-                  {
-                    key: "chat" as const,
-                    icon: MessageSquareIcon,
-                    label: t.workflows.modeChat,
-                    desc: t.workflows.modeChatDesc,
-                  },
-                  {
-                    key: "cron" as const,
-                    icon: TimerIcon,
-                    label: t.workflows.modeCron,
-                    desc: t.workflows.modeCronDesc,
-                  },
-                  {
-                    key: "yolo" as const,
-                    icon: ZapIcon,
-                    label: t.workflows.modeYolo,
-                    desc: t.workflows.modeYoloDesc,
-                  },
-                ] as const
-              ).map((item) => (
-                <button
-                  key={item.key}
-                  type="button"
-                  className={cn(
-                    "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
-                    runMode === item.key
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/40",
-                  )}
-                  onClick={() => setRunMode(item.key)}
-                >
-                  <item.icon className="mt-0.5 size-5 text-primary" />
-                  <div>
-                    <div className="text-sm font-medium">{item.label}</div>
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      {item.desc}
+                {(
+                  [
+                    {
+                      key: "chat" as const,
+                      icon: MessageSquareIcon,
+                      label: t.workflows.modeChat,
+                      desc: t.workflows.modeChatDesc,
+                    },
+                    {
+                      key: "cron" as const,
+                      icon: TimerIcon,
+                      label: t.workflows.modeCron,
+                      desc: t.workflows.modeCronDesc,
+                    },
+                    {
+                      key: "yolo" as const,
+                      icon: ZapIcon,
+                      label: t.workflows.modeYolo,
+                      desc: t.workflows.modeYoloDesc,
+                    },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    className={cn(
+                      "flex items-start gap-3 rounded-lg border p-4 text-left transition-colors",
+                      runMode === item.key
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/40",
+                    )}
+                    onClick={() => setRunMode(item.key)}
+                  >
+                    <item.icon className="text-primary mt-0.5 size-5" />
+                    <div>
+                      <div className="text-sm font-medium">{item.label}</div>
+                      <div className="text-muted-foreground mt-0.5 text-xs">
+                        {item.desc}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+                {runMode === "cron" ? (
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                    <div className="text-muted-foreground mb-2 text-xs">
+                      {t.workflows.scheduleHint}
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                      {SCHEDULE_FIELDS.map((field) => (
+                        <Input
+                          key={field.key}
+                          type="number"
+                          inputMode="numeric"
+                          placeholder={field.placeholder}
+                          min={field.min}
+                          max={field.max}
+                          value={scheduleParts[field.key]}
+                          onChange={(event) => {
+                            const nextValue = event.target.value;
+                            setScheduleParts((prev) => ({
+                              ...prev,
+                              [field.key]: nextValue,
+                            }));
+                          }}
+                        />
+                      ))}
+                    </div>
+                    <div className="text-muted-foreground mt-2 text-[11px]">
+                      {t.workflows.scheduleEmptyRunsNow}
                     </div>
                   </div>
-                </button>
-              ))}
-              {runMode === "cron" ? (
-                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                  <div className="mb-2 text-xs text-muted-foreground">
-                    {t.workflows.scheduleHint}
-                  </div>
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {SCHEDULE_FIELDS.map((field) => (
-                      <Input
-                        key={field.key}
-                        type="number"
-                        inputMode="numeric"
-                        placeholder={field.placeholder}
-                        min={field.min}
-                        max={field.max}
-                        value={scheduleParts[field.key]}
-                        onChange={(event) => {
-                          const nextValue = event.target.value;
-                          setScheduleParts((prev) => ({
-                            ...prev,
-                            [field.key]: nextValue,
-                          }));
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <div className="mt-2 text-[11px] text-muted-foreground">
-                    {t.workflows.scheduleEmptyRunsNow}
-                  </div>
+                ) : null}
+                <div className="mt-2 flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">Runtime provider</span>
+                  <Select
+                    value={runtimeProvider}
+                    onValueChange={(value) =>
+                      setRuntimeProvider(value as TaskAgentRuntimeProvider)
+                    }
+                  >
+                    <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="border-primary/20 bg-popover text-popover-foreground">
+                      {TASK_RUNTIME_PROVIDER_OPTIONS.map((provider) => (
+                        <SelectItem key={provider} value={provider}>
+                          {formatTaskRuntimeProvider(provider)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-              ) : null}
-              <div className="mt-2 flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Runtime provider</span>
-                <Select
-                  value={runtimeProvider}
-                  onValueChange={(value) => setRuntimeProvider(value as TaskAgentRuntimeProvider)}
-                >
-                  <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="border-primary/20 bg-popover text-popover-foreground">
-                    {TASK_RUNTIME_PROVIDER_OPTIONS.map((provider) => (
-                      <SelectItem key={provider} value={provider}>
-                        {formatTaskRuntimeProvider(provider)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
               </div>
             </div>
           )}
@@ -1392,177 +1504,228 @@ export default function WorkflowsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editTaskId} onOpenChange={(open) => !open && setEditTaskId(null)}>
-        <DialogContent className="flex w-[min(96vw,46rem)] max-h-[calc(100vh-4rem)] flex-col overflow-hidden sm:max-w-xl">
+      <Dialog
+        open={!!editTaskId}
+        onOpenChange={(open) => !open && setEditTaskId(null)}
+      >
+        <DialogContent className="flex max-h-[calc(100vh-4rem)] w-[min(96vw,46rem)] flex-col overflow-hidden sm:max-w-xl">
           <DialogHeader>
             <DialogTitle>{t.common.settings}</DialogTitle>
-            <DialogDescription>{editableTaskWorkspace?.name ?? ""}</DialogDescription>
+            <DialogDescription>
+              {editableTaskWorkspace?.name ?? ""}
+            </DialogDescription>
           </DialogHeader>
           <div className="min-h-0 overflow-y-auto py-2 pr-1">
             <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">{t.workflows.taskName}</span>
-              <Input value={editName} onChange={(e) => setEditName(e.target.value)} />
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">{t.workflows.taskGoal}</span>
-              <Textarea value={editGoal} onChange={(e) => setEditGoal(e.target.value)} rows={3} />
-            </div>
-            <div className="grid gap-4 md:grid-cols-2">
               <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">{t.workflows.wizardStepTopology}</span>
-                <div className="grid gap-2">
-                  {(["chain", "branch", "swarm"] as const).map((item) => (
-                    <Button
-                      key={item}
-                      variant={editTopology === item ? "default" : "outline"}
-                      className="justify-start"
-                      onClick={() => setEditTopology(item)}
-                    >
-                      {topoLabel(item)}
-                    </Button>
-                  ))}
-                </div>
+                <span className="text-sm font-medium">
+                  {t.workflows.taskName}
+                </span>
+                <Input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                />
               </div>
               <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">{t.workflows.wizardStepExecution}</span>
-                <div className="grid gap-2">
-                  {(["chat", "cron", "yolo"] as const).map((item) => (
-                    <Button
-                      key={item}
-                      variant={editRunMode === item ? "default" : "outline"}
-                      className="justify-start"
-                      onClick={() => setEditRunMode(item)}
-                    >
-                      {item === "chat" ? t.workflows.modeChat : item === "cron" ? t.workflows.modeCron : t.workflows.modeYolo}
-                    </Button>
-                  ))}
-                </div>
-                {editRunMode === "cron" ? (
-                  <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
-                    <div className="mb-2 text-xs text-muted-foreground">
-                      {t.workflows.scheduleHint}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {SCHEDULE_FIELDS.map((field) => (
-                        <Input
-                          key={`edit-${field.key}`}
-                          type="number"
-                          inputMode="numeric"
-                          placeholder={field.placeholder}
-                          min={field.min}
-                          max={field.max}
-                          value={editScheduleParts[field.key]}
-                          onChange={(event) => {
-                            const nextValue = event.target.value;
-                            setEditScheduleParts((prev) => ({
-                              ...prev,
-                              [field.key]: nextValue,
-                            }));
-                          }}
-                        />
-                      ))}
-                    </div>
-                    <div className="mt-2 text-[11px] text-muted-foreground">
-                      {t.workflows.scheduleEmptyRunsNow}
-                    </div>
+                <span className="text-sm font-medium">
+                  {t.workflows.taskGoal}
+                </span>
+                <Textarea
+                  value={editGoal}
+                  onChange={(e) => setEditGoal(e.target.value)}
+                  rows={3}
+                />
+              </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">
+                    {t.workflows.wizardStepTopology}
+                  </span>
+                  <div className="grid gap-2">
+                    {(["chain", "branch", "swarm"] as const).map((item) => (
+                      <Button
+                        key={item}
+                        variant={editTopology === item ? "default" : "outline"}
+                        className="justify-start"
+                        onClick={() => setEditTopology(item)}
+                      >
+                        {topoLabel(item)}
+                      </Button>
+                    ))}
                   </div>
-                ) : null}
-              </div>
-            </div>
-
-            {/* Primary Agent */}
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">{t.workflows.wizardPrimaryAgent}</span>
-              <Select
-                value={editPrimaryAgent || "__default__"}
-                onValueChange={(v) => setEditPrimaryAgent(v === "__default__" ? "" : v)}
-              >
-                <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="max-w-[min(42rem,calc(100vw-2rem))] border-primary/20 bg-popover text-popover-foreground">
-                  <SelectItem value="__default__">{t.workflows.systemDefault}</SelectItem>
-                  {executableAgents.map((ag) => (
-                    <SelectItem key={ag.id ?? ag.name} value={ag.name} className="items-start py-2">
-                      <div className="min-w-0 whitespace-normal">
-                        <div className="break-words font-medium">{ag.name}</div>
-                        {ag.description ? (
-                          <div className="mt-0.5 break-words text-xs text-muted-foreground">
-                            {ag.description}
-                          </div>
-                        ) : null}
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">
+                    {t.workflows.wizardStepExecution}
+                  </span>
+                  <div className="grid gap-2">
+                    {(["chat", "cron", "yolo"] as const).map((item) => (
+                      <Button
+                        key={item}
+                        variant={editRunMode === item ? "default" : "outline"}
+                        className="justify-start"
+                        onClick={() => setEditRunMode(item)}
+                      >
+                        {item === "chat"
+                          ? t.workflows.modeChat
+                          : item === "cron"
+                            ? t.workflows.modeCron
+                            : t.workflows.modeYolo}
+                      </Button>
+                    ))}
+                  </div>
+                  {editRunMode === "cron" ? (
+                    <div className="mt-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3">
+                      <div className="text-muted-foreground mb-2 text-xs">
+                        {t.workflows.scheduleHint}
                       </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Sub-Agents (for branch / swarm topologies) */}
-            {editTopology !== "chain" && (
-              <div className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">{t.workflows.wizardSubAgents}</span>
-                <div className="mt-1 grid max-h-40 gap-1.5 overflow-y-auto">
-                  {executableAgents
-                    .filter((ag) => ag.name !== editPrimaryAgent)
-                    .map((ag) => {
-                      const isSelected = editSubAgents.includes(ag.name);
-                      return (
-                        <button
-                          key={ag.id ?? ag.name}
-                          type="button"
-                          className={cn(
-                            "flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors",
-                            isSelected
-                              ? "border-primary bg-primary/5"
-                              : "border-border hover:border-primary/40",
-                          )}
-                          onClick={() => {
-                            setEditSubAgents((prev) =>
-                              isSelected
-                                ? prev.filter((n) => n !== ag.name)
-                                : [...prev, ag.name],
-                            );
-                          }}
-                        >
-                          <div className={cn(
-                            "flex size-4 items-center justify-center rounded border",
-                            isSelected ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/30"
-                          )}>
-                            {isSelected && <CheckCircle2Icon className="size-3" />}
-                          </div>
-                          <span className="truncate">{ag.name}</span>
-                        </button>
-                      );
-                    })}
+                      <div className="grid grid-cols-2 gap-2">
+                        {SCHEDULE_FIELDS.map((field) => (
+                          <Input
+                            key={`edit-${field.key}`}
+                            type="number"
+                            inputMode="numeric"
+                            placeholder={field.placeholder}
+                            min={field.min}
+                            max={field.max}
+                            value={editScheduleParts[field.key]}
+                            onChange={(event) => {
+                              const nextValue = event.target.value;
+                              setEditScheduleParts((prev) => ({
+                                ...prev,
+                                [field.key]: nextValue,
+                              }));
+                            }}
+                          />
+                        ))}
+                      </div>
+                      <div className="text-muted-foreground mt-2 text-[11px]">
+                        {t.workflows.scheduleEmptyRunsNow}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
               </div>
-            )}
 
-            <div className="flex flex-col gap-1.5">
-              <span className="text-sm font-medium">Runtime provider</span>
-              <Select
-                value={editProvider}
-                onValueChange={(value) => setEditProvider(value as TaskAgentRuntimeProvider)}
-              >
-                <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="border-primary/20 bg-popover text-popover-foreground">
-                  {TASK_RUNTIME_PROVIDER_OPTIONS.map((provider) => (
-                    <SelectItem key={provider} value={provider}>
-                      {formatTaskRuntimeProvider(provider)}
+              {/* Primary Agent */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">
+                  {t.workflows.wizardPrimaryAgent}
+                </span>
+                <Select
+                  value={editPrimaryAgent || "__default__"}
+                  onValueChange={(v) =>
+                    setEditPrimaryAgent(v === "__default__" ? "" : v)
+                  }
+                >
+                  <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-primary/20 bg-popover text-popover-foreground max-w-[min(42rem,calc(100vw-2rem))]">
+                    <SelectItem value="__default__">
+                      {t.workflows.systemDefault}
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {executableAgents.map((ag) => (
+                      <SelectItem
+                        key={ag.id ?? ag.name}
+                        value={ag.name}
+                        className="items-start py-2"
+                      >
+                        <div className="min-w-0 whitespace-normal">
+                          <div className="font-medium break-words">
+                            {ag.name}
+                          </div>
+                          {ag.description ? (
+                            <div className="text-muted-foreground mt-0.5 text-xs break-words">
+                              {ag.description}
+                            </div>
+                          ) : null}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Sub-Agents (for branch / swarm topologies) */}
+              {editTopology !== "chain" && (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm font-medium">
+                    {t.workflows.wizardSubAgents}
+                  </span>
+                  <div className="mt-1 grid max-h-40 gap-1.5 overflow-y-auto">
+                    {executableAgents
+                      .filter((ag) => ag.name !== editPrimaryAgent)
+                      .map((ag) => {
+                        const isSelected = editSubAgents.includes(ag.name);
+                        return (
+                          <button
+                            key={ag.id ?? ag.name}
+                            type="button"
+                            className={cn(
+                              "flex items-center gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors",
+                              isSelected
+                                ? "border-primary bg-primary/5"
+                                : "border-border hover:border-primary/40",
+                            )}
+                            onClick={() => {
+                              setEditSubAgents((prev) =>
+                                isSelected
+                                  ? prev.filter((n) => n !== ag.name)
+                                  : [...prev, ag.name],
+                              );
+                            }}
+                          >
+                            <div
+                              className={cn(
+                                "flex size-4 items-center justify-center rounded border",
+                                isSelected
+                                  ? "border-primary bg-primary text-primary-foreground"
+                                  : "border-muted-foreground/30",
+                              )}
+                            >
+                              {isSelected && (
+                                <CheckCircle2Icon className="size-3" />
+                              )}
+                            </div>
+                            <span className="truncate">{ag.name}</span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">Runtime provider</span>
+                <Select
+                  value={editProvider}
+                  onValueChange={(value) =>
+                    setEditProvider(value as TaskAgentRuntimeProvider)
+                  }
+                >
+                  <SelectTrigger className="border-primary/30 bg-card text-foreground data-[placeholder]:text-muted-foreground focus-visible:ring-primary/30">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="border-primary/20 bg-popover text-popover-foreground">
+                    {TASK_RUNTIME_PROVIDER_OPTIONS.map((provider) => (
+                      <SelectItem key={provider} value={provider}>
+                        {formatTaskRuntimeProvider(provider)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditTaskId(null)}>{t.common.cancel}</Button>
-            <Button onClick={() => void handleSaveWorkflow()} disabled={!editName.trim() || updateTaskMutation.isPending}>
+            <Button variant="outline" onClick={() => setEditTaskId(null)}>
+              {t.common.cancel}
+            </Button>
+            <Button
+              onClick={() => void handleSaveWorkflow()}
+              disabled={!editName.trim() || updateTaskMutation.isPending}
+            >
               {updateTaskMutation.isPending ? t.common.loading : t.common.save}
             </Button>
           </DialogFooter>
