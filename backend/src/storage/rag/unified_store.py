@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import math
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -21,21 +23,62 @@ logger = logging.getLogger(__name__)
 _DEFAULT_DB_NAME = "octoagent_rag.duckdb"
 
 
-def connect_duckdb_with_retry(
+_DUCKDB_SERIALIZE_ENV = "OCTOAGENT_DUCKDB_SERIALIZE"
+_SERIALIZE_ACQUIRE_ATTEMPTS = 80
+_SERIALIZE_ACQUIRE_DELAY = 0.1
+
+
+def _duckdb_serialize_enabled() -> bool:
+    """Single-writer convergence opt-in. Default OFF (retry-only behaviour)."""
+    return os.getenv(_DUCKDB_SERIALIZE_ENV, "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+class _GuardedDuckDBConnection:
+    """Wrap a DuckDB connection so the process-level advisory lock is released
+    exactly once when the connection is closed (via ``with`` or ``.close()``).
+
+    Transparent proxy: every other attribute (``execute``, ``executemany`` ...)
+    is delegated to the underlying connection.
+    """
+
+    def __init__(self, conn: duckdb.DuckDBPyConnection, release) -> None:
+        object.__setattr__(self, "_conn", conn)
+        object.__setattr__(self, "_release", release)
+        object.__setattr__(self, "_released", False)
+
+    def _do_release(self) -> None:
+        if not object.__getattribute__(self, "_released"):
+            object.__setattr__(self, "_released", True)
+            object.__getattribute__(self, "_release")()
+
+    def __enter__(self) -> "_GuardedDuckDBConnection":
+        return self
+
+    def __exit__(self, exc_type, exc, tb) -> bool:
+        try:
+            object.__getattribute__(self, "_conn").close()
+        finally:
+            self._do_release()
+        return False
+
+    def close(self) -> None:
+        try:
+            object.__getattribute__(self, "_conn").close()
+        finally:
+            self._do_release()
+
+    def __getattr__(self, name: str):
+        return getattr(object.__getattribute__(self, "_conn"), name)
+
+
+def _open_duckdb_with_retry(
     db_path: str | Path,
     *,
-    read_only: bool = False,
-    attempts: int = 6,
-    base_delay: float = 0.25,
-    max_delay: float = 2.0,
+    read_only: bool,
+    attempts: int,
+    base_delay: float,
+    max_delay: float,
 ) -> duckdb.DuckDBPyConnection:
-    """Open a DuckDB connection, retrying on cross-process file-lock contention.
-
-    DuckDB permits a single read-write process at a time. The gateway and the
-    LangGraph worker can briefly contend for the lock on the shared RAG database;
-    retry with exponential backoff instead of dropping the read/write (was: silent
-    data loss on SimpleMemBridge store.add and system-memory writes).
-    """
     import time as _time
 
     delay = base_delay
@@ -53,6 +96,82 @@ def connect_duckdb_with_retry(
     assert last_exc is not None
     logger.warning("duckdb lock contention persisted after retries: %s", last_exc)
     raise last_exc
+
+
+def connect_duckdb_with_retry(
+    db_path: str | Path,
+    *,
+    read_only: bool = False,
+    attempts: int = 6,
+    base_delay: float = 0.25,
+    max_delay: float = 2.0,
+):
+    """Open a DuckDB connection on the shared RAG database.
+
+    Default: retry with exponential backoff on cross-process file-lock contention
+    (was: silent data loss on SimpleMemBridge store.add / system-memory writes).
+
+    When ``OCTOAGENT_DUCKDB_SERIALIZE`` is enabled, additionally serialize access
+    across processes with an advisory readers-writer file lock (shared for
+    ``read_only``, exclusive otherwise): a true single-writer-at-a-time
+    convergence that removes the contention entirely. Deadlock-proof: lock
+    acquisition is non-blocking with a bounded retry budget, then falls through
+    to a plain (retrying) connect so it can never hang the agent loop.
+    """
+    if not _duckdb_serialize_enabled():
+        return _open_duckdb_with_retry(
+            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
+        )
+
+    try:
+        import fcntl
+    except ImportError:  # non-POSIX: fall back to retry-only
+        return _open_duckdb_with_retry(
+            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
+        )
+
+    import time as _time
+
+    lock_path = str(db_path) + ".rwlock"
+    try:
+        fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
+    except OSError:
+        return _open_duckdb_with_retry(
+            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
+        )
+
+    lock_type = fcntl.LOCK_SH if read_only else fcntl.LOCK_EX
+    acquired = False
+    for _ in range(_SERIALIZE_ACQUIRE_ATTEMPTS):
+        try:
+            fcntl.flock(fd, lock_type | fcntl.LOCK_NB)
+            acquired = True
+            break
+        except OSError:
+            _time.sleep(_SERIALIZE_ACQUIRE_DELAY)
+    if not acquired:
+        logger.warning("duckdb serialize: could not acquire %s lock, proceeding with retry-only", "read" if read_only else "write")
+
+    try:
+        conn = _open_duckdb_with_retry(
+            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
+        )
+    except Exception:
+        with contextlib.suppress(Exception):
+            if acquired:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        with contextlib.suppress(Exception):
+            os.close(fd)
+        raise
+
+    def _release() -> None:
+        with contextlib.suppress(Exception):
+            if acquired:
+                fcntl.flock(fd, fcntl.LOCK_UN)
+        with contextlib.suppress(Exception):
+            os.close(fd)
+
+    return _GuardedDuckDBConnection(conn, _release)
 
 
 @dataclass
