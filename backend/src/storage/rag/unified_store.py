@@ -53,7 +53,26 @@ class UnifiedRAGStore:
         return self._embedding.backend_name
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
-        return duckdb.connect(str(self._db_path))
+        # DuckDB allows a single read-write process at a time. The gateway and
+        # the LangGraph worker may briefly contend for the file lock; retry with
+        # short backoff instead of dropping the write/read (was: silent data loss).
+        import time as _time
+        attempts = 6
+        delay = 0.25
+        last_exc: Exception | None = None
+        for _ in range(attempts):
+            try:
+                return duckdb.connect(str(self._db_path))
+            except Exception as exc:  # noqa: BLE001 - inspect message for lock contention
+                msg = str(exc).lower()
+                if "lock" not in msg and "conflicting" not in msg:
+                    raise
+                last_exc = exc
+                _time.sleep(delay)
+                delay = min(delay * 2, 2.0)
+        assert last_exc is not None
+        logger.warning("UnifiedRAGStore: duckdb lock contention persisted after retries: %s", last_exc)
+        raise last_exc
 
     def _initialize(self) -> None:
         with self._connect() as conn:

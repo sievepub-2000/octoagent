@@ -1,3 +1,9 @@
+## 2026-06-01 - Stability remediation (local model timeout + DuckDB lock retry)
+
+- Raised the local `qwen3.6-35b-a3b-q8-mm-prod` model card `request_timeout` from 120s to 300s in the runtime config to stop the timeout -> free-model fallback -> orphan-run -> SSE-drop cascade on long agent generations (P0-2/P0-3/P1-3).
+- Added exponential-backoff retry on DuckDB file-lock contention in `UnifiedRAGStore._connect()` so RAG/memory reads and writes are no longer silently dropped when the gateway and LangGraph worker briefly contend for the single-writer lock (P1-1).
+- Documented deferred high-risk items (LangGraph persistence migration, DuckDB single-writer refactor) in `docs/octoagent-stability-remediation-2026-06-01.md`.
+
 ## 2026-05-28 - Writing and publishing workflow tools (`2026.5.28.post4`)
 
 - Added a managed writing/publishing toolchain wrapper for browser-use, Playwright, WP-CLI, Presidio, Pandoc, textlint, Vale, project storage, drafting, review, human approval, publishing, and publication audit flows.
