@@ -3,9 +3,15 @@
 from __future__ import annotations
 
 import enum
-from datetime import datetime
+from datetime import UTC, datetime
 
 from pydantic import BaseModel, Field
+
+
+def utc_now() -> datetime:
+    """Return a timezone-aware UTC timestamp for Pydantic defaults."""
+
+    return datetime.now(UTC)
 
 
 class EvolutionMode(str, enum.Enum):
@@ -47,7 +53,7 @@ class SkillVersion(BaseModel):
     parent_version: int | None = None
     mode: EvolutionMode | None = None
     diff_summary: str = ""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
     quality: QualityMetrics | None = None
 
 
@@ -61,7 +67,7 @@ class EvolutionRecord(BaseModel):
     mode: EvolutionMode
     reason: str = ""
     diff_summary: str = ""
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=utc_now)
 
 
 class EvolutionConfig(BaseModel):

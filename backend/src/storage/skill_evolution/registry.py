@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import logging
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -139,7 +139,7 @@ class SkillEvolutionRegistry:
         # Running average
         total = m.success_count + m.failure_count
         m.avg_latency_ms = ((m.avg_latency_ms * (total - 1)) + latency_ms) / total if total else 0.0
-        m.last_used = datetime.utcnow()
+        m.last_used = datetime.now(UTC)
         self.save()
 
     def all_metrics(self) -> list[QualityMetrics]:

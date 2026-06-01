@@ -65,6 +65,8 @@ goal below.
   [`docs/octoagent-stable-period-phase1-verification-2026-05-30.md`](./octoagent-stable-period-phase1-verification-2026-05-30.md).
 * **Dialogue and execution optimization** —
   [`docs/octoagent-dialogue-and-execution-optimization-2026-05-30.md`](./octoagent-dialogue-and-execution-optimization-2026-05-30.md).
+* **System assessment, warning cleanup, and next priorities** —
+  [`docs/octoagent-system-assessment-2026-06-01.md`](./octoagent-system-assessment-2026-06-01.md).
 
 ## Index policy
 
