@@ -707,6 +707,23 @@ class TaskWorkspaceMessageExecutor:
             query_service = get_query_engine_service()
             requires_tool_research = requires_tool_backed_research(workspace, request.content) or _prefers_server_side_news_fallback(workspace.goal or request.content)
             subagent_enabled = agent_supports_subagent_delegation(workspace, agent_id)
+            # System self-check / ops tasks must NOT be routed through the public
+            # web research fallback -- searching the web for *this* machine's state
+            # is meaningless and previously produced misleading "completed" output.
+            # Steer them to host-level shell tools instead and skip web routing.
+            try:
+                from src.agents.core.instruction_contracts import detect_instruction_contract
+            
+                _sys_contract = detect_instruction_contract(workspace.goal or request.content, metadata=workspace.metadata)
+            except Exception:
+                _sys_contract = None
+            if _sys_contract is not None and _sys_contract.intent == "system_operation":
+                requires_tool_research = False
+                # Grant host/system tool surface for non-destructive self-check style
+                # operations so host_shell binds; destructive or privileged operations
+                # keep their confirmation guardrails untouched.
+                if not _sys_contract.guardrails and isinstance(workspace.metadata, dict):
+                    workspace.metadata.setdefault("default_permission_mode", "system")
             query_session_id = resolve_query_session_id(
                 workspace,
                 agent_id,

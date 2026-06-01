@@ -305,12 +305,21 @@ def evaluate_task_outcome(
         # fall back to auto-derived goal tokens: if the generic fallback banner
         # is present AND none of the goal's salient tokens appear, reject.
         if _is_generic_fallback_banner(normalized_output):
-            goal_tokens = derive_goal_tokens(workspace)
-            if goal_tokens and not _goal_semantics_are_satisfied(workspace, normalized_output) and not any(token in normalized_output for token in goal_tokens):
-                preview = ", ".join(goal_tokens[:5])
+            # A generic server-side fallback banner is emitted only when the model
+            # produced no tool calls and no real work was done -- the runtime merely
+            # stitched in an unverified public-web snippet.  Such output must never
+            # be reported as "completed"; route it to soft-handoff review unless the
+            # goal semantics are genuinely satisfied (e.g. a weather forecast that
+            # actually covers every requested city and day).  The previous
+            # `any(token in output)` escape hatch was too weak: incidental token
+            # overlap (a self-check goal mentioning "CPU"/"GPU" matching an unrelated
+            # CPU/GPU news page) let fake completions slip through.
+            if not _goal_semantics_are_satisfied(workspace, normalized_output):
+                goal_tokens = derive_goal_tokens(workspace)
+                preview = ", ".join(goal_tokens[:5]) if goal_tokens else (workspace.goal or workspace.name or "")[:60]
                 return (
                     "failed",
-                    f"Output appears to be an unrelated fallback search result (missing goal tokens: {preview}).",
+                    f"Output is a generic server-side fallback (model produced no tool calls); not accepted as completed (goal: {preview}).",
                 )
 
     contract = detect_instruction_contract(

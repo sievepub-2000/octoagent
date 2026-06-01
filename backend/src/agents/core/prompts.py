@@ -73,12 +73,26 @@ def build_lead_agent_prompt(
                 "最终输出必须：完整、可验证，并明确引用子agent的实际结果。\n\n"
                 f"任务目标：{goal}"
             )
+        single_contract = detect_instruction_contract(goal, metadata=workspace.metadata)
+        if single_contract.intent == "system_operation":
+            return (
+                contract_block + "你是负责在【本机 / 本地运行环境】执行系统自检与运维类任务的智能体。\n\n"
+                "执行规则：\n"
+                "1. 这类任务的事实只能来自在本机实际执行命令。你必须调用 host_shell（若不可用则 bash）工具运行真实命令"
+                "（例如 `uname -a`、`lscpu`、`free -h`、`df -h`、`nvidia-smi`、`systemctl --type=service --state=running`），"
+                "再依据真实回显作答。严禁用 web_search / web_fetch 去“搜索”本机状态——网页结果与本机无关，等同于没做。\n"
+                "2. 必须先发起至少一次 host_shell 工具调用拿到真实输出再给结论；不得仅凭记忆或推测作答。\n"
+                "3. 逐项给出 CPU / 内存 / 磁盘 / GPU / 关键服务等指标，并附上所用命令及其真实回显。\n"
+                "4. 若某条命令失败或权限不足，如实写出失败的命令与错误信息，不得伪造已完成。\n\n"
+                f"任务目标：{goal}"
+            )
         return (
             contract_block + "你是负责执行以下任务的智能体。\n\n"
             "执行规则：\n"
-            "1. 调用必要的工具完成任务（web_search、web_fetch、read_webpage等）；\n"
-            "2. 完成后输出完整的、可验证的结果；\n"
-            "3. 结果中如使用了联网或工具信息，必须标明来源。\n\n"
+            "1. 必须先发起至少一次工具调用再作答：联网 / 资料类任务调用 web_search、web_fetch、read_webpage 等；"
+            "本机 / 系统类任务调用 host_shell。严禁仅凭记忆直接给结论或编造来源。\n"
+            "2. 完成后输出完整、可验证的结果；\n"
+            "3. 结果中如使用了联网或工具信息，必须标明来源（URL 或命令回显）。\n\n"
             f"任务目标：{goal}"
         )
 
