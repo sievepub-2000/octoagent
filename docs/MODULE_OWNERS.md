@@ -22,7 +22,7 @@ naming artifact (every domain happens to have a `contracts.py`, a
 | --- | --- | --- |
 | `agents.core` | Session lifecycle, role definitions, instruction contracts, run records, termination policies. **Stateless.** | `AgentCoreService`, `get_agent_core_service` |
 | `agents.runtime` | The provider abstraction over how an agent is *executed* (LangGraph in-process vs remote). Builds providers, marshals execution snapshots. **Stateful at the manager level.** | `AgentRuntimeManager`, `AgentExecutionRequest/Result`, `AgentRuntimeProvider*`, `LangGraphWorkflowContractService` |
-| `agents.lead_agent` | The product-level "Hermes" lead agent — the kernel and graph builder that actually executes user turns. Consumes `core` + `runtime`. | `make_lead_agent`, `HermesLeadAgentKernel`, `LeadAgentKernelContract` |
+| `agents.lead_agent` | The product-level lead agent — the kernel and graph builder that actually executes user turns (Hermes-class durable-execution semantics, OctoAgent-native). Consumes `core` + `runtime`. | `make_lead_agent`, `OctoLeadAgentKernel`, `LeadAgentKernelContract` |
 | `agents.generic` | Low-privilege silent maintenance agent (runtime ledger cleanup, query-session compaction). **No external model calls.** | `GenericMaintenanceAgent`, `GenericAgentStatus` |
 
 ## Dependency direction (top → bottom)

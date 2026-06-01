@@ -1,3 +1,10 @@
+## 2026-06-01 - Hardening round 4 (idempotent orphan recovery + tolerant health probe)
+
+- `gateway/lifecycle`: the startup orphaned-workspace recovery sweep is now guarded by a process-scoped `IdempotentRunner` (from `storage.workflow.durable_execution`). A repeated or concurrent sweep replays the prior dispatch decision instead of re-invoking `safe_auto_execute_workspace` for the same `task_id`, closing the in-flight recovery race window (recovery scheduled but agent messages not yet persisted). Adds `backend/tests/gateway/test_orphan_recovery_idempotency.py` (at-most-once across two adversarial sweeps).
+- `scripts/start-octoagent.sh`: the systemd supervisor health loop now requires `OCTOAGENT_HEALTH_MAX_FAILURES` (default 3) *consecutive* `/api/models` probe failures before exiting for a restart, and bounds every probe with `curl --max-time 5` (startup `wait_ready` likewise). A single transient probe flap no longer bounces the whole stack (langgraph + gateway + frontend + QQ bridge).
+- docs: corrected `docs/MODULE_OWNERS.md` lead-agent kernel reference from the deprecated `HermesLeadAgentKernel` to `OctoLeadAgentKernel`.
+- Version: backend `2026.6.1.post1`, frontend `20260601.2`. `make lint` clean; orphan-recovery + durable-execution suites pass (6 tests); service restarted cleanly with entry `/api/models` 200 and langgraph `/ok` 200.
+
 ## 2026-06-01 - Hardening round 3 (kernel rename + DuckDB single-writer default-on + durable execution + robustness CI)
 
 - Renamed the internal default lead-agent kernel from `HermesLeadAgentKernel` to `OctoLeadAgentKernel` (and the `_DEFAULT_HERMES_LIFECYCLE_STATES` helper, `name`/`lifecycle_model` from `hermes_compatible` to `octo_native`) so OctoAgent's own self-naming no longer borrows the competitor brand. Scope was deliberate: external/competitor references (`competitor="Hermes Agent Solution Template"`, optimization scorecard baselines, the `hermes-gemini-3.1-pro` external model card, third-party `nousresearch-hermes-3-llama`) are KEPT verbatim because they name real external systems, not OctoAgent internals.
