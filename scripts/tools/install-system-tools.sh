@@ -23,7 +23,22 @@ PY
 }
 install_trivy() {
   arch="$(uname -m)"
-  case "$arch" in
+  install_semgrep() {
+  # Semgrep pins mcp==1.23.3 and older click; installing it into backend/.venv
+  # would downgrade mcp (1.25.0) and break OctoAgent MCP. Install it in an
+  # isolated pipx venv and expose a managed symlink so _which("semgrep")
+  # resolves it without polluting backend/.venv.
+  if ! command -v pipx >/dev/null 2>&1; then
+    echo "pipx is required for isolated semgrep (apt-get install -y pipx)" >&2
+    exit 1
+  fi
+  pipx install --force semgrep
+  sg="${PIPX_HOME:-$HOME/.local/share/pipx}/venvs/semgrep/bin/semgrep"
+  if [ ! -x "$sg" ]; then sg="$HOME/.local/share/pipx/venvs/semgrep/bin/semgrep"; fi
+  ln -sfn "$sg" "$BIN_DIR/semgrep"
+  "$BIN_DIR/semgrep" --version
+}
+case "$arch" in
     aarch64|arm64) asset_arch="ARM64" ;;
     x86_64|amd64) asset_arch="64bit" ;;
     *) echo "unsupported architecture for managed trivy: $arch" >&2; exit 1 ;;
@@ -39,8 +54,9 @@ install_trivy() {
   "$BIN_DIR/trivy" --version
 }
 case "${1:-all}" in
-  all) install_python_security; install_trivy ;;
+  all) install_python_security; install_trivy; install_semgrep ;;
   python-security) install_python_security ;;
   trivy) install_trivy ;;
-  *) echo "Usage: $0 [all|python-security|trivy]" >&2; exit 2 ;;
+  semgrep) install_semgrep ;;
+  *) echo "Usage: $0 [all|python-security|trivy|semgrep]" >&2; exit 2 ;;
 esac

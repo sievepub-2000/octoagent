@@ -68,6 +68,53 @@ def _backend_python() -> str:
 
 
 os.environ.setdefault("TRIVY_CACHE_DIR", str(_MANAGED_TOOLS_DIR / "trivy-cache"))
+
+_MCP_NODE_BIN = _MANAGED_TOOLS_DIR / "mcp" / "node_modules" / ".bin"
+_MCP_COMMAND_DEFAULTS = {
+    "OCTOAGENT_PYTHON_BIN": str(_BACKEND_VENV_BIN / "python"),
+    "OCTOAGENT_MCP_FILESYSTEM_BIN": str(_MCP_NODE_BIN / "mcp-server-filesystem"),
+    "OCTOAGENT_MCP_POSTGRES_BIN": str(_MCP_NODE_BIN / "mcp-server-postgres"),
+    "OCTOAGENT_MCP_OPENAPI_BIN": str(_MCP_NODE_BIN / "openapi-mcp-server"),
+    "OCTOAGENT_MCP_REDIS_BIN": str(_MCP_NODE_BIN / "mcp-server-redis"),
+    "OCTOAGENT_MCP_KUBERNETES_BIN": str(_MCP_NODE_BIN / "mcp-server-kubernetes"),
+    "OCTOAGENT_MCP_DOCKER_BIN": str(_MCP_NODE_BIN / "docker-mcp"),
+}
+
+
+def _resolve_mcp_command(raw: str) -> str:
+    """Resolve an MCP command field, expanding a leading $ENV placeholder.
+
+    Mirrors scripts/start-daemon.sh defaults so the doctor reports accurately
+    even when the MCP bin env vars are not exported in the current process.
+    """
+    raw = (raw or "").strip()
+    if not raw.startswith("$"):
+        return raw
+    name = raw[1:]
+    return os.environ.get(name) or _MCP_COMMAND_DEFAULTS.get(name, "")
+
+
+def _mcp_command_missing(cfg: dict) -> bool:
+    resolved = _resolve_mcp_command(str(cfg.get("command") or ""))
+    if not resolved:
+        return True
+    if os.path.isabs(resolved):
+        return not (os.path.exists(resolved) and os.access(resolved, os.X_OK))
+    return not bool(shutil.which(resolved))
+
+
+def _semgrep_status() -> str:
+    """Report isolated semgrep status (installed via pipx, never in backend/.venv)."""
+    exe = _which("semgrep")
+    if not exe:
+        return "not installed (run scripts/tools/install-system-tools.sh semgrep; isolated via pipx to avoid backend MCP dependency conflict)"
+    try:
+        out = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=15)
+        text = (out.stdout or out.stderr or "").strip()
+        version = text.splitlines()[0] if text else "unknown"
+    except Exception:
+        version = "unknown"
+    return f"enabled (isolated pipx) {exe} v{version}"
 os.environ.setdefault("NPM_CONFIG_CACHE", str(_MANAGED_TOOLS_DIR / "npm-cache"))
 os.environ.setdefault("npm_config_cache", os.environ["NPM_CONFIG_CACHE"])
 
@@ -1037,7 +1084,7 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
     checks: dict[str, Any] = {}
     checks["services"] = {svc: _run(["systemctl", "is-active", svc], timeout=5, tool_name="octo_doctor", artifact=False) for svc in ("octoagent-local.service", "llamacpp.service", "mihomo.service")}
     checks["binaries"] = {name: _which(name) for name in ("npx", "node", "docker", "git", "ssh", "psql", "sqlite3", "pytest", "ruff", "bandit", "trivy")}
-    checks["tool_policy"] = {"backend_venv": str(_BACKEND_VENV_BIN), "managed_bin": str(_MANAGED_BIN), "node_tools_bin": str(_NODE_TOOLS_BIN), "semgrep": "disabled: current releases conflict with OctoAgent MCP dependency"}
+    checks["tool_policy"] = {"backend_venv": str(_BACKEND_VENV_BIN), "managed_bin": str(_MANAGED_BIN), "node_tools_bin": str(_NODE_TOOLS_BIN), "semgrep": _semgrep_status()}
     cfg_path = _REPO_ROOT / "extensions_config.json"
     if cfg_path.exists():
         data = json.loads(cfg_path.read_text())
@@ -1046,8 +1093,9 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
             name: {
                 "enabled": bool(cfg.get("enabled")),
                 "command": cfg.get("command"),
+                "resolved_command": _resolve_mcp_command(str(cfg.get("command") or "")),
                 "permissionScope": cfg.get("permissionScope", "sandbox"),
-                "missing_command": not bool(shutil.which(str(cfg.get("command") or ""))),
+                "missing_command": _mcp_command_missing(cfg),
             }
             for name, cfg in mcp.items()
         }
