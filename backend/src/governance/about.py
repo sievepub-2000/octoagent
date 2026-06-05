@@ -79,7 +79,7 @@ _ABOUT_BODY = """**Project License**
 - This project includes original code excerpts from **Bytedance Ltd.**, redistributed under the **MIT License**; see `NOTICE.md` at the repository root for the full notice.
 - Full terms in `LICENSE` and `NOTICE.md` at the repository root.
 
-**Contact: zillafan80@gmail.com**
+**Author Contact: zillafan80@gmail.com**
 
 =====
 
@@ -111,7 +111,7 @@ Office automation · Business due diligence · Data analysis reports · Academic
 # whenever the canonical About body legitimately changes (e.g. translation
 # typo). Editing the email itself is a deliberate breakage signal — do not
 # bypass.
-_INTEGRITY_FINGERPRINT = "f0787c499b2ad91fe97e4bbbc22ac86e70b7d46017657cd21805599f1b1b54e3"  # resealed by refresh_about_fingerprint.py
+_INTEGRITY_FINGERPRINT = "3062ceb1d2cd43168209d298fd2a0ac6bedd2edbdee05452c808234e587dd059"  # resealed by refresh_about_fingerprint.py
 
 
 class AboutIntegrityError(RuntimeError):

@@ -38,7 +38,7 @@ def test_about_markdown_contains_contact_after_license():
     about = _reload_about()
     body = about.about_markdown()
     license_idx = body.index("**Project License**")
-    contact_idx = body.index("Contact: zillafan80@gmail.com")
+    contact_idx = body.index("Author Contact: zillafan80@gmail.com")
     assert license_idx < contact_idx, "license section must precede contact line"
 
 
