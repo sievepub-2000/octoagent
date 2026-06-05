@@ -1,3 +1,13 @@
+## [2026.6.6] - 2026-06-06
+
+### Fixed
+- **文件面板删除不生效**（`backend/src/agents/thread_state.py`, `backend/src/gateway/routers/artifacts.py`）：`artifacts` 状态通道的 `merge_artifacts` reducer 是纯加性并集（`list(dict.fromkeys(existing + new))`），删除端点 `update_state({"artifacts": filtered})` 发送的过滤列表会被 reducer 与旧值重新并集，导致被删路径立刻回灌、前端"文件"面板刷新后条目复现（磁盘文件已删但面板不同步）。新增 `ARTIFACTS_REPLACE_SENTINEL` 哨兵：当 `new` 以哨兵开头时 reducer 执行**替换语义**（丢弃旧值、返回去重后的新列表），其余情况保持加性以免并发 agent 写入丢失产物；删除端点改发 `[SENTINEL, *filtered]`，使删除真正落地。验证：reducer 单测（加性保留 + 哨兵替换 + 哨兵不泄漏）+ 实时 langgraph 服务器对比测试（普通过滤更新复现 bug、哨兵替换真正删除）。
+- **进度停滞无限循环**（`backend/src/agents/middlewares/progress_stall_middleware.py`, `backend/src/harness/hook_middleware.py`）：`progress_stall_middleware` 旧逻辑只注入软性 `self_reflection`/`soft escalation` 提示而**从不返回 `jump_to`**（注释明言仅 OOM guard 是硬停止），当目标依赖不可达来源（如 NXDOMAIN 域名）时 web 工具合理失败，弱本地模型忽略反思提示反复重试 + `recursion_limit=1000000` → run 永不终止。新增**硬熔断**分支：软反思与软升级耗尽、或同一调用签名重复 ≥ `_HARD_END_DUP`（默认 8，env `OCTO_PROGRESS_STALL_HARD_END_DUP`）时返回 `jump_to: END` 并产出一条 AIMessage 形式的"反思与评估"终局消息（总结已确认事实、判定外部阻塞、请用户决定下一步）；`hook_middleware._progress_stall_hook` 将该 `jump_to: END` 翻译为既有的 `HookResult(block=True)` 终止路径，由 `_apply_aggregate` 真正跳 END。受 `OCTO_PROGRESS_STALL_HARD_END`（默认 1）开关控制。验证：单元测试（深循环→`jump_to END`、短循环不误杀）+ 端到端（经 `HookDispatchMiddleware` 产出终局消息与 `harness_hook_blocked`）+ 实跑（不可达域名任务 `status=success` 优雅终止，不再循环）。
+- **artifacts thread state 同步两处 bug**（`backend/src/gateway/routers/artifacts.py`）：修复读取线程状态时 `_state.values`（dict 内建方法）误用 → 改为 `_state.get("values")`；并对线程存在 in-flight run 时的 `ConflictError` 静默降级（debug 日志，文件已删故 state 清理为 best-effort）。
+
+- Version: backend `2026.6.6`，frontend `20260606.1`。验证：相关文件 `py_compile` 通过；reducer/熔断单测与端到端测试全部通过；服务 clean restart 后四端口（19800/19802/19804/19806）监听正常，WebUI 入口 `/`（307 重定向至聊天）与 artifacts DELETE 路由经 nginx 可达，运行代码树确认含新哨兵与熔断逻辑。
+
+
 ## [2026.6.5] - 2026-06-05
 
 ### Improved
