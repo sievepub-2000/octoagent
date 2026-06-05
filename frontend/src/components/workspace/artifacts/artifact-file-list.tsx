@@ -1,5 +1,5 @@
 import { DownloadIcon, LoaderIcon, PackageIcon, Trash2Icon } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,12 @@ export function ArtifactFileList({
   } = useArtifacts();
   const [installingFile, setInstallingFile] = useState<string | null>(null);
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
+  const [displayFiles, setDisplayFiles] = useState<string[]>(files);
+
+  // Sync when the parent re-feeds a fresh list (e.g. after server re-fetch)
+  useEffect(() => {
+    setDisplayFiles(files);
+  }, [files]);
 
   const handleClick = useCallback(
     (filepath: string) => {
@@ -87,6 +93,7 @@ export function ArtifactFileList({
       try {
         await deleteArtifact({ threadId, filepath });
         setArtifacts(artifacts.filter((f) => f !== filepath));
+        setDisplayFiles((prev) => prev.filter((f) => f !== filepath));
         if (selectedArtifact === filepath) {
           deselect();
         }
@@ -114,7 +121,7 @@ export function ArtifactFileList({
 
   return (
     <ul className={cn("flex w-full flex-col gap-4", className)}>
-      {files.map((file) => (
+      {displayFiles.map((file) => (
         <Card
           key={file}
           className={cn("relative p-3", !downloadOnly && "cursor-pointer")}
