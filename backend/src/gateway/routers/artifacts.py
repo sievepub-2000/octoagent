@@ -215,6 +215,8 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
     # so that on refresh the file no longer appears in the file panel.
     try:
         from langgraph_sdk import get_client
+
+        from src.agents.thread_state import ARTIFACTS_REPLACE_SENTINEL
         _base_url = os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804")
         _client = get_client(url=_base_url)
         _state = await _client.threads.get_state(thread_id)
@@ -223,7 +225,14 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
         _normalized = "/" + path.lstrip("/")
         if _normalized in _artifacts or path in _artifacts:
             _artifacts = [a for a in _artifacts if a != _normalized and a != path]
-            await _client.threads.update_state(thread_id, {"artifacts": _artifacts})
+            # The artifacts channel uses an additive (union) reducer, so a plain
+            # list update would be merged back with the existing entries and the
+            # deleted path would reappear in the file panel. Prefix the replace
+            # sentinel so the reducer performs authoritative replace semantics.
+            await _client.threads.update_state(
+                thread_id,
+                {"artifacts": [ARTIFACTS_REPLACE_SENTINEL, *_artifacts]},
+            )
             logger.info(
                 "delete_artifact: removed %s from thread state artifacts (thread=%s)",
                 _normalized, thread_id,

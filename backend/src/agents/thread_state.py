@@ -76,8 +76,25 @@ def merge_runtime_state(
     return merged
 
 
+# Sentinel marker understood by ``merge_artifacts``. When the incoming ``new``
+# list starts with this value, the reducer treats the remaining entries as the
+# authoritative full list (replace semantics) instead of the default additive
+# union. This is what lets the delete-artifact endpoint actually drop a path;
+# without it the union reducer would immediately re-add any "removed" entry.
+ARTIFACTS_REPLACE_SENTINEL = "__octo_artifacts_replace__"
+
+
 def merge_artifacts(existing: list[str] | None, new: list[str] | None) -> list[str]:
-    """Reducer for artifacts list - merges and deduplicates artifacts."""
+    """Reducer for artifacts list - merges and deduplicates artifacts.
+
+    Default behavior is an additive, order-preserving union so concurrent agent
+    writes never drop a produced artifact. As a special case, if ``new`` begins
+    with :data:`ARTIFACTS_REPLACE_SENTINEL`, the remaining items replace the list
+    wholesale, allowing callers to remove entries (e.g. file deletion).
+    """
+    if isinstance(new, list) and new and new[0] == ARTIFACTS_REPLACE_SENTINEL:
+        replacement = [a for a in new[1:] if a != ARTIFACTS_REPLACE_SENTINEL]
+        return list(dict.fromkeys(replacement))
     if existing is None:
         return new or []
     if new is None:
