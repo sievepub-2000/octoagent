@@ -255,7 +255,7 @@ export function WorkflowInspector({
                 </div>
               ) : null}
             </TabsContent>
-            <TabsContent className="min-h-0 flex-1 p-4" value="artifacts">
+            <TabsContent className="min-h-0 flex-1 overflow-y-auto p-4" value="artifacts">
               {topTab !== "artifacts" ? null : threadState.artifacts?.length ? (
                 <ArtifactFileList
                   downloadOnly
