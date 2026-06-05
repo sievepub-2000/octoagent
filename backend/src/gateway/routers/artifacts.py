@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import mimetypes
+import os
 import zipfile
 from pathlib import Path
 from urllib.parse import quote
@@ -209,6 +210,30 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
     except OSError as exc:
         logger.error("Failed to delete artifact %s: %s", actual_path, exc)
         raise HTTPException(status_code=500, detail="Failed to delete artifact") from exc
+
+    # Remove the deleted path from the thread's artifacts list in LangGraph state
+    # so that on refresh the file no longer appears in the file panel.
+    try:
+        from langgraph_sdk import get_client
+        _base_url = os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804")
+        _client = get_client(url=_base_url)
+        _state = await _client.threads.get_state(thread_id)
+        _artifacts: list[str] = list((_state.values or {}).get("artifacts") or [])
+        # The stored path may have a leading '/' while the API path param may not
+        _normalized = "/" + path.lstrip("/")
+        if _normalized in _artifacts or path in _artifacts:
+            _artifacts = [a for a in _artifacts if a != _normalized and a != path]
+            await _client.threads.update_state(thread_id, {"artifacts": _artifacts})
+            logger.info(
+                "delete_artifact: removed %s from thread state artifacts (thread=%s)",
+                _normalized, thread_id,
+            )
+    except Exception as _exc:
+        # Non-fatal: the file is already deleted; state cleanup is best-effort.
+        logger.warning(
+            "delete_artifact: could not update thread state artifacts for thread=%s: %s",
+            thread_id, _exc,
+        )
 
     return {"success": True, "path": path}
 
