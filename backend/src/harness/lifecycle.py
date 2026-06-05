@@ -58,6 +58,18 @@ def _orphan_cancel_enabled() -> bool:
     return os.getenv("OCTO_HARNESS_ORPHAN_CANCEL_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _activity_window_minutes() -> int:
+    """Grace window: if the thread had a message in the last N minutes, the run
+    is still considered active even if its total age exceeds max_age."""
+    raw = os.getenv("OCTO_HARNESS_ACTIVITY_WINDOW_MIN", "8").strip()
+    try:
+        v = int(raw)
+        return v if v >= 1 else 8
+    except ValueError:
+        return 8
+
+
+
 def _parse_ts(value: Any) -> datetime | None:
     if not value or not isinstance(value, str):
         return None
@@ -164,6 +176,39 @@ class OrphanRunSweeper:
                     logger.exception("OrphanRunSweeper: journal update failed for %s", rid)
         return out
 
+
+    async def _get_thread_last_message_time(
+        self, client: httpx.AsyncClient, thread_id: str
+    ) -> "datetime | None":
+        """Return the timestamp of the most-recent message in the thread,
+        or None if the state cannot be fetched."""
+        try:
+            r = await client.get(
+                f"{self.base_url}/threads/{thread_id}/state",
+                timeout=self.request_timeout,
+            )
+            if r.status_code != 200:
+                return None
+            state = r.json()
+            messages = (state.get("values") or {}).get("messages", [])
+            if not messages:
+                return None
+            # Walk in reverse to find the newest timestamped message
+            for msg in reversed(messages):
+                ts = None
+                for key in ("created_at", "timestamp", "response_metadata"):
+                    val = msg.get(key)
+                    if isinstance(val, dict):
+                        # response_metadata often has a 'created_at' subkey
+                        val = val.get("created_at") or val.get("timestamp")
+                    if val and isinstance(val, str):
+                        ts = _parse_ts(val)
+                        if ts:
+                            return ts
+            return None
+        except Exception:
+            return None
+
     async def sweep_once(self) -> dict[str, int]:
         now = datetime.now(UTC)
         result = {
@@ -195,6 +240,20 @@ class OrphanRunSweeper:
                     age = now - created
                     if age < self.max_age:
                         continue
+                    # Activity guard: skip cancel if the thread had a recent
+                    # message (active tool-streaming may take > max_age).
+                    if _orphan_cancel_enabled():
+                        _activity_win = timedelta(minutes=_activity_window_minutes())
+                        _last_msg = await self._get_thread_last_message_time(client, tid)
+                        if _last_msg is not None and (now - _last_msg) < _activity_win:
+                            logger.debug(
+                                "OrphanRunSweeper: skipping active run thread=%s "
+                                "age=%.0fs last_msg_age=%.0fs",
+                                tid,
+                                age.total_seconds(),
+                                (now - _last_msg).total_seconds(),
+                            )
+                            continue
                     rid = run.get("run_id") or run.get("id")
                     if not rid:
                         continue
