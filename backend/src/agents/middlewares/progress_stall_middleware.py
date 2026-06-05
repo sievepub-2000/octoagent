@@ -56,6 +56,15 @@ _SAFETY_NET_DUP = max(_SOFT_ESCALATION_DUP + 2, int(os.getenv("OCTO_PROGRESS_STA
 # Maximum number of soft-recovery system messages to inject for any single stall
 # signature inside one human turn before escalating to user-communication advice.
 _MAX_SOFT_ESCALATIONS_PER_SIGNATURE = int(os.getenv("OCTO_PROGRESS_STALL_MAX_SOFT_PER_SIG", "2"))
+# Hard circuit-breaker: once soft reflection + soft escalation have been tried
+# and the model STILL repeats the same failing tool calls (typical with weaker
+# local models that ignore the advisory reflection prompts), force the run to
+# terminate with a final "reflection/evaluation" message instead of looping
+# until OOM. Enabled by default; tune via env. This is the deterministic stop
+# the soft path deliberately omitted.
+_HARD_END_ENABLED = os.getenv("OCTO_PROGRESS_STALL_HARD_END", "1") == "1"
+_HARD_END_DUP = max(_SAFETY_NET_DUP + 3, int(os.getenv("OCTO_PROGRESS_STALL_HARD_END_DUP", "8")))
+_HARD_STOP_MARKER = '<progress_stall_hard_stop origin="progress_stall_middleware"'
 _USER_HANDOFF_MARKER = '<progress_stall_user_handoff origin="progress_stall_middleware"'
 _SOFT_ESCALATION_MARKER = '<progress_stall_recovery origin="progress_stall_middleware"'
 
@@ -324,6 +333,53 @@ def _build_soft_escalation_message(per_call_sigs: list[str], dup_count: int, sta
     return SystemMessage(content=body)
 
 
+def _build_hard_stop_finalization(
+    per_call_sigs: list[str],
+    output_sigs: list[str],
+    dup_count: int,
+    execution_mode: str = "assisted",
+) -> AIMessage:
+    """Compose the final assistant message emitted when the hard circuit-breaker
+    fires. Rendered as an AIMessage so the UI shows it as the assistant's final
+    answer rather than an internal system note. This is the explicit
+    reflection/evaluation the user expects when tools keep failing.
+    """
+    top = Counter(per_call_sigs).most_common(1)
+    top_sig = top[0][0] if top else "(unknown)"
+    try:
+        name, payload = top_sig.split("::", 1)
+    except ValueError:
+        name, payload = top_sig, ""
+    payload = payload[:240] + ("…" if len(payload) > 240 else "")
+    recent_outputs = Counter(output_sigs[-_REDUNDANT_OUTPUT_WINDOW:]).most_common(2)
+    out_lines = []
+    for sig, count in recent_outputs:
+        snippet = sig[:140] + ("…" if len(sig) > 140 else "")
+        out_lines.append(f"  - {count}× {snippet}")
+    body = "\n".join(
+        [
+            f'{_HARD_STOP_MARKER} dup="{dup_count}" execution_mode="{execution_mode}">',
+            "我已停止本轮自动重试，因为同一组工具调用反复失败、且没有产生任何新信息——继续重试只会无限循环。下面是对当前情况的反思与评估：",
+            "",
+            "已确认的事实（评估）：",
+            f"  - 反复调用的工具：{name}",
+            f"  - 调用参数（截取）：{payload}",
+            f"  - 该路径已重复约 {dup_count} 次，最近的工具输出高度一致：",
+            *(out_lines or ["    - （均为错误/空结果）"]),
+            "  - 结论：这是一个外部阻塞（目标来源不可达 / 无搜索结果 / 被访问策略拦截），不是可以靠重复同一调用解决的问题。",
+            "",
+            "我需要你来决定下一步（任选其一）：",
+            "  1. 确认目标 URL / 来源是否正确，或提供一个可访问的替代链接；",
+            "  2. 直接把相关资料（PDF/文本/截图）上传给我，由我基于这些材料继续；",
+            "  3. 允许我基于现有已收集到的证据，先产出一份带有明确「信息缺口」标注的初版结果。",
+            "",
+            "在你给出方向之前，我不会继续重复这条已经确定失败的路径。",
+            "</progress_stall_hard_stop>",
+        ]
+    )
+    return AIMessage(content=body)
+
+
 class ProgressStallMiddleware(AgentMiddleware[AgentState]):
     """Detect progress stalls and inject a Reflexion-style self-critique."""
 
@@ -408,6 +464,50 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
             dup_count >= _SAFETY_NET_DUP
             or soft_for_signature >= _MAX_SOFT_ESCALATIONS_PER_SIGNATURE
         )
+
+        # Hard circuit-breaker: the soft path (self-reflection + soft
+        # escalation) deliberately never terminates the run, which means a
+        # weaker model that ignores the advisory prompts loops until OOM or a
+        # manual cancel. Once those soft mechanisms are demonstrably exhausted
+        # (or the same call repeats past a deep ceiling), force termination with
+        # a final reflection/evaluation message so the agent stops and reports
+        # back instead of spinning forever.
+        reflections_exhausted = prior_reflections >= _MAX_REFLECTIONS_PER_TURN
+        soft_exhausted = soft_for_signature >= _MAX_SOFT_ESCALATIONS_PER_SIGNATURE
+        hard_end = _HARD_END_ENABLED and (
+            dup_count >= _HARD_END_DUP
+            or (reflections_exhausted and soft_exhausted)
+            or (reflections_exhausted and dup_count >= _SAFETY_NET_DUP)
+        )
+        if hard_end:
+            logger.warning(
+                "ProgressStall: HARD-STOP signature=%s dup=%d prior_reflections=%d soft_for_sig=%d mode=%s",
+                signature,
+                dup_count,
+                prior_reflections,
+                soft_for_signature,
+                execution_mode,
+            )
+            return {
+                "messages": [
+                    _build_hard_stop_finalization(per_call_sigs, output_sigs, dup_count, execution_mode)
+                ],
+                # Consumed by the hook bridge (_progress_stall_hook), which
+                # translates it into the sanctioned block=True → jump_to END
+                # termination path.
+                "jump_to": "END",
+                "runtime": {
+                    **dict(state.get("runtime") or {}),
+                    "progress_stall": {
+                        "signature": signature,
+                        "per_call_count": len(per_call_sigs),
+                        "output_count": len(output_sigs),
+                        "escalation": "hard_stop",
+                        "hard_stop": True,
+                        "execution_mode": execution_mode,
+                    },
+                },
+            }
 
         # Escalation: same tool call repeated past ceiling, or reflections
         # exhausted but still stalled. Default to a soft recovery instruction;

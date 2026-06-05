@@ -123,10 +123,23 @@ def _register_legacy_middleware_as_hooks() -> None:
         def _progress_stall_hook(ctx: HookContext) -> HookResult:
             # ProgressStallMiddleware acts in before_model — call the right hook.
             update = _stall_mw.before_model(ctx.state, ctx.runtime)
+            block = False
+            reason = ""
+            # The middleware signals a hard circuit-breaker by including
+            # ``jump_to: END`` in its state update. Translate that into the
+            # sanctioned block=True path so ``_apply_aggregate`` performs the
+            # actual graph termination (jump_to END). We strip jump_to from the
+            # state_update itself because the aggregate re-adds it on block.
+            if isinstance(update, dict) and str(update.get("jump_to", "")).upper() == "END":
+                block = True
+                reason = "progress_stall_hard_stop: repeated tool calls keep failing with no new progress; finalizing to break the loop"
+                update = {k: v for k, v in update.items() if k != "jump_to"}
             return HookResult(
                 hook_name="progress_stall",
                 event=ctx.event,
                 state_update=update if isinstance(update, dict) else None,
+                block=block,
+                reason=reason,
                 metadata={"legacy_middleware": "ProgressStallMiddleware"},
             )
 
