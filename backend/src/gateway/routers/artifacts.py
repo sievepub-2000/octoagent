@@ -218,7 +218,7 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
         _base_url = os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804")
         _client = get_client(url=_base_url)
         _state = await _client.threads.get_state(thread_id)
-        _artifacts: list[str] = list((_state.values or {}).get("artifacts") or [])
+        _artifacts: list[str] = list((_state.get("values") or {}).get("artifacts") or [])
         # The stored path may have a leading '/' while the API path param may not
         _normalized = "/" + path.lstrip("/")
         if _normalized in _artifacts or path in _artifacts:
@@ -230,10 +230,19 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
             )
     except Exception as _exc:
         # Non-fatal: the file is already deleted; state cleanup is best-effort.
-        logger.warning(
-            "delete_artifact: could not update thread state artifacts for thread=%s: %s",
-            thread_id, _exc,
-        )
+        # ConflictError means a run is in-flight; it will write its own artifacts
+        # update on completion, so we don't need to do anything here.
+        _exc_name = type(_exc).__name__
+        if "Conflict" in _exc_name:
+            logger.debug(
+                "delete_artifact: thread=%s has in-flight run, skipping state update (file deleted)",
+                thread_id,
+            )
+        else:
+            logger.warning(
+                "delete_artifact: could not update thread state artifacts for thread=%s: %s",
+                thread_id, _exc,
+            )
 
     return {"success": True, "path": path}
 
