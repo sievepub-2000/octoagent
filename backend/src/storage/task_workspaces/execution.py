@@ -5,6 +5,7 @@ from __future__ import annotations
 import datetime
 import json
 import logging
+import os
 from collections.abc import Awaitable, Callable
 from typing import Any
 
@@ -52,10 +53,17 @@ from .execution_runtime_helpers import (
     execute_worker_with_timeout_recovery,
     run_direct_model_fallback,
 )
-from .research_fallback import build_server_side_research_fallback_async
+from .research_fallback import (
+    build_integrated_workflow_tool_response as _build_integrated_workflow_tool_response,
+    build_server_side_research_fallback_async,
+    resolve_integrated_workflow_id as _resolve_integrated_workflow_id,
+    server_side_fallback_target as _server_side_fallback_target,
+    _prefers_server_side_news_fallback,
+)
 
 logger = logging.getLogger(__name__)
 
+# Domain-routing constants kept here for prompt-level use
 _X_DOMAIN_MARKERS = ("x.com", "twitter", "site:x.com")
 _SINA_DOMAIN_MARKERS = ("新浪", "sina", "news.sina.com.cn")
 _NEWS_QUERY_MARKERS = ("news", "headline", "headlines", "新闻", "资讯", "头条")
@@ -79,135 +87,16 @@ _TASK_PROMPT_SECTION_MARKERS = (
 )
 
 
-def _prefers_server_side_ai_news_fallback(query: str | None) -> bool:
-    normalized = normalize_text(query)
-    return looks_like_ai_model_news_query(normalized) and any(marker in normalized for marker in _X_DOMAIN_MARKERS)
+# _resolve_integrated_workflow_id and _build_integrated_workflow_tool_response
+# moved to research_fallback for decoupling; imported above.
 
 
-def _prefers_server_side_news_fallback(query: str | None) -> bool:
-    normalized = normalize_text(query)
-    if _prefers_server_side_ai_news_fallback(normalized):
-        return True
-    mentions_sina = any(marker in normalized for marker in _SINA_DOMAIN_MARKERS)
-    mentions_news = any(marker in normalized for marker in _NEWS_QUERY_MARKERS)
-    mentions_top_news = any(marker in normalized for marker in _TOP_NEWS_QUERY_MARKERS)
-    return mentions_sina and mentions_news and mentions_top_news
-
-
-def _server_side_fallback_target(query: str | None) -> str:
-    if _prefers_server_side_ai_news_fallback(query):
-        return "server_side_ai_news_fallback"
-    if _prefers_server_side_news_fallback(query):
-        return "server_side_news_fallback"
-    return "server_side_research_fallback"
-
-
-_INTEGRATED_WORKFLOW_ALIASES = {
-    "ian handdrawn": "ian-handdrawn-ppt",
-    "handdrawn ppt": "ian-handdrawn-ppt",
-    "hand drawn ppt": "ian-handdrawn-ppt",
-    "helloianneo": "ian-handdrawn-ppt",
-    "lumibot": "lumibot-research-strategy",
-    "lumiwealth": "lumibot-research-strategy",
-}
-
-
-def _resolve_integrated_workflow_id(query: str | None) -> str | None:
-    normalized = normalize_text(query)
-    raw = str(query or "").lower()
-    if not normalized and not raw:
-        return None
-    try:
-        from src.tools.builtins.ecosystem_workflow_tools import WORKFLOW_ALIASES
-    except Exception:
-        logger.exception("Failed to load integrated ecosystem workflow aliases")
-        return None
-    haystacks = (normalized, raw)
-    for workflow_id in sorted(WORKFLOW_ALIASES, key=len, reverse=True):
-        candidate = workflow_id.lower()
-        if any(candidate in haystack for haystack in haystacks):
-            return workflow_id
-    for marker, workflow_id in _INTEGRATED_WORKFLOW_ALIASES.items():
-        if any(marker in haystack for haystack in haystacks):
-            return workflow_id
-    return None
-
-
-def _json_tool_payload(raw: str) -> dict[str, Any]:
-    try:
-        payload = json.loads(raw)
-    except json.JSONDecodeError:
-        return {"raw": raw}
-    return payload if isinstance(payload, dict) else {"raw": payload}
-
-
-def _build_integrated_workflow_tool_response(workflow_id: str, prompt: str) -> tuple[str, int]:
-    from src.tools.builtins.ecosystem_workflow_tools import integrated_project_catalog_tool, integrated_workflow_run_tool
-    from src.tools.capability_tools import get_plugin_command_tool, load_skill_tool
-
-    catalog_raw = integrated_project_catalog_tool.invoke({"max_items": 100})
-    workflow_raw = integrated_workflow_run_tool.invoke({"workflow_id": workflow_id, "prompt": prompt, "dry_run": True})
-    catalog_payload = _json_tool_payload(catalog_raw)
-    workflow_payload = _json_tool_payload(workflow_raw)
-    project = workflow_payload.get("project") if isinstance(workflow_payload.get("project"), dict) else {}
-    sequence = workflow_payload.get("tool_call_sequence") if isinstance(workflow_payload.get("tool_call_sequence"), list) else []
-    command_id = None
-    for step in sequence:
-        if not isinstance(step, dict) or step.get("tool") != "get_plugin_command":
-            continue
-        args = step.get("args") if isinstance(step.get("args"), dict) else {}
-        command_id = str(args.get("command_id") or "").strip() or None
-        if command_id:
-            break
-    plugin_raw = get_plugin_command_tool.invoke({"command_id": command_id}) if command_id else ""
-    skill_name = str(project.get("skill_name") or "").strip()
-    skill_raw = load_skill_tool.invoke({"skill_name": skill_name}) if skill_name else ""
-
-    tool_calls = [
-        "integrated_project_catalog",
-        "get_plugin_command" if command_id else "get_plugin_command(skipped)",
-        "load_skill" if skill_name else "load_skill(skipped)",
-        "integrated_workflow_run",
-    ]
-    catalog_count = catalog_payload.get("returned", 0)
-    status = workflow_payload.get("status", "unknown")
-    plugin_excerpt = plugin_raw[:500] if plugin_raw else "skipped"
-    skill_excerpt = skill_raw[:500] if skill_raw else "skipped"
-    workflow_excerpt = json.dumps(workflow_payload, ensure_ascii=False, indent=2)[:2500]
-    content = f"""## Integrated Workflow Tool Execution
-
-Status: `{status}`
-workflow_id: `{workflow_id}`
-project_id: `{project.get('project_id') or ''}`
-plugin_id: `{project.get('plugin_id') or ''}`
-skill_name: `{skill_name or 'none'}`
-
-### Tool Calls
-
-1. `integrated_project_catalog` returned `{catalog_count}` installed ecosystem projects.
-2. `get_plugin_command` resolved `{command_id or 'none'}`.
-3. `load_skill` loaded `{skill_name or 'none'}`.
-4. `integrated_workflow_run` produced the deterministic workflow plan.
-
-### Plugin Command Evidence
-
-```text
-{plugin_excerpt}
-```
-
-### Skill Evidence
-
-```text
-{skill_excerpt}
-```
-
-### Workflow Result
-
-```json
-{workflow_excerpt}
-```
-"""
-    return content, len([name for name in tool_calls if "skipped" not in name])
+class RuntimeInvocationFailure(RuntimeError):
+    """Raised by TaskWorkspaceMessageExecutor when runtime invocation fails and all
+    fallbacks are exhausted, allowing the orchestration layer's escalation-retry loop
+    to handle recovery with proper stage-based prompting instead of silently returning
+    a forced failure message.
+    """
 
 
 class TaskWorkspaceExecutionController:
@@ -244,22 +133,20 @@ class TaskWorkspaceExecutionController:
             ws_timeout = int(workspace.metadata["timeout_seconds"])  # honor caller; resource guard handles pressure
         per_attempt_timeout = max(60, min(ws_timeout + 30, 900))
         retry_budget = get_execution_retry_budget(workspace)
-        # native_state_graph shadow projection (flag-gated, log-only).
-        try:
-            from src.storage.workflow.native_state_graph import (
-                is_native_graph_enabled,
-                project_workspace_card_graph,
-            )
+        # native_state_graph shadow projection: skip entirely when flag is off
+        # to avoid per-call import overhead.  Set WORKFLOW_NATIVE_GRAPH=1 to enable.
+        if os.getenv("WORKFLOW_NATIVE_GRAPH", "").strip().lower() in {"1", "true", "yes", "on"}:
+            try:
+                from src.storage.workflow.native_state_graph import project_workspace_card_graph
 
-            if is_native_graph_enabled():
                 _ng_plan = project_workspace_card_graph(workspace)
                 logger.info(
                     "native_graph shadow projection: task=%s summary=%s",
                     workspace.task_id,
                     _ng_plan.summarize(),
                 )
-        except Exception as _ng_exc:  # noqa: BLE001
-            logger.debug("native_graph shadow projection failed: %s", _ng_exc)
+            except Exception as _ng_exc:  # noqa: BLE001
+                logger.debug("native_graph shadow projection failed: %s", _ng_exc)
 
         workflow_module = workflow_module_factory()
 
@@ -758,6 +645,8 @@ class TaskWorkspaceMessageExecutor:
 
         tool_call_count = 0
         runtime_invocation_failed = False
+        runtime_error_detail: str | None = None
+        _re_raise_runtime_failure: RuntimeInvocationFailure | None = None
         used_direct_fallback = False
         used_url_fetch_fallback = False
         used_server_side_fallback = False
@@ -818,8 +707,9 @@ class TaskWorkspaceMessageExecutor:
                         runtime_step_id = str(invoke_result[5].get("run_id") or "") or None
                 else:
                     assistant_content, tool_call_count = invoke_result
-        except Exception:
+        except Exception as exc:
             runtime_invocation_failed = True
+            runtime_error_detail = f"{type(exc).__name__}: {exc}"
             logger.exception("Runtime invocation failed for task %s agent %s", task_id, agent_id)
 
         if requires_tool_research and tool_call_count == 0 and not runtime_invocation_failed:
@@ -877,11 +767,43 @@ class TaskWorkspaceMessageExecutor:
             )
             used_direct_fallback = assistant_content is not None
 
+        # When the runtime invocation itself raised, surface the concrete error
+        # instead of dropping it, so the failure is *reported* with specifics
+        # (what was attempted + why it failed) rather than stopping silently.
+        runtime_error_block = f"\n\n失败详情（runtime error）：{runtime_error_detail}" if runtime_error_detail else ""
         if assistant_content is None and requires_tool_research:
-            assistant_content = "Execution failed: research workflow did not produce a valid tool-backed answer. No reliable web/tool evidence was captured, so direct memory-only output was rejected."
+            assistant_content = (
+                "Execution failed: research workflow did not produce a valid tool-backed answer. "
+                "No reliable web/tool evidence was captured, so direct memory-only output was rejected."
+                f"{runtime_error_block}"
+            )
             forced_failure_message = True
         if assistant_content is None and subagent_enabled:
-            assistant_content = "Execution failed: multi-agent workflow did not return a valid LangGraph result. Direct single-model fallback is disabled for group/branch mode to avoid bypassing tools and coordination."
+            assistant_content = (
+                "Execution failed: multi-agent workflow did not return a valid LangGraph result. "
+                "Direct single-model fallback is disabled for group/branch mode to avoid bypassing tools and coordination."
+                f"{runtime_error_block}"
+            )
+            forced_failure_message = True
+        if assistant_content is None and runtime_invocation_failed:
+            # Final safety net: emit a self-describing failure report.
+            # When executing inside a workspace (retry loop available), also
+            # schedule a re-raise AFTER message recording so the escalation
+            # layer can handle recovery with stage-appropriate prompting.
+            detail_block = f"\n\n失败详情（runtime error）：{runtime_error_detail}" if runtime_error_detail else ""
+            if workspace is not None:
+                _re_raise_runtime_failure = RuntimeInvocationFailure(
+                    f"Runtime invocation failed for agent {agent_id}: "
+                    f"{runtime_error_detail or '(no error detail captured)'}"
+                )
+            assistant_content = (
+                "Execution failed: the agent runtime raised an error and no fallback path produced output. "
+                "已尝试：主运行时调用"
+                + ("、联网检索强制重试" if requires_tool_research else "")
+                + ("、服务器端检索兜底" if requires_tool_research else "")
+                + "。"
+                + detail_block
+            )
             forced_failure_message = True
         if workspace is not None and requires_tool_research and tool_call_count == 0 and not used_server_side_fallback:
             assistant_content = f"{assistant_content}\n\nValidation note: expected at least one web/tool call for this research task, but none were observed in LangGraph traces."
@@ -926,6 +848,11 @@ class TaskWorkspaceMessageExecutor:
             query_session_id=query_session_id,
             runtime_session_id=runtime_session_id,
         )
+
+        # item-7: propagate runtime failure to orchestration retry loop after
+        # message recording and telemetry dispatch are complete.
+        if _re_raise_runtime_failure is not None:
+            raise _re_raise_runtime_failure
 
         return result
 

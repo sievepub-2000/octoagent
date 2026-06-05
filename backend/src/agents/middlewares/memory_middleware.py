@@ -9,6 +9,7 @@ from typing import Any, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
+from langchain.agents.middleware.types import ModelRequest
 from langgraph.runtime import Runtime
 
 from src.agents.memory.queue import get_memory_queue
@@ -71,6 +72,45 @@ def _store_simplemem_conversation_async(
 
     _dispatch_simplemem_worker(_worker, thread_id)
 
+
+
+def _extract_user_query_from_messages(messages: list) -> str | None:
+    """Extract the latest human message as a semantic search query."""
+    for msg in reversed(messages):
+        if getattr(msg, "type", None) == "human":
+            content = getattr(msg, "content", "")
+            if isinstance(content, list):
+                content = " ".join(
+                    p.get("text", "") for p in content if isinstance(p, dict) and "text" in p
+                )
+            content = re.sub(r"<uploaded_files>[\s\S]*?</uploaded_files>", "", str(content)).strip()
+            if len(content) >= 10:
+                return content[:600]
+    return None
+
+
+def _build_semantic_recall_block(query: str) -> str | None:
+    """Search SystemRAG semantically and return a compact recall block, or None."""
+    try:
+        from src.agents.memory.system_rag_store import get_system_rag_store
+
+        store = get_system_rag_store()
+        collected: list[tuple[float, str, str]] = []
+        for namespace in ("conversation_summary", "archival_memory", "skill_evolution"):
+            for entry in store.search(query, namespace=namespace, top_k=4):
+                if entry.score >= 0.45:
+                    collected.append((entry.score, namespace, str(entry.content).strip()))
+        if not collected:
+            return None
+        collected.sort(key=lambda t: t[0], reverse=True)
+        lines = ["<recalled_memories>"]
+        for _score, ns, content in collected[:6]:
+            lines.append(f"- [{ns}] {content[:600]}")
+        lines.append("</recalled_memories>")
+        return "\n".join(lines)
+    except Exception as exc:
+        logger.debug("Semantic memory recall skipped: %s", exc)
+        return None
 
 class MemoryMiddlewareState(AgentState):
     """Compatible with the `ThreadState` schema."""
@@ -228,6 +268,47 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
         """
         super().__init__()
         self._agent_name = agent_name
+
+
+    def _inject_semantic_memory(self, request: ModelRequest) -> ModelRequest:
+        """Dynamically inject semantically relevant memories into each model call."""
+        try:
+            config = get_memory_config()
+            if not config.enabled or not config.injection_enabled:
+                return request
+            query = _extract_user_query_from_messages(list(request.messages))
+            if not query:
+                return request
+            block = _build_semantic_recall_block(query)
+            if not block:
+                return request
+            from langchain_core.messages import SystemMessage as _SystemMessage
+            messages = list(request.messages)
+            insert_at = 0
+            for idx, msg in enumerate(messages):
+                if getattr(msg, "type", None) == "system":
+                    insert_at = idx + 1
+                else:
+                    break
+            messages.insert(insert_at, _SystemMessage(content=block))
+            request.messages = messages
+        except Exception as exc:
+            logger.debug("Semantic memory injection skipped: %s", exc)
+        return request
+
+    @override
+    def modify_model_request(
+        self, request: ModelRequest, state: MemoryMiddlewareState, runtime: Runtime
+    ) -> ModelRequest:
+        """Inject semantically relevant long-term memories before each model call."""
+        return self._inject_semantic_memory(request)
+
+    @override
+    async def amodify_model_request(
+        self, request: ModelRequest, state: MemoryMiddlewareState, runtime: Runtime
+    ) -> ModelRequest:
+        """Async: inject semantically relevant long-term memories before each model call."""
+        return self._inject_semantic_memory(request)
 
     @override
     def after_agent(self, state: MemoryMiddlewareState, runtime: Runtime) -> dict | None:

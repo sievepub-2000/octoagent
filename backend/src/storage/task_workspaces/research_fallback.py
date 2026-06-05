@@ -870,3 +870,134 @@ def _build_direct_url_fetch_fallback(prompt: str) -> str | None:
                 return f"Direct URL fetch fallback succeeded.\n\nSource: {url}\n\n{pretty}"
         return f"Direct URL fetch fallback succeeded.\n\nSource: {url}\n\n{body_text[:4000]}"
     return None
+
+
+# ─────────────────────────────────────────────────────────────────
+# Fallback-routing helpers (moved from execution.py for decoupling)
+# ─────────────────────────────────────────────────────────────────
+
+_X_DOMAIN_MARKERS = ("x.com", "twitter", "site:x.com")
+_SINA_DOMAIN_MARKERS = ("新浪", "sina", "news.sina.com.cn")
+_NEWS_QUERY_MARKERS = ("news", "headline", "headlines", "新闻", "资讯", "头条")
+_TOP_NEWS_QUERY_MARKERS = ("top 10", "top10", "top ten", "前十", "前10", "十大", "热点", "热榜")
+
+_INTEGRATED_WORKFLOW_ALIASES: dict[str, str] = {
+    "ian handdrawn": "ian-handdrawn-ppt",
+    "handdrawn ppt": "ian-handdrawn-ppt",
+    "hand drawn ppt": "ian-handdrawn-ppt",
+    "helloianneo": "ian-handdrawn-ppt",
+    "lumibot": "lumibot-research-strategy",
+    "lumiwealth": "lumibot-research-strategy",
+}
+
+
+def _prefers_server_side_ai_news_fallback(query: str | None) -> bool:
+    normalized = (query or "").strip().lower()
+    return _looks_like_ai_model_news_query(normalized) and any(
+        marker in normalized for marker in _X_DOMAIN_MARKERS
+    )
+
+
+def _prefers_server_side_news_fallback(query: str | None) -> bool:
+    normalized = (query or "").strip().lower()
+    if _prefers_server_side_ai_news_fallback(normalized):
+        return True
+    mentions_sina = any(marker in (query or "").lower() for marker in _SINA_DOMAIN_MARKERS)
+    mentions_news = any(marker in normalized for marker in _NEWS_QUERY_MARKERS)
+    mentions_top_news = any(marker in normalized for marker in _TOP_NEWS_QUERY_MARKERS)
+    return mentions_sina and mentions_news and mentions_top_news
+
+
+def server_side_fallback_target(query: str | None) -> str:
+    """Return the preferred fallback target key for *query*."""
+    if _prefers_server_side_ai_news_fallback(query):
+        return "server_side_ai_news_fallback"
+    if _prefers_server_side_news_fallback(query):
+        return "server_side_news_fallback"
+    return "server_side_research_fallback"
+
+
+def resolve_integrated_workflow_id(query: str | None) -> str | None:
+    """Detect whether *query* maps to a known integrated ecosystem workflow."""
+    import logging as _log
+
+    _logger = _log.getLogger(__name__)
+    normalized = (query or "").strip().lower()
+    raw = str(query or "").lower()
+    if not normalized and not raw:
+        return None
+    try:
+        from src.tools.builtins.ecosystem_workflow_tools import WORKFLOW_ALIASES
+    except Exception:
+        _logger.exception("Failed to load integrated ecosystem workflow aliases")
+        return None
+    haystacks = (normalized, raw)
+    for workflow_id in sorted(WORKFLOW_ALIASES, key=len, reverse=True):
+        candidate = workflow_id.lower()
+        if any(candidate in haystack for haystack in haystacks):
+            return workflow_id
+    for marker, workflow_id in _INTEGRATED_WORKFLOW_ALIASES.items():
+        if any(marker in haystack for haystack in haystacks):
+            return workflow_id
+    return None
+
+
+def _json_tool_payload_rf(raw: str) -> dict:
+    import json as _json
+
+    try:
+        payload = _json.loads(raw)
+    except _json.JSONDecodeError:
+        return {"raw": raw}
+    return payload if isinstance(payload, dict) else {"raw": payload}
+
+
+def build_integrated_workflow_tool_response(workflow_id: str, prompt: str) -> tuple[str, int]:
+    """Execute integrated workflow tool calls and return (content, tool_call_count)."""
+    import json as _json
+
+    from src.tools.builtins.ecosystem_workflow_tools import (
+        integrated_project_catalog_tool,
+        integrated_workflow_run_tool,
+    )
+    from src.tools.capability_tools import get_plugin_command_tool, load_skill_tool
+
+    catalog_raw = integrated_project_catalog_tool.invoke({"max_items": 100})
+    workflow_raw = integrated_workflow_run_tool.invoke({"workflow_id": workflow_id, "prompt": prompt, "dry_run": True})
+    catalog_payload = _json_tool_payload_rf(catalog_raw)
+    workflow_payload = _json_tool_payload_rf(workflow_raw)
+    project = workflow_payload.get("project") if isinstance(workflow_payload.get("project"), dict) else {}
+    sequence = workflow_payload.get("tool_call_sequence") if isinstance(workflow_payload.get("tool_call_sequence"), list) else []
+    command_id = None
+    for step in sequence:
+        if not isinstance(step, dict) or step.get("tool") != "get_plugin_command":
+            continue
+        args = step.get("args") if isinstance(step.get("args"), dict) else {}
+        command_id = str(args.get("command_id") or "").strip() or None
+        if command_id:
+            break
+    plugin_raw = get_plugin_command_tool.invoke({"command_id": command_id}) if command_id else ""
+    skill_name = str(project.get("skill_name") or "").strip()
+    skill_raw = load_skill_tool.invoke({"skill_name": skill_name}) if skill_name else ""
+
+    tool_calls = [
+        "integrated_project_catalog",
+        "get_plugin_command" if command_id else "get_plugin_command(skipped)",
+        "load_skill" if skill_name else "load_skill(skipped)",
+        "integrated_workflow_run",
+    ]
+    catalog_count = catalog_payload.get("returned", 0)
+    status = workflow_payload.get("status", "unknown")
+    plugin_excerpt = plugin_raw[:500] if plugin_raw else "skipped"
+    skill_excerpt = skill_raw[:500] if skill_raw else "skipped"
+    workflow_excerpt = _json.dumps(workflow_payload, ensure_ascii=False, indent=2)[:2500]
+    content = (
+        "## Integrated Workflow Tool Execution\n\n"
+        f"Status: `{status}`\n"
+        f"workflow_id: `{workflow_id}`\n\n"
+        f"1. `integrated_project_catalog` returned `{catalog_count}` installed ecosystem projects.\n"
+        f"2. `get_plugin_command` ({command_id or 'skipped'}) excerpt:\n```\n{plugin_excerpt}\n```\n"
+        f"3. `load_skill` ({skill_name or 'skipped'}) excerpt:\n```\n{skill_excerpt}\n```\n"
+        f"4. `integrated_workflow_run` result:\n```json\n{workflow_excerpt}\n```\n"
+    )
+    return content, len([n for n in tool_calls if "skipped" not in n])

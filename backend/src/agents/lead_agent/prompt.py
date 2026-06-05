@@ -600,7 +600,12 @@ def _format_system_memory_context(max_items: int = 8) -> str:
 
         store = get_system_rag_store()
         entries = []
-        for namespace, limit in (("conversation_summary", max_items), ("skill_evolution", 4), ("system_insight", 4)):
+        for namespace, limit in (
+            ("conversation_summary", max_items),
+            ("archival_memory", 4),
+            ("skill_evolution", 4),
+            ("system_insight", 4),
+        ):
             for entry in store.list_entries(namespace=namespace, limit=limit):
                 content = str(entry.content).strip()
                 if content:

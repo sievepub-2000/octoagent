@@ -1,3 +1,17 @@
+## [2026.6.5] - 2026-06-05
+
+### Improved
+- **Memory / RAG 连接加固**： 新增  /  钩子，每次 LLM 调用前对当前用户消息做语义检索（SystemRAG 三命名空间，cosine ≥ 0.45），将相关长期记忆注入 `<recalled_memories>` 块；修复 `archival_memory` 命名空间从未被注入静态系统提示的缺失。
+- **GoalDrift 检测收敛**：参数迁移至 env var（OCTO_GOAL_DRIFT_EVERY_N / THRESHOLD / WINDOW），默认值调整为 every_n=3、threshold=0.50、window=8，更早捕捉目标漂移。
+- **嵌入模型预热**：gateway lifespan 启动时通过  异步预热 SentenceTransformer 模型，消除首次 GoalDrift 检测的延迟峰值。
+- **execution.py 解耦**：将域名路由辅助函数（、、 等）移至 ，execution.py 统一 import。
+- **native_state_graph 开关**：通过  控制 import，默认关闭，消除无效 import 开销。
+- **RuntimeInvocationFailure 控制流**： 引入 ，runtime 异常在完成遥测和消息记录后重新抛出，使 3-3-6 升级循环能正确感知失败并推进下一阶段。
+
+### Added
+- ：每日 03:00（crontab）自动清理过期 thread outputs（>30天）、pycache、超大 run_records.jsonl 滚动归档。
+
+
 ## 2026-06-03 - 主控智能体系统自检：强制工具调用 + 真实兜底不再伪完成 + 系统任务绑定 host_shell
 
 - 兜底不再伪标记完成（Fix 2，`backend/src/agents/core/execution_policies.py`）：`evaluate_task_outcome` 在命中「服务器侧通用研究兜底横幅」（模型未发起任何工具调用而仅回灌公网搜索结果）时，移除原先「目标词在输出中出现即放行」的弱逃逸判定；现要求 `_goal_semantics_are_satisfied` 真正满足语义才接受，否则一律判定 `failed`（携带目标预览原因），由上层进入 `waiting_review` 软交接，杜绝自检类任务「跑完了」的假完成。天气类等已被真实满足的快路径兜底不受影响（仍可完成）。

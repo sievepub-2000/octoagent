@@ -300,6 +300,19 @@ async def _shutdown_orphan_run_sweeper(app: FastAPI) -> None:
         logger.exception("Harness run journal shutdown failed")
 
 
+
+async def _warm_embedding_service_async() -> None:
+    """Pre-warm the sentence-transformers model at startup to avoid first-call latency."""
+    import asyncio
+
+    try:
+        from src.models.embedding_service import get_embedding_service
+
+        await asyncio.to_thread(lambda: get_embedding_service().backend)
+        logger.info("EmbeddingService warm-up complete (model loaded into memory)")
+    except Exception:
+        logger.warning("EmbeddingService warm-up failed; model will load on first use", exc_info=True)
+
 @asynccontextmanager
 async def gateway_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     config = _initialize_configuration()
@@ -316,6 +329,7 @@ async def gateway_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await start_dispatcher_task(app)
     _start_runtime_maintenance_scheduler(app)
     _start_generic_agent(app)
+    await _warm_embedding_service_async()
     yield
     await _shutdown_generic_agent(app)
     await stop_dispatcher_task(app)

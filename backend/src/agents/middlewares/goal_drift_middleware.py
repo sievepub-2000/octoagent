@@ -23,6 +23,8 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import SystemMessage
 from langgraph.runtime import Runtime
 
+import os
+
 from src.models.embedding_service import get_embedding_service
 
 logger = logging.getLogger(__name__)
@@ -45,9 +47,9 @@ class GoalDriftMiddleware(AgentMiddleware[AgentState]):
     def __init__(
         self,
         *,
-        every_n: int = 5,
-        drift_threshold: float = 0.45,
-        window: int = 5,
+        every_n: int = int(os.getenv("OCTO_GOAL_DRIFT_EVERY_N", "3")),
+        drift_threshold: float = float(os.getenv("OCTO_GOAL_DRIFT_THRESHOLD", "0.50")),
+        window: int = int(os.getenv("OCTO_GOAL_DRIFT_WINDOW", "8")),
     ):
         super().__init__()
         self.every_n = max(1, every_n)
