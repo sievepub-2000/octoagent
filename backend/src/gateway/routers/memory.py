@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -31,6 +32,11 @@ from src.runtime.config.paths import get_paths
 router = APIRouter(prefix="/api", tags=["memory"])
 
 
+def _normalize_fact_content(text: str) -> str:
+    """Normalize fact text for duplicate detection."""
+    return re.sub(r"\s+", " ", str(text or "")).strip().lower()
+
+
 def _augment_with_system_memory_facts(data: dict, *, limit: int = 20) -> dict:
     """Expose system RAG memories in the WebUI memory snapshot.
 
@@ -42,6 +48,11 @@ def _augment_with_system_memory_facts(data: dict, *, limit: int = 20) -> dict:
     """
     facts = list(data.get("facts") or [])
     seen = {str(item.get("id")) for item in facts if isinstance(item, dict)}
+    seen_content = {
+        _normalize_fact_content(item.get("content"))
+        for item in facts
+        if isinstance(item, dict) and item.get("content")
+    }
     try:
         entries = get_system_rag_store().list_entries(limit=limit)
     except Exception:
@@ -51,6 +62,9 @@ def _augment_with_system_memory_facts(data: dict, *, limit: int = 20) -> dict:
     for entry in entries:
         fact_id = f"system_{entry.id}"
         if fact_id in seen:
+            continue
+        norm_content = _normalize_fact_content(entry.content)
+        if norm_content and norm_content in seen_content:
             continue
         metadata = dict(entry.metadata or {})
         confidence_raw = metadata.get("memory_confidence") or metadata.get("confidence") or 0.75
@@ -69,6 +83,8 @@ def _augment_with_system_memory_facts(data: dict, *, limit: int = 20) -> dict:
             }
         )
         seen.add(fact_id)
+        if norm_content:
+            seen_content.add(norm_content)
     data["facts"] = facts
     return data
 
