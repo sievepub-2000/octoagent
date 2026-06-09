@@ -137,6 +137,8 @@ def auto_inject_openrouter_free_models(models: list[dict[str, Any]]) -> list[dic
     is present so generated entries can resolve through the normal config loader.
     """
 
+    if os.environ.get("OCTOAGENT_DISABLE_FREE_MODEL_POOL", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return models
     if not os.environ.get("OPENROUTER_API_KEY"):
         return models
 

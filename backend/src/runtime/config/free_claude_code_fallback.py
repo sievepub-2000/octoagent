@@ -80,6 +80,8 @@ def auto_inject_free_fallback_models(models: list[dict[str, Any]]) -> list[dict[
     avoided so caller ordering is preserved when no injection happens.
     """
 
+    if os.environ.get("OCTOAGENT_DISABLE_FREE_MODEL_POOL", "").strip().lower() in {"1", "true", "yes", "on"}:
+        return models
     api_key = _resolve_api_key()
     if not api_key:
         return models
