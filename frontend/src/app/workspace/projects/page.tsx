@@ -16,6 +16,7 @@ import {
   MessageSquareIcon,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -115,6 +116,7 @@ function ProjectCard({
 }
 
 export default function ProjectsPage() {
+  const router = useRouter();
   const { t, locale } = useI18n();
   const copy = getWorkspaceLocaleCopy(locale).projectsPage;
   const { data: projects, isLoading } = useProjects();
@@ -159,10 +161,11 @@ export default function ProjectsPage() {
       createProject.mutate(
         { name: form.name.trim(), goal: form.goal.trim() },
         {
-          onSuccess: () => {
+          onSuccess: (data) => {
             toast.success(copy.projectCreated);
             setIsFormOpen(false);
             setForm(EMPTY_FORM);
+            router.push(`/workspace/projects/${data.project_id}`);
           },
           onError: (err) => toast.error(err instanceof Error ? err.message : copy.saveFailed),
         },
