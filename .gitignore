@@ -170,3 +170,4 @@ runtime/config/*.yaml
 # Project-specific runtime data
 backend/workspace/
 workspace/default/project_memories/*.bak*
+*.bak
