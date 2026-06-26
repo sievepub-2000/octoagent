@@ -13,14 +13,14 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
 
 ## Registry Summary
 
-- Generated at: 2026-05-12T01:45:53.095837+00:00
-- Total capabilities: 107
-- Enabled capabilities: 97
-- Installed capabilities: 107
-- Channel: 10 total, 0 enabled
-- MCP Servers: 2 total, 2 enabled
-- Plugins: 2 total, 2 enabled
-- Skills: 93 total, 93 enabled
+- Generated at: 2026-06-26T10:52:42.624555+00:00
+- Total capabilities: 87
+- Enabled capabilities: 77
+- Installed capabilities: 87
+- Channel: 10 total, 1 enabled
+- MCP Servers: 8 total, 7 enabled
+- Plugins: 16 total, 16 enabled
+- Skills: 53 total, 53 enabled
 
 ## Interface Contract
 
@@ -60,7 +60,7 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Requires: config:shared_secret
 
 - QQ (channel:qq)
-  State: installed, disabled
+  State: installed, enabled
   Description: Bridge-backed QQ connector relayed through an external webhook adapter.
   Source: external_bridge
   Provides: channel:qq, transport:webhook_bridge, integration:external_bridge, /api/channels/qq/ingest
@@ -101,30 +101,121 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Provides: channel:zalo, transport:webhook_bridge, integration:external_bridge, /api/channels/zalo/ingest
   Requires: config:shared_secret
 
-## MCP Servers (2)
+## MCP Servers (8)
 
-- prompts-chat (mcp_server:prompts-chat)
+- docker (mcp_server:docker)
   State: installed, enabled
-  Description: Remote prompts.chat MCP server from f/prompts.chat
-  Source: http
-  Transport: http
-  URL: https://prompts.chat/api/mcp
-  Provides: mcp_server:prompts-chat
-  Requires: none
-  When to use: external systems, hosted tools, or remote resources are required.
-  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
-
-- voltagent (mcp_server:voltagent)
-  State: installed, enabled
+  Description: Docker MCP package connected to the local Docker daemon; includes safe listing/version smoke checks.
   Source: stdio
   Transport: stdio
-  Command: npx
-  Provides: mcp_server:voltagent
+  Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/docker-mcp
+  Provides: mcp_server:docker
   Requires: none
   When to use: external systems, hosted tools, or remote resources are required.
   How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
 
-## Plugins (2)
+- docker-compose (mcp_server:docker-compose)
+  State: installed, enabled
+  Description: Local Docker Compose inspection MCP for version and compose config validation.
+  Source: stdio
+  Transport: stdio
+  Command: /home/sieve-pub/public-workspace/octoagent/backend/.venv/bin/python
+  Provides: mcp_server:docker-compose
+  Requires: none
+  When to use: external systems, hosted tools, or remote resources are required.
+  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
+
+- filesystem (mcp_server:filesystem)
+  State: installed, enabled
+  Description: System-scoped filesystem MCP with full host filesystem access; guarded by chat permission mode.
+  Source: stdio
+  Transport: stdio
+  Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-filesystem
+  Provides: mcp_server:filesystem
+  Requires: none
+  When to use: external systems, hosted tools, or remote resources are required.
+  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
+
+- http-api (mcp_server:http-api)
+  State: installed, enabled
+  Description: Local read-only HTTP API probing MCP for health checks and API smoke tests.
+  Source: stdio
+  Transport: stdio
+  Command: /home/sieve-pub/public-workspace/octoagent/backend/.venv/bin/python
+  Provides: mcp_server:http-api
+  Requires: none
+  When to use: external systems, hosted tools, or remote resources are required.
+  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
+
+- kubernetes (mcp_server:kubernetes)
+  State: installed, disabled
+  Description: Kubernetes MCP package (disabled: kubectl not available on this host).
+  Source: stdio
+  Transport: stdio
+  Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-kubernetes
+  Provides: mcp_server:kubernetes
+  Requires: none
+  When to use: external systems, hosted tools, or remote resources are required.
+  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
+
+- openapi (mcp_server:openapi)
+  State: installed, enabled
+  Description: OpenAPI MCP package exposing OctoAgent gateway endpoints as MCP resources/tools.
+  Source: stdio
+  Transport: stdio
+  Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/openapi-mcp-server
+  Provides: mcp_server:openapi
+  Requires: none
+  When to use: external systems, hosted tools, or remote resources are required.
+  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
+
+- postgres (mcp_server:postgres)
+  State: installed, enabled
+  Description: PostgreSQL MCP using local socket connection.
+  Source: stdio
+  Transport: stdio
+  Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres
+  Provides: mcp_server:postgres
+  Requires: none
+  When to use: external systems, hosted tools, or remote resources are required.
+  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
+
+- redis (mcp_server:redis)
+  State: installed, enabled
+  Description: Redis MCP package connected to local Redis for cache/session key inspection.
+  Source: stdio
+  Transport: stdio
+  Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-redis
+  Provides: mcp_server:redis
+  Requires: none
+  When to use: external systems, hosted tools, or remote resources are required.
+  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
+
+## Plugins (16)
+
+- Agent Rules Skill Pack (plugin:agent-rules-skill-pack)
+  State: installed, enabled
+  Description: Curated engineering rules adapted from agent-rules-books for OctoAgent task planning, review, and code-quality decisions.
+  Source: builtin
+  Category: engineering
+  Execution mode: advisory
+  Review flow: plan, work, review
+  Provides: arb:load-rules
+  Requires: task_review, artifact_review, policy_review, task_workspace, agent_transcript, artifact_access
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- CloakBrowser Controlled Automation (plugin:cloakbrowser-controlled-automation)
+  State: installed, enabled
+  Description: Controlled browser automation template for explicitly authorized web tasks; disabled for bypass-oriented defaults.
+  Source: builtin
+  Category: integration
+  Execution mode: tooling
+  Review flow: plan, runtime, review
+  Provides: cloak:browser-plan
+  Requires: tool_invocation, artifact_write, policy_review, task_workspace, tool_registry, approval_policy, browser_runtime, user_authorization
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
 
 - Compound Engineering Review (plugin:compound-engineering-review)
   State: installed, enabled
@@ -135,6 +226,150 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Review flow: brainstorm, plan, work, review, compound
   Provides: ce:brainstorm, ce:plan, ce:review
   Requires: task_review, artifact_review, policy_review, task_workspace, agent_transcript, artifact_access
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Cheat On Content Workflow (plugin:content-experiment-workflow)
+  State: installed, enabled
+  Description: Content experiment workflow inspired by cheat-on-content: score, blind-predict, publish, measure, and retro.
+  Source: builtin
+  Category: engineering
+  Execution mode: workflow
+  Review flow: plan, work, review
+  Provides: coc:experiment
+  Requires: task_review, artifact_review, policy_review, task_workspace, agent_transcript, artifact_access
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Fireworks Tech Graph Toolkit (plugin:diagram-generation-toolkit)
+  State: installed, enabled
+  Description: Technical diagram generation workflow for architecture, UML, and agent workflow artifacts.
+  Source: builtin
+  Category: integration
+  Execution mode: tooling
+  Review flow: plan, work, review
+  Provides: ftg:diagram
+  Requires: tool_invocation, artifact_write, policy_review, task_workspace, tool_registry, approval_policy, image_or_svg_output, artifact_access
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Goalbuddy Workflow (plugin:goalbuddy-workflow)
+  State: installed, enabled
+  Description: Goal-contract workflow for turning ambiguous user requests into bounded agent tasks with success checks.
+  Source: builtin
+  Category: engineering
+  Execution mode: workflow
+  Review flow: brainstorm, plan, work, review
+  Provides: goal:plan
+  Requires: task_review, artifact_review, policy_review, task_workspace, agent_transcript, artifact_access
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Beautiful HTML Deck Generator (plugin:html-deck-generator)
+  State: installed, enabled
+  Description: HTML slide template workflow for polished reports, courseware, and project summaries.
+  Source: builtin
+  Category: integration
+  Execution mode: tooling
+  Review flow: plan, work, review
+  Provides: bht:deck
+  Requires: tool_invocation, artifact_write, policy_review, task_workspace, tool_registry, approval_policy, artifact_access, webui_preview
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Ian Handdrawn PPT (plugin:ian-handdrawn-ppt)
+  State: installed, enabled
+  Description: Chinese hand-drawn technical explanation image deck workflow for covers, pages, and contact sheets.
+  Source: builtin
+  Category: integration
+  Execution mode: tooling
+  Review flow: plan, work, review
+  Provides: ian:blueprint
+  Requires: tool_invocation, artifact_write, policy_review, task_workspace, tool_registry, approval_policy, image_generation_model, artifact_access
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Lightseek SMG Gateway (plugin:lightseek-smg-gateway)
+  State: installed, enabled
+  Description: Model gateway integration reference for routing, OpenAI/Anthropic compatibility, MCP, tenancy, and tokenization caching.
+  Source: builtin
+  Category: runtime
+  Execution mode: tooling
+  Review flow: plan, runtime, review
+  Provides: smg:gateway-plan
+  Requires: runtime_bind, approval_review, task_graph_access, task_workspace, orchestration_graph, system_execution_policy, model_gateway, routing_policy
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Lumibot Research Strategy (plugin:lumibot-research-strategy)
+  State: installed, enabled
+  Description: Backtestable trading-agent workflow integrated for research and paper-trading strategy design only.
+  Source: builtin
+  Category: integration
+  Execution mode: workflow
+  Review flow: plan, work, review
+  Provides: lumibot:strategy-plan
+  Requires: tool_invocation, artifact_write, policy_review, task_workspace, tool_registry, approval_policy, market_data_config, paper_trading_only
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Mirage VFS Bridge (plugin:mirage-vfs-bridge)
+  State: installed, enabled
+  Description: Virtual filesystem bridge concept for exposing task workspaces, artifacts, and long-running context to agents.
+  Source: builtin
+  Category: runtime
+  Execution mode: tooling
+  Review flow: plan, runtime, review
+  Provides: mirage:vfs-plan
+  Requires: runtime_bind, approval_review, task_graph_access, task_workspace, orchestration_graph, system_execution_policy, filesystem_policy
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Peekaboo Vision MCP (plugin:peekaboo-vision-mcp)
+  State: installed, enabled
+  Description: Screen capture and visual QA MCP template with a platform-neutral OctoAgent workflow.
+  Source: builtin
+  Category: integration
+  Execution mode: tooling
+  Review flow: plan, runtime, review
+  Provides: peekaboo:capture-plan
+  Requires: tool_invocation, artifact_write, policy_review, task_workspace, tool_registry, approval_policy, mcp_loader, screen_capture_runtime
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- Photo Agents Vision Workflow (plugin:photo-agents-vision-workflow)
+  State: installed, enabled
+  Description: Vision-grounded agent workflow with layered memory and self-written skill checkpoints.
+  Source: builtin
+  Category: engineering
+  Execution mode: workflow
+  Review flow: plan, work, review
+  Provides: photo:workflow
+  Requires: task_review, artifact_review, policy_review, task_workspace, agent_transcript, artifact_access
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- TokenSpeed Model Benchmark (plugin:tokenspeed-model-benchmark)
+  State: installed, enabled
+  Description: LLM inference benchmark workflow for model backend experiments on GPU hosts.
+  Source: builtin
+  Category: runtime
+  Execution mode: tooling
+  Review flow: plan, runtime, review
+  Provides: tokenspeed:benchmark-plan
+  Requires: runtime_bind, approval_review, task_graph_access, task_workspace, orchestration_graph, system_execution_policy, gpu_runtime, model_benchmark_policy
+  When to use: the requested capability already exists as an installed plugin or command set.
+  How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
+
+- WITR Runtime Diagnostics (plugin:witr-runtime-diagnostics)
+  State: installed, enabled
+  Description: Runtime process explanation workflow for answering why a service or process is running.
+  Source: builtin
+  Category: runtime
+  Execution mode: tooling
+  Review flow: runtime, review
+  Provides: witr:diagnose
+  Requires: runtime_bind, approval_review, task_graph_access, task_workspace, orchestration_graph, system_execution_policy, process_snapshot
   When to use: the requested capability already exists as an installed plugin or command set.
   How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
 
@@ -150,70 +385,26 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the requested capability already exists as an installed plugin or command set.
   How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
 
-## Skills (93)
+## Skills (53)
 
-- agency-agents (skill:custom:agency-agents)
+- agent-rules-books (skill:public:agent-rules-books)
   State: installed, enabled
-  Description: Upstream Agency Agents library converted into OctoAgent agent templates.
-  Source: skills/custom/agency-agents
-  Category: custom
-  Skill file: agency-agents
-  Provides: skill:agency-agents
+  Description: Agent rules and review heuristics adapted for OctoAgent coding agents.
+  Source: skills/public/agent-rules-books
+  Category: public
+  Skill file: agent-rules-books
+  Provides: skill:agent-rules-books
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- agent-browser (skill:custom:agent-browser)
+- autoresearch (skill:public:autoresearch)
   State: installed, enabled
-  Description: Use agent-controlled browser workflows for inspection, navigation, smoke validation, screenshots, and web task execution through the browser runtime.
-  Source: skills/custom/agent-browser
-  Category: custom
-  Skill file: agent-browser
-  Provides: skill:agent-browser
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- agent-ui (skill:custom:agent-ui)
-  State: installed, enabled
-  Description: Build and audit agent-facing WebUI surfaces, including governance dashboards, status states, confirmation flows, and operator ergonomics.
-  Source: skills/custom/agent-ui
-  Category: custom
-  Skill file: agent-ui
-  Provides: skill:agent-ui
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- ai-prompt-engineering-safety-review (skill:custom:ai-prompt-engineering-safety-review)
-  State: installed, enabled
-  Description: 'Comprehensive AI prompt engineering safety review and improvement prompt. Analyzes prompts for safety, bias, security vulnerabilities, and effectiveness while providing detailed improvement recommendations with extensive frameworks, testing methodologies, and educational content.'
-  Source: skills/custom/ai-prompt-engineering-safety-review
-  Category: custom
-  Skill file: ai-prompt-engineering-safety-review
-  Provides: skill:ai-prompt-engineering-safety-review
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- auto-research (skill:custom:auto-research)
-  State: installed, enabled
-  Description: '用于自动研究、文献检索、问题拆解、研究路线设计、实验清单规划。适合用户提出一个研究主题、论文方向、技术问题或对比目标时调用。关键词: auto research, literature review, survey, novelty check, experiment plan, research pipeline.'
-  Source: skills/custom/auto-research
-  Category: custom
-  Skill file: auto-research
-  Provides: skill:auto-research
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- awesome-chatgpt-prompt (skill:custom:awesome-chatgpt-prompt)
-  State: installed, enabled
-  Description: Prompt-library skill wrapper for prompts.chat, formerly Awesome ChatGPT Prompts.
-  Source: skills/custom/awesome-chatgpt-prompt
-  Category: custom
-  Skill file: awesome-chatgpt-prompt
-  Provides: skill:awesome-chatgpt-prompt
+  Description: 'Autonomous iterative experimentation loop for any programming task. Guides the user through defining goals, measurable metrics, and scope constraints, then runs an autonomous loop of code changes, testing, measuring, and keeping/discarding results. Inspired by Karpathy''s autoresearch. USE FOR: autonomous improvement, iterative optimization, experiment loop, auto research, performance tuning, automated experimentation, hill climbing, try things automatically, optimize code, run experiments, autonomous coding loop. DO NOT USE FOR: one-shot tasks, simple bug fixes, code review, or tasks without a measurable metric.'
+  Source: skills/public/autoresearch
+  Category: public
+  Skill file: autoresearch
+  Provides: skill:autoresearch
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -229,13 +420,35 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- azure-resource-health-diagnose (skill:custom:azure-resource-health-diagnose)
+- azure-ad-broker (skill:public:azure-ad-broker)
   State: installed, enabled
-  Description: 'Analyze Azure resource health, diagnose issues from logs and telemetry, and create a remediation plan for identified problems.'
-  Source: skills/custom/azure-resource-health-diagnose
-  Category: custom
-  Skill file: azure-resource-health-diagnose
-  Provides: skill:azure-resource-health-diagnose
+  Description: Plan-only Azure AD / Entra ID provisioning broker: emits Microsoft Graph user + group + license + MFA-enforcement request envelopes for tenant admin execution. OctoAgent never calls Graph directly.
+  Source: skills/public/azure-ad-broker
+  Category: public
+  Skill file: azure-ad-broker
+  Provides: skill:azure-ad-broker
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- bamboohr-broker (skill:public:bamboohr-broker)
+  State: installed, enabled
+  Description: Plan-only BambooHR onboarding broker: produces a signed-intent envelope (HTTP request payload + auth placeholders) for tenant admins to execute out-of-band. OctoAgent never calls BambooHR APIs directly.
+  Source: skills/public/bamboohr-broker
+  Category: public
+  Skill file: bamboohr-broker
+  Provides: skill:bamboohr-broker
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- beautiful-html-templates (skill:public:beautiful-html-templates)
+  State: installed, enabled
+  Description: HTML deck and slide template selection skill for reports and courseware.
+  Source: skills/public/beautiful-html-templates
+  Category: public
+  Skill file: beautiful-html-templates
+  Provides: skill:beautiful-html-templates
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -251,72 +464,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- breakdown-epic-arch (skill:custom:breakdown-epic-arch)
-  State: installed, enabled
-  Description: 'Prompt for creating the high-level technical architecture for an Epic, based on a Product Requirements Document.'
-  Source: skills/custom/breakdown-epic-arch
-  Category: custom
-  Skill file: breakdown-epic-arch
-  Provides: skill:breakdown-epic-arch
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- breakdown-epic-pm (skill:custom:breakdown-epic-pm)
-  State: installed, enabled
-  Description: 'Prompt for creating an Epic Product Requirements Document (PRD) for a new epic. This PRD will be used as input for generating a technical architecture specification.'
-  Source: skills/custom/breakdown-epic-pm
-  Category: custom
-  Skill file: breakdown-epic-pm
-  Provides: skill:breakdown-epic-pm
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- breakdown-feature-implementation (skill:custom:breakdown-feature-implementation)
-  State: installed, enabled
-  Description: 'Prompt for creating detailed feature implementation plans, following Epoch monorepo structure.'
-  Source: skills/custom/breakdown-feature-implementation
-  Category: custom
-  Skill file: breakdown-feature-implementation
-  Provides: skill:breakdown-feature-implementation
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- breakdown-feature-prd (skill:custom:breakdown-feature-prd)
-  State: installed, enabled
-  Description: 'Prompt for creating Product Requirements Documents (PRDs) for new features, based on an Epic.'
-  Source: skills/custom/breakdown-feature-prd
-  Category: custom
-  Skill file: breakdown-feature-prd
-  Provides: skill:breakdown-feature-prd
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- browser-use (skill:custom:browser-use)
-  State: installed, enabled
-  Description: Official browser-use skill for AI-assisted browser automation.
-  Source: skills/custom/browser-use
-  Category: custom
-  Skill file: browser-use
-  Provides: skill:browser-use
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- browser-wing (skill:custom:browser-wing)
-  State: installed, enabled
-  Description: Browser automation wing for planning, launching, observing, and reporting browser-runtime tasks with fallback from desktop stubs to real browser APIs.
-  Source: skills/custom/browser-wing
-  Category: custom
-  Skill file: browser-wing
-  Provides: skill:browser-wing
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
 - chart-visualization (skill:public:chart-visualization)
   State: installed, enabled
   Description: This skill should be used when the user wants to visualize data. It intelligently selects the most suitable chart type from 26 available options, extracts parameters based on detailed specifications, and generates a chart image using a JavaScript script.
@@ -328,24 +475,35 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- claude-to-octoagent (skill:public:claude-to-octoagent)
+- cheat-on-content (skill:public:cheat-on-content)
   State: installed, enabled
-  Description: "Interact with OctoAgent AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to OctoAgent for research/analysis, start a OctoAgent conversation thread, check OctoAgent status or health, list available models/skills/agents in OctoAgent, manage OctoAgent memory, upload files to OctoAgent threads, or delegate complex research tasks to OctoAgent. Also use when the user mentions octoagent, octoagent, or wants to run a deep research task that OctoAgent can handle."
-  Source: skills/public/claude-to-octoagent
+  Description: Content experiment skill for calibrated publishing workflows.
+  Source: skills/public/cheat-on-content
   Category: public
-  Skill file: claude-to-octoagent
-  Provides: skill:claude-to-octoagent
+  Skill file: cheat-on-content
+  Provides: skill:cheat-on-content
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- cli-mastery (skill:custom:cli-mastery)
+- claude-to-octopusagent (skill:public:claude-to-octopusagent)
   State: installed, enabled
-  Description: 'Interactive training for the GitHub Copilot CLI. Guided lessons, quizzes, scenario challenges, and a full reference covering slash commands, shortcuts, modes, agents, skills, MCP, and configuration. Say "cliexpert" to start.'
-  Source: skills/custom/cli-mastery
-  Category: custom
-  Skill file: cli-mastery
-  Provides: skill:cli-mastery
+  Description: "Interact with OctopusAgent AI agent platform via its HTTP API. Use this skill when the user wants to send messages or questions to OctopusAgent for research/analysis, start a OctopusAgent conversation thread, check OctopusAgent status or health, list available models/skills/agents in OctopusAgent, manage OctopusAgent memory, upload files to OctopusAgent threads, or delegate complex research tasks to OctopusAgent. Also use when the user mentions octopusagent, octopusagent, or wants to run a deep research task that OctopusAgent can handle."
+  Source: skills/public/claude-to-octopusagent
+  Category: public
+  Skill file: claude-to-octopusagent
+  Provides: skill:claude-to-octopusagent
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- cloakbrowser-controlled-browser (skill:public:cloakbrowser-controlled-browser)
+  State: installed, enabled
+  Description: Controlled browser automation skill for authorized web workflows.
+  Source: skills/public/cloakbrowser-controlled-browser
+  Category: public
+  Skill file: cloakbrowser-controlled-browser
+  Provides: skill:cloakbrowser-controlled-browser
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -361,116 +519,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- context-map (skill:custom:context-map)
-  State: installed, enabled
-  Description: 'Generate a map of all files relevant to a task before making changes'
-  Source: skills/custom/context-map
-  Category: custom
-  Skill file: context-map
-  Provides: skill:context-map
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- conventional-commit (skill:custom:conventional-commit)
-  State: installed, enabled
-  Description: 'Prompt and workflow for generating conventional commit messages using a structured XML format. Guides users to create standardized, descriptive commit messages in line with the Conventional Commits specification, including instructions, examples, and validation.'
-  Source: skills/custom/conventional-commit
-  Category: custom
-  Skill file: conventional-commit
-  Provides: skill:conventional-commit
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- copilot-sdk (skill:custom:copilot-sdk)
-  State: installed, enabled
-  Description: Build agentic applications with GitHub Copilot SDK. Use when embedding AI agents in apps, creating custom tools, implementing streaming responses, managing sessions, connecting to MCP servers, or creating custom agents. Triggers on Copilot SDK, GitHub SDK, agentic app, embed Copilot, programmable agent, MCP server, custom agent.
-  Source: skills/custom/copilot-sdk
-  Category: custom
-  Skill file: copilot-sdk
-  Provides: skill:copilot-sdk
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- create-agentsmd (skill:custom:create-agentsmd)
-  State: installed, enabled
-  Description: 'Prompt for generating an AGENTS.md file for a repository'
-  Source: skills/custom/create-agentsmd
-  Category: custom
-  Skill file: create-agentsmd
-  Provides: skill:create-agentsmd
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- create-github-issues-feature-from-implementation-plan (skill:custom:create-github-issues-feature-from-implementation-plan)
-  State: installed, enabled
-  Description: 'Create GitHub Issues from implementation plan phases using feature_request.yml or chore_request.yml templates.'
-  Source: skills/custom/create-github-issues-feature-from-implementation-plan
-  Category: custom
-  Skill file: create-github-issues-feature-from-implementation-plan
-  Provides: skill:create-github-issues-feature-from-implementation-plan
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- create-implementation-plan (skill:custom:create-implementation-plan)
-  State: installed, enabled
-  Description: 'Create a new implementation plan file for new features, refactoring existing code or upgrading packages, design, architecture or infrastructure.'
-  Source: skills/custom/create-implementation-plan
-  Category: custom
-  Skill file: create-implementation-plan
-  Provides: skill:create-implementation-plan
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- create-readme (skill:custom:create-readme)
-  State: installed, enabled
-  Description: 'Create a README.md file for the project'
-  Source: skills/custom/create-readme
-  Category: custom
-  Skill file: create-readme
-  Provides: skill:create-readme
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- create-specification (skill:custom:create-specification)
-  State: installed, enabled
-  Description: 'Create a new specification file for the solution, optimized for Generative AI consumption.'
-  Source: skills/custom/create-specification
-  Category: custom
-  Skill file: create-specification
-  Provides: skill:create-specification
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- create-technical-spike (skill:custom:create-technical-spike)
-  State: installed, enabled
-  Description: 'Create time-boxed technical spike documents for researching and resolving critical development decisions before implementation.'
-  Source: skills/custom/create-technical-spike
-  Category: custom
-  Skill file: create-technical-spike
-  Provides: skill:create-technical-spike
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- csharp-nunit (skill:custom:csharp-nunit)
-  State: installed, enabled
-  Description: 'Get best practices for NUnit unit testing, including data-driven tests'
-  Source: skills/custom/csharp-nunit
-  Category: custom
-  Skill file: csharp-nunit
-  Provides: skill:csharp-nunit
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
 - data-analysis (skill:public:data-analysis)
   State: installed, enabled
   Description: Use this skill when the user uploads Excel (.xlsx/.xls) or CSV files and wants to perform data analysis, generate statistics, create summaries, pivot tables, SQL queries, or any form of structured data exploration. Supports multi-sheet Excel workbooks, aggregation, filtering, joins, and exporting results to CSV/JSON/Markdown.
@@ -478,17 +526,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Category: public
   Skill file: data-analysis
   Provides: skill:data-analysis
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- declarative-agents (skill:custom:declarative-agents)
-  State: installed, enabled
-  Description: 'Complete development kit for Microsoft 365 Copilot declarative agents with three comprehensive workflows (basic, advanced, validation), TypeSpec support, and Microsoft 365 Agents Toolkit integration'
-  Source: skills/custom/declarative-agents
-  Category: custom
-  Skill file: declarative-agents
-  Provides: skill:declarative-agents
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -504,13 +541,13 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- delegate-task (skill:custom:delegate-task)
+- employment-contract-blueprint (skill:public:employment-contract-blueprint)
   State: installed, enabled
-  Description: Delegate tasks to OpenSpace — a full-stack autonomous worker for coding, DevOps, web research, and desktop automation, backed by an extensive MCP tool and skill library. Skills auto-improve through use, reducing token consumption over time. A cloud community lets agents share and collectively evolve reusable skills.
-  Source: skills/custom/delegate-task
-  Category: custom
-  Skill file: delegate-task
-  Provides: skill:delegate-task
+  Description: Jurisdiction-aware employment-contract clause blueprint: enumerates required clauses (probation, IP, non-compete, severance, notice, working hours, leave, confidentiality, dispute resolution) and emits a structured outline. NEVER produces binding contract text; attorney review is mandatory.
+  Source: skills/public/employment-contract-blueprint
+  Category: public
+  Skill file: employment-contract-blueprint
+  Provides: skill:employment-contract-blueprint
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -526,13 +563,13 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- first-ask (skill:custom:first-ask)
+- fireworks-tech-graph (skill:public:fireworks-tech-graph)
   State: installed, enabled
-  Description: 'Interactive, input-tool powered, task refinement workflow: interrogates scope, deliverables, constraints before carrying out the task; Requires the Joyride extension.'
-  Source: skills/custom/first-ask
-  Category: custom
-  Skill file: first-ask
-  Provides: skill:first-ask
+  Description: Technical diagram generation skill for architecture and workflow visuals.
+  Source: skills/public/fireworks-tech-graph
+  Category: public
+  Skill file: fireworks-tech-graph
+  Provides: skill:fireworks-tech-graph
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -559,35 +596,13 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- gbrain (skill:custom:gbrain)
+- get-shit-done (skill:public:get-shit-done)
   State: installed, enabled
-  Description: Persistent knowledge-capture discipline for agentic coding sessions. Use when a bug fix, gotcha, architectural constraint, or verified workaround should outlive the current conversation. Covers which memory scope to pick (/memories/, /memories/session/, /memories/repo/), how to phrase entries for fast recall, and when to prune stale notes.
-  Source: skills/custom/gbrain
-  Category: custom
-  Skill file: gbrain
-  Provides: skill:gbrain
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- generate-custom-instructions-from-codebase (skill:custom:generate-custom-instructions-from-codebase)
-  State: installed, enabled
-  Description: 'Migration and code evolution instructions generator for GitHub Copilot. Analyzes differences between two project versions (branches, commits, or releases) to create precise instructions allowing Copilot to maintain consistency during technology migrations, major refactoring, or framework version upgrades.'
-  Source: skills/custom/generate-custom-instructions-from-codebase
-  Category: custom
-  Skill file: generate-custom-instructions-from-codebase
-  Provides: skill:generate-custom-instructions-from-codebase
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- gh-cli (skill:custom:gh-cli)
-  State: installed, enabled
-  Description: GitHub CLI (gh) comprehensive reference for repositories, issues, pull requests, Actions, projects, releases, gists, codespaces, organizations, extensions, and all GitHub operations from the command line.
-  Source: skills/custom/gh-cli
-  Category: custom
-  Skill file: gh-cli
-  Provides: skill:gh-cli
+  Description: 'Pragmatic, no-nonsense coding discipline. Cuts through analysis paralysis, scope creep, and over-engineering. USE FOR: when stuck, when a task is stalling, when scope keeps growing, when you need to ship, when perfection is blocking progress. DO NOT USE FOR: greenfield architecture decisions, security-critical systems where shortcuts are dangerous, team-wide standards changes.'
+  Source: skills/public/get-shit-done
+  Category: public
+  Skill file: get-shit-done
+  Provides: skill:get-shit-done
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -603,13 +618,46 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- gstack (skill:custom:gstack)
+- goalbuddy (skill:public:goalbuddy)
   State: installed, enabled
-  Description: Git stacked-branch discipline for slice-based refactors. Use when a change is too large for a single commit/PR and needs to be delivered as a stack of small, sequentially buildable slices. Covers branch naming, slice sizing, build+smoke-per-slice gates, rebase strategy, and cumulative push handling when the remote is flaky.
-  Source: skills/custom/gstack
-  Category: custom
-  Skill file: gstack
-  Provides: skill:gstack
+  Description: Goal contract skill for bounded autonomous agent work.
+  Source: skills/public/goalbuddy
+  Category: public
+  Skill file: goalbuddy
+  Provides: skill:goalbuddy
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- google-workspace-broker (skill:public:google-workspace-broker)
+  State: installed, enabled
+  Description: Plan-only Google Workspace provisioning broker: emits Directory API user + group + license + 2SV-enforcement request envelopes for tenant admin execution. OctoAgent never calls Directory API directly.
+  Source: skills/public/google-workspace-broker
+  Category: public
+  Skill file: google-workspace-broker
+  Provides: skill:google-workspace-broker
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- gusto-broker (skill:public:gusto-broker)
+  State: installed, enabled
+  Description: Plan-only Gusto onboarding broker: produces a signed-intent REST envelope for new-hire create + payroll setup, for tenant admin out-of-band dispatch. OctoAgent never calls Gusto directly.
+  Source: skills/public/gusto-broker
+  Category: public
+  Skill file: gusto-broker
+  Provides: skill:gusto-broker
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- ian-handdrawn-ppt (skill:public:ian-handdrawn-ppt)
+  State: installed, enabled
+  Description: Chinese hand-drawn technical image deck skill for covers, pages, and contact sheets.
+  Source: skills/public/ian-handdrawn-ppt
+  Category: public
+  Skill file: ian-handdrawn-ppt
+  Provides: skill:ian-handdrawn-ppt
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -625,189 +673,79 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- java-junit (skill:custom:java-junit)
+- lightseek-smg-gateway (skill:public:lightseek-smg-gateway)
   State: installed, enabled
-  Description: 'Get best practices for JUnit 5 unit testing, including data-driven tests'
-  Source: skills/custom/java-junit
-  Category: custom
-  Skill file: java-junit
-  Provides: skill:java-junit
+  Description: Model gateway routing skill for SMG-style experiments.
+  Source: skills/public/lightseek-smg-gateway
+  Category: public
+  Skill file: lightseek-smg-gateway
+  Provides: skill:lightseek-smg-gateway
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- karpathy-autoresearch (skill:custom:karpathy-autoresearch)
+- mirage-vfs (skill:public:mirage-vfs)
   State: installed, enabled
-  Description: Autonomous experimentation workflow adapted from karpathy/autoresearch.
-  Source: skills/custom/karpathy-autoresearch
-  Category: custom
-  Skill file: karpathy-autoresearch
-  Provides: skill:karpathy-autoresearch
+  Description: Virtual filesystem planning skill for agent workspaces and task artifacts.
+  Source: skills/public/mirage-vfs
+  Category: public
+  Skill file: mirage-vfs
+  Provides: skill:mirage-vfs
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- karpathy-guidelines (skill:custom:karpathy-guidelines)
+- okta-broker (skill:public:okta-broker)
   State: installed, enabled
-  Description: Use when writing, reviewing, or refactoring code and you need to avoid hidden assumptions, overengineering, broad unrelated edits, or vague success criteria. Encourages simple, surgical, verifiable work.
-  Source: skills/custom/karpathy-guidelines
-  Category: custom
-  Skill file: karpathy-guidelines
-  Provides: skill:karpathy-guidelines
+  Description: Plan-only Okta provisioning broker: emits Okta API user/create + group assignment + MFA-factor enrollment request envelopes for tenant admin execution. OctoAgent never calls Okta directly.
+  Source: skills/public/okta-broker
+  Category: public
+  Skill file: okta-broker
+  Provides: skill:okta-broker
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- llm-wiki (skill:custom:llm-wiki)
+- onionclaw (skill:custom:onionclaw)
   State: installed, enabled
-  Description: Create compact LLM-facing wiki pages from project knowledge, logs, docs, and run reports with citations, stale checks, and update guidance.
-  Source: skills/custom/llm-wiki
+  Description: Search the Tor dark web, fetch .onion hidden service pages, rotate Tor identity, and run structured OSINT investigations. Use when user asks to search dark web, investigate .onion sites, find if data appeared on dark web, conduct Tor-based OSINT, look up dark web leaks, fetch any .onion URL, check for leaked credentials, or investigate ransomware groups.
+  Source: skills/custom/onionclaw
   Category: custom
-  Skill file: llm-wiki
-  Provides: skill:llm-wiki
+  Skill file: onionclaw
+  Provides: skill:onionclaw
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- markitdown-convert (skill:custom:markitdown-convert)
+- peekaboo-vision-mcp (skill:public:peekaboo-vision-mcp)
   State: installed, enabled
-  Description: Use when a local file needs to be converted into LLM-friendly Markdown for indexing, summarization, extraction, or analysis. Works best for HTML, PDF, Office docs, plain text, JSON, XML, and similar documents.
-  Source: skills/custom/markitdown-convert
-  Category: custom
-  Skill file: markitdown-convert
-  Provides: skill:markitdown-convert
+  Description: Screen capture and visual QA skill for MCP-backed observation workflows.
+  Source: skills/public/peekaboo-vision-mcp
+  Category: public
+  Skill file: peekaboo-vision-mcp
+  Provides: skill:peekaboo-vision-mcp
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- mcp-cli (skill:custom:mcp-cli)
+- pencil-design (skill:public:pencil-design)
   State: installed, enabled
-  Description: Interface for MCP (Model Context Protocol) servers via CLI. Use when you need to interact with external tools, APIs, or data sources through MCP servers, list available MCP servers/tools, or call MCP tools from command line.
-  Source: skills/custom/mcp-cli
-  Category: custom
-  Skill file: mcp-cli
-  Provides: skill:mcp-cli
+  Description: Design UIs in Pencil (.pen files) and generate production code from them. Use when working with .pen files, designing screens or components in Pencil, or generating code from Pencil designs. Triggers on tasks involving Pencil, .pen files, design-to-code workflows, or UI design with the Pencil MCP tools.
+  Source: skills/public/pencil-design
+  Category: public
+  Skill file: pencil-design
+  Provides: skill:pencil-design
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- mcp-configure (skill:custom:mcp-configure)
+- photo-agents (skill:public:photo-agents)
   State: installed, enabled
-  Description: Configure an MCP server for GitHub Copilot with your Dataverse environment.
-  Source: skills/custom/mcp-configure
-  Category: custom
-  Skill file: mcp-configure
-  Provides: skill:mcp-configure
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- mcp-copilot-studio-server-generator (skill:custom:mcp-copilot-studio-server-generator)
-  State: installed, enabled
-  Description: 'Generate a complete MCP server implementation optimized for Copilot Studio integration with proper schema constraints and streamable HTTP support'
-  Source: skills/custom/mcp-copilot-studio-server-generator
-  Category: custom
-  Skill file: mcp-copilot-studio-server-generator
-  Provides: skill:mcp-copilot-studio-server-generator
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- mcp-create-adaptive-cards (skill:custom:mcp-create-adaptive-cards)
-  State: installed, enabled
-  Description: 'Skill converted from mcp-create-adaptive-cards.prompt.md'
-  Source: skills/custom/mcp-create-adaptive-cards
-  Category: custom
-  Skill file: mcp-create-adaptive-cards
-  Provides: skill:mcp-create-adaptive-cards
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- mcp-create-declarative-agent (skill:custom:mcp-create-declarative-agent)
-  State: installed, enabled
-  Description: 'Skill converted from mcp-create-declarative-agent.prompt.md'
-  Source: skills/custom/mcp-create-declarative-agent
-  Category: custom
-  Skill file: mcp-create-declarative-agent
-  Provides: skill:mcp-create-declarative-agent
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- mcp-deploy-manage-agents (skill:custom:mcp-deploy-manage-agents)
-  State: installed, enabled
-  Description: 'Skill converted from mcp-deploy-manage-agents.prompt.md'
-  Source: skills/custom/mcp-deploy-manage-agents
-  Category: custom
-  Skill file: mcp-deploy-manage-agents
-  Provides: skill:mcp-deploy-manage-agents
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- microsoft-code-reference (skill:custom:microsoft-code-reference)
-  State: installed, enabled
-  Description: Look up Microsoft API references, find working code samples, and verify SDK code is correct. Use when working with Azure SDKs, .NET libraries, or Microsoft APIs—to find the right method, check parameters, get working examples, or troubleshoot errors. Catches hallucinated methods, wrong signatures, and deprecated patterns by querying official docs.
-  Source: skills/custom/microsoft-code-reference
-  Category: custom
-  Skill file: microsoft-code-reference
-  Provides: skill:microsoft-code-reference
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- microsoft-docs (skill:custom:microsoft-docs)
-  State: installed, enabled
-  Description: 'Query official Microsoft documentation to find concepts, tutorials, and code examples across Azure, .NET, Agent Framework, Aspire, VS Code, GitHub, and more. Uses Microsoft Learn MCP as the default, with Context7 and Aspire MCP for content that lives outside learn.microsoft.com.'
-  Source: skills/custom/microsoft-docs
-  Category: custom
-  Skill file: microsoft-docs
-  Provides: skill:microsoft-docs
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- multi-stage-dockerfile (skill:custom:multi-stage-dockerfile)
-  State: installed, enabled
-  Description: 'Create optimized multi-stage Dockerfiles for any language or framework'
-  Source: skills/custom/multi-stage-dockerfile
-  Category: custom
-  Skill file: multi-stage-dockerfile
-  Provides: skill:multi-stage-dockerfile
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- openrelay (skill:custom:openrelay)
-  State: installed, enabled
-  Description: Design and operate relay-style integrations for channels, webhooks, worker callbacks, and cross-process event delivery with retry and audit hooks.
-  Source: skills/custom/openrelay
-  Category: custom
-  Skill file: openrelay
-  Provides: skill:openrelay
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- playwright-explore-website (skill:custom:playwright-explore-website)
-  State: installed, enabled
-  Description: 'Website exploration for testing using Playwright MCP'
-  Source: skills/custom/playwright-explore-website
-  Category: custom
-  Skill file: playwright-explore-website
-  Provides: skill:playwright-explore-website
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- playwright-generate-test (skill:custom:playwright-generate-test)
-  State: installed, enabled
-  Description: 'Generate a Playwright test based on a scenario using Playwright MCP'
-  Source: skills/custom/playwright-generate-test
-  Category: custom
-  Skill file: playwright-generate-test
-  Provides: skill:playwright-generate-test
+  Description: Vision-grounded workflow skill with layered memory and self-written skills.
+  Source: skills/public/photo-agents
+  Category: public
+  Skill file: photo-agents
+  Provides: skill:photo-agents
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -823,39 +761,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- polyglot-test-agent (skill:custom:polyglot-test-agent)
-  State: installed, enabled
-  Description: 'Generates comprehensive, workable unit tests for any programming language using a multi-agent pipeline. Use when asked to generate tests, write unit tests, improve test coverage, add test coverage, create test files, or test a codebase. Supports C#, TypeScript, JavaScript, Python, Go, Rust, Java, and more. Orchestrates research, planning, and implementation phases to produce tests that compile, pass, and follow project conventions.'
-  Source: skills/custom/polyglot-test-agent
-  Category: custom
-  Skill file: polyglot-test-agent
-  Provides: skill:polyglot-test-agent
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- postgresql-code-review (skill:custom:postgresql-code-review)
-  State: installed, enabled
-  Description: 'PostgreSQL-specific code review assistant focusing on PostgreSQL best practices, anti-patterns, and unique quality standards. Covers JSONB operations, array usage, custom types, schema design, function optimization, and PostgreSQL-exclusive security features like Row Level Security (RLS).'
-  Source: skills/custom/postgresql-code-review
-  Category: custom
-  Skill file: postgresql-code-review
-  Provides: skill:postgresql-code-review
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- postgresql-optimization (skill:custom:postgresql-optimization)
-  State: installed, enabled
-  Description: 'PostgreSQL-specific development assistant focusing on unique PostgreSQL features, advanced data types, and PostgreSQL-exclusive capabilities. Covers JSONB operations, array types, custom types, range/geometric types, full-text search, window functions, and PostgreSQL extensions ecosystem.'
-  Source: skills/custom/postgresql-optimization
-  Category: custom
-  Skill file: postgresql-optimization
-  Provides: skill:postgresql-optimization
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
 - ppt-generation (skill:public:ppt-generation)
   State: installed, enabled
   Description: Use this skill when the user requests to generate, create, or make presentations (PPT/PPTX). Creates visually rich slides by generating images for each slide and composing them into a PowerPoint file.
@@ -867,68 +772,13 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- refactor (skill:custom:refactor)
+- semgrep:scan (skill:public:semgrep:scan)
   State: installed, enabled
-  Description: 'Surgical code refactoring to improve maintainability without changing behavior. Covers extracting functions, renaming variables, breaking down god functions, improving type safety, eliminating code smells, and applying design patterns. Less drastic than repo-rebuilder; use for gradual improvements.'
-  Source: skills/custom/refactor
-  Category: custom
-  Skill file: refactor
-  Provides: skill:refactor
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- refactor-plan (skill:custom:refactor-plan)
-  State: installed, enabled
-  Description: 'Plan a multi-file refactor with proper sequencing and rollback steps'
-  Source: skills/custom/refactor-plan
-  Category: custom
-  Skill file: refactor-plan
-  Provides: skill:refactor-plan
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- remember (skill:custom:remember)
-  State: installed, enabled
-  Description: 'Transforms lessons learned into domain-organized memory instructions (global or workspace). Syntax: `/remember [>domain [scope]] lesson clue` where scope is `global` (default), `user`, `workspace`, or `ws`.'
-  Source: skills/custom/remember
-  Category: custom
-  Skill file: remember
-  Provides: skill:remember
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- remotion-skills (skill:custom:remotion-skills)
-  State: installed, enabled
-  Description: Remotion best-practices guidance sourced from skills.sh/remotion-dev/skills.
-  Source: skills/custom/remotion-skills
-  Category: custom
-  Skill file: remotion-skills
-  Provides: skill:remotion-skills
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- repo-story-time (skill:custom:repo-story-time)
-  State: installed, enabled
-  Description: 'Generate a comprehensive repository summary and narrative story from commit history'
-  Source: skills/custom/repo-story-time
-  Category: custom
-  Skill file: repo-story-time
-  Provides: skill:repo-story-time
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- review-and-refactor (skill:custom:review-and-refactor)
-  State: installed, enabled
-  Description: 'Review and refactor code in your project according to defined instructions'
-  Source: skills/custom/review-and-refactor
-  Category: custom
-  Skill file: review-and-refactor
-  Provides: skill:review-and-refactor
+  Description: Run Semgrep security scans before or during security-sensitive coding work, especially changes involving auth, secrets, network access, shell execution, file handling, deserialization, dependencies, or CI/CD workflows.
+  Source: skills/public/semgrep-scan
+  Category: public
+  Skill file: semgrep-scan
+  Provides: skill:semgrep:scan
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -944,112 +794,68 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- skill-discovery (skill:custom:skill-discovery)
+- smb-cs-playbook (skill:public:smb-cs-playbook)
   State: installed, enabled
-  Description: Search for reusable skills across OpenSpace's local registry and cloud community. Reusing proven skills saves tokens, improves reliability, and extends your capabilities beyond built-in tools.
-  Source: skills/custom/skill-discovery
-  Category: custom
-  Skill file: skill-discovery
-  Provides: skill:skill-discovery
+  Description: Plan-only SMB customer-success playbook: kickoff agenda, 30/60/90 health-check templates, escalation paths, QBR template, churn-save runbook.
+  Source: skills/public/smb-cs-playbook
+  Category: public
+  Skill file: smb-cs-playbook
+  Provides: skill:smb-cs-playbook
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- sql-code-review (skill:custom:sql-code-review)
+- smb-finance-close (skill:public:smb-finance-close)
   State: installed, enabled
-  Description: 'Universal SQL code review assistant that performs comprehensive security, maintainability, and code quality analysis across all SQL databases (MySQL, PostgreSQL, SQL Server, Oracle). Focuses on SQL injection prevention, access control, code standards, and anti-pattern detection. Complements SQL optimization prompt for complete development coverage.'
-  Source: skills/custom/sql-code-review
-  Category: custom
-  Skill file: sql-code-review
-  Provides: skill:sql-code-review
+  Description: Plan-only SMB month-end close playbook: bank recon, accruals, revenue cutoff, expense classification, tax provision check, close packet, audit trail review.
+  Source: skills/public/smb-finance-close
+  Category: public
+  Skill file: smb-finance-close
+  Provides: skill:smb-finance-close
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- sql-optimization (skill:custom:sql-optimization)
+- smb-hr-onboarding (skill:public:smb-hr-onboarding)
   State: installed, enabled
-  Description: 'Universal SQL performance optimization assistant for comprehensive query tuning, indexing strategies, and database performance analysis across all SQL databases (MySQL, PostgreSQL, SQL Server, Oracle). Provides execution plan analysis, pagination optimization, batch operations, and performance monitoring guidance.'
-  Source: skills/custom/sql-optimization
-  Category: custom
-  Skill file: sql-optimization
-  Provides: skill:sql-optimization
+  Description: Use this skill when a small or medium business (SMB) user needs to design, run, or audit a new-employee onboarding workflow. The skill produces a structured onboarding plan covering Day −7 → Day 30, including offer-letter checklist, equipment provisioning, accounts/access provisioning, compliance and policy delivery, first-week training agenda, mentor pairing, and Day-30 review. The skill is policy-aware (regional labor law, data-privacy, accessibility) and always produces a draft that requires explicit HR sign-off before any external side effects (sending offer letters, granting accounts, ordering hardware) are executed.
+  Source: skills/public/smb-hr-onboarding
+  Category: public
+  Skill file: smb-hr-onboarding
+  Provides: skill:smb-hr-onboarding
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- structured-autonomy-generate (skill:custom:structured-autonomy-generate)
+- smb-it-helpdesk-runbook (skill:public:smb-it-helpdesk-runbook)
   State: installed, enabled
-  Description: 'Structured Autonomy Implementation Generator Prompt'
-  Source: skills/custom/structured-autonomy-generate
-  Category: custom
-  Skill file: structured-autonomy-generate
-  Provides: skill:structured-autonomy-generate
+  Description: Plan-only SMB IT helpdesk runbook: ticket triage, priority matrix, password reset SOP, equipment request SOP, access request SOP, escalation paths, SLA definitions.
+  Source: skills/public/smb-it-helpdesk-runbook
+  Category: public
+  Skill file: smb-it-helpdesk-runbook
+  Provides: skill:smb-it-helpdesk-runbook
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- structured-autonomy-implement (skill:custom:structured-autonomy-implement)
+- smb-sales-motion (skill:public:smb-sales-motion)
   State: installed, enabled
-  Description: 'Structured Autonomy Implementation Prompt'
-  Source: skills/custom/structured-autonomy-implement
-  Category: custom
-  Skill file: structured-autonomy-implement
-  Provides: skill:structured-autonomy-implement
+  Description: Plan-only SMB sales motion playbook: ICP definition, outbound cadence, discovery script, demo template, proposal template, negotiation guardrails, CS handoff packet.
+  Source: skills/public/smb-sales-motion
+  Category: public
+  Skill file: smb-sales-motion
+  Provides: skill:smb-sales-motion
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- structured-autonomy-plan (skill:custom:structured-autonomy-plan)
+- spec-kit (skill:public:spec-kit)
   State: installed, enabled
-  Description: 'Structured Autonomy Planning Prompt'
-  Source: skills/custom/structured-autonomy-plan
-  Category: custom
-  Skill file: structured-autonomy-plan
-  Provides: skill:structured-autonomy-plan
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- suggest-awesome-github-copilot-agents (skill:custom:suggest-awesome-github-copilot-agents)
-  State: installed, enabled
-  Description: 'Suggest relevant GitHub Copilot Custom Agents files from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing custom agents in this repository, and identifying outdated agents that need updates.'
-  Source: skills/custom/suggest-awesome-github-copilot-agents
-  Category: custom
-  Skill file: suggest-awesome-github-copilot-agents
-  Provides: skill:suggest-awesome-github-copilot-agents
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- suggest-awesome-github-copilot-instructions (skill:custom:suggest-awesome-github-copilot-instructions)
-  State: installed, enabled
-  Description: 'Suggest relevant GitHub Copilot instruction files from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing instructions in this repository, and identifying outdated instructions that need updates.'
-  Source: skills/custom/suggest-awesome-github-copilot-instructions
-  Category: custom
-  Skill file: suggest-awesome-github-copilot-instructions
-  Provides: skill:suggest-awesome-github-copilot-instructions
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- suggest-awesome-github-copilot-skills (skill:custom:suggest-awesome-github-copilot-skills)
-  State: installed, enabled
-  Description: 'Suggest relevant GitHub Copilot skills from the awesome-copilot repository based on current repository context and chat history, avoiding duplicates with existing skills in this repository, and identifying outdated skills that need updates.'
-  Source: skills/custom/suggest-awesome-github-copilot-skills
-  Category: custom
-  Skill file: suggest-awesome-github-copilot-skills
-  Provides: skill:suggest-awesome-github-copilot-skills
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- superpowers (skill:custom:superpowers)
-  State: installed, enabled
-  Description: Meta-skill for composing high-leverage OctoAgent capabilities, choosing the strongest available workflow, and validating tool readiness before action.
-  Source: skills/custom/superpowers
-  Category: custom
-  Skill file: superpowers
-  Provides: skill:superpowers
+  Description: 'Specification-driven development kit. Generates formal specs, BDD scenarios, acceptance criteria, and API contracts from requirements. USE FOR: writing specs, creating test plans, BDD/Given-When-Then scenarios, acceptance criteria, contract testing, spec-first API design, feature specifications, definition of done checklists. DO NOT USE FOR: one-off tasks without a spec, hotfixes, exploratory work without clear requirements.'
+  Source: skills/public/spec-kit
+  Category: public
+  Skill file: spec-kit
+  Provides: skill:spec-kit
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -1065,57 +871,35 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- typespec-api-operations (skill:custom:typespec-api-operations)
+- tokenspeed-benchmark (skill:public:tokenspeed-benchmark)
   State: installed, enabled
-  Description: 'Add GET, POST, PATCH, and DELETE operations to a TypeSpec API plugin with proper routing, parameters, and adaptive cards'
-  Source: skills/custom/typespec-api-operations
-  Category: custom
-  Skill file: typespec-api-operations
-  Provides: skill:typespec-api-operations
+  Description: TokenSpeed benchmark planning skill for LLM inference experiments.
+  Source: skills/public/tokenspeed-benchmark
+  Category: public
+  Skill file: tokenspeed-benchmark
+  Provides: skill:tokenspeed-benchmark
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- typespec-create-agent (skill:custom:typespec-create-agent)
+- tools-hub-check-0c3c8535 (skill:custom:tools-hub-check-0c3c8535)
   State: installed, enabled
-  Description: 'Generate a complete TypeSpec declarative agent with instructions, capabilities, and conversation starters for Microsoft 365 Copilot'
-  Source: skills/custom/typespec-create-agent
+  Description: Temporary Tools Hub registration smoke skill.
+  Source: skills/custom/tools-hub-check-0c3c8535
   Category: custom
-  Skill file: typespec-create-agent
-  Provides: skill:typespec-create-agent
+  Skill file: tools-hub-check-0c3c8535
+  Provides: skill:tools-hub-check-0c3c8535
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- typespec-create-api-plugin (skill:custom:typespec-create-api-plugin)
+- tools-hub-check-124139b5 (skill:custom:tools-hub-check-124139b5)
   State: installed, enabled
-  Description: 'Generate a TypeSpec API plugin with REST operations, authentication, and Adaptive Cards for Microsoft 365 Copilot'
-  Source: skills/custom/typespec-create-api-plugin
+  Description: Temporary Tools Hub registration smoke skill.
+  Source: skills/custom/tools-hub-check-124139b5
   Category: custom
-  Skill file: typespec-create-api-plugin
-  Provides: skill:typespec-create-api-plugin
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- update-implementation-plan (skill:custom:update-implementation-plan)
-  State: installed, enabled
-  Description: 'Update an existing implementation plan file with new or update requirements to provide new features, refactoring existing code or upgrading packages, design, architecture or infrastructure.'
-  Source: skills/custom/update-implementation-plan
-  Category: custom
-  Skill file: update-implementation-plan
-  Provides: skill:update-implementation-plan
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- update-specification (skill:custom:update-specification)
-  State: installed, enabled
-  Description: 'Update an existing specification file for the solution, optimized for Generative AI consumption based on new requirements or updates to any existing code.'
-  Source: skills/custom/update-specification
-  Category: custom
-  Skill file: update-specification
-  Provides: skill:update-specification
+  Skill file: tools-hub-check-124139b5
+  Provides: skill:tools-hub-check-124139b5
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -1131,17 +915,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- vibe-coding-guide (skill:custom:vibe-coding-guide)
-  State: installed, enabled
-  Description: '用于把模糊想法快速收敛成可交付实现，但避免无约束地“边写边漂”。适合原型开发、功能试做、产品探索、快速界面搭建、从一句想法变成工程任务时调用。关键词: vibe coding, prototype, rapid iteration, scoped build, product exploration.'
-  Source: skills/custom/vibe-coding-guide
-  Category: custom
-  Skill file: vibe-coding-guide
-  Provides: skill:vibe-coding-guide
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
 - video-generation (skill:public:video-generation)
   State: installed, enabled
   Description: Use this skill when the user requests to generate, create, or imagine videos. Supports structured prompts and reference image for guided generation.
@@ -1149,6 +922,17 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Category: public
   Skill file: video-generation
   Provides: skill:video-generation
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- voltagent-best-practices (skill:public:voltagent-best-practices)
+  State: installed, enabled
+  Description: VoltAgent architectural patterns and conventions. Covers agents vs workflows, project layout, memory, servers, and observability.
+  Source: skills/public/voltagent-best-practices
+  Category: public
+  Skill file: voltagent-best-practices
+  Provides: skill:voltagent-best-practices
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
@@ -1164,13 +948,24 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- what-context-needed (skill:custom:what-context-needed)
+- witr-runtime-diagnosis (skill:public:witr-runtime-diagnosis)
   State: installed, enabled
-  Description: 'Ask Copilot what files it needs to see before answering a question'
-  Source: skills/custom/what-context-needed
-  Category: custom
-  Skill file: what-context-needed
-  Provides: skill:what-context-needed
+  Description: Runtime diagnosis skill for explaining why processes and services are running.
+  Source: skills/public/witr-runtime-diagnosis
+  Category: public
+  Skill file: witr-runtime-diagnosis
+  Provides: skill:witr-runtime-diagnosis
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
+- workday-broker (skill:public:workday-broker)
+  State: installed, enabled
+  Description: Plan-only Workday onboarding broker: produces a signed-intent SOAP/REST envelope for the Hire business process. OctoAgent never calls Workday tenants directly; output is an artifact for a credentialed integration user.
+  Source: skills/public/workday-broker
+  Category: public
+  Skill file: workday-broker
+  Provides: skill:workday-broker
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
