@@ -57,48 +57,10 @@ class QueryTurnExecutor:
         return False
 
     def select_execution_target(self, message: str, client_command: QueryClientCommand | None = None) -> str:
+        """Route all messages through repo_read - LLM decides tool usage directly."""
         if client_command is not None:
             return client_command.execution_target
-        signal_message = self.extract_signal_message(message)
-        lowered = signal_message.lower()
-        if any(token in lowered for token in ["research", "experiment", "trial", "hypothesis", "metric"]):
-            return "research_runtime"
-        browser_tokens = [
-            "http://",
-            "https://",
-            "x.com",
-            "twitter",
-            "browser",
-            "web",
-            "page",
-            "url",
-            "snapshot",
-            "weather",
-            "forecast",
-            "temperature",
-            "latest",
-            "search",
-            "lookup",
-            "news",
-            "top 10",
-            "\u5341\u5927",
-            "\u70ed\u641c",
-            "\u5929\u6c14",
-            "\u67e5\u8be2",
-            "\u65b0\u95fb",
-        ]
-        if any(token in lowered for token in browser_tokens):
-            return "browser_runtime"
-        if any(marker in lowered for marker in ["run:", "command:", "shell:", "cli:", "workspace cli:", "system cli:"]):
-            return "system_execution"
-        if signal_message.strip().startswith(("pwd", "ls", "rg ", "cat ", "find ", "git status", "git diff --stat")):
-            return "system_execution"
-        if self.extract_requested_path(signal_message):
-            return "system_execution"
-        if any(token in lowered for token in ["system", "desktop", "file", "folder", "command", "shell", "terminal", "app"]):
-            return "system_execution"
         return "repo_read"
-
     def resolve_client_command(
         self,
         message: str,
@@ -157,21 +119,10 @@ class QueryTurnExecutor:
 
     def approval_required(self, session, target: str, message: str) -> bool:
         permission_mode = normalize_runtime_permission_mode(str(session.metadata.get("permission_mode") or "approval"))
-        if permission_mode == "system" and target in {"repo_read", "browser_runtime", "system_execution"}:
+        if permission_mode in {"system", "directory"}:
             return False
-        if permission_mode == "directory" and target == "repo_read":
-            return False
-        if target == "browser_runtime" and not self.browser_actions_need_approval(message):
-            return False
-        tool_id = {
-            "browser_runtime": "browser-runtime",
-            "system_execution": "system-execution",
-            "repo_read": "repo-read",
-        }.get(target)
-        if tool_id is None:
-            return False
-        tool = next((item for item in session.available_tools if item.tool_id == tool_id), None)
-        return bool(tool and tool.requires_approval)
+        return target != "repo_read"
+
 
     def execute_browser_target(self, session, message: str, *, created_at: str, client_command: QueryClientCommand | None = None):
         target = client_command.requested_url if client_command is not None and client_command.requested_url else self.browser_query_url(message)
