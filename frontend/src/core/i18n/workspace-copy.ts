@@ -188,6 +188,34 @@ type WorkspaceLocaleCopy = {
   modelsPage: ModelsPageCopy;
   taskWorkspace: TaskWorkspaceCopy;
   taskRuntime: TaskRuntimeCopy;
+  projectsPage: ProjectsPageCopy;
+};
+
+
+type ProjectsPageCopy = {
+  pageDescription: string;
+  newProject: string;
+  editProject: string;
+  projectName: string;
+  goal: string;
+  goalPlaceholder: string;
+  saveChanges: string;
+  create: string;
+  close: string;
+  deleteConfirm: (name: string) => string;
+  projectDeleted: string;
+  projectCreated: string;
+  projectUpdated: string;
+  deleteFailed: string;
+  saveFailed: string;
+  noProjects: string;
+  openProject: string;
+  statusCompleted: string;
+  statusRunning: string;
+  statusActive: string;
+  statusPaused: string;
+  statusFailed: string;
+  statusCreated: string;
 };
 
 const modelFields: Record<Locale, ModelFieldCopy> = {
@@ -1131,6 +1159,135 @@ const taskRuntimeCopy: Record<Locale, TaskRuntimeCopy> = {
   },
 };
 
+
+const projectsPageCopy: Record<Locale, ProjectsPageCopy> = {
+  "en-US": {
+    pageDescription: "Manage projects and their isolated memory spaces.",
+    newProject: "New Project",
+    editProject: "Edit Project",
+    projectName: "Project Name",
+    goal: "Goal",
+    goalPlaceholder: "Describe the project goal...",
+    saveChanges: "Save Changes",
+    create: "Create",
+    close: "Close",
+    deleteConfirm: (name: string) => `Delete project "${name}"? This cannot be undone.`,
+    projectDeleted: "Project deleted.",
+    projectCreated: "Project created.",
+    projectUpdated: "Project updated.",
+    deleteFailed: "Failed to delete project.",
+    saveFailed: "Failed to save project.",
+    noProjects: "No projects yet. Create your first project to get started.",
+    openProject: "Open",
+    statusCompleted: "Completed",
+    statusRunning: "Running",
+    statusActive: "Active",
+    statusPaused: "Paused",
+    statusFailed: "Failed",
+    statusCreated: "Created",
+  },
+  "ja": {
+    pageDescription: "プロジェクトとその分離されたメモリ空間を管理します。",
+    newProject: "新規プロジェクト",
+    editProject: "プロジェクトを編集",
+    projectName: "プロジェクト名",
+    goal: "目標",
+    goalPlaceholder: "プロジェクトの目標を入力...",
+    saveChanges: "変更を保存",
+    create: "作成",
+    close: "閉じる",
+    deleteConfirm: (name: string) => `プロジェクト「${name}」を削除しますか？`,
+    projectDeleted: "プロジェクトを削除しました。",
+    projectCreated: "プロジェクトを作成しました。",
+    projectUpdated: "プロジェクトを更新しました。",
+    deleteFailed: "プロジェクトの削除に失敗しました。",
+    saveFailed: "プロジェクトの保存に失敗しました。",
+    noProjects: "まだプロジェクトがありません。最初のプロジェクトを作成してください。",
+    openProject: "開く",
+    statusCompleted: "完了",
+    statusRunning: "実行中",
+    statusActive: "アクティブ",
+    statusPaused: "一時停止",
+    statusFailed: "失敗",
+    statusCreated: "作成済み",
+  },
+  "ko": {
+    pageDescription: "프로젝트와 격리된 메모리 공간을 관리합니다.",
+    newProject: "새 프로젝트",
+    editProject: "프로젝트 편집",
+    projectName: "프로젝트 이름",
+    goal: "목표",
+    goalPlaceholder: "프로젝트 목표를 설명하세요...",
+    saveChanges: "변경 저장",
+    create: "만들기",
+    close: "닫기",
+    deleteConfirm: (name: string) => `프로젝트 "${name}"을(를) 삭제할까요?`,
+    projectDeleted: "프로젝트가 삭제되었습니다.",
+    projectCreated: "프로젝트가 생성되었습니다.",
+    projectUpdated: "프로젝트가 업데이트되었습니다.",
+    deleteFailed: "프로젝트 삭제에 실패했습니다.",
+    saveFailed: "프로젝트 저장에 실패했습니다.",
+    noProjects: "아직 프로젝트가 없습니다. 첫 번째 프로젝트를 만드세요.",
+    openProject: "열기",
+    statusCompleted: "완료",
+    statusRunning: "실행 중",
+    statusActive: "활성",
+    statusPaused: "일시 중지",
+    statusFailed: "실패",
+    statusCreated: "생성됨",
+  },
+  "zh-CN": {
+    pageDescription: "管理项目及其隔离的记忆空间。",
+    newProject: "新建项目",
+    editProject: "编辑项目",
+    projectName: "项目名称",
+    goal: "目标",
+    goalPlaceholder: "描述项目目标...",
+    saveChanges: "保存更改",
+    create: "创建",
+    close: "关闭",
+    deleteConfirm: (name: string) => `确定要删除项目"${name}"吗？此操作不可撤销。`,
+    projectDeleted: "项目已删除。",
+    projectCreated: "项目已创建。",
+    projectUpdated: "项目已更新。",
+    deleteFailed: "删除项目失败。",
+    saveFailed: "保存项目失败。",
+    noProjects: "暂无项目。创建第一个项目开始使用。",
+    openProject: "打开",
+    statusCompleted: "已完成",
+    statusRunning: "运行中",
+    statusActive: "活跃",
+    statusPaused: "已暂停",
+    statusFailed: "失败",
+    statusCreated: "已创建",
+  },
+  "zh-TW": {
+    pageDescription: "管理專案及其隔離的記憶空間。",
+    newProject: "新建專案",
+    editProject: "編輯專案",
+    projectName: "專案名稱",
+    goal: "目標",
+    goalPlaceholder: "描述專案目標...",
+    saveChanges: "儲存變更",
+    create: "建立",
+    close: "關閉",
+    deleteConfirm: (name: string) => `確定要刪除專案"${name}"嗎？此操作不可撤銷。`,
+    projectDeleted: "專案已刪除。",
+    projectCreated: "專案已建立。",
+    projectUpdated: "專案已更新。",
+    deleteFailed: "刪除專案失敗。",
+    saveFailed: "儲存專案失敗。",
+    noProjects: "暫無專案。建立第一個專案開始使用。",
+    openProject: "開啟",
+    statusCompleted: "已完成",
+    statusRunning: "執行中",
+    statusActive: "活躍",
+    statusPaused: "已暫停",
+    statusFailed: "失敗",
+    statusCreated: "已建立",
+  },
+};
+
 export function getWorkspaceLocaleCopy(locale: Locale): WorkspaceLocaleCopy {
   return {
     modelFields: modelFields[locale] ?? modelFields["en-US"],
@@ -1140,5 +1297,6 @@ export function getWorkspaceLocaleCopy(locale: Locale): WorkspaceLocaleCopy {
     modelsPage: modelsPageCopy[locale] ?? modelsPageCopy["en-US"],
     taskWorkspace: taskWorkspaceCopy[locale] ?? taskWorkspaceCopy["en-US"],
     taskRuntime: taskRuntimeCopy[locale] ?? taskRuntimeCopy["en-US"],
+    projectsPage: projectsPageCopy[locale] ?? projectsPageCopy["en-US"],
   };
 }

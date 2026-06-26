@@ -13,7 +13,9 @@ import {
   PauseIcon,
   XCircleIcon,
   AlertCircleIcon,
+  MessageSquareIcon,
 } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -22,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useI18n } from "@/core/i18n/hooks";
+import { getWorkspaceLocaleCopy } from "@/core/i18n/workspace-copy";
 import {
   useProjects,
   useCreateProject,
@@ -44,19 +47,19 @@ const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; vari
 
 function ProjectCard({
   project,
+  copy,
   onEdit,
   onDelete,
 }: {
   project: ProjectSummary;
+  copy: ReturnType<typeof getWorkspaceLocaleCopy>["projectsPage"];
   onEdit: () => void;
   onDelete: () => void;
 }) {
   const status = STATUS_CONFIG[project.status] ?? { icon: <FolderKanbanIcon className="size-3" />, label: project.status, variant: "outline" as const };
 
   return (
-    <div
-      className="octo-panel octo-management-card flex min-w-0 flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),-3px_-3px_7px_var(--neu-light-soft)]"
-    >
+    <div className="octo-panel octo-management-card flex min-w-0 flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),-3px_-3px_7px_var(--neu-light-soft)]">
       <div className="mb-2 flex items-start justify-between gap-2">
         <h2 className="min-w-0 break-words text-sm font-medium text-foreground">
           {project.name}
@@ -66,6 +69,22 @@ function ProjectCard({
             {status.icon}
             <span className="ml-1">{status.label}</span>
           </Badge>
+        </div>
+      </div>
+      {project.goal && (
+        <p className="mb-3 break-words line-clamp-2 text-xs text-muted-foreground">{project.goal}</p>
+      )}
+      {project.memory_summary && (
+        <p className="mb-2 text-[10px] text-muted-foreground/60 leading-relaxed line-clamp-2">{project.memory_summary}</p>
+      )}
+      <div className="mt-auto flex items-center justify-between gap-2">
+        <Link href={`/workspace/projects/${project.project_id}`} className="flex-1">
+          <Button size="sm" className="octo-card-primary-action w-full">
+            <MessageSquareIcon className="mr-1.5 size-3.5" />
+            {copy.openProject}
+          </Button>
+        </Link>
+        <div className="octo-card-actions">
           <Button
             size="icon"
             variant="ghost"
@@ -82,7 +101,7 @@ function ProjectCard({
             title="Delete"
             onClick={(e) => {
               e.stopPropagation();
-              if (window.confirm(`Delete project "${project.name}"? This cannot be undone.`)) {
+              if (window.confirm(copy.deleteConfirm(project.name))) {
                 onDelete();
               }
             }}
@@ -91,18 +110,13 @@ function ProjectCard({
           </Button>
         </div>
       </div>
-      {project.goal && (
-        <p className="mb-3 break-words line-clamp-2 text-xs text-muted-foreground">{project.goal}</p>
-      )}
-      {project.memory_summary && (
-        <p className="mb-2 text-[10px] text-muted-foreground/60 leading-relaxed line-clamp-2">{project.memory_summary}</p>
-      )}
     </div>
   );
 }
 
 export default function ProjectsPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const copy = getWorkspaceLocaleCopy(locale).projectsPage;
   const { data: projects, isLoading } = useProjects();
   const createProject = useCreateProject();
   const updateProject = useUpdateProject();
@@ -134,11 +148,11 @@ export default function ProjectsPage() {
         { projectId: editingId, input: { name: form.name.trim(), goal: form.goal.trim() } },
         {
           onSuccess: () => {
-            toast.success("Project updated");
+            toast.success(copy.projectUpdated);
             setIsFormOpen(false);
             setForm(EMPTY_FORM);
           },
-          onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update project"),
+          onError: (err) => toast.error(err instanceof Error ? err.message : copy.saveFailed),
         },
       );
     } else {
@@ -146,11 +160,11 @@ export default function ProjectsPage() {
         { name: form.name.trim(), goal: form.goal.trim() },
         {
           onSuccess: () => {
-            toast.success("Project created");
+            toast.success(copy.projectCreated);
             setIsFormOpen(false);
             setForm(EMPTY_FORM);
           },
-          onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to create project"),
+          onError: (err) => toast.error(err instanceof Error ? err.message : copy.saveFailed),
         },
       );
     }
@@ -158,8 +172,8 @@ export default function ProjectsPage() {
 
   function handleDelete(projectId: string) {
     deleteProject.mutate(projectId, {
-      onSuccess: () => toast.success("Project deleted"),
-      onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to delete project"),
+      onSuccess: () => toast.success(copy.projectDeleted),
+      onError: (err) => toast.error(err instanceof Error ? err.message : copy.deleteFailed),
     });
   }
 
@@ -168,13 +182,11 @@ export default function ProjectsPage() {
       <header className="mb-6 flex items-start justify-between gap-3">
         <div>
           <h1 className="text-lg font-semibold text-foreground">{t.sidebar.projects}</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage projects and their isolated memory spaces.
-          </p>
+          <p className="text-sm text-muted-foreground">{copy.pageDescription}</p>
         </div>
         <Button size="sm" onClick={startCreate}>
           <PlusIcon className="size-4" />
-          <span className="ml-1">New Project</span>
+          <span className="ml-1">{copy.newProject}</span>
         </Button>
       </header>
 
@@ -183,16 +195,14 @@ export default function ProjectsPage() {
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <div className="text-sm font-medium text-foreground">
-                {isEditing ? "Edit Project" : "New Project"}
+                {isEditing ? copy.editProject : copy.newProject}
               </div>
-              <p className="text-xs text-muted-foreground">
-                {isEditing ? "Update project name and goal." : "Create a new project to organize your work."}
-              </p>
+              <p className="text-xs text-muted-foreground">{copy.pageDescription}</p>
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1">
-              <span className="text-xs font-medium text-muted-foreground">Project Name</span>
+              <span className="text-xs font-medium text-muted-foreground">{copy.projectName}</span>
               <Input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -200,11 +210,11 @@ export default function ProjectsPage() {
               />
             </label>
             <label className="space-y-1 md:col-span-2">
-              <span className="text-xs font-medium text-muted-foreground">Goal</span>
+              <span className="text-xs font-medium text-muted-foreground">{copy.goal}</span>
               <Textarea
                 value={form.goal}
                 onChange={(e) => setForm((f) => ({ ...f, goal: e.target.value }))}
-                placeholder="Describe the project goal..."
+                placeholder={copy.goalPlaceholder}
                 rows={3}
               />
             </label>
@@ -216,14 +226,14 @@ export default function ProjectsPage() {
               disabled={!form.name.trim() || createProject.isPending || updateProject.isPending}
             >
               <SaveIcon className="size-4" />
-              <span className="ml-1">{isEditing ? "Save Changes" : "Create"}</span>
+              <span className="ml-1">{isEditing ? copy.saveChanges : copy.create}</span>
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={() => { setIsFormOpen(false); setForm(EMPTY_FORM); }}
             >
-              Close
+              {copy.close}
             </Button>
           </div>
         </div>
@@ -236,7 +246,7 @@ export default function ProjectsPage() {
       ) : !projects?.length ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
           <FolderKanbanIcon className="mb-3 size-10 opacity-30" />
-          <p className="text-sm">No projects yet. Create your first project to get started.</p>
+          <p className="text-sm">{copy.noProjects}</p>
         </div>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -244,6 +254,7 @@ export default function ProjectsPage() {
             <ProjectCard
               key={project.project_id}
               project={project}
+              copy={copy}
               onEdit={() => startEdit(project)}
               onDelete={() => handleDelete(project.project_id)}
             />
