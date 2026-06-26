@@ -53,8 +53,34 @@ class QueryTurnExecutor:
         return candidate
 
     def is_conversation_request(self, message: str) -> bool:
-        """Always False — LLM handles all request types directly."""
-        return False
+        signal_message = self.extract_signal_message(message).strip().lower()
+        if not signal_message:
+            return True
+        conversational_markers = (
+            "介绍一下自己",
+            "介绍自己",
+            "你是谁",
+            "你是什么",
+            "who are you",
+            "what are you",
+            "hello",
+            "你好",
+            "谢谢",
+            "thanks",
+        )
+        # Check if message has BOTH conversational AND task content = compound request
+        has_conversational = any(marker in signal_message for marker in conversational_markers)
+        has_task_content = any(token in signal_message for token in [
+            "天气", "查", "搜索", "search", "weather", "forecast",
+            "执行", "运行", "创建", "写", "修复", "测试", "部署",
+            "run", "create", "write", "fix", "test", "deploy",
+        ])
+        # Compound requests should NOT be treated as pure conversation
+        if has_conversational and has_task_content:
+            return False
+        if has_conversational:
+            return True
+        return len(signal_message) <= 12 and not self.extract_requested_path(signal_message)
 
     def select_execution_target(self, message: str, client_command: QueryClientCommand | None = None) -> str:
         if client_command is not None:
@@ -106,6 +132,7 @@ class QueryTurnExecutor:
         permission_mode: str = "approval",
     ) -> QueryClientCommand:
         signal_message = self.extract_signal_message(message)
+        # Use the target-selection method which now handles compound requests
         target = self.select_execution_target(signal_message)
         command_text = self.extract_shell_command(signal_message)
         requested_path = self.extract_requested_path(signal_message)

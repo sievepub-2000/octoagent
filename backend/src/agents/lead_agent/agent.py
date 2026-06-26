@@ -18,10 +18,9 @@ from src.agents.middlewares.continuation_middleware import ContinuationMiddlewar
 from src.agents.middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
 from src.agents.middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
 from src.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
-from src.agents.middlewares.execution_mode_middleware import ExecutionModeMiddleware
-from src.agents.middlewares.execution_review_middleware import ExecutionReviewMiddleware
-from src.agents.middlewares.goal_contract_middleware import GoalContractProducerMiddleware
-from src.agents.middlewares.goal_drift_middleware import GoalDriftMiddleware
+from src.agents.middlewares.execution_middleware import ExecutionMiddleware
+from src.agents.middlewares.goal_middleware import GoalMiddleware
+from src.agents.middlewares.state_middleware import StateMiddleware
 from src.agents.middlewares.instruction_contract_middleware import InstructionContractMiddleware
 from src.agents.middlewares.lesson_injection_middleware import LessonInjectionMiddleware
 from src.agents.middlewares.memory_middleware import MemoryMiddleware
@@ -29,8 +28,6 @@ from src.agents.middlewares.runtime_state_middleware import RuntimeStateMiddlewa
 from src.agents.middlewares.session_compaction_middleware import SessionCompactionMiddleware
 from src.agents.middlewares.skill_evolution_middleware import SkillEvolutionMiddleware
 from src.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
-from src.agents.middlewares.task_state_middleware import TaskStateMiddleware
-from src.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
 from src.agents.middlewares.title_middleware import TitleMiddleware
 from src.agents.middlewares.todo_middleware import TodoMiddleware
 from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
@@ -254,11 +251,11 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
         List of middleware instances.
     """
     middlewares = [
-        ThreadDataMiddleware(),
+        StateMiddleware(),
         UploadsMiddleware(),
         ContinuationMiddleware(),
         ClientCommandMiddleware(),
-        ExecutionModeMiddleware(),
+        ExecutionMiddleware(),
         SandboxMiddleware(),
         DanglingToolCallMiddleware(),
     ]
@@ -275,9 +272,8 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
         middlewares.append(todo_list_middleware)
 
     # Add TitleMiddleware
-    middlewares.append(GoalContractProducerMiddleware())  # sprint-2: emit GoalContract once per thread
+    middlewares.append(GoalMiddleware())
     middlewares.append(TitleMiddleware())
-
     # Add MemoryMiddleware (after TitleMiddleware)
     middlewares.append(MemoryMiddleware(agent_name=agent_name))
 
@@ -288,7 +284,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     fallback_models = model_config.fallback_models if model_config is not None else []
     middlewares.append(RuntimeStateMiddleware(model_name=model_name, fallback_models=fallback_models))
     middlewares.append(InstructionContractMiddleware())
-    middlewares.append(TaskStateMiddleware())
     if model_config is not None and model_config.supports_vision:
         middlewares.append(ViewImageMiddleware())
 
@@ -308,7 +303,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     # Goal drift detection and lesson injection should be active for ALL tasks,
     # not just subagent mode — they improve task accuracy universally.
     middlewares.append(LessonInjectionMiddleware())  # sprint-1 P0: inject top-K lessons into system prompt
-    middlewares.append(GoalDriftMiddleware(every_n=5, drift_threshold=0.45, window=5))  # sprint-2: detect goal drift
 
     if subagent_enabled:
         max_concurrent_subagents = runtime_config_value(
@@ -333,7 +327,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
             max_context_tokens=_resolve_compaction_context_tokens(model_config, app_config),
         )
     )
-    middlewares.append(ExecutionReviewMiddleware())
 
     # SkillEvolutionMiddleware — record execution traces and trigger evolution
     try:
