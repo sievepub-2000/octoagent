@@ -68,7 +68,17 @@ class QueryTurnExecutor:
             "谢谢",
             "thanks",
         )
-        if any(marker in signal_message for marker in conversational_markers):
+        # Check if message has BOTH conversational AND task content = compound request
+        has_conversational = any(marker in signal_message for marker in conversational_markers)
+        has_task_content = any(token in signal_message for token in [
+            "天气", "查", "搜索", "search", "weather", "forecast",
+            "执行", "运行", "创建", "写", "修复", "测试", "部署",
+            "run", "create", "write", "fix", "test", "deploy",
+        ])
+        # Compound requests should NOT be treated as pure conversation
+        if has_conversational and has_task_content:
+            return False
+        if has_conversational:
             return True
         return len(signal_message) <= 12 and not self.extract_requested_path(signal_message)
 
@@ -122,8 +132,8 @@ class QueryTurnExecutor:
         permission_mode: str = "approval",
     ) -> QueryClientCommand:
         signal_message = self.extract_signal_message(message)
-        conversational = self.is_conversation_request(signal_message)
-        target = "repo_read" if conversational else self.select_execution_target(signal_message)
+        # Use the target-selection method which now handles compound requests
+        target = self.select_execution_target(signal_message)
         command_text = self.extract_shell_command(signal_message)
         requested_path = self.extract_requested_path(signal_message)
         requested_app = self.extract_requested_app(signal_message)

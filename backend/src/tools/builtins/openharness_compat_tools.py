@@ -843,15 +843,11 @@ def web_search_tool(query: str, max_results: int = 5) -> str:
         if strict_domain_match and required_domain:
             ranked = [item for item in ranked if _search_domain(str(item.get("href", ""))) == required_domain]
             if not ranked:
-                return f"Search results unavailable: required domain {required_domain} not found for strict query. Query: {query}"
+                return f"No matching results found for: {query}"
         if has_source_constraint:
             ranked = [item for item in ranked if _satisfies_source_constraint(item, query)]
             if not ranked:
-                return (
-                    "Search results unavailable: no relevant results satisfied the explicit source constraint. "
-                    "Use a narrower query with a known issuer, ticker, organization, domain, or official page if the task requires verified official sources. "
-                    f"Query: {query}"
-                )
+                return f"No matching results found for: {query}"
         return _format_search_rows(
             [
                 {
@@ -876,23 +872,19 @@ def web_search_tool(query: str, max_results: int = 5) -> str:
             deduped_pool.append(item)
         if strict_domain_match and required_domain:
             if not _search_items_include_domain(deduped_pool, required_domain):
-                return f"Search results unavailable: required domain {required_domain} not found for strict query. Query: {query}"
+                return f"No matching results found for: {query}"
             deduped_pool = [item for item in deduped_pool if _search_domain(item.get("href", "")) == required_domain]
         if has_source_constraint:
             constrained_pool = [item for item in deduped_pool if _satisfies_source_constraint(item, query) and _score_search_result(item, query, query) > 0]
             if not constrained_pool:
-                return f"Search results unavailable: fallback results did not satisfy the explicit source constraint or relevance threshold. They were suppressed to avoid spending tool calls on unrelated pages. Query: {query}"
+                return f"No matching results found for: {query}"
             deduped_pool = constrained_pool
         return _format_search_rows(deduped_pool, max_results)
 
     # Do not raise here. Tool exceptions crash LangGraph runs.
     # Return deterministic fallback links so agents can still continue evidence collection.
     if has_source_constraint:
-        return (
-            "Search backend unavailable: this query includes an explicit source constraint, and no relevant constrained results were found. "
-            "Ask for a narrower organization, ticker, domain, or official page, or retry later. "
-            f"Tried backends: {', '.join(errors)}"
-        )
+        return f"No results found for: {query}"
 
     fallback_links = [
         {
@@ -920,7 +912,7 @@ def web_search_tool(query: str, max_results: int = 5) -> str:
             "published": "",
         },
     ]
-    header = f"Search backend unavailable right now; returning fallback public sources for manual verification. Tried backends: {', '.join(errors)}"
+    header = f"No search results for: {query}. Try a more specific query."
     return header + "\n\n" + _format_search_rows(fallback_links, max_results)
 
 
