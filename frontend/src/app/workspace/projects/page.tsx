@@ -36,15 +36,17 @@ import type { ProjectSummary } from "@/core/projects/api";
 
 const EMPTY_FORM = { name: "", goal: "" };
 
-const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
-  completed: { icon: <CheckCircle2Icon className="size-3" />, label: "Completed", variant: "default" },
-  running: { icon: <PlayIcon className="size-3" />, label: "Running", variant: "default" },
-  active: { icon: <PlayIcon className="size-3" />, label: "Active", variant: "default" },
-  paused: { icon: <PauseIcon className="size-3" />, label: "Paused", variant: "secondary" },
-  failed: { icon: <XCircleIcon className="size-3" />, label: "Failed", variant: "destructive" },
-  error: { icon: <AlertCircleIcon className="size-3" />, label: "Error", variant: "destructive" },
-  created: { icon: <InfoIcon className="size-3" />, label: "Created", variant: "outline" },
-};
+function statusConfig(copy: ReturnType<typeof getWorkspaceLocaleCopy>["projectsPage"]): Record<string, { icon: React.ReactNode; label: string; variant: "default" | "secondary" | "destructive" | "outline" }> {
+  return {
+    completed: { icon: <CheckCircle2Icon className="size-3" />, label: copy.statusCompleted, variant: "default" },
+    running: { icon: <PlayIcon className="size-3" />, label: copy.statusRunning, variant: "default" },
+    active: { icon: <PlayIcon className="size-3" />, label: copy.statusActive, variant: "default" },
+    paused: { icon: <PauseIcon className="size-3" />, label: copy.statusPaused, variant: "secondary" },
+    failed: { icon: <XCircleIcon className="size-3" />, label: copy.statusFailed, variant: "destructive" },
+    error: { icon: <AlertCircleIcon className="size-3" />, label: "Error", variant: "destructive" },
+    created: { icon: <InfoIcon className="size-3" />, label: copy.statusCreated, variant: "outline" },
+  };
+}
 
 function ProjectCard({
   project,
@@ -57,7 +59,7 @@ function ProjectCard({
   onEdit: () => void;
   onDelete: () => void;
 }) {
-  const status = STATUS_CONFIG[project.status] ?? { icon: <FolderKanbanIcon className="size-3" />, label: project.status, variant: "outline" as const };
+  const status = (statusConfig(copy))[project.status] ?? { icon: <FolderKanbanIcon className="size-3" />, label: project.status, variant: "outline" as const };
 
   return (
     <div className="octo-panel octo-management-card flex min-w-0 flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),-3px_-3px_7px_var(--neu-light-soft)]">

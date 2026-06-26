@@ -20,6 +20,7 @@ Default locale: `en-US`.
 | Task card details panel | `components/workspace/task-card-details-panel.tsx` |
 | RAG settings page (models, reranker, params) | `components/workspace/settings/rag-settings-page.tsx` |
 | Auth register / login page | `app/auth/register/page.tsx` |
+| Projects page (CRUD, status badges, create form) | pp/workspace/projects/page.tsx |
 | "Show earlier messages" | `components/workspace/messages/message-list.tsx` |
 
 ## Intentional CJK retained (NOT bugs)
