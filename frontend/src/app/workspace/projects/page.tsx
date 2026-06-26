@@ -1,150 +1,255 @@
 "use client";
 
-import { PlusIcon, ExternalLinkIcon, Loader2Icon } from "lucide-react";
-import Link from "next/link";
+import {
+  FolderKanbanIcon,
+  InfoIcon,
+  Edit3Icon,
+  Trash2Icon,
+  PlusIcon,
+  SaveIcon,
+  Loader2Icon,
+  CheckCircle2Icon,
+  PlayIcon,
+  PauseIcon,
+  XCircleIcon,
+  AlertCircleIcon,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { getJSON, postJSON, deleteJSON } from "@/core/api/http";
 import { useI18n } from "@/core/i18n/hooks";
+import {
+  useProjects,
+  useCreateProject,
+  useDeleteProject,
+  useUpdateProject,
+} from "@/core/projects/hooks";
+import type { ProjectSummary } from "@/core/projects/api";
 
-interface ProjectSummary {
-  project_id: string;
-  name: string;
-  goal: string;
-  status: string;
-  created_at: string;
-  updated_at: string;
-  memory_summary: string;
+const EMPTY_FORM = { name: "", goal: "" };
+
+const STATUS_CONFIG: Record<string, { icon: React.ReactNode; label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+  completed: { icon: <CheckCircle2Icon className="size-3" />, label: "Completed", variant: "default" },
+  running: { icon: <PlayIcon className="size-3" />, label: "Running", variant: "default" },
+  active: { icon: <PlayIcon className="size-3" />, label: "Active", variant: "default" },
+  paused: { icon: <PauseIcon className="size-3" />, label: "Paused", variant: "secondary" },
+  failed: { icon: <XCircleIcon className="size-3" />, label: "Failed", variant: "destructive" },
+  error: { icon: <AlertCircleIcon className="size-3" />, label: "Error", variant: "destructive" },
+  created: { icon: <InfoIcon className="size-3" />, label: "Created", variant: "outline" },
+};
+
+function ProjectCard({
+  project,
+  onEdit,
+  onDelete,
+}: {
+  project: ProjectSummary;
+  onEdit: () => void;
+  onDelete: () => void;
+}) {
+  const status = STATUS_CONFIG[project.status] ?? { icon: <FolderKanbanIcon className="size-3" />, label: project.status, variant: "outline" as const };
+
+  return (
+    <div
+      className="octo-panel octo-management-card flex min-w-0 flex-col rounded-[1.5rem] p-3 transition-shadow hover:translate-y-[-1px] hover:shadow-[3px_3px_7px_var(--neu-dark-strong),-3px_-3px_7px_var(--neu-light-soft)]"
+    >
+      <div className="mb-2 flex items-start justify-between gap-2">
+        <h2 className="min-w-0 break-words text-sm font-medium text-foreground">
+          {project.name}
+        </h2>
+        <div className="octo-card-actions ml-2">
+          <Badge variant={status.variant} className="text-[10px]">
+            {status.icon}
+            <span className="ml-1">{status.label}</span>
+          </Badge>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="octo-card-action"
+            title="Edit"
+            onClick={(e) => { e.stopPropagation(); onEdit(); }}
+          >
+            <Edit3Icon className="size-3.5 text-muted-foreground hover:text-primary" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            className="octo-card-action"
+            title="Delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (window.confirm(`Delete project "${project.name}"? This cannot be undone.`)) {
+                onDelete();
+              }
+            }}
+          >
+            <Trash2Icon className="size-3.5 text-muted-foreground hover:text-destructive" />
+          </Button>
+        </div>
+      </div>
+      {project.goal && (
+        <p className="mb-3 break-words line-clamp-2 text-xs text-muted-foreground">{project.goal}</p>
+      )}
+      {project.memory_summary && (
+        <p className="mb-2 text-[10px] text-muted-foreground/60 leading-relaxed line-clamp-2">{project.memory_summary}</p>
+      )}
+    </div>
+  );
 }
 
 export default function ProjectsPage() {
   const { t } = useI18n();
-  const qc = useQueryClient();
-  const [createOpen, setCreateOpen] = useState(false);
-  const [newName, setNewName] = useState("");
-  const [newGoal, setNewGoal] = useState("");
+  const { data: projects, isLoading } = useProjects();
+  const createProject = useCreateProject();
+  const updateProject = useUpdateProject();
+  const deleteProject = useDeleteProject();
 
-  const { data: projects, isLoading } = useQuery({
-    queryKey: ["projects"],
-    queryFn: () => getJSON<ProjectSummary[]>("/api/projects"),
-  });
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY_FORM);
 
-  const createMutation = useMutation({
-    mutationFn: () => postJSON("/api/projects", { name: newName, goal: newGoal }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      setCreateOpen(false);
-      setNewName(""); setNewGoal("");
-      toast.success("Project created");
-    },
-    onError: () => toast.error("Failed to create project"),
-  });
+  function startCreate() {
+    setIsEditing(false);
+    setEditingId(null);
+    setForm(EMPTY_FORM);
+    setIsFormOpen(true);
+  }
 
-  const deleteMutation = useMutation({
-    mutationFn: (id: string) => deleteJSON(`/api/projects/${id}`),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["projects"] });
-      toast.success("Project deleted");
-    },
-    onError: () => toast.error("Failed to delete project"),
-  });
+  function startEdit(project: ProjectSummary) {
+    setIsEditing(true);
+    setEditingId(project.project_id);
+    setForm({ name: project.name, goal: project.goal });
+    setIsFormOpen(true);
+  }
 
-  const statusIcon = (s: string) => {
-    switch (s) {
-      case "completed": return "\u2705";
-      case "running": case "active": return "\U0001f504";
-      case "failed": case "error": return "\u274c";
-      case "paused": return "\u23f8\ufe0f";
-      default: return "\U0001f4cb";
+  function handleSave() {
+    if (!form.name.trim()) return;
+    if (isEditing && editingId) {
+      updateProject.mutate(
+        { projectId: editingId, input: { name: form.name.trim(), goal: form.goal.trim() } },
+        {
+          onSuccess: () => {
+            toast.success("Project updated");
+            setIsFormOpen(false);
+            setForm(EMPTY_FORM);
+          },
+          onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to update project"),
+        },
+      );
+    } else {
+      createProject.mutate(
+        { name: form.name.trim(), goal: form.goal.trim() },
+        {
+          onSuccess: () => {
+            toast.success("Project created");
+            setIsFormOpen(false);
+            setForm(EMPTY_FORM);
+          },
+          onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to create project"),
+        },
+      );
     }
-  };
+  }
+
+  function handleDelete(projectId: string) {
+    deleteProject.mutate(projectId, {
+      onSuccess: () => toast.success("Project deleted"),
+      onError: (err) => toast.error(err instanceof Error ? err.message : "Failed to delete project"),
+    });
+  }
 
   return (
-    <div className="flex flex-col h-full p-6 gap-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{t.sidebar.projects}</h1>
-        <Button onClick={() => setCreateOpen(true)}>
-          <PlusIcon className="mr-2 size-4" /> New Project
+    <div className="flex h-full flex-col overflow-y-auto p-6">
+      <header className="mb-6 flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-semibold text-foreground">{t.sidebar.projects}</h1>
+          <p className="text-sm text-muted-foreground">
+            Manage projects and their isolated memory spaces.
+          </p>
+        </div>
+        <Button size="sm" onClick={startCreate}>
+          <PlusIcon className="size-4" />
+          <span className="ml-1">New Project</span>
         </Button>
-      </div>
+      </header>
 
-      {isLoading ? (
-        <div className="flex items-center justify-center py-20">
-          <Loader2Icon className="size-8 animate-spin text-muted-foreground" />
-        </div>
-      ) : !projects?.length ? (
-        <div className="flex flex-col items-center justify-center py-20 text-muted-foreground">
-          <p className="text-lg mb-2">No projects yet</p>
-          <p className="text-sm mb-4">Create your first project to get started.</p>
-          <Button variant="outline" onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="mr-2 size-4" /> Create Project
-          </Button>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {projects.map((p) => (
-            <Link
-              key={p.project_id}
-              href={`/workspace/projects/${p.project_id}`}
-              className="flex items-center justify-between rounded-lg border p-4 hover:bg-accent transition-colors"
+      {isFormOpen && (
+        <div className="octo-panel mb-6 rounded-[1.5rem] p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-medium text-foreground">
+                {isEditing ? "Edit Project" : "New Project"}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {isEditing ? "Update project name and goal." : "Create a new project to organize your work."}
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="space-y-1">
+              <span className="text-xs font-medium text-muted-foreground">Project Name</span>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                placeholder="My Project"
+              />
+            </label>
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-medium text-muted-foreground">Goal</span>
+              <Textarea
+                value={form.goal}
+                onChange={(e) => setForm((f) => ({ ...f, goal: e.target.value }))}
+                placeholder="Describe the project goal..."
+                rows={3}
+              />
+            </label>
+          </div>
+          <div className="mt-4 flex gap-2">
+            <Button
+              size="sm"
+              onClick={handleSave}
+              disabled={!form.name.trim() || createProject.isPending || updateProject.isPending}
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="text-lg">{statusIcon(p.status)}</span>
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{p.name}</div>
-                  {p.goal && <div className="text-sm text-muted-foreground truncate">{p.goal}</div>}
-                  {p.memory_summary && (
-                    <div className="text-xs text-muted-foreground/70 truncate mt-1">
-                      {p.memory_summary}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <span className={`text-xs px-2 py-0.5 rounded-full ${
-                  p.status === "completed" ? "bg-green-100 text-green-700" :
-                  p.status === "running" || p.status === "active" ? "bg-blue-100 text-blue-700" :
-                  p.status === "failed" || p.status === "error" ? "bg-red-100 text-red-700" :
-                  "bg-gray-100 text-gray-600"
-                }`}>{p.status}</span>
-                <ExternalLinkIcon className="size-4 text-muted-foreground" />
-              </div>
-            </Link>
-          ))}
+              <SaveIcon className="size-4" />
+              <span className="ml-1">{isEditing ? "Save Changes" : "Create"}</span>
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => { setIsFormOpen(false); setForm(EMPTY_FORM); }}
+            >
+              Close
+            </Button>
+          </div>
         </div>
       )}
 
-      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>New Project</DialogTitle>
-            <DialogDescription>Create a new project to organize your work.</DialogDescription>
-          </DialogHeader>
-          <div className="flex flex-col gap-3">
-            <Input placeholder="Project name" value={newName} onChange={e => setNewName(e.target.value)} />
-            <Textarea placeholder="Goal / description (optional)" value={newGoal} onChange={e => setNewGoal(e.target.value)} rows={3} />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
-            <Button onClick={() => createMutation.mutate()} disabled={!newName.trim() || createMutation.isPending}>
-              {createMutation.isPending ? "Creating..." : "Create"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {isLoading ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2Icon className="size-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : !projects?.length ? (
+        <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+          <FolderKanbanIcon className="mb-3 size-10 opacity-30" />
+          <p className="text-sm">No projects yet. Create your first project to get started.</p>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {projects.map((project) => (
+            <ProjectCard
+              key={project.project_id}
+              project={project}
+              onEdit={() => startEdit(project)}
+              onDelete={() => handleDelete(project.project_id)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

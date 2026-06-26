@@ -4,7 +4,7 @@ import {
   BotIcon,
   BoxesIcon,
   CpuIcon,
-  GitBranchIcon,
+  FolderKanbanIcon,
   MessagesSquare,
   RadioTowerIcon,
   SparklesIcon,
@@ -51,7 +51,7 @@ export function WorkspaceNavChatList() {
                 href="/workspace/projects"
                 prefetch={false}
               >
-                <GitBranchIcon size={18} />
+                <FolderKanbanIcon size={18} />
                 <span>{t.sidebar.projects}</span>
               </Link>
             </SidebarMenuButton>
