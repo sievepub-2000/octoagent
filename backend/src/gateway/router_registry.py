@@ -7,6 +7,7 @@ from fastapi import FastAPI
 
 from src.gateway.router_contract import build_router_tag_report, validate_router_contract, validate_router_tags
 from src.gateway.routers import (
+    projects,
     agents,
     artifacts,
     auth,
@@ -51,6 +52,7 @@ from src.gateway.routers import (
 )
 
 ROUTERS = [
+    projects.router,
     auth.router,
     models.router,
     model_auth.router,

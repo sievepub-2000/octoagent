@@ -117,6 +117,7 @@ export interface Translations {
     agents: string;
     tasks: string;
     workflows: string;
+  projects: string;
     configuration: string;
     skills: string;
     mcp: string;

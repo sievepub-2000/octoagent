@@ -172,6 +172,7 @@ export const enUS: Translations = {
     agents: "Agents",
     tasks: "Tasks",
     workflows: "Workflows",
+  projects: "Projects",
     configuration: "Configuration",
     skills: "Skills",
     mcp: "MCP Servers",

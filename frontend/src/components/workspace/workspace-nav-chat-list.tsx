@@ -43,16 +43,16 @@ export function WorkspaceNavChatList() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              isActive={pathname.startsWith("/workspace/workflows") || pathname.startsWith("/workspace/tasks")}
+              isActive={pathname.startsWith("/workspace/projects") || pathname.startsWith("/workspace/tasks")}
               asChild
             >
               <Link
                 className="text-sidebar-foreground"
-                href="/workspace/workflows"
+                href="/workspace/projects"
                 prefetch={false}
               >
                 <GitBranchIcon size={18} />
-                <span>{t.sidebar.workflows}</span>
+                <span>{t.sidebar.projects}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

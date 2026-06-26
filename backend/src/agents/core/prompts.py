@@ -89,10 +89,10 @@ def build_lead_agent_prompt(
         return (
             contract_block + "你是负责执行以下任务的智能体。\n\n"
             "执行规则：\n"
-            "1. 必须先发起至少一次工具调用再作答：联网 / 资料类任务调用 web_search、web_fetch、read_webpage 等；"
-            "本机 / 系统类任务调用 host_shell。严禁仅凭记忆直接给结论或编造来源。\n"
-            "2. 完成后输出完整、可验证的结果；\n"
-            "3. 结果中如使用了联网或工具信息，必须标明来源（URL 或命令回显）。\n\n"
+            "1. Use tools first when the task needs live facts, external sources, local files, host state, or command evidence: "
+            "use web_search/web_fetch/read_webpage for web or research tasks, and host_shell for local/system tasks.\n"
+            "2. For simple dialogue, exact-format replies, pure reasoning, or tasks that do not need external evidence, answer directly instead of making irrelevant tool calls.\n"
+            "3. Provide a complete and verifiable result. If you used web or tool evidence, cite the URL or command output.\n\n"
             f"任务目标：{goal}"
         )
 

@@ -166,6 +166,7 @@ export const zhCN: Translations = {
     agents: "智能体",
     tasks: "任务",
     workflows: "工作流",
+  projects: "项目",
     configuration: "配置",
     skills: "技能库",
     mcp: "MCP 服务",

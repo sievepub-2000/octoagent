@@ -169,6 +169,7 @@ export const ko: Translations = {
     agents: "에이전트",
     tasks: "작업",
     workflows: "워크플로",
+    projects: "프로젝트",
     configuration: "구성",
     skills: "스킬",
     mcp: "MCP 서버",

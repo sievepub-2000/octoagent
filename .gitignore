@@ -166,3 +166,7 @@ runtime/secrets/
 runtime/config/model_auth.env
 runtime/config/*.env
 runtime/config/*.yaml
+
+# Project-specific runtime data
+backend/workspace/
+workspace/default/project_memories/*.bak*

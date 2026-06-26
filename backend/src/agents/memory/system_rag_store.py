@@ -479,8 +479,8 @@ class SystemRAGStore:
             "agents": len(active_agents),
             "by_namespace": active_by_namespace,
             "by_namespace_expired": expired_by_namespace,
-            "embedding_dim": self._embedding.dim,
-            "embedding_backend": self._embedding.backend_name,
+            "embedding_dim": self._embedding.embedding_dim,
+            "embedding_backend": self._embedding.embedding_backend,
             "governance": self.governance_summary(),
         }
 

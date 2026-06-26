@@ -165,6 +165,7 @@ export const zhTW: Translations = {
     agents: "代理",
     tasks: "任務",
     workflows: "工作流程",
+    projects: "專案",
     configuration: "設定",
     skills: "技能",
     mcp: "MCP 伺服器",

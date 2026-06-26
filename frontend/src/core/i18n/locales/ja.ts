@@ -168,6 +168,7 @@ export const ja: Translations = {
     agents: "エージェント",
     tasks: "タスク",
     workflows: "ワークフロー",
+  projects: "プロジェクト",
     configuration: "設定",
     skills: "スキル",
     mcp: "MCPサーバー",
