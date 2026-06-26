@@ -455,7 +455,7 @@ def build_server_side_research_fallback(query: str) -> str:
         return news_fallback
 
     try:
-        from src.tools.builtins.openharness_compat_tools import web_search_tool
+        from src.tools.builtins.web_tools import web_search_tool
 
         search_output = web_search_tool.invoke({"query": query, "max_results": 5})
         required_domain = _required_domain_for_query(query)
