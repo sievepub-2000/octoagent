@@ -1364,10 +1364,11 @@ export function useThreadState(threadId?: string | null, enabled = true) {
 
 export function useDeleteThread() {
   const queryClient = useQueryClient();
-  const apiClient = getAPIClient();
   return useMutation({
     mutationFn: async ({ threadId }: { threadId: string }) => {
-      await apiClient.threads.delete(threadId);
+      await deleteJSON(
+        `/api/runtime/langgraph-contract/threads/${encodeURIComponent(threadId)}`,
+      );
     },
     onSuccess(_, { threadId }) {
       queryClient.setQueriesData(
