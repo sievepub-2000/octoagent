@@ -22,6 +22,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 DEFAULT_CLEANUP_PERCENT = 85.0
+DEFAULT_WARN_PERCENT = 70.0
 DEFAULT_STOP_PERCENT = 90.0
 
 
@@ -213,6 +214,7 @@ async def cancel_busy_langgraph_runs(snapshot: MemoryPressureSnapshot) -> dict[s
 
 class OOMGuard:
     def __init__(self) -> None:
+        self.warn_threshold_percent = _env_float("OCTO_OOM_WARN_MEM_PERCENT", DEFAULT_WARN_PERCENT)
         self.cleanup_threshold_percent = _env_float("OCTO_OOM_CLEANUP_MEM_PERCENT", DEFAULT_CLEANUP_PERCENT)
         self.stop_threshold_percent = _env_float("OCTO_OOM_STOP_MEM_PERCENT", DEFAULT_STOP_PERCENT)
         self.interval_seconds = _env_int("OCTO_OOM_GUARD_INTERVAL_SEC", 10)
@@ -246,6 +248,15 @@ class OOMGuard:
             self._last_cleanup_at = now
             report["action"] = "cleanup"
             report["cleanup"] = cleanup_memory(snapshot, reason="oom_cleanup_threshold")
+            return report
+        if hasattr(self, "warn_threshold_percent") and snapshot.used_percent >= self.warn_threshold_percent:
+            report["action"] = "warn"
+            report["warning"] = {
+                "message": f"Memory at {snapshot.used_percent:.1f}% (warning threshold {self.warn_threshold_percent:.0f}%)",
+                "snapshot": snapshot.to_dict(),
+            }
+            logger.info("OOMGuard warning: memory at %.1f%% (>= %.0f%% warn threshold)",
+                        snapshot.used_percent, self.warn_threshold_percent)
         return report
 
     async def run_forever(self) -> None:

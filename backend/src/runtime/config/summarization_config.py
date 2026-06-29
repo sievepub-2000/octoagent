@@ -22,7 +22,7 @@ class SummarizationConfig(BaseModel):
     """Configuration for automatic conversation summarization."""
 
     enabled: bool = Field(
-        default=False,
+        default=True,
         description="Whether to enable automatic conversation summarization",
     )
     model_name: str | None = Field(

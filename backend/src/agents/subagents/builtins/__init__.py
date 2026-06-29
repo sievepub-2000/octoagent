@@ -7,6 +7,7 @@ from .operator_agent import OPERATOR_AGENT_CONFIG
 from .planner_agent import PLANNER_AGENT_CONFIG
 from .reviewer_agent import REVIEWER_AGENT_CONFIG
 from .teacher_agent import TEACHER_AGENT_CONFIG
+from .local_model_agent import LOCAL_MODEL_AGENT_CONFIG
 
 __all__ = [
     "GENERAL_PURPOSE_CONFIG",
@@ -27,4 +28,5 @@ BUILTIN_SUBAGENTS = {
     "operator": OPERATOR_AGENT_CONFIG,
     "reviewer": REVIEWER_AGENT_CONFIG,
     "teacher": TEACHER_AGENT_CONFIG,
+    "local-model": LOCAL_MODEL_AGENT_CONFIG,
 }

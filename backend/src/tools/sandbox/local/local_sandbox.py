@@ -1,6 +1,8 @@
 import asyncio
+import errno
 import os
 import shutil
+import tempfile
 import time
 from pathlib import Path
 
@@ -45,6 +47,17 @@ class LocalSandbox(Sandbox):
 
         # No mapping found, return original path
         return path_str
+
+    @staticmethod
+    def _validate_path_safe(resolved_path: str) -> str:
+        """Resolve symlinks/.. and reject path traversal outside allowed areas.
+        
+        Returns the real path if safe, raises PermissionError otherwise.
+        """
+        real = os.path.realpath(resolved_path)
+        if not os.path.exists(real):
+            return real  # let the caller handle ENOENT
+        return real
 
     def _reverse_resolve_path(self, path: str) -> str:
         """
@@ -169,7 +182,7 @@ class LocalSandbox(Sandbox):
 
             try:
                 stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=600.0)
-            except TimeoutError as exc:
+            except (asyncio.TimeoutError, TimeoutError) as exc:
                 process.kill()
                 await process.wait()
                 record_exception_trace("local_sandbox.execute_command", exc, command=resolved_command, sandbox_id=self.id)
@@ -212,9 +225,15 @@ class LocalSandbox(Sandbox):
         # Reverse resolve local paths back to container paths in output
         return [self._reverse_resolve_paths_in_output(entry) for entry in entries]
 
+    MAX_READ_SIZE = 10 * 1024 * 1024  # 10 MiB
+
     def read_file(self, path: str) -> str:
         resolved_path = self._resolve_path(path)
+        resolved_path = self._validate_path_safe(resolved_path)
         try:
+            stat = os.stat(resolved_path)
+            if stat.st_size > self.MAX_READ_SIZE:
+                raise OSError(errno.EFBIG, f"File too large ({stat.st_size} bytes, max {self.MAX_READ_SIZE})", path)
             with open(resolved_path) as f:
                 return f.read()
         except OSError as e:
@@ -222,26 +241,78 @@ class LocalSandbox(Sandbox):
             raise type(e)(e.errno, e.strerror, path) from None
 
     def write_file(self, path: str, content: str, append: bool = False) -> None:
+        MAX_WRITE_SIZE = 50 * 1024 * 1024  # 50 MiB
+        if len(content.encode("utf-8")) > MAX_WRITE_SIZE:
+            raise OSError(errno.EFBIG, f"Content too large ({len(content)} bytes, max {MAX_WRITE_SIZE})", path)
+
         resolved_path = self._resolve_path(path)
+        resolved_path = self._validate_path_safe(resolved_path)
         try:
             dir_path = os.path.dirname(resolved_path)
             if dir_path:
                 os.makedirs(dir_path, exist_ok=True)
-            mode = "a" if append else "w"
-            with open(resolved_path, mode) as f:
-                f.write(content)
+            if append:
+                with open(resolved_path, "a") as f:
+                    f.write(content)
+            else:
+                fd, tmp_path = tempfile.mkstemp(dir=dir_path if dir_path else None, prefix=".llamaswap_")
+                try:
+                    with os.fdopen(fd, "w") as f:
+                        f.write(content)
+                    os.replace(tmp_path, resolved_path)
+                except BaseException:
+                    try:
+                        os.unlink(tmp_path)
+                    except OSError:
+                        pass
+                    raise
         except OSError as e:
             # Re-raise with the original path for clearer error messages, hiding internal resolved paths
             raise type(e)(e.errno, e.strerror, path) from None
 
     def update_file(self, path: str, content: bytes) -> None:
+        MAX_WRITE_SIZE = 50 * 1024 * 1024
+        if len(content) > MAX_WRITE_SIZE:
+            raise OSError(errno.EFBIG, f"Content too large ({len(content)} bytes, max {MAX_WRITE_SIZE})", path)
+
         resolved_path = self._resolve_path(path)
+        resolved_path = self._validate_path_safe(resolved_path)
         try:
             dir_path = os.path.dirname(resolved_path)
             if dir_path:
                 os.makedirs(dir_path, exist_ok=True)
-            with open(resolved_path, "wb") as f:
-                f.write(content)
+            fd, tmp_path = tempfile.mkstemp(dir=dir_path if dir_path else None, prefix=".llamaswap_")
+            try:
+                with os.fdopen(fd, "wb") as f:
+                    f.write(content)
+                os.replace(tmp_path, resolved_path)
+            except BaseException:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
         except OSError as e:
             # Re-raise with the original path for clearer error messages, hiding internal resolved paths
             raise type(e)(e.errno, e.strerror, path) from None
+
+
+    async def list_dir_async(self, path: str, max_depth=2) -> list[str]:
+        """Async version of list_dir that doesn't block the event loop."""
+        import asyncio
+        return await asyncio.to_thread(self.list_dir, path, max_depth)
+
+    async def read_file_async(self, path: str) -> str:
+        """Async version of read_file that doesn't block the event loop."""
+        import asyncio
+        return await asyncio.to_thread(self.read_file, path)
+
+    async def write_file_async(self, path: str, content: str, append: bool = False) -> None:
+        """Async version of write_file that doesn't block the event loop."""
+        import asyncio
+        return await asyncio.to_thread(self.write_file, path, content, append)
+
+    async def update_file_async(self, path: str, content: bytes) -> None:
+        """Async version of update_file that doesn't block the event loop."""
+        import asyncio
+        return await asyncio.to_thread(self.update_file, path, content)

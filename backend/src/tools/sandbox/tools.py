@@ -334,7 +334,7 @@ async def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: st
 
 
 @tool("ls", parse_docstring=True)
-def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path: str) -> str:
+async def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path: str) -> str:
     """List the contents of a directory up to 2 levels deep in tree format.
 
     Args:
@@ -347,7 +347,7 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
-        children = sandbox.list_dir(path)
+        children = await sandbox.list_dir_async(path)
         if not children:
             return "(empty)"
         return "\n".join(children)
@@ -362,7 +362,7 @@ def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path:
 
 
 @tool("read_file", parse_docstring=True)
-def read_file_tool(
+async def read_file_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     description: str,
     path: str,
@@ -383,7 +383,7 @@ def read_file_tool(
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
-        content = sandbox.read_file(path)
+        content = await sandbox.read_file_async(path)
         if not content:
             return "(empty)"
         if start_line is not None and end_line is not None:
@@ -402,7 +402,7 @@ def read_file_tool(
 
 
 @tool("write_file", parse_docstring=True)
-def write_file_tool(
+async def write_file_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     description: str,
     path: str,
@@ -422,7 +422,7 @@ def write_file_tool(
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
-        sandbox.write_file(path, content, append)
+        await sandbox.write_file_async(path, content, append)
         return "OK"
     except SandboxError as e:
         return f"Error: {e}"
@@ -437,7 +437,7 @@ def write_file_tool(
 
 
 @tool("str_replace", parse_docstring=True)
-def str_replace_tool(
+async def str_replace_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     description: str,
     path: str,
@@ -461,7 +461,7 @@ def str_replace_tool(
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
-        content = sandbox.read_file(path)
+        content = await sandbox.read_file_async(path)
         if not content:
             return "OK"
         if old_str not in content:
@@ -469,8 +469,11 @@ def str_replace_tool(
         if replace_all:
             content = content.replace(old_str, new_str)
         else:
+            count = content.count(old_str)
+            if count > 1:
+                return f"Error: '{old_str}' appears {count} times in {path}. Use replace_all=True, or provide a more specific old_str that matches exactly once."
             content = content.replace(old_str, new_str, 1)
-        sandbox.write_file(path, content)
+        await sandbox.write_file_async(path, content)
         return "OK"
     except SandboxError as e:
         return f"Error: {e}"

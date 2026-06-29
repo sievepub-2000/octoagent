@@ -293,15 +293,15 @@ class RuntimeMaintenanceScheduler:
     ) -> None:
         self.interval_seconds = max(
             60,
-            interval_seconds or _env_int("OCTO_RUNTIME_MAINTENANCE_INTERVAL_SECONDS", 900),
+            interval_seconds or _env_int("OCTO_RUNTIME_MAINTENANCE_INTERVAL_SECONDS", 300),
         )
         self.max_checkpoints_per_thread = max_checkpoints_per_thread or _env_int(
             "OCTO_RUNTIME_MAX_CHECKPOINTS_PER_THREAD",
-            20,
+            10,
         )
         self.max_runs_per_thread = max_runs_per_thread or _env_int(
             "OCTO_RUNTIME_MAX_RUNS_PER_THREAD",
-            100,
+            50,
         )
         self.max_running_run_age_seconds = _env_int(
             "OCTO_RUNTIME_MAX_RUNNING_RUN_AGE_SECONDS",

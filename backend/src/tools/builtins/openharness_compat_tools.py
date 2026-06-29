@@ -675,7 +675,7 @@ def ask_user_question_tool(question: str) -> str:
 
 
 @tool("edit_file", parse_docstring=True)
-def edit_file_tool(
+async def edit_file_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     path: str,
     old_text: str,
@@ -691,10 +691,10 @@ def edit_file_tool(
     sandbox = ensure_sandbox_initialized(runtime)
     ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
-    content = sandbox.read_file(path)
+    content = await sandbox.read_file_async(path)
     if old_text not in content:
         return "Error: old_text not found"
-    sandbox.write_file(path, content.replace(old_text, new_text, 1))
+    await sandbox.write_file_async(path, content.replace(old_text, new_text, 1))
     return "OK"
 
 
@@ -949,7 +949,7 @@ async def lsp_tool(runtime: ToolRuntime[ContextT, ThreadState], symbol: str, roo
 
 
 @tool("notebook_edit", parse_docstring=True)
-def notebook_edit_tool(
+async def notebook_edit_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     path: str,
     cell_index: int,
@@ -965,13 +965,13 @@ def notebook_edit_tool(
     sandbox = ensure_sandbox_initialized(runtime)
     ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
-    raw = sandbox.read_file(path)
+    raw = await sandbox.read_file_async(path)
     data = json.loads(raw)
     cells = data.get("cells", [])
     if cell_index < 0 or cell_index >= len(cells):
         return f"Error: cell_index out of range (0..{max(0, len(cells) - 1)})"
     cells[cell_index]["source"] = [line + "\n" for line in new_source.splitlines()]
-    sandbox.write_file(path, json.dumps(data, ensure_ascii=False, indent=2))
+    await sandbox.write_file_async(path, json.dumps(data, ensure_ascii=False, indent=2))
     return "OK"
 
 
@@ -1054,7 +1054,7 @@ def exit_worktree_tool(runtime: ToolRuntime[ContextT, ThreadState]) -> str:
 
 
 @tool("todo_write", parse_docstring=True)
-def todo_write_tool(runtime: ToolRuntime[ContextT, ThreadState], item: str, done: bool = False, path: str = "/mnt/user-data/workspace/TODO.md") -> str:
+async def todo_write_tool(runtime: ToolRuntime[ContextT, ThreadState], item: str, done: bool = False, path: str = "/mnt/user-data/workspace/TODO.md") -> str:
     """Append a TODO item to a markdown file.
 
     Args:
@@ -1068,10 +1068,10 @@ def todo_write_tool(runtime: ToolRuntime[ContextT, ThreadState], item: str, done
     prefix = "- [x]" if done else "- [ ]"
     line = f"{prefix} {item}\n"
     try:
-        old = sandbox.read_file(path)
+        old = await sandbox.read_file_async(path)
     except Exception:
         old = "# TODO\n\n"
-    sandbox.write_file(path, old + line)
+    await sandbox.write_file_async(path, old + line)
     return "OK"
 
 
@@ -1372,7 +1372,7 @@ def bash_tool(
 
 
 @tool("file_read", parse_docstring=True)
-def file_read_tool(
+async def file_read_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     path: str,
     offset: int = 0,
@@ -1389,7 +1389,7 @@ def file_read_tool(
     ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
     try:
-        content = sandbox.read_file(path)
+        content = await sandbox.read_file_async(path)
     except Exception as exc:
         return f"Error reading file: {exc}"
     lines = content.splitlines()
@@ -1399,7 +1399,7 @@ def file_read_tool(
 
 
 @tool("file_write", parse_docstring=True)
-def file_write_tool(
+async def file_write_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
     path: str,
     content: str,
@@ -1414,7 +1414,7 @@ def file_write_tool(
     ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
     try:
-        sandbox.write_file(path, content)
+        await sandbox.write_file_async(path, content)
         return "OK"
     except Exception as exc:
         return f"Error writing file: {exc}"
