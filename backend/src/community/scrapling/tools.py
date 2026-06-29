@@ -23,6 +23,11 @@ _STEALTHY = None
 _INIT_TRIED = False
 
 
+def _get_proxy_from_env() -> str | None:
+    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
+    return proxy if proxy else None
+
+
 def _lazy_init() -> None:
     global _FETCHER, _STEALTHY, _INIT_TRIED
     if _INIT_TRIED:
@@ -32,13 +37,13 @@ def _lazy_init() -> None:
         from scrapling.fetchers import Fetcher  # type: ignore
 
         _FETCHER = Fetcher
-    except Exception as e:  # pragma: no cover - import-time gate
+    except Exception as e:
         logger.warning("scrapling Fetcher not available: %s", e)
     try:
         from scrapling.fetchers import StealthyFetcher  # type: ignore
 
         _STEALTHY = StealthyFetcher
-    except Exception as e:  # pragma: no cover
+    except Exception as e:
         logger.info("scrapling StealthyFetcher not available (browser deps missing): %s", e)
 
 
@@ -117,7 +122,7 @@ def scrapling_fetch_stealth(url: str) -> str:
     """Fetch a URL using Scrapling StealthyFetcher (Cloudflare/Turnstile bypass).
 
     Requires browser deps; rejects private/internal URLs and gracefully degrades
-    to HTTP fetcher if unavailable.
+    to HTTP fetcher if unavailable. Honours HTTPS_PROXY / HTTP_PROXY env vars.
     """
     if not is_url_safe(url):
         return json.dumps({"error": "Access to private/internal network addresses is not allowed.", "url": url, "engine": "scrapling"})
@@ -126,7 +131,15 @@ def scrapling_fetch_stealth(url: str) -> str:
         logger.info("StealthyFetcher unavailable, falling back to HTTP fetcher")
         return scrapling_fetch.invoke({"url": url})
     try:
-        page = _STEALTHY.fetch(url, headless=True, network_idle=True, timeout=60)
+        kwargs: dict[str, Any] = {
+            "headless": True,
+            "network_idle": True,
+            "timeout": 60000,
+        }
+        proxy = _get_proxy_from_env()
+        if proxy:
+            kwargs["proxy"] = proxy
+        page = _STEALTHY.fetch(url, **kwargs)
         return _fmt_result(url, page, mode="stealth")
     except Exception as e:
         logger.warning("scrapling stealth failed for %s: %s; falling back", url, e)

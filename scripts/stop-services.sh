@@ -24,11 +24,6 @@ fi
 kill_port_owners() {
     local port="$1"
 
-    if command -v fuser >/dev/null 2>&1; then
-        fuser -k "${port}/tcp" 2>/dev/null || true
-        sleep 1
-    fi
-
     if command -v lsof >/dev/null 2>&1; then
         lsof -ti tcp:"$port" 2>/dev/null | xargs -r kill -TERM 2>/dev/null || true
         sleep 1
@@ -44,6 +39,11 @@ kill_port_owners() {
         ss -ltnp "( sport = :$port )" 2>/dev/null \
             | sed -n 's/.*pid=\([0-9]\+\).*/\1/p' \
             | xargs -r kill -KILL 2>/dev/null || true
+    fi
+
+    if command -v fuser >/dev/null 2>&1; then
+        timeout 10 fuser -k "${port}/tcp" 2>/dev/null || true
+        sleep 1
     fi
 }
 

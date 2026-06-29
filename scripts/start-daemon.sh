@@ -166,13 +166,13 @@ prepare_nginx_temp_dirs
 kill_port_owners() {
     local port="$1"
 
-    if command -v fuser >/dev/null 2>&1; then
-        fuser -k "${port}/tcp" 2>/dev/null || true
+    if command -v lsof >/dev/null 2>&1; then
+        lsof -ti tcp:"$port" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
         return
     fi
 
-    if command -v lsof >/dev/null 2>&1; then
-        lsof -ti tcp:"$port" 2>/dev/null | xargs -r kill -9 2>/dev/null || true
+    if command -v fuser >/dev/null 2>&1; then
+        timeout 10 fuser -k "${port}/tcp" 2>/dev/null || true
         return
     fi
 

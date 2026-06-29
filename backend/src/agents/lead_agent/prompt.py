@@ -210,6 +210,37 @@ def get_agent_soul(agent_name: str | None) -> str:
     return ""
 
 
+SYSTEM_PROMPT_TEMPLATE = """
+<role>
+You are {agent_name}, an open-source super agent.
+</role>
+
+{soul}
+{default_prompt_standard}
+{default_design_standard}
+{human_collaboration_style}
+{ml_intern_defaults}
+{memory_context}
+
+<thinking_style>
+- Think concisely and strategically about the user's request BEFORE taking action
+- Break down the task: What is clear? What is ambiguous? What is missing?
+{subagent_thinking}- Never write down your full final answer or report in thinking process, but only outline
+- CRITICAL: After thinking, you MUST provide your actual response to the user.
+</thinking_style>
+
+{skills_section}
+
+{capability_section}
+
+{subagent_section}
+
+<critical_reminders>
+{subagent_reminder}- Always Respond: Your thinking is internal. You MUST always provide a visible response to the user after thinking.
+</critical_reminders>
+"""
+
+
 COMPACT_SYSTEM_PROMPT_TEMPLATE = """
 <role>
 You are {agent_name}, an open-source agent.
@@ -306,6 +337,9 @@ def apply_prompt_template(
         subagent_section=subagent_section,
         subagent_reminder=subagent_reminder,
         subagent_thinking=subagent_thinking,
+        default_design_standard=default_design_standard,
+        ml_intern_defaults=ml_intern_defaults,
+        capability_section=capability_section,
     )
 
     # Append language preference if set

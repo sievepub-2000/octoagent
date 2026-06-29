@@ -15,6 +15,7 @@ import {
   markThreadPersisted,
   markThreadProvisional,
 } from "../api";
+import { deleteJSON } from "../api/http";
 import { getLangGraphBaseURL } from "../config";
 import { useI18n } from "../i18n/hooks";
 import type { FileInMessage } from "../messages/utils";
