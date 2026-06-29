@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
@@ -19,7 +20,7 @@ from src.utils.messages import message_text as _message_text
 logger = logging.getLogger(__name__)
 _simplemem_write_lock = threading.Lock()
 _simplemem_executor = ThreadPoolExecutor(
-    max_workers=1,
+    max_workers=os.cpu_count() or 4,
     thread_name_prefix="simplemem-writer",
 )
 

@@ -29,6 +29,7 @@ from src.gateway.observability import record_exception_trace, record_tool_trace
 from src.runtime.config.paths import get_paths
 from src.runtime.governance import get_runtime_worker_isolation
 from src.utils.datetime import utc_now_iso_seconds as _utc_now
+from src.utils.serialization import fmt_json as _json
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _FRONTEND_ROOT = _REPO_ROOT / "frontend"
@@ -68,12 +69,6 @@ _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         re.compile(r"(?i)(?:^|\s)(?:[A-Z0-9_]*(?:PASSWORD|PASSWD|SECRET|TOKEN|API[_-]?KEY))\s*=\s*['\"]?([A-Za-z0-9_\-./+=]{12,})"),
     ),
 )
-
-
-
-
-def _json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def _safe_int(value: int, *, minimum: int, maximum: int) -> int:
@@ -960,7 +955,7 @@ def host_shell_tool(
     Args:
         command: Shell command to run.
         description: One-line human-readable intent shown in the chat UI
-            (e.g. "查看 nginx 状态"). Always provide it; it is the only thing
+            (e.g. "鏌ョ湅 nginx 鐘舵€?). Always provide it; it is the only thing
             an operator sees before the command output streams in.
         cwd: Working directory. Relative paths resolve under the OctoAgent repo.
         timeout_seconds: Command timeout in seconds.

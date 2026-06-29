@@ -18,10 +18,7 @@ from src.tools.software_interfaces.composio_gateway import (
     list_tools,
     set_user_scopes,
 )
-
-
-def _json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+from src.utils.serialization import fmt_json as _json
 
 
 def _loads_object(value: str | None) -> dict[str, Any]:

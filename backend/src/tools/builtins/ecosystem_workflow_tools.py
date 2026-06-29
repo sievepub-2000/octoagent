@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import json
+import yaml
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import psutil
 from langchain_core.tools import tool
 
 from src.utils.datetime import utc_now_iso_seconds as _utc_now
-
-
-def _json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
+from src.utils.serialization import fmt_json as _json
 
 
 @dataclass(frozen=True)
@@ -28,303 +27,31 @@ class IntegratedProject:
     risk: str = "review output before execution"
 
 
-INTEGRATED_PROJECTS: tuple[IntegratedProject, ...] = (
-    IntegratedProject(
-        "agent-rules-books",
-        "Agent Rules Books",
-        "ciembor/agent-rules-books",
-        "S",
-        ("skills", "plugin"),
-        "Rules and practices pack for AI coding agents, adapted as OctoAgent engineering guidance.",
-        "agent-rules-books",
-        "agent-rules-skill-pack",
-        "agent-rules-review",
-    ),
-    IntegratedProject(
-        "mirage-vfs",
-        "Mirage VFS",
-        "strukto-ai/mirage",
-        "S",
-        ("system-tool", "plugin", "mcp-template"),
-        "Unified virtual filesystem concept for agent workspaces and long-running task context.",
-        "mirage-vfs",
-        "mirage-vfs-bridge",
-        "mirage-vfs-design",
-    ),
-    IntegratedProject(
-        "peekaboo-vision-mcp",
-        "Peekaboo Vision MCP",
-        "openclaw/Peekaboo",
-        "S",
-        ("mcp-template", "plugin", "skill"),
-        "Screen capture and visual QA MCP capability, exposed through a platform-neutral OctoAgent workflow.",
-        "peekaboo-vision-mcp",
-        "peekaboo-vision-mcp",
-        "peekaboo-vision-check",
-        "macOS upstream; Linux deployments need a local screenshot adapter",
-    ),
-    IntegratedProject(
-        "fireworks-tech-graph",
-        "Fireworks Tech Graph",
-        "yizhiyanhua-ai/fireworks-tech-graph",
-        "S",
-        ("system-tool", "plugin", "skill"),
-        "Technical diagram generation workflow for architecture, UML, and agent workflow artifacts.",
-        "fireworks-tech-graph",
-        "diagram-generation-toolkit",
-        "fireworks-tech-graph",
-    ),
-    IntegratedProject(
-        "beautiful-html-templates",
-        "Beautiful HTML Templates",
-        "zarazhangrui/beautiful-html-templates",
-        "S",
-        ("skills", "plugin"),
-        "HTML slide and deck template selection workflow for polished reports and courseware.",
-        "beautiful-html-templates",
-        "html-deck-generator",
-        "beautiful-html-deck",
-    ),
-    IntegratedProject("goalbuddy", "Goalbuddy", "tolibear/goalbuddy", "A", ("skills", "plugin"), "Goal contract and task framing workflow for Codex/Claude-style agent sessions.", "goalbuddy", "goalbuddy-workflow", "goalbuddy-plan"),
-    IntegratedProject(
-        "photo-agents",
-        "Photo Agents",
-        "jmerelnyc/Photo-agents",
-        "A",
-        ("skills", "plugin", "workflow-reference"),
-        "Vision-grounded layered memory and self-written skill workflow for computer-operating agents.",
-        "photo-agents",
-        "photo-agents-vision-workflow",
-        "photo-agents-vision-workflow",
-    ),
-    IntegratedProject(
-        "lightseek-smg",
-        "Lightseek SMG",
-        "lightseekorg/smg",
-        "A",
-        ("system-tool", "plugin", "gateway-reference"),
-        "Engine-agnostic LLM gateway reference for routing, OpenAI/Anthropic compatibility, MCP, and tenancy.",
-        "lightseek-smg-gateway",
-        "lightseek-smg-gateway",
-        "lightseek-smg-routing-plan",
-    ),
-    IntegratedProject(
-        "tokenspeed",
-        "TokenSpeed",
-        "lightseekorg/tokenspeed",
-        "A",
-        ("system-tool", "plugin", "benchmark"),
-        "LLM inference engine evaluation workflow for benchmark planning and model backend experiments.",
-        "tokenspeed-benchmark",
-        "tokenspeed-model-benchmark",
-        "tokenspeed-benchmark-plan",
-    ),
-    IntegratedProject(
-        "witr",
-        "WITR",
-        "pranshuparmar/witr",
-        "A",
-        ("system-tool", "plugin"),
-        "Runtime diagnosis workflow that explains why host processes and services are running.",
-        "witr-runtime-diagnosis",
-        "witr-runtime-diagnostics",
-        "witr-runtime-diagnosis",
-    ),
-    IntegratedProject(
-        "cheat-on-content",
-        "Cheat On Content",
-        "XBuilderLAB/cheat-on-content",
-        "A",
-        ("skills", "plugin"),
-        "Content experiment workflow: score, blind-predict, publish, and retro content performance.",
-        "cheat-on-content",
-        "content-experiment-workflow",
-        "cheat-on-content-experiment",
-    ),
-    IntegratedProject(
-        "cloakbrowser",
-        "CloakBrowser Controlled Automation",
-        "CloakHQ/CloakBrowser",
-        "A",
-        ("plugin", "mcp-template", "browser-runtime"),
-        "Controlled browser automation template kept behind explicit user authorization and policy checks.",
-        "cloakbrowser-controlled-browser",
-        "cloakbrowser-controlled-automation",
-        "cloakbrowser-controlled-browser",
-        "off by policy unless the target site and user authorization are explicit",
-    ),
-    IntegratedProject(
-        "lumibot",
-        "Lumibot Research Strategy",
-        "Lumiwealth/lumibot",
-        "B",
-        ("system-plugin", "workflow"),
-        "Backtestable trading agent workflow integrated as research and paper-trading guidance only.",
-        None,
-        "lumibot-research-strategy",
-        "lumibot-research-strategy",
-        "paper-trading and research only; no live trading by default",
-    ),
-    IntegratedProject(
-        "ian-handdrawn-ppt",
-        "Ian Handdrawn PPT",
-        "helloianneo/ian-handdrawn-ppt",
-        "B",
-        ("system-plugin", "skill"),
-        "Chinese hand-drawn technical explanation image deck workflow for covers, pages, and contact sheets.",
-        "ian-handdrawn-ppt",
-        "ian-handdrawn-ppt",
-        "ian-handdrawn-ppt",
-    ),
-    IntegratedProject(
-        "smb-hr-onboarding",
-        "SMB HR Onboarding",
-        "octoagent/phase8-smb-verticals",
-        "A",
-        ("skills", "plugin", "workflow"),
-        "Small/medium-business new-employee onboarding plan: pre-arrival → day-1 → first-week → day-30 review, with region-aware compliance gates and IT/equipment provisioning checklists (plan-only, no external side effects).",
-        "smb-hr-onboarding",
-        "smb-hr-onboarding",
-        "smb-hr-onboarding-plan",
-        "draft only — HR sign-off required; respect regional labor law and PII handling rules before executing",
-    ),
-    IntegratedProject(
-        'bamboohr-broker',
-        'BambooHR Provisioning Broker',
-        'octoagent/phase8-hris-brokers',
-        'A',
-        ('plugin', 'external-broker', 'workflow'),
-        'Plan-only BambooHR onboarding broker: produces a signed-intent envelope (HTTP request payload + auth placeholders) for tenant admins to execute out-of-band. OctoAgent never calls BambooHR APIs directly.',
-        'bamboohr-broker',
-        'bamboohr-broker',
-        'bamboohr-onboarding-request',
-        'signed-intent only — never auto-executed; tenant admin must rotate creds, review payload, and dispatch through a credentialed CLI/curl path',
-    ),
-    IntegratedProject(
-        'workday-broker',
-        'Workday Provisioning Broker',
-        'octoagent/phase8-hris-brokers',
-        'A',
-        ('plugin', 'external-broker', 'workflow'),
-        'Plan-only Workday onboarding broker: produces a signed-intent SOAP/REST envelope for the Hire business process. OctoAgent never calls Workday tenants directly; output is an artifact for a credentialed integration user.',
-        'workday-broker',
-        'workday-broker',
-        'workday-onboarding-request',
-        'signed-intent only — Workday tenant changes require integration-user creds, x-tenant alignment, and a documented rollback; never auto-executed',
-    ),
-    IntegratedProject(
-        'gusto-broker',
-        'Gusto Provisioning Broker',
-        'octoagent/phase8-hris-brokers',
-        'A',
-        ('plugin', 'external-broker', 'workflow'),
-        'Plan-only Gusto onboarding broker: produces a signed-intent REST envelope for new-hire create + payroll setup, for tenant admin out-of-band dispatch. OctoAgent never calls Gusto directly.',
-        'gusto-broker',
-        'gusto-broker',
-        'gusto-onboarding-request',
-        'signed-intent only — Gusto changes payroll obligations; tenant admin must verify SUTA/SSN/EIN fields before dispatch',
-    ),
-    IntegratedProject(
-        'azure-ad-broker',
-        'Azure AD / Entra ID Provisioning Broker',
-        'octoagent/phase8-idp-brokers',
-        'A',
-        ('plugin', 'external-broker', 'workflow'),
-        'Plan-only Azure AD / Entra ID provisioning broker: emits Microsoft Graph user + group + license + MFA-enforcement request envelopes for tenant admin execution. OctoAgent never calls Graph directly.',
-        'azure-ad-broker',
-        'azure-ad-broker',
-        'azure-ad-provisioning-request',
-        'signed-intent only — Graph admin scopes are sensitive; tenant admin must verify scope of token, conditional-access policy targets, and rollback procedure',
-    ),
-    IntegratedProject(
-        'okta-broker',
-        'Okta Provisioning Broker',
-        'octoagent/phase8-idp-brokers',
-        'A',
-        ('plugin', 'external-broker', 'workflow'),
-        'Plan-only Okta provisioning broker: emits Okta API user/create + group assignment + MFA-factor enrollment request envelopes for tenant admin execution. OctoAgent never calls Okta directly.',
-        'okta-broker',
-        'okta-broker',
-        'okta-provisioning-request',
-        'signed-intent only — Okta admin token has broad scope; tenant admin must scope to specific group-admin role and rotate after dispatch',
-    ),
-    IntegratedProject(
-        'google-workspace-broker',
-        'Google Workspace Provisioning Broker',
-        'octoagent/phase8-idp-brokers',
-        'A',
-        ('plugin', 'external-broker', 'workflow'),
-        'Plan-only Google Workspace provisioning broker: emits Directory API user + group + license + 2SV-enforcement request envelopes for tenant admin execution. OctoAgent never calls Directory API directly.',
-        'google-workspace-broker',
-        'google-workspace-broker',
-        'google-workspace-provisioning-request',
-        'signed-intent only — domain-wide delegation scopes are high-risk; tenant admin must verify service-account scope and audit trail before dispatch',
-    ),
-    IntegratedProject(
-        'employment-contract-blueprint',
-        'Employment Contract Clause Blueprint',
-        'octoagent/phase8-legal-blueprints',
-        'A',
-        ('skills', 'plugin', 'workflow', 'legal-blueprint'),
-        'Jurisdiction-aware employment-contract clause blueprint: '
-        'enumerates required clauses (probation, IP, non-compete, severance, '
-        'notice, working hours, leave, confidentiality, dispute resolution) '
-        'and emits a structured outline. NEVER produces binding contract text; '
-        'attorney review is mandatory.',
-        'employment-contract-blueprint',
-        'employment-contract-blueprint',
-        'employment-contract-blueprint-plan',
-        'blueprint only — NOT legal advice and NOT a contract; licensed attorney in the target jurisdiction must review and finalize before any party signs',
-    ),
-    IntegratedProject(
-        'smb-cs-playbook',
-        'SMB Customer Success Playbook',
-        'octoagent/phase8-smb-verticals',
-        'A',
-        ('skills', 'plugin', 'workflow'),
-        'Plan-only SMB customer-success playbook: kickoff agenda, 30/60/90 health-check templates, escalation paths, QBR template, churn-save runbook.',
-        'smb-cs-playbook',
-        'smb-cs-playbook',
-        'smb-cs-playbook-plan',
-        'draft only — CS lead approval required; no external CRM mutations',
-    ),
-    IntegratedProject(
-        'smb-finance-close',
-        'SMB Month-End Finance Close',
-        'octoagent/phase8-smb-verticals',
-        'A',
-        ('skills', 'plugin', 'workflow'),
-        'Plan-only SMB month-end close playbook: bank recon, accruals, revenue cutoff, expense classification, tax provision check, close packet, audit trail review.',
-        'smb-finance-close',
-        'smb-finance-close',
-        'smb-finance-close-plan',
-        'draft only — controller sign-off required; no ERP mutations, no journal entries posted',
-    ),
-    IntegratedProject(
-        'smb-sales-motion',
-        'SMB Sales Motion Playbook',
-        'octoagent/phase8-smb-verticals',
-        'A',
-        ('skills', 'plugin', 'workflow'),
-        'Plan-only SMB sales motion playbook: ICP definition, outbound cadence, discovery script, demo template, proposal template, negotiation guardrails, CS handoff packet.',
-        'smb-sales-motion',
-        'smb-sales-motion',
-        'smb-sales-motion-plan',
-        'draft only — sales lead approval required; no CRM mutations, no outbound messages sent',
-    ),
-    IntegratedProject(
-        'smb-it-helpdesk-runbook',
-        'SMB IT Helpdesk Runbook',
-        'octoagent/phase8-smb-verticals',
-        'A',
-        ('skills', 'plugin', 'workflow'),
-        'Plan-only SMB IT helpdesk runbook: ticket triage, priority matrix, password reset SOP, equipment request SOP, access request SOP, escalation paths, SLA definitions.',
-        'smb-it-helpdesk-runbook',
-        'smb-it-helpdesk-runbook',
-        'smb-it-helpdesk-runbook-plan',
-        'draft only — IT lead sign-off required; no ticketing/IDP/asset systems mutated; no passwords or access actually granted',
-    ),
-)
+_PROJECTS_YAML = Path(__file__).with_name("ecosystem_projects.yaml")
+
+
+def _load_projects() -> tuple[IntegratedProject, ...]:
+    raw = yaml.safe_load(_PROJECTS_YAML.read_text(encoding="utf-8"))
+    result: list[IntegratedProject] = []
+    for item in raw:
+        result.append(
+            IntegratedProject(
+                project_id=item["project_id"],
+                display_name=item["display_name"],
+                repo=item["repo"],
+                tier=item["tier"],
+                integration_modes=tuple(item["integration_modes"]),
+                summary=item["summary"],
+                skill_name=item.get("skill_name"),
+                plugin_id=item.get("plugin_id"),
+                workflow_id=item.get("workflow_id"),
+                risk=item.get("risk", "review output before execution"),
+            )
+        )
+    return tuple(result)
+
+
+INTEGRATED_PROJECTS = _load_projects()
 
 WORKFLOW_ALIASES = {project.workflow_id: project for project in INTEGRATED_PROJECTS if project.workflow_id}
 

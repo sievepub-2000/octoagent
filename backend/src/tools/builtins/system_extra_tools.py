@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.tools import tool
+from src.utils.serialization import fmt_json as _json
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _FRONTEND_ROOT = _REPO_ROOT / "frontend"
@@ -129,10 +130,6 @@ def _safe_args(args: list[str]) -> list[str]:
 
 def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
-
-
-def _json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True)
 
 
 def _slug(value: str, fallback: str) -> str:

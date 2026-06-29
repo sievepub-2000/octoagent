@@ -110,24 +110,21 @@ class FAISSIndexManager:
             self._stats.total_searches += 1
             return []
 
-        cache_key = f"{table_name}_{'_'.join(str(v[:3]) for v in vectors[:3])}"
+        cache_key = f"{table_name}_{len(vectors)}"
         index_path = self._cache_dir / f"{table_name}_faiss_index.bin"
 
         start_time = time.time()
         try:
-            # Try to load cached index
-            if index_path.exists() and len(vectors) <= 10000:  # Only cache small indexes
+            normalized_query = None
+            # Try to load cached index (avoids full rebuild)
+            if index_path.exists() and len(vectors) <= 10000:
                 try:
                     index = faiss.read_index(str(index_path))
                     if index.ntotal == len(vectors):
                         self._stats.cache_hit_count += 1
                         self._stats.total_searches += 1
-                        # Search cached index
-                        matrix = numpy.asarray(vectors, dtype="float32")
                         query = numpy.asarray([query_embedding], dtype="float32")
-                        faiss.normalize_L2(matrix)
                         faiss.normalize_L2(query)
-                        index.add(matrix)
                         scores, indices = index.search(query, min(int(top_k), len(payloads)))
                         results = self._process_results(scores, indices, payloads)
                         elapsed_ms = (time.time() - start_time) * 1000
@@ -139,17 +136,17 @@ class FAISSIndexManager:
             self._stats.cache_miss_count += 1
             # Build new index
             matrix = numpy.asarray(vectors, dtype="float32")
-            query = numpy.asarray([query_embedding], dtype="float32")
             faiss.normalize_L2(matrix)
-            faiss.normalize_L2(query)
             index = faiss.IndexFlatIP(matrix.shape[1])
             index.add(matrix)
+            query = numpy.asarray([query_embedding], dtype="float32")
+            faiss.normalize_L2(query)
             scores, indices = index.search(query, min(int(top_k), len(payloads)))
             results = self._process_results(scores, indices, payloads)
             elapsed_ms = (time.time() - start_time) * 1000
             self._update_avg_search_time(elapsed_ms)
 
-            # Save index if small enough
+            # Save index for future reuse
             if len(vectors) <= 10000:
                 try:
                     faiss.write_index(index, str(index_path))

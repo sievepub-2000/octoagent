@@ -18,6 +18,7 @@ import math
 import threading
 import time
 import uuid
+from collections import defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -84,6 +85,7 @@ class SystemRAGStore:
         # In-process search result cache: {key: (timestamp, results)}
         self._search_cache: dict[str, tuple[float, list[SystemMemoryEntry]]] = {}
         self._search_cache_lock = threading.Lock()
+        self._write_gen: dict[str, int] = defaultdict(int)
         self._initialize()
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
@@ -135,6 +137,7 @@ class SystemRAGStore:
             return ""
 
         entry_id = uuid.uuid4().hex[:16]
+        self._write_gen[namespace] += 1
         embedding = self._embedding.embed_one(content)
         meta = dict(governed.metadata)
         meta["created_at"] = datetime.now(UTC).isoformat()
@@ -195,6 +198,7 @@ class SystemRAGStore:
         if not approved_contents:
             return []
 
+        self._write_gen[namespace] += 1
         embeddings = self._embedding.embed(approved_contents)
         now = datetime.now(UTC).isoformat()
         ids: list[str] = []
@@ -297,8 +301,9 @@ class SystemRAGStore:
         top_k = clamp_system_memory_search_top_k(top_k)
 
         # ── Cache lookup ──────────────────────────────────────────────────
+        gen = self._write_gen.get(namespace or "__all__", 0)
         cache_key = hashlib.md5(  # noqa: S324 — non-security, performance cache key
-            f"{namespace}:{query}:{top_k}".encode()
+            f"{namespace}:{gen}:{query}:{top_k}".encode()
         ).hexdigest()
         now = time.monotonic()
         with self._search_cache_lock:
@@ -447,6 +452,7 @@ class SystemRAGStore:
             for entry_id, entry_namespace, _ in expired_rows:
                 conn.execute("DELETE FROM system_memories WHERE id = ?", [entry_id])
                 deleted_by_namespace[entry_namespace] = deleted_by_namespace.get(entry_namespace, 0) + 1
+                self._write_gen[entry_namespace] += 1
 
         return {
             "deleted_count": len(expired_rows),

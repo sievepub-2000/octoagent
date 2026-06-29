@@ -1,0 +1,357 @@
+- project_id: agent-rules-books
+  display_name: Agent Rules Books
+  repo: ciembor/agent-rules-books
+  tier: S
+  integration_modes:
+  - skills
+  - plugin
+  summary: Rules and practices pack for AI coding agents, adapted as OctoAgent engineering guidance.
+  skill_name: agent-rules-books
+  plugin_id: agent-rules-skill-pack
+  workflow_id: agent-rules-review
+  risk: review output before execution
+
+- project_id: mirage-vfs
+  display_name: Mirage VFS
+  repo: strukto-ai/mirage
+  tier: S
+  integration_modes:
+  - system-tool
+  - plugin
+  - mcp-template
+  summary: Unified virtual filesystem concept for agent workspaces and long-running task context.
+  skill_name: mirage-vfs
+  plugin_id: mirage-vfs-bridge
+  workflow_id: mirage-vfs-design
+  risk: review output before execution
+
+- project_id: peekaboo-vision-mcp
+  display_name: Peekaboo Vision MCP
+  repo: openclaw/Peekaboo
+  tier: S
+  integration_modes:
+  - mcp-template
+  - plugin
+  - skill
+  summary: Screen capture and visual QA MCP capability, exposed through a platform-neutral OctoAgent workflow.
+  skill_name: peekaboo-vision-mcp
+  plugin_id: peekaboo-vision-mcp
+  workflow_id: peekaboo-vision-check
+  risk: macOS upstream; Linux deployments need a local screenshot adapter
+
+- project_id: fireworks-tech-graph
+  display_name: Fireworks Tech Graph
+  repo: yizhiyanhua-ai/fireworks-tech-graph
+  tier: S
+  integration_modes:
+  - system-tool
+  - plugin
+  - skill
+  summary: Technical diagram generation workflow for architecture, UML, and agent workflow artifacts.
+  skill_name: fireworks-tech-graph
+  plugin_id: diagram-generation-toolkit
+  workflow_id: fireworks-tech-graph
+  risk: review output before execution
+
+- project_id: beautiful-html-templates
+  display_name: Beautiful HTML Templates
+  repo: zarazhangrui/beautiful-html-templates
+  tier: S
+  integration_modes:
+  - skills
+  - plugin
+  summary: HTML slide and deck template selection workflow for polished reports and courseware.
+  skill_name: beautiful-html-templates
+  plugin_id: html-deck-generator
+  workflow_id: beautiful-html-deck
+  risk: review output before execution
+
+- project_id: goalbuddy
+  display_name: Goalbuddy
+  repo: tolibear/goalbuddy
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  summary: Goal contract and task framing workflow for Codex/Claude-style agent sessions.
+  skill_name: goalbuddy
+  plugin_id: goalbuddy-workflow
+  workflow_id: goalbuddy-plan
+  risk: review output before execution
+
+- project_id: photo-agents
+  display_name: Photo Agents
+  repo: jmerelnyc/Photo-agents
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  - workflow-reference
+  summary: Vision-grounded layered memory and self-written skill workflow for computer-operating agents.
+  skill_name: photo-agents
+  plugin_id: photo-agents-vision-workflow
+  workflow_id: photo-agents-vision-workflow
+  risk: review output before execution
+
+- project_id: lightseek-smg
+  display_name: Lightseek SMG
+  repo: lightseekorg/smg
+  tier: A
+  integration_modes:
+  - system-tool
+  - plugin
+  - gateway-reference
+  summary: Engine-agnostic LLM gateway reference for routing, OpenAI/Anthropic compatibility, MCP, and tenancy.
+  skill_name: lightseek-smg-gateway
+  plugin_id: lightseek-smg-gateway
+  workflow_id: lightseek-smg-routing-plan
+  risk: review output before execution
+
+- project_id: tokenspeed
+  display_name: TokenSpeed
+  repo: lightseekorg/tokenspeed
+  tier: A
+  integration_modes:
+  - system-tool
+  - plugin
+  - benchmark
+  summary: LLM inference engine evaluation workflow for benchmark planning and model backend experiments.
+  skill_name: tokenspeed-benchmark
+  plugin_id: tokenspeed-model-benchmark
+  workflow_id: tokenspeed-benchmark-plan
+  risk: review output before execution
+
+- project_id: witr
+  display_name: WITR
+  repo: pranshuparmar/witr
+  tier: A
+  integration_modes:
+  - system-tool
+  - plugin
+  summary: Runtime diagnosis workflow that explains why host processes and services are running.
+  skill_name: witr-runtime-diagnosis
+  plugin_id: witr-runtime-diagnostics
+  workflow_id: witr-runtime-diagnosis
+  risk: review output before execution
+
+- project_id: cheat-on-content
+  display_name: Cheat On Content
+  repo: XBuilderLAB/cheat-on-content
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  summary: Content experiment workflow: score, blind-predict, publish, and retro content performance.
+  skill_name: cheat-on-content
+  plugin_id: content-experiment-workflow
+  workflow_id: cheat-on-content-experiment
+  risk: review output before execution
+
+- project_id: cloakbrowser
+  display_name: CloakBrowser Controlled Automation
+  repo: CloakHQ/CloakBrowser
+  tier: A
+  integration_modes:
+  - plugin
+  - mcp-template
+  - browser-runtime
+  summary: Controlled browser automation template kept behind explicit user authorization and policy checks.
+  skill_name: cloakbrowser-controlled-browser
+  plugin_id: cloakbrowser-controlled-automation
+  workflow_id: cloakbrowser-controlled-browser
+  risk: off by policy unless the target site and user authorization are explicit
+
+- project_id: lumibot
+  display_name: Lumibot Research Strategy
+  repo: Lumiwealth/lumibot
+  tier: B
+  integration_modes:
+  - system-plugin
+  - workflow
+  summary: Backtestable trading agent workflow integrated as research and paper-trading guidance only.
+  skill_name: null
+  plugin_id: lumibot-research-strategy
+  workflow_id: lumibot-research-strategy
+  risk: paper-trading and research only; no live trading by default
+
+- project_id: ian-handdrawn-ppt
+  display_name: Ian Handdrawn PPT
+  repo: helloianneo/ian-handdrawn-ppt
+  tier: B
+  integration_modes:
+  - system-plugin
+  - skill
+  summary: Chinese hand-drawn technical explanation image deck workflow for covers, pages, and contact sheets.
+  skill_name: ian-handdrawn-ppt
+  plugin_id: ian-handdrawn-ppt
+  workflow_id: ian-handdrawn-ppt
+  risk: review output before execution
+
+- project_id: smb-hr-onboarding
+  display_name: SMB HR Onboarding
+  repo: octoagent/phase8-smb-verticals
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  - workflow
+  summary: Small/medium-business new-employee onboarding plan: pre-arrival → day-1 → first-week → day-30 review, with region-aware compliance gates and IT/equipment provisioning checklists (plan-only, no external side effects).
+  skill_name: smb-hr-onboarding
+  plugin_id: smb-hr-onboarding
+  workflow_id: smb-hr-onboarding-plan
+  risk: draft only — HR sign-off required; respect regional labor law and PII handling rules before executing
+
+- project_id: bamboohr-broker
+  display_name: BambooHR Provisioning Broker
+  repo: octoagent/phase8-hris-brokers
+  tier: A
+  integration_modes:
+  - plugin
+  - external-broker
+  - workflow
+  summary: Plan-only BambooHR onboarding broker: produces a signed-intent envelope (HTTP request payload + auth placeholders) for tenant admins to execute out-of-band. OctoAgent never calls BambooHR APIs directly.
+  skill_name: bamboohr-broker
+  plugin_id: bamboohr-broker
+  workflow_id: bamboohr-onboarding-request
+  risk: signed-intent only — never auto-executed; tenant admin must rotate creds, review payload, and dispatch through a credentialed CLI/curl path
+
+- project_id: workday-broker
+  display_name: Workday Provisioning Broker
+  repo: octoagent/phase8-hris-brokers
+  tier: A
+  integration_modes:
+  - plugin
+  - external-broker
+  - workflow
+  summary: Plan-only Workday onboarding broker: produces a signed-intent SOAP/REST envelope for the Hire business process. OctoAgent never calls Workday tenants directly; output is an artifact for a credentialed integration user.
+  skill_name: workday-broker
+  plugin_id: workday-broker
+  workflow_id: workday-onboarding-request
+  risk: signed-intent only — Workday tenant changes require integration-user creds, x-tenant alignment, and a documented rollback; never auto-executed
+
+- project_id: gusto-broker
+  display_name: Gusto Provisioning Broker
+  repo: octoagent/phase8-hris-brokers
+  tier: A
+  integration_modes:
+  - plugin
+  - external-broker
+  - workflow
+  summary: Plan-only Gusto onboarding broker: produces a signed-intent REST envelope for new-hire create + payroll setup, for tenant admin out-of-band dispatch. OctoAgent never calls Gusto directly.
+  skill_name: gusto-broker
+  plugin_id: gusto-broker
+  workflow_id: gusto-onboarding-request
+  risk: signed-intent only — Gusto changes payroll obligations; tenant admin must verify SUTA/SSN/EIN fields before dispatch
+
+- project_id: azure-ad-broker
+  display_name: Azure AD / Entra ID Provisioning Broker
+  repo: octoagent/phase8-idp-brokers
+  tier: A
+  integration_modes:
+  - plugin
+  - external-broker
+  - workflow
+  summary: Plan-only Azure AD / Entra ID provisioning broker: emits Microsoft Graph user + group + license + MFA-enforcement request envelopes for tenant admin execution. OctoAgent never calls Graph directly.
+  skill_name: azure-ad-broker
+  plugin_id: azure-ad-broker
+  workflow_id: azure-ad-provisioning-request
+  risk: signed-intent only — Graph admin scopes are sensitive; tenant admin must verify scope of token, conditional-access policy targets, and rollback procedure
+
+- project_id: okta-broker
+  display_name: Okta Provisioning Broker
+  repo: octoagent/phase8-idp-brokers
+  tier: A
+  integration_modes:
+  - plugin
+  - external-broker
+  - workflow
+  summary: Plan-only Okta provisioning broker: emits Okta API user/create + group assignment + MFA-factor enrollment request envelopes for tenant admin execution. OctoAgent never calls Okta directly.
+  skill_name: okta-broker
+  plugin_id: okta-broker
+  workflow_id: okta-provisioning-request
+  risk: signed-intent only — Okta admin token has broad scope; tenant admin must scope to specific group-admin role and rotate after dispatch
+
+- project_id: google-workspace-broker
+  display_name: Google Workspace Provisioning Broker
+  repo: octoagent/phase8-idp-brokers
+  tier: A
+  integration_modes:
+  - plugin
+  - external-broker
+  - workflow
+  summary: Plan-only Google Workspace provisioning broker: emits Directory API user + group + license + 2SV-enforcement request envelopes for tenant admin execution. OctoAgent never calls Directory API directly.
+  skill_name: google-workspace-broker
+  plugin_id: google-workspace-broker
+  workflow_id: google-workspace-provisioning-request
+  risk: signed-intent only — domain-wide delegation scopes are high-risk; tenant admin must verify service-account scope and audit trail before dispatch
+
+- project_id: employment-contract-blueprint
+  display_name: Employment Contract Clause Blueprint
+  repo: octoagent/phase8-legal-blueprints
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  - workflow
+  - legal-blueprint
+  summary: Jurisdiction-aware employment-contract clause blueprint: enumerates required clauses (probation, IP, non-compete, severance, notice, working hours, leave, confidentiality, dispute resolution) and emits a structured outline. NEVER produces binding contract text; attorney review is mandatory.
+  skill_name: employment-contract-blueprint
+  plugin_id: employment-contract-blueprint
+  workflow_id: employment-contract-blueprint-plan
+  risk: blueprint only — NOT legal advice and NOT a contract; licensed attorney in the target jurisdiction must review and finalize before any party signs
+
+- project_id: smb-cs-playbook
+  display_name: SMB Customer Success Playbook
+  repo: octoagent/phase8-smb-verticals
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  - workflow
+  summary: Plan-only SMB customer-success playbook: kickoff agenda, 30/60/90 health-check templates, escalation paths, QBR template, churn-save runbook.
+  skill_name: smb-cs-playbook
+  plugin_id: smb-cs-playbook
+  workflow_id: smb-cs-playbook-plan
+  risk: draft only — CS lead approval required; no external CRM mutations
+
+- project_id: smb-finance-close
+  display_name: SMB Month-End Finance Close
+  repo: octoagent/phase8-smb-verticals
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  - workflow
+  summary: Plan-only SMB month-end close playbook: bank recon, accruals, revenue cutoff, expense classification, tax provision check, close packet, audit trail review.
+  skill_name: smb-finance-close
+  plugin_id: smb-finance-close
+  workflow_id: smb-finance-close-plan
+  risk: draft only — controller sign-off required; no ERP mutations, no journal entries posted
+
+- project_id: smb-sales-motion
+  display_name: SMB Sales Motion Playbook
+  repo: octoagent/phase8-smb-verticals
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  - workflow
+  summary: Plan-only SMB sales motion playbook: ICP definition, outbound cadence, discovery script, demo template, proposal template, negotiation guardrails, CS handoff packet.
+  skill_name: smb-sales-motion
+  plugin_id: smb-sales-motion
+  workflow_id: smb-sales-motion-plan
+  risk: draft only — sales lead approval required; no CRM mutations, no outbound messages sent
+
+- project_id: smb-it-helpdesk-runbook
+  display_name: SMB IT Helpdesk Runbook
+  repo: octoagent/phase8-smb-verticals
+  tier: A
+  integration_modes:
+  - skills
+  - plugin
+  - workflow
+  summary: Plan-only SMB IT helpdesk runbook: ticket triage, priority matrix, password reset SOP, equipment request SOP, access request SOP, escalation paths, SLA definitions.
+  skill_name: smb-it-helpdesk-runbook
+  plugin_id: smb-it-helpdesk-runbook
+  workflow_id: smb-it-helpdesk-runbook-plan
+  risk: draft only — IT lead sign-off required; no ticketing/IDP/asset systems mutated; no passwords or access actually granted
