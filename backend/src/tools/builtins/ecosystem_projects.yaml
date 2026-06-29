@@ -141,7 +141,7 @@
   integration_modes:
   - skills
   - plugin
-  summary: Content experiment workflow: score, blind-predict, publish, and retro content performance.
+  summary: "Content experiment workflow: score, blind-predict, publish, and retro content performance."
   skill_name: cheat-on-content
   plugin_id: content-experiment-workflow
   workflow_id: cheat-on-content-experiment
@@ -195,7 +195,7 @@
   - skills
   - plugin
   - workflow
-  summary: Small/medium-business new-employee onboarding plan: pre-arrival → day-1 → first-week → day-30 review, with region-aware compliance gates and IT/equipment provisioning checklists (plan-only, no external side effects).
+  summary: "Small/medium-business new-employee onboarding plan: pre-arrival → day-1 → first-week → day-30 review, with region-aware compliance gates and IT/equipment provisioning checklists (plan-only, no external side effects)."
   skill_name: smb-hr-onboarding
   plugin_id: smb-hr-onboarding
   workflow_id: smb-hr-onboarding-plan
@@ -209,7 +209,7 @@
   - plugin
   - external-broker
   - workflow
-  summary: Plan-only BambooHR onboarding broker: produces a signed-intent envelope (HTTP request payload + auth placeholders) for tenant admins to execute out-of-band. OctoAgent never calls BambooHR APIs directly.
+  summary: "Plan-only BambooHR onboarding broker: produces a signed-intent envelope (HTTP request payload + auth placeholders) for tenant admins to execute out-of-band. OctoAgent never calls BambooHR APIs directly."
   skill_name: bamboohr-broker
   plugin_id: bamboohr-broker
   workflow_id: bamboohr-onboarding-request
@@ -223,7 +223,7 @@
   - plugin
   - external-broker
   - workflow
-  summary: Plan-only Workday onboarding broker: produces a signed-intent SOAP/REST envelope for the Hire business process. OctoAgent never calls Workday tenants directly; output is an artifact for a credentialed integration user.
+  summary: "Plan-only Workday onboarding broker: produces a signed-intent SOAP/REST envelope for the Hire business process. OctoAgent never calls Workday tenants directly; output is an artifact for a credentialed integration user."
   skill_name: workday-broker
   plugin_id: workday-broker
   workflow_id: workday-onboarding-request
@@ -237,7 +237,7 @@
   - plugin
   - external-broker
   - workflow
-  summary: Plan-only Gusto onboarding broker: produces a signed-intent REST envelope for new-hire create + payroll setup, for tenant admin out-of-band dispatch. OctoAgent never calls Gusto directly.
+  summary: "Plan-only Gusto onboarding broker: produces a signed-intent REST envelope for new-hire create + payroll setup, for tenant admin out-of-band dispatch. OctoAgent never calls Gusto directly."
   skill_name: gusto-broker
   plugin_id: gusto-broker
   workflow_id: gusto-onboarding-request
@@ -251,7 +251,7 @@
   - plugin
   - external-broker
   - workflow
-  summary: Plan-only Azure AD / Entra ID provisioning broker: emits Microsoft Graph user + group + license + MFA-enforcement request envelopes for tenant admin execution. OctoAgent never calls Graph directly.
+  summary: "Plan-only Azure AD / Entra ID provisioning broker: emits Microsoft Graph user + group + license + MFA-enforcement request envelopes for tenant admin execution. OctoAgent never calls Graph directly."
   skill_name: azure-ad-broker
   plugin_id: azure-ad-broker
   workflow_id: azure-ad-provisioning-request
@@ -265,7 +265,7 @@
   - plugin
   - external-broker
   - workflow
-  summary: Plan-only Okta provisioning broker: emits Okta API user/create + group assignment + MFA-factor enrollment request envelopes for tenant admin execution. OctoAgent never calls Okta directly.
+  summary: "Plan-only Okta provisioning broker: emits Okta API user/create + group assignment + MFA-factor enrollment request envelopes for tenant admin execution. OctoAgent never calls Okta directly."
   skill_name: okta-broker
   plugin_id: okta-broker
   workflow_id: okta-provisioning-request
@@ -279,7 +279,7 @@
   - plugin
   - external-broker
   - workflow
-  summary: Plan-only Google Workspace provisioning broker: emits Directory API user + group + license + 2SV-enforcement request envelopes for tenant admin execution. OctoAgent never calls Directory API directly.
+  summary: "Plan-only Google Workspace provisioning broker: emits Directory API user + group + license + 2SV-enforcement request envelopes for tenant admin execution. OctoAgent never calls Directory API directly."
   skill_name: google-workspace-broker
   plugin_id: google-workspace-broker
   workflow_id: google-workspace-provisioning-request
@@ -294,7 +294,7 @@
   - plugin
   - workflow
   - legal-blueprint
-  summary: Jurisdiction-aware employment-contract clause blueprint: enumerates required clauses (probation, IP, non-compete, severance, notice, working hours, leave, confidentiality, dispute resolution) and emits a structured outline. NEVER produces binding contract text; attorney review is mandatory.
+  summary: "Jurisdiction-aware employment-contract clause blueprint: enumerates required clauses (probation, IP, non-compete, severance, notice, working hours, leave, confidentiality, dispute resolution) and emits a structured outline. NEVER produces binding contract text; attorney review is mandatory."
   skill_name: employment-contract-blueprint
   plugin_id: employment-contract-blueprint
   workflow_id: employment-contract-blueprint-plan
@@ -308,7 +308,7 @@
   - skills
   - plugin
   - workflow
-  summary: Plan-only SMB customer-success playbook: kickoff agenda, 30/60/90 health-check templates, escalation paths, QBR template, churn-save runbook.
+  summary: "Plan-only SMB customer-success playbook: kickoff agenda, 30/60/90 health-check templates, escalation paths, QBR template, churn-save runbook."
   skill_name: smb-cs-playbook
   plugin_id: smb-cs-playbook
   workflow_id: smb-cs-playbook-plan
@@ -322,7 +322,7 @@
   - skills
   - plugin
   - workflow
-  summary: Plan-only SMB month-end close playbook: bank recon, accruals, revenue cutoff, expense classification, tax provision check, close packet, audit trail review.
+  summary: "Plan-only SMB month-end close playbook: bank recon, accruals, revenue cutoff, expense classification, tax provision check, close packet, audit trail review."
   skill_name: smb-finance-close
   plugin_id: smb-finance-close
   workflow_id: smb-finance-close-plan
@@ -336,7 +336,7 @@
   - skills
   - plugin
   - workflow
-  summary: Plan-only SMB sales motion playbook: ICP definition, outbound cadence, discovery script, demo template, proposal template, negotiation guardrails, CS handoff packet.
+  summary: "Plan-only SMB sales motion playbook: ICP definition, outbound cadence, discovery script, demo template, proposal template, negotiation guardrails, CS handoff packet."
   skill_name: smb-sales-motion
   plugin_id: smb-sales-motion
   workflow_id: smb-sales-motion-plan
@@ -350,7 +350,7 @@
   - skills
   - plugin
   - workflow
-  summary: Plan-only SMB IT helpdesk runbook: ticket triage, priority matrix, password reset SOP, equipment request SOP, access request SOP, escalation paths, SLA definitions.
+  summary: "Plan-only SMB IT helpdesk runbook: ticket triage, priority matrix, password reset SOP, equipment request SOP, access request SOP, escalation paths, SLA definitions."
   skill_name: smb-it-helpdesk-runbook
   plugin_id: smb-it-helpdesk-runbook
   workflow_id: smb-it-helpdesk-runbook-plan
