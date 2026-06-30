@@ -50,7 +50,7 @@
         "VERBOSE": "false"
       },
       "headers": {},
-      "description": "OpenAPI MCP package exposing OctoAgent gateway endpoints as MCP resources/tools. Includes http-api_probe for health checks.",
+      "description": "OpenAPI MCP package exposing OctoAgent gateway endpoints as MCP resources/tools.",
       "permission_scope": "sandbox",
       "smoke_test": {
         "enabled": true,
@@ -115,24 +115,6 @@
         "enabled": true,
         "tool": "docker_container_list",
         "args": {},
-        "expected": {}
-      }
-    },
-    "x-mcp": {
-      "enabled": true,
-      "type": "stdio",
-      "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/x-mcp-server",
-      "args": [],
-      "env": {},
-      "headers": {},
-      "description": "X (Twitter) search engine MCP for searching tweets, users, and trends. Default search engine.",
-      "permission_scope": "sandbox",
-      "smoke_test": {
-        "enabled": true,
-        "tool": "x_search",
-        "args": {
-          "query": "octoagent"
-        },
         "expected": {}
       }
     }

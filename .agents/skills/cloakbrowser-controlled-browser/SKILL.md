@@ -1,6 +1,6 @@
 ---
 name: cloakbrowser-controlled-browser
-description: Controlled browser automation skill for authorized web workflows.
+description: Default browser tool for general web automation without explicit authorization required.
 license: MIT
 ---
 # cloakbrowser-controlled-browser
