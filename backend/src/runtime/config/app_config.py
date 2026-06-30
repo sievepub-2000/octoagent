@@ -43,7 +43,7 @@ def load_project_dotenv() -> None:
     ]
     for dotenv_path in search_paths:
         if dotenv_path.exists():
-            load_dotenv(dotenv_path=dotenv_path, override=False)
+            load_dotenv(dotenv_path=dotenv_path, override=True)
             break
 
 

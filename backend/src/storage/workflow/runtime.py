@@ -138,6 +138,7 @@ async def execute_agent_message(
     request: CreateAgentMessageRequest,
 ) -> list[AgentMessage] | None:
     from src.agents.core import get_agent_core_service
+    from src.storage.project.service import get_project_service
 
     service = get_workflow_core_service()
     workspace = service.get_workspace(task_id) if hasattr(service, "get_workspace") else None
