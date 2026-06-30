@@ -5,7 +5,7 @@ from collections.abc import Callable
 
 from langchain_core.runnables import RunnableConfig
 
-from src.agents.dialogue_routing import FAST_ROUTES
+from ..dialogue_routing import FAST_ROUTES
 from src.models import is_embedded_backup_model_name
 
 from .runtime import LeadAgentRuntimeOptions

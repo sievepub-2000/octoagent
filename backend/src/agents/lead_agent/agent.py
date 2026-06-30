@@ -4,30 +4,30 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.runnables import RunnableConfig
 
-from src.agents.lead_agent.builder import LeadAgentBuilder
-from src.agents.lead_agent.kernel import OctoLeadAgentKernel
-from src.agents.lead_agent.prompt import apply_prompt_template
-from src.agents.lead_agent.runtime import (
+from .builder import LeadAgentBuilder
+from .kernel import OctoLeadAgentKernel
+from .prompt import apply_prompt_template
+from .runtime import (
     LeadAgentRuntimeResolver,
     embedded_backup_system_prompt,
     runtime_config_value,
 )
-from src.agents.middlewares.clarification_middleware import ClarificationMiddleware
-from src.agents.middlewares.client_command_middleware import ClientCommandMiddleware
-from src.agents.middlewares.continuation_middleware import ContinuationMiddleware
-from src.agents.middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
-from src.agents.middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
-from src.agents.middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
-from src.agents.middlewares.execution_middleware import ExecutionMiddleware
-from src.agents.middlewares.goal_middleware import GoalMiddleware
-from src.agents.middlewares.state_middleware import StateMiddleware
-from src.agents.middlewares.instruction_contract_middleware import InstructionContractMiddleware
-from src.agents.middlewares.lesson_injection_middleware import LessonInjectionMiddleware
-from src.agents.middlewares.memory_middleware import MemoryMiddleware
-from src.agents.middlewares.runtime_state_middleware import RuntimeStateMiddleware
-from src.agents.middlewares.session_compaction_middleware import SessionCompactionMiddleware
-from src.agents.middlewares.skill_evolution_middleware import SkillEvolutionMiddleware
-from src.agents.middlewares.subagent_limit_middleware import SubagentLimitMiddleware
+from ..middlewares.clarification_middleware import ClarificationMiddleware
+from ..middlewares.client_command_middleware import ClientCommandMiddleware
+from ..middlewares.continuation_middleware import ContinuationMiddleware
+from ..middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
+from ..middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
+from ..middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
+from ..middlewares.execution_middleware import ExecutionMiddleware
+from ..middlewares.goal_middleware import GoalMiddleware
+from ..middlewares.state_middleware import StateMiddleware
+from ..middlewares.instruction_contract_middleware import InstructionContractMiddleware
+from ..middlewares.lesson_injection_middleware import LessonInjectionMiddleware
+from ..middlewares.memory_middleware import MemoryMiddleware
+from ..middlewares.runtime_state_middleware import RuntimeStateMiddleware
+from ..middlewares.session_compaction_middleware import SessionCompactionMiddleware
+from ..middlewares.skill_evolution_middleware import SkillEvolutionMiddleware
+from ..middlewares.subagent_limit_middleware import SubagentLimitMiddleware
 from src.agents.middlewares.title_middleware import TitleMiddleware
 from src.agents.middlewares.todo_middleware import TodoMiddleware
 from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
