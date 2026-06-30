@@ -24,6 +24,7 @@ import httpx
 from langchain.tools import tool
 
 from src.runtime.config import get_app_config
+from src.utils.proxy_env import should_trust_proxy_env, without_unavailable_local_proxy
 from src.utils.readability import ReadabilityExtractor
 from src.utils.url_safety import is_url_safe
 
@@ -102,7 +103,7 @@ def _is_certificate_verify_error(exc: BaseException) -> bool:
 def _client(timeout: float = _DEFAULT_TIMEOUT, *, verify: ssl.SSLContext | bool | None = None) -> httpx.Client:
     """httpx client that honours usable HTTP_PROXY/HTTPS_PROXY env vars."""
     return httpx.Client(
-        trust_env=False,
+        trust_env=True,
         timeout=httpx.Timeout(timeout, connect=_DEFAULT_CONNECT),
         headers={
             "User-Agent": _USER_AGENT,
