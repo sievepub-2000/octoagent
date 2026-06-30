@@ -1,0 +1,132 @@
+{
+  "entries": [
+    {
+      "plugin_id": "compound-engineering-review",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953655+00:00"
+    },
+    {
+      "plugin_id": "workspace-runtime-bridge",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953679+00:00"
+    },
+    {
+      "plugin_id": "agent-rules-skill-pack",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953687+00:00"
+    },
+    {
+      "plugin_id": "goalbuddy-workflow",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953692+00:00"
+    },
+    {
+      "plugin_id": "content-experiment-workflow",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953699+00:00"
+    },
+    {
+      "plugin_id": "diagram-generation-toolkit",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953703+00:00"
+    },
+    {
+      "plugin_id": "html-deck-generator",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953709+00:00"
+    },
+    {
+      "plugin_id": "ian-handdrawn-ppt",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953714+00:00"
+    },
+    {
+      "plugin_id": "mirage-vfs-bridge",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953719+00:00"
+    },
+    {
+      "plugin_id": "peekaboo-vision-mcp",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953723+00:00"
+    },
+    {
+      "plugin_id": "lightseek-smg-gateway",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953728+00:00"
+    },
+    {
+      "plugin_id": "tokenspeed-model-benchmark",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953750+00:00"
+    },
+    {
+      "plugin_id": "witr-runtime-diagnostics",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953754+00:00"
+    },
+    {
+      "plugin_id": "photo-agents-vision-workflow",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953759+00:00"
+    },
+    {
+      "plugin_id": "cloakbrowser-controlled-automation",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953763+00:00"
+    },
+    {
+      "plugin_id": "lumibot-research-strategy",
+      "installed": true,
+      "enabled": true,
+      "installed_version": "0.1.0",
+      "source": "builtin",
+      "installed_at": "2026-06-05T16:30:37.953767+00:00"
+    }
+  ]
+}
