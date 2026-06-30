@@ -56,7 +56,7 @@ class LazyImport:
 # Pre-defined lazy imports for heavy dependencies
 lazy_sentence_transformers = LazyImport("sentence_transformers")
 lazy_faiss = LazyImport("faiss", "index_factory")
-lazy_tavily = LazyImport("tavily_python")
+lazy_tavily = LazyImport("tavily")
 lazy_whisper = LazyImport("faster_whisper")
 
 __all__ = [
