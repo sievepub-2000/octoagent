@@ -4,6 +4,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from src.agents.core.compression_config import load_compression_config
+from src.agents.core.context_compressor import ContextCompressor, TokenBudget
+
 from src.utils.datetime import utc_now_iso as _utc_now
 
 if TYPE_CHECKING:
@@ -324,6 +327,7 @@ __all__ = [
     "build_card_runtime_state",
     "build_handoff_summary",
     "build_workspace_session_updates",
+    "compress_if_needed",
     "find_linked_card_for_agent",
     "find_task_agent",
     "mark_query_session_running",
@@ -331,3 +335,82 @@ __all__ = [
     "resolve_query_session_id",
     "sync_workspace_session_state",
 ]
+
+
+# ------------------------------------------------------------------
+# Context compression integration
+# ------------------------------------------------------------------
+
+def _session_message_text(message: Any) -> str:
+    """Extract string content from a message (BaseMessage or dict)."""
+    content = getattr(message, "content", None)
+    if content is None and isinstance(message, dict):
+        content = message.get("content", "")
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for item in content:
+            if isinstance(item, dict):
+                text = item.get("text")
+                parts.append(str(text) if text is not None else str(item))
+            else:
+                parts.append(str(item))
+        return "\n".join(parts)
+    return str(content)
+
+
+def _session_message_role(message: Any) -> str:
+    """Get the role of a message."""
+    if isinstance(message, dict):
+        return str(message.get("role", "unknown"))
+    return str(getattr(message, "type", getattr(message, "role", "unknown")))
+
+
+def _session_estimate_tokens(text: str) -> int:
+    """Rough token estimate for session messages."""
+    if not text:
+        return 0
+    ascii_count = sum(1 for ch in text if ord(ch) < 128)
+    non_ascii = len(text) - ascii_count
+    return int(ascii_count / 4 + non_ascii / 2)
+
+
+def compress_if_needed(
+    messages: list[Any],
+    *,
+    system_prompt_tokens: int = 0,
+    tool_description_tokens: int = 0,
+    config: Any = None,
+) -> tuple[list[Any], bool]:
+    """Check token budget and compress conversation if needed.
+
+    This is the primary integration point for ContextCompressor in session.py.
+    It checks whether the conversation exceeds the configured threshold (default
+    80% of max_context_size) and triggers compression if so.
+
+    Parameters
+    ----------
+    messages :
+        The current conversation message list.
+    system_prompt_tokens :
+        Estimated token count of the system prompt (for budget tracking).
+    tool_description_tokens :
+        Estimated token count of tool descriptions (for budget tracking).
+    config :
+        Optional CompressionConfig override.  Defaults to load_compression_config().
+
+    Returns
+    -------
+    tuple[list[Any], bool]
+        (compressed_messages, was_compressed)
+    """
+    cfg = config or load_compression_config()
+    compressor = ContextCompressor(cfg)
+    return compressor.compress(
+        messages,
+        system_prompt_tokens=system_prompt_tokens,
+        tool_description_tokens=tool_description_tokens,
+    )

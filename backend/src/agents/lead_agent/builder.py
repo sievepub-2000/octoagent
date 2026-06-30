@@ -58,6 +58,7 @@ class LeadAgentBuilder:
                     config,
                     model_name=options.model_name,
                     agent_name=options.agent_name,
+                    dialogue_route=options.dialogue_route,
                 ),
                 system_prompt=self._embedded_backup_prompt_fn(options.conversation_language),
                 state_schema=self._state_schema,
@@ -78,6 +79,7 @@ class LeadAgentBuilder:
                 middleware=self._build_middlewares_fn(
                     config,
                     model_name=options.model_name,
+                    dialogue_route=options.dialogue_route,
                 ),
                 system_prompt=self._apply_prompt_template_fn(
                     subagent_enabled=options.subagent_enabled,
@@ -113,6 +115,7 @@ class LeadAgentBuilder:
                 config,
                 model_name=options.model_name,
                 agent_name=options.agent_name,
+                dialogue_route=options.dialogue_route,
             ),
             system_prompt=self._apply_prompt_template_fn(
                 subagent_enabled=options.subagent_enabled,

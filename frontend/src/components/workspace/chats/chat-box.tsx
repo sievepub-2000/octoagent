@@ -129,13 +129,32 @@ const ChatBox: React.FC<{
     // Update artifacts from the current thread
     setArtifacts(threadArtifacts);
 
-    // DO NOT automatically deselect the artifact when switching threads, because the artifacts auto discovering is not work now.
-    // if (
-    //   selectedArtifact &&
-    //   !thread.values.artifacts?.includes(selectedArtifact)
-    // ) {
-    //   deselect();
-    // }
+    // Fallback: scan messages for present_files tool calls if artifacts are missing
+    if (threadArtifacts.length === 0 && threadValues.messages?.length > 0) {
+      const messageArtifacts: string[] = [];
+      for (const msg of threadValues.messages) {
+        if (msg.type === "ai" && msg.tool_calls) {
+          for (const tc of msg.tool_calls) {
+            if (tc.name === "present_files" && tc.args?.files) {
+              const files = Array.isArray(tc.args.files) ? tc.args.files : [tc.args.files];
+              messageArtifacts.push(...files.filter(Boolean));
+            }
+          }
+        }
+      }
+      if (messageArtifacts.length > 0) {
+        setArtifacts(messageArtifacts);
+      }
+    }
+
+    // Auto-deselect artifact when switching to a thread without it
+    if (selectedArtifact && !threadArtifacts.includes(selectedArtifact)) {
+      deselect();
+    }
+    // Also close artifact panel entirely if new thread has no artifacts
+    if (threadArtifacts.length === 0 && selectedArtifact) {
+      deselect();
+    }
 
     if (
       env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" &&

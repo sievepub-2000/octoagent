@@ -618,6 +618,35 @@ class TaskWorkspaceMessageExecutor:
             )
         # previously: if requires_tool_research: ws_recursion = min(ws_recursion, 96)  # removed (resource guard handles pressure)
         # previously: if requires_tool_research and subagent_enabled: ws_recursion = min(ws_recursion, 120)  # removed
+
+        # Fast-route heuristic: short, non-action prompts get tight recursion/timeout caps
+        # to prevent stall loops (e.g. weather queries that take 10-30 min due to middleware bloat).
+        _FAST_RECURSION_CAP = 20
+        _FAST_TIMEOUT_SIMPLE = 180   # 3 minutes for simple fast-route queries
+        _FAST_TIMEOUT_DEEP = 600     # 10 minutes for deep research routes
+        _is_fast_query = False
+        if workspace is not None and isinstance(workspace.metadata, dict):
+            _route_hint = workspace.metadata.get("dialogue_route") or workspace.metadata.get("fast_route")
+            if _route_hint in {"direct_answer", "control_command", "plan_only", "current_snapshot"}:
+                _is_fast_query = True
+        elif request.content and len(request.content.strip()) < 200:
+            _action_keywords = ("shell", "bash", "git", "commit", "push", "deploy", "execute", "delete", "remove", "write", "edit", "create")
+            if not any(kw in request.content.lower() for kw in _action_keywords):
+                _is_fast_query = True
+
+        if _is_fast_query:
+            ws_recursion = min(ws_recursion, _FAST_RECURSION_CAP)
+            if requires_tool_research:
+                primary_timeout_candidate = _FAST_TIMEOUT_DEEP
+            else:
+                primary_timeout_candidate = _FAST_TIMEOUT_SIMPLE
+            logger.info(
+                "Fast-route heuristic applied: recursion_limit=%d, timeout=%ds (content=%d chars)",
+                ws_recursion, primary_timeout_candidate, len(request.content or ""),
+            )
+        else:
+            primary_timeout_candidate = None
+
         runtime_provider = agent_provider_override or (workspace.agent_runtime_provider if workspace is not None else None)
 
         if query_session_id is not None:
@@ -677,11 +706,14 @@ class TaskWorkspaceMessageExecutor:
 
         try:
             if assistant_content is None:
-                primary_timeout = max(60, ws_timeout)
-                if requires_tool_research:
-                    primary_timeout = max(primary_timeout, 180)
-                if requires_tool_research and subagent_enabled:
-                    primary_timeout = max(primary_timeout, min(ws_timeout, 240))
+                if primary_timeout_candidate is not None:
+                    primary_timeout = primary_timeout_candidate
+                else:
+                    primary_timeout = max(60, ws_timeout)
+                    if requires_tool_research:
+                        primary_timeout = max(primary_timeout, 180)
+                    if requires_tool_research and subagent_enabled:
+                        primary_timeout = max(primary_timeout, min(ws_timeout, 240))
                 invoke_kwargs = {
                     "model_override": request.model_override,
                     "timeout_seconds": primary_timeout,

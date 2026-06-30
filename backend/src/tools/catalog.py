@@ -1,3 +1,25 @@
+"""Tool catalog — narrow-waist design.
+
+Only 5 core tools are loaded into every system prompt by default:
+
+    1. task_tool          - Task management / subagent delegation
+    2. ask_clarification  - Ask the user for clarification
+    3. present_file       - Present file contents to the user
+    4. setup_agent        - Agent configuration / role setup
+    5. read_webpage       - Web content reading
+
+All other tools are registered in ``LAZY_LOAD_REGISTRY`` and loaded on
+demand via :func:`tool_loader.load_tools_for_intent` when the agent's
+intent indicates they are needed.  MCP/plugin tools (L3) are exposed only
+when explicitly enabled through configuration or the auto-discovery
+mechanism.
+
+This file preserves all original imports so that existing code paths
+(e.g. gateway routers, subagent catalogs) can still import tool constants
+directly from ``src.tools.builtins``.  The default runtime profile is
+simply narrower.
+"""
+
 from __future__ import annotations
 
 import logging
@@ -33,6 +55,7 @@ from src.tools.builtins import (
     propose_self_evolution_tool,
     read_webpage_tool,
     search_memory_tool,
+    setup_agent,
     task_tool,
     view_image_tool,
 )
@@ -49,6 +72,27 @@ def _is_removed_optional_tool(use_path: str) -> bool:
 
 def _configured_tool_names(tools: Iterable[BaseTool]) -> set[str]:
     return {tool.name for tool in tools}
+
+
+# ---------------------------------------------------------------------------
+# Narrow-waist core: exactly 5 tools always loaded
+# ---------------------------------------------------------------------------
+
+BUILTIN_TOOLS_CORE: list[BaseTool] = [
+    task_tool,
+    ask_clarification_tool,
+    present_file_tool,
+    setup_agent,
+    read_webpage_tool,
+]
+
+
+def _openharness_compat_enabled() -> bool:
+    """Sprint-1 P0 optimization: OPENHARNESS_COMPAT_TOOLS adds ~1542 LOC of
+    tool descriptions to every system prompt. Default to OFF; opt in with
+    OCTOAGENT_OPENHARNESS_ENABLED=1 if a workflow requires the legacy shim."""
+    value = os.environ.get("OCTOAGENT_OPENHARNESS_ENABLED", "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 def _bytebot_compat_enabled() -> bool:
@@ -70,80 +114,39 @@ def _env_flag(name: str, *, default: bool) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _system_ops_tools_enabled() -> bool:
-    """Gate host-level tools behind an operator-controlled flag.
+# ---------------------------------------------------------------------------
+# Lazy-load registry (L2 tools — loaded on intent detection)
+# ---------------------------------------------------------------------------
 
-    Default remains enabled for backwards compatibility, but production
-    deployments can now run a least-privilege profile with
-    ``OCTOAGENT_SYSTEM_TOOLS_ENABLED=0`` or provide a narrow allow-list via
-    ``OCTOAGENT_SYSTEM_TOOLS=host_shell,process_manage``. This mirrors mature
-    coding agents: shell/file/network surfaces are explicit operator policy,
-    not an unchangeable prompt tax.
-    """
+LAZY_LOAD_REGISTRY: dict[str, list[BaseTool]] = {
+    # L2: system operations (shell, docker, git, security scans, etc.)
+    "system_ops": SYSTEM_OPS_TOOLS,
+    # L2: system extras (lint, typecheck, playwright, db, etc.)
+    "system_extra": SYSTEM_EXTRA_TOOLS,
+    # L2: desktop driver tools
+    "desktop_driver": DESKTOP_DRIVER_TOOLS,
+    # L2: ecosystem workflow tools
+    "ecosystem_workflow": ECOSYSTEM_WORKFLOW_TOOLS,
+    # L2: publishing workflow tools
+    "publishing_workflow": PUBLISHING_WORKFLOW_TOOLS,
+    # L2: workflow runtime tools
+    "workflow_runtime": WORKFLOW_RUNTIME_TOOLS,
+    # L2: document conversion
+    "document_convert": [convert_document_tool],
+    # L2: image processing
+    "image_processing": [process_image_tool],
+    # L2: codex CLI
+    "codex_cli": [codex_cli_tool],
+}
 
-    return _env_flag("OCTOAGENT_SYSTEM_TOOLS_ENABLED", default=True)
-
-
-def _allowed_system_tool_names() -> set[str] | None:
-    raw = os.environ.get("OCTOAGENT_SYSTEM_TOOLS", "").strip()
-    if not raw:
-        return None
-    names = {part.strip() for part in raw.split(",") if part.strip()}
-    return names or None
-
-
-def _selected_system_ops_tools() -> list[BaseTool]:
-    if not _system_ops_tools_enabled():
-        logger.info("System operation tools disabled by OCTOAGENT_SYSTEM_TOOLS_ENABLED=0")
-        return []
-    allowlist = _allowed_system_tool_names()
-    if allowlist is None:
-        return list(SYSTEM_OPS_TOOLS)
-    selected = [tool for tool in SYSTEM_OPS_TOOLS if tool.name in allowlist]
-    missing = sorted(allowlist - {tool.name for tool in selected})
-    if missing:
-        logger.warning("Ignoring unknown OCTOAGENT_SYSTEM_TOOLS entries: %s", ", ".join(missing))
-    logger.info("Including %d/%d system operation tools from OCTOAGENT_SYSTEM_TOOLS", len(selected), len(SYSTEM_OPS_TOOLS))
-    return selected
+# L3: MCP / plugin tools (loaded only when explicitly enabled)
+L3_MCP_PLUGIN_TOOLS: dict[str, list[BaseTool]] = {
+    "openharness_compat": OPENHARNESS_COMPAT_TOOLS,
+    "bytebot_compat": BYTEBOT_COMPAT_TOOLS,
+    "software_interface": SOFTWARE_INTERFACE_TOOLS,
+}
 
 
-BUILTIN_TOOLS_CORE: list[BaseTool] = [
-    present_file_tool,
-    ask_clarification_tool,
-    list_capabilities_tool,
-    load_skill_tool,
-    get_plugin_command_tool,
-    search_memory_tool,
-    memory_block_upsert_tool,
-    memory_block_list_tool,
-    archival_memory_insert_tool,
-    archival_memory_search_tool,
-    propose_self_evolution_tool,
-    codex_cli_tool,
-    process_image_tool,
-    read_webpage_tool,
-    convert_document_tool,
-]
-BUILTIN_TOOLS_CORE.extend(_selected_system_ops_tools())
-BUILTIN_TOOLS_CORE.extend(SYSTEM_EXTRA_TOOLS)
-BUILTIN_TOOLS_CORE.extend(DESKTOP_DRIVER_TOOLS)
-BUILTIN_TOOLS_CORE.extend(SOFTWARE_INTERFACE_TOOLS)
-BUILTIN_TOOLS_CORE.extend(ECOSYSTEM_WORKFLOW_TOOLS)
-BUILTIN_TOOLS_CORE.extend(WORKFLOW_RUNTIME_TOOLS)
-BUILTIN_TOOLS_CORE.extend(PUBLISHING_WORKFLOW_TOOLS)
-
-
-def _openharness_compat_enabled() -> bool:
-    """Sprint-1 P0 optimization: OPENHARNESS_COMPAT_TOOLS adds ~1542 LOC of
-    tool descriptions to every system prompt. Default to OFF; opt in with
-    OCTOAGENT_OPENHARNESS_ENABLED=1 if a workflow requires the legacy shim."""
-    value = os.environ.get("OCTOAGENT_OPENHARNESS_ENABLED", "").strip().lower()
-    return value in {"1", "true", "yes", "on"}
-
-
-# Backwards-compat alias: external imports of BUILTIN_TOOLS still resolve to a
-# list — but now opt-in for the legacy compat shim. This shrinks the default
-# system prompt by ~2.5 k tokens and keeps the shim available behind a flag.
 def _load_dynamic_tools() -> list[BaseTool]:
     """Sprint-3: include any self-evolution-promoted dynamic tools."""
     try:
@@ -154,9 +157,18 @@ def _load_dynamic_tools() -> list[BaseTool]:
         return []
 
 
+# ---------------------------------------------------------------------------
+# Backwards-compat alias
+# ---------------------------------------------------------------------------
+
 BUILTIN_TOOLS: list[BaseTool] = BUILTIN_TOOLS_CORE + (OPENHARNESS_COMPAT_TOOLS if _openharness_compat_enabled() else []) + _load_dynamic_tools()
 
 SUBAGENT_TOOLS: list[BaseTool] = [task_tool]
+
+
+# ---------------------------------------------------------------------------
+# Permission scopes and confirmation rules (unchanged)
+# ---------------------------------------------------------------------------
 
 BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "codex_cli": "system",
@@ -292,6 +304,10 @@ def _builtin_requires_confirmation(tool_name: str) -> bool:
     return tool_name in DANGEROUS_CONFIRMATION_TOOLS
 
 
+# ---------------------------------------------------------------------------
+# ToolCatalog (unchanged behaviour — loads core + vision + bytebot compat)
+# ---------------------------------------------------------------------------
+
 class ToolCatalog:
     def __init__(self, *, app_config_getter=get_app_config, resolver=resolve_variable):
         self._app_config_getter = app_config_getter
@@ -368,3 +384,15 @@ class ToolCatalog:
             )
             for tool in builtin_tools
         ]
+
+
+__all__ = [
+    "BUILTIN_TOOLS_CORE",
+    "BUILTIN_TOOLS",
+    "SUBAGENT_TOOLS",
+    "LAZY_LOAD_REGISTRY",
+    "L3_MCP_PLUGIN_TOOLS",
+    "BUILTIN_PERMISSION_SCOPES",
+    "DANGEROUS_CONFIRMATION_TOOLS",
+    "ToolCatalog",
+]

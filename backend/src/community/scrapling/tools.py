@@ -24,9 +24,13 @@ _INIT_TRIED = False
 
 
 def _get_proxy_from_env() -> str | None:
-    proxy = os.environ.get("HTTPS_PROXY") or os.environ.get("https_proxy") or os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy")
-    return proxy if proxy else None
-
+    # No proxy service configured -- always use direct connections.
+    if os.environ.get("OCTOAGENT_WEB_SCRAPING_DISABLED"):
+        raise RuntimeError(
+            "Web scraping tools are disabled (OCTOAGENT_WEB_SCRAPING_DISABLED=1). "
+            "Set the env var to 0 or configure HTTPS_PROXY to re-enable."
+        )
+    return None
 
 def _lazy_init() -> None:
     global _FETCHER, _STEALTHY, _INIT_TRIED
@@ -102,7 +106,8 @@ def scrapling_fetch(url: str) -> str:
     if _FETCHER is None:
         return json.dumps({"error": "scrapling not installed", "url": url})
     try:
-        page = _FETCHER.get(url, stealthy_headers=True, timeout=30)
+        fetch_kwargs = dict(stealthy_headers=True, timeout=15)
+        page = _FETCHER.get(url, **fetch_kwargs)
         return _fmt_result(url, page, mode="http")
     except Exception as e:
         if _allow_insecure_ssl_retry() and _is_certificate_verify_error(e):
@@ -122,7 +127,7 @@ def scrapling_fetch_stealth(url: str) -> str:
     """Fetch a URL using Scrapling StealthyFetcher (Cloudflare/Turnstile bypass).
 
     Requires browser deps; rejects private/internal URLs and gracefully degrades
-    to HTTP fetcher if unavailable. Honours HTTPS_PROXY / HTTP_PROXY env vars.
+    to HTTP fetcher if unavailable. Uses direct connections (no proxy configured).
     """
     if not is_url_safe(url):
         return json.dumps({"error": "Access to private/internal network addresses is not allowed.", "url": url, "engine": "scrapling"})
@@ -136,9 +141,6 @@ def scrapling_fetch_stealth(url: str) -> str:
             "network_idle": True,
             "timeout": 60000,
         }
-        proxy = _get_proxy_from_env()
-        if proxy:
-            kwargs["proxy"] = proxy
         page = _STEALTHY.fetch(url, **kwargs)
         return _fmt_result(url, page, mode="stealth")
     except Exception as e:

@@ -240,7 +240,7 @@ Being proactive with task management demonstrates thoroughness and ensures all r
 # MemoryMiddleware queues conversation for memory update (after TitleMiddleware)
 # ViewImageMiddleware should be before ClarificationMiddleware to inject image details before LLM
 # ClarificationMiddleware should be last to intercept clarification requests after model calls
-def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_name: str | None = None):
+def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_name: str | None = None, dialogue_route: str | None = None):
     """Build middleware chain based on runtime configuration.
 
     Args:
@@ -250,6 +250,20 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     Returns:
         List of middleware instances.
     """
+    # Determine if this is a fast route (simple query, no tools needed).
+    from src.agents.dialogue_routing import FAST_ROUTES
+    is_fast_route = dialogue_route in FAST_ROUTES if dialogue_route else False
+
+    _SKIP_FOR_FAST = {
+        SessionCompactionMiddleware,
+        MemoryMiddleware,
+        SkillEvolutionMiddleware,
+        LessonInjectionMiddleware,
+        ToolBudgetMiddleware,
+        GoalMiddleware,
+        TitleMiddleware,
+    }
+
     middlewares = [
         StateMiddleware(),
         UploadsMiddleware(),
@@ -344,6 +358,11 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
 
     # ClarificationMiddleware should always be last
     middlewares.append(ClarificationMiddleware())
+
+    # For fast routes, strip expensive middlewares that add latency without value
+    if is_fast_route:
+        middlewares = [m for m in middlewares if not isinstance(m, tuple(_SKIP_FOR_FAST))]
+
     return middlewares
 
 

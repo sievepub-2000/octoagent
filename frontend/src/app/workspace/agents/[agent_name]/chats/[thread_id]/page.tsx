@@ -462,7 +462,7 @@ function AgentChatThreadView({
             </div>
 
             <div className="absolute right-0 bottom-0 left-0 z-30 flex justify-center px-3 pb-5 sm:px-4">
-              <div className="relative w-full max-w-5xl">
+              <div className="relative w-full max-w-(--container-width-md)">
                 <div className="absolute -top-4 right-0 left-0 z-0">
                   <div className="absolute right-0 bottom-0 left-0">
                     <TodoList

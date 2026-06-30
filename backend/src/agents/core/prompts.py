@@ -9,9 +9,41 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from src.agents.core.instruction_contracts import build_contract_prompt, detect_instruction_contract
+from src.agents.core.prompt_cache import PromptCache
 
 if TYPE_CHECKING:
     from src.storage.task_workspaces.contracts import AgentHandle, AgentMessage, TaskWorkspace
+
+
+# ------------------------------------------------------------------
+# Module-level prompt cache (static base prompt)
+# ------------------------------------------------------------------
+
+_prompt_cache = PromptCache(config_version="1")
+
+
+def get_cached_base_prompt() -> str:
+    """Return the cached static base system prompt.
+
+    This is byte-identical across all sessions and can be reused by LLM
+    providers for caching discounts.  Task-specific content should still
+    go through the existing builder functions below.
+    """
+    return _prompt_cache.build_base_prompt()
+
+
+def get_cached_dynamic_section(context: dict | None = None) -> str:
+    """Return dynamic context as a user-message string.
+
+    This includes skills, memory, and session state -- content that varies
+    per call and should NOT be part of the cached base prompt.
+    """
+    return _prompt_cache.build_dynamic_section(context)
+
+
+def get_prompt_cache() -> PromptCache:
+    """Return the module-level PromptCache instance."""
+    return _prompt_cache
 
 
 # ------------------------------------------------------------------
@@ -247,6 +279,9 @@ __all__ = [
     "build_worker_takeover_prompt",
     "build_worker_timeout_analysis_prompt",
     "format_transcript_messages",
+    "get_cached_base_prompt",
+    "get_cached_dynamic_section",
+    "get_prompt_cache",
 ]
 
 

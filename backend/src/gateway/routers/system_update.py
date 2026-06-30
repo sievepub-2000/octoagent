@@ -431,6 +431,30 @@ def _frontend_install_command() -> list[str]:
     raise RuntimeError("No supported frontend package manager found")
 
 
+def _rollback_to_commit(sha: str) -> None:
+    """Roll back the working tree to a saved commit SHA.
+
+    Called after any failure in the update flow so that partial changes are
+    undone and the repository is left in its pre-update state.
+    """
+    if not sha:
+        logger.warning("No saved commit SHA available; skipping rollback.")
+        return
+    try:
+        result = _run_blocking_process(
+            ["git", "reset", "--hard", sha],
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+            timeout=30,
+        )
+        if result.returncode == 0:
+            logger.info("Rolled back to commit %s", sha)
+        else:
+            error_text = _redact_remote_credentials(result.stderr.strip() or result.stdout.strip())
+            logger.error("Rollback to %s failed: %s", sha, error_text)
+    except Exception as exc:
+        logger.exception("Rollback to %s raised an exception: %s", sha, exc)
+
+
 # ---------- endpoints ---------------------------------------------------
 
 
@@ -473,7 +497,10 @@ async def apply_update() -> UpdateResult:
 
     This preserves all user configuration (config.yaml, .env, data/) by doing
     a git pull + dependency install + full-stack restart.
+
+    If any step fails, the working tree is rolled back to the pre-update commit.
     """
+    saved_head_sha = ""
     try:
         remote = await _fetch_remote_version_info()
         current_version = _read_current_version()
@@ -482,6 +509,11 @@ async def apply_update() -> UpdateResult:
 
         if not _is_remote_version_newer(current_version, latest_version):
             return UpdateResult(success=False, message="System is already up to date.", new_version=current_version)
+
+        # Save current HEAD so we can rollback on failure.
+        saved_head_sha = await asyncio.to_thread(_get_local_head_sha)
+        if not saved_head_sha:
+            logger.warning("Could not capture pre-update commit SHA; rollback will be skipped on failure.")
 
         auto_config = await asyncio.to_thread(_read_auto_update_config)
         origin_remote_url = await asyncio.to_thread(_read_origin_remote_url)
@@ -515,6 +547,7 @@ async def apply_update() -> UpdateResult:
             )
         if merge.returncode != 0:
             merge_error = _redact_remote_credentials(merge.stderr.strip() or merge.stdout.strip())
+            await asyncio.to_thread(_rollback_to_commit, saved_head_sha)
             return UpdateResult(success=False, message=f"git update failed: {merge_error}")
 
         # 2. Install backend dependencies (if requirements changed)
@@ -527,9 +560,10 @@ async def apply_update() -> UpdateResult:
                 timeout=120,
             )
             if backend_install.returncode != 0:
+                await asyncio.to_thread(_rollback_to_commit, saved_head_sha)
                 return UpdateResult(
                     success=False,
-                    message=f"backend dependency install failed: {backend_install.stderr.strip()}",
+                    message=f"backend dependency install failed (rolled back to {saved_head_sha}): {backend_install.stderr.strip()}",
                 )
 
         # 3. Install frontend dependencies before the full restart rebuilds assets.
@@ -542,14 +576,15 @@ async def apply_update() -> UpdateResult:
                 timeout=180,
             )
             if frontend_install.returncode != 0:
+                await asyncio.to_thread(_rollback_to_commit, saved_head_sha)
                 return UpdateResult(
                     success=False,
-                    message=f"frontend dependency install failed: {frontend_install.stderr.strip()}",
+                    message=f"frontend dependency install failed (rolled back to {saved_head_sha}): {frontend_install.stderr.strip()}",
                 )
 
         new_version = _read_current_version()
 
-        # 4. Schedule a graceful full-stack restart (async — don't block the response)
+        # 4. Schedule a graceful full-stack restart (async -- don't block the response)
         asyncio.get_running_loop().call_later(1.0, _schedule_restart)
 
         return UpdateResult(
@@ -560,8 +595,9 @@ async def apply_update() -> UpdateResult:
 
     except Exception as exc:
         logger.exception("Update failed")
-        return UpdateResult(success=False, message=f"Update failed: {exc}")
-
+        if saved_head_sha:
+            await asyncio.to_thread(_rollback_to_commit, saved_head_sha)
+        return UpdateResult(success=False, message=f"Update failed (rolled back to {saved_head_sha or 'unknown'}): {exc}")
 
 def _schedule_restart() -> None:
     """Restart OctoAgent services after update."""

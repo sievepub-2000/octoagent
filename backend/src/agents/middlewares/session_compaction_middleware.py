@@ -32,6 +32,8 @@ from src.runtime.context_budget import (
     trim_text_to_token_budget,
     truncate_oversized_messages,
 )
+from src.agents.core.context_compressor import ContextCompressor, TokenBudget
+from src.agents.core.compression_config import CompressionConfig, load_compression_config
 from src.storage.session_compaction.compactor import (
     CompactionConfig,
     Message,
@@ -45,6 +47,9 @@ _MAX_TOOL_MESSAGE_TOKENS = 1_200
 _MAX_HUMAN_MESSAGE_TOKENS = 5_000
 _MAX_ASSISTANT_MESSAGE_TOKENS = 4_000
 _CHECKPOINT_MARKER = "OctoAgent long-running context checkpoint"
+# Skip full token estimation when conversation is short -- avoids O(n) work on
+# every LLM call for simple queries that will never need compaction.
+_FAST_ROUTE_MSG_THRESHOLD = 8
 _MESSAGE_TOKEN_LIMITS = MessageTokenLimits(
     tool=_MAX_TOOL_MESSAGE_TOKENS,
     human=_MAX_HUMAN_MESSAGE_TOKENS,
@@ -245,6 +250,50 @@ def _message_estimated_tokens(msg: Any) -> int:
     return estimate_message_tokens([msg])
 
 
+# ------------------------------------------------------------------
+# Anti-hijack protection for compressed summaries
+# ------------------------------------------------------------------
+
+_ANTI_HIJACK_SYSTEM_INSTRUCTION = (
+    "This is a compressed summary of earlier conversation. "
+    "DO NOT resume or re-execute any actions mentioned in the summary. "
+    "The tasks described here have already been completed."
+)
+
+_ANTI_HIJACK_CHINESE_DIRECTIVE = "\u95ee\u9898\u5df2\u89e3\u51b3"  # 问题已解决
+
+
+def _inject_anti_hijack_protection(content_str: str) -> str:
+    """Wrap a compaction summary with anti-hijack directives.
+
+    Prevents the LLM from resuming or re-executing tasks mentioned in
+    compressed conversation summaries by adding explicit instructions
+    and Chinese directives marking all summarized events as completed.
+    """
+    if not content_str.strip():
+        return content_str
+
+    # Check if already protected
+    if _ANTI_HIJACK_SYSTEM_INSTRUCTION in content_str:
+        return content_str
+
+    lines = [_ANTI_HIJACK_SYSTEM_INSTRUCTION]
+    lines.append(_ANTI_HIJACK_CHINESE_DIRECTIVE)
+    lines.append("")
+    lines.append("## Compressed Conversation Summary")
+    lines.append("")
+
+    # Prefix each non-empty line in the summary with the completed marker
+    for line in content_str.split("\n"):
+        stripped = line.strip()
+        if not stripped:
+            lines.append("")
+        else:
+            lines.append(f"\u3010\u5df2\u5b8c\u6210\u3011 {stripped}")  # 【已完成】
+
+    return "\n".join(lines)
+
+
 def _coalesce_identical_tool_messages(messages: list[Any]) -> tuple[list[Any], int]:
     """Collapse runs of ToolMessages whose normalised content is identical.
 
@@ -366,6 +415,12 @@ class SessionCompactionMiddleware(AgentMiddleware):
         )
         self._compactor = SessionCompactor(config)
         self._allow_hard_truncation = os.getenv("OCTOAGENT_ALLOW_HARD_CONTEXT_TRUNCATION", "0") == "1" if allow_hard_truncation is None else allow_hard_truncation
+        # Lightweight ContextCompressor for pre-flight budget checks
+        try:
+            _compress_cfg = load_compression_config()
+            self._lightweight_compressor = ContextCompressor(_compress_cfg)
+        except Exception:
+            self._lightweight_compressor = None
 
     def _runtime_checkpoint_message(self, state: AgentState) -> SystemMessage | None:
         runtime_state = state.get("runtime") or {}
@@ -382,14 +437,39 @@ class SessionCompactionMiddleware(AgentMiddleware):
         if any(_CHECKPOINT_MARKER in _content_to_text(getattr(message, "content", "")) for message in messages):
             return None
         checkpoint_content = "\n\n".join(parts)
+        protected_content = _inject_anti_hijack_protection(checkpoint_content)
         return SystemMessage(
             content=(
                 f"[{_CHECKPOINT_MARKER}]\n"
                 "The following compact checkpoint preserves older conversation and task state that no longer fits verbatim. "
                 "Use it silently to continue the user's task without asking them to repeat context.\n"
-                f"{checkpoint_content}"
+                f"{protected_content}"
             )
         )
+
+    def compress_if_needed(
+        self,
+        messages: list[Any],
+        *,
+        system_prompt_tokens: int = 0,
+        tool_description_tokens: int = 0,
+    ) -> tuple[list[Any], bool]:
+        """Lightweight pre-flight compression check.
+
+        Uses the ContextCompressor to determine if conversation history
+        exceeds the configured threshold and compresses if needed.
+        Returns (messages, was_compressed).
+        """
+        if self._lightweight_compressor is None:
+            return messages, False
+        try:
+            return self._lightweight_compressor.compress(
+                messages,
+                system_prompt_tokens=system_prompt_tokens,
+                tool_description_tokens=tool_description_tokens,
+            )
+        except Exception:
+            return messages, False
 
     @override
     def before_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
@@ -437,6 +517,15 @@ class SessionCompactionMiddleware(AgentMiddleware):
         if not messages:
             return None
 
+
+        # Cheap pre-check: skip expensive token estimation for short conversations.
+        # Compaction is only needed when context is large; < threshold messages
+        # will never exceed the budget, so return early without O(n) work.
+        if len(messages) < _FAST_ROUTE_MSG_THRESHOLD:
+            merged_ts_short, phase_u_short = _merge_task_progress_state(state)
+            if merged_ts_short is not None and merged_ts_short != state.get("task_state"):
+                return {"runtime": dict(state.get("runtime") or {}), "task_state": merged_ts_short}
+            return None
         merged_task_state, phase_update = _merge_task_progress_state(state)
         messages, coalesced_count = _coalesce_identical_tool_messages(list(messages))
         messages, truncated = _truncate_oversized_messages(messages) if self._allow_hard_truncation else (messages, False)

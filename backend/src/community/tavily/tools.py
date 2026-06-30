@@ -17,7 +17,7 @@ import os
 from typing import Any
 
 from langchain.tools import tool
-from tavily import TavilyClient
+from src.utils.lazy_import import lazy_tavily
 
 from src.runtime.config import get_app_config
 
@@ -38,7 +38,7 @@ def _client() -> TavilyClient:
     key = _resolve_api_key()
     if not key:
         raise RuntimeError("TAVILY_API_KEY not set (env or tool_config.api_key)")
-    return TavilyClient(api_key=key)
+    return lazy_tavily.TavilyClient(api_key=key)
 
 
 def _max_results(default: int = 5) -> int:
