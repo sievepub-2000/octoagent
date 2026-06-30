@@ -19,11 +19,11 @@
       }
     },
     "postgres": {
-      "enabled": false,
+      "enabled": true,
       "type": "stdio",
       "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres",
       "args": [
-        "postgresql://root@localhost:5432/sieve_pub"
+        "postgresql://octoagent:octoagent_local_2026@127.0.0.1:5432/octoagent?sslmode=disable"
       ],
       "env": {},
       "headers": {},
@@ -39,7 +39,7 @@
       }
     },
     "openapi": {
-      "enabled": false,
+      "enabled": true,
       "type": "stdio",
       "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/openapi-mcp-server",
       "args": [],
