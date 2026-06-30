@@ -553,6 +553,9 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
     forecasts: list[dict[str, object]] = []
     unresolved: list[str] = []
     try:
+        import logging
+        _weather_logger = logging.getLogger(__name__)
+
         import time
         from concurrent.futures import ThreadPoolExecutor
 
@@ -583,49 +586,90 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
                 "timezone": hit.get("timezone") or "auto",
             }
 
-        def fetch_wttr_forecast(name: str, error: str) -> dict[str, object]:
-            wttr_url = f"https://wttr.in/{quote(name)}"
-            with httpx.Client(timeout=12.0, follow_redirects=True) as client:
-                response = client.get(wttr_url, params={"format": "j1"})
-                response.raise_for_status()
-                data = response.json()
-            days = []
-            for item in (data.get("weather") or [])[:forecast_days]:
-                hourly = item.get("hourly") or []
-                noon = hourly[len(hourly) // 2] if hourly else {}
-                description = ""
-                desc_values = noon.get("weatherDesc") or []
-                if desc_values and isinstance(desc_values[0], dict):
-                    description = str(desc_values[0].get("value") or "")
-                days.append(
-                    {
-                        "date": item.get("date"),
-                        "condition": description or "unknown",
-                        "temperature_max_c": item.get("maxtempC"),
-                        "temperature_min_c": item.get("mintempC"),
-                        "precipitation_probability_max_percent": noon.get("chanceofrain"),
-                    }
-                )
-            return {
-                "city": name,
-                "requested_name": name,
-                "source": "wttr.in",
-                "fallback_from_error": error,
-                "days": days,
-            }
+        def fetch_wttr_forecast(name: str, open_meteo_error: str) -> dict[str, object]:
+            """Fetch forecast from wttr.in as fallback when Open-Meteo fails.
+
+            Args:
+                name: City name to query.
+                open_meteo_error: Error message explaining why Open-Meteo failed.
+
+            Returns:
+                Forecast data with source=wttr.in, or error info if both APIs fail.
+            """
+            _weather_logger.info("Falling back to wttr.in for %s (Open-Meteo error: %s)", name, open_meteo_error)
+
+            try:
+                wttr_url = f"https://wttr.in/{quote(name)}"
+                with httpx.Client(timeout=12.0, follow_redirects=True) as client:
+                    response = client.get(wttr_url, params={"format": "j1"})
+                    response.raise_for_status()
+                    data = response.json()
+
+                days = []
+                for item in (data.get("weather") or [])[:forecast_days]:
+                    hourly = item.get("hourly") or []
+                    noon = hourly[len(hourly) // 2] if hourly else {}
+                    description = ""
+                    desc_values = noon.get("weatherDesc") or []
+                    if desc_values and isinstance(desc_values[0], dict):
+                        description = str(desc_values[0].get("value") or "")
+
+                    days.append(
+                        {
+                            "date": item.get("date"),
+                            "condition": description or "unknown",
+                            "temperature_max_c": item.get("maxtempC"),
+                            "temperature_min_c": item.get("mintempC"),
+                            "precipitation_probability_max_percent": noon.get("chanceofrain"),
+                        }
+                    )
+
+                _weather_logger.info("wttr.in success for %s: %d days fetched", name, len(days))
+                return {
+                    "city": name,
+                    "requested_name": name,
+                    "source": "wttr.in",
+                    "fallback_from_error": open_meteo_error,
+                    "source_detail": "Fallback API (wttr.in) - used because Open-Meteo failed",
+                    "days": days,
+                }
+            except Exception as wttr_exc:
+                _weather_logger.error("wttr.in failed for %s: %s", name, wttr_exc)
+                return {
+                    "city": name,
+                    "requested_name": name,
+                    "source": "wttr.in",
+                    "error": str(wttr_exc),
+                    "fallback_from_error": open_meteo_error,
+                    "source_detail": "Fallback API (wttr.in) also failed",
+                    "days": [],
+                }
 
         def fetch_city_forecast(name: str) -> dict[str, object]:
+            """Fetch weather forecast for a city with improved error handling and logging.
+
+            Primary API: Open-Meteo (3 retries with exponential backoff).
+            Fallback API: wttr.in (single attempt).
+            """
+            _weather_logger = logging.getLogger(__name__)
+            unresolved_local = []
+
             try:
                 with httpx.Client(timeout=12.0, follow_redirects=True) as client:
                     city = resolve_city(client, name)
                     if city is None or city.get("lat") is None or city.get("lon") is None:
-                        unresolved.append(name)
+                        unresolved_local.append(name)
+                        _weather_logger.warning("City not found: %s", name)
                         return {"city": name, "error": "city_not_found", "days": []}
+
                     response = None
                     success = False
                     last_error: Exception | None = None
+
+                    # Try Open-Meteo with 3 retries and exponential backoff
                     for attempt in range(3):
                         try:
+                            _weather_logger.debug("Open-Meteo attempt %d/3 for city=%s", attempt + 1, name)
                             response = client.get(
                                 "https://api.open-meteo.com/v1/forecast",
                                 params={
@@ -638,25 +682,33 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
                             )
                             response.raise_for_status()
                             success = True
+                            _weather_logger.info("Open-Meteo success for %s on attempt %d", name, attempt + 1)
                             break
                         except Exception as exc:
                             last_error = exc
                             if attempt < 2:
                                 time.sleep(0.4 * (attempt + 1))
+
                     if response is None or not success:
-                        raise last_error or RuntimeError("Open-Meteo request failed")
+                        error_msg = str(last_error) if last_error else "Open-Meteo request failed"
+                        _weather_logger.warning("Open-Meteo failed for %s after 3 attempts: %s", name, error_msg)
+                        return fetch_wttr_forecast(name, error_msg)
+
                     data = response.json()
             except Exception as exc:
+                _weather_logger.error("Unexpected error fetching weather for %s: %s", name, exc)
                 try:
                     return fetch_wttr_forecast(name, str(exc))
                 except Exception as fallback_exc:
                     return {
                         "city": name,
-                        "error": str(exc),
-                        "fallback_error": str(fallback_exc),
+                        "error": f"Primary (Open-Meteo) failed: {str(exc)}",
+                        "fallback_error": f"Fallback (wttr.in) also failed: {str(fallback_exc)}",
+                        "source_detail": "Both APIs failed",
                         "days": [],
                     }
 
+            # Process Open-Meteo response
             daily = data.get("daily") or {}
             days = []
             for idx, date in enumerate(daily.get("time") or []):
@@ -674,6 +726,7 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
                         "precipitation_probability_max_percent": rain_probs[idx] if idx < len(rain_probs) else None,
                     }
                 )
+
             return {
                 "city": city["name"],
                 "requested_name": city.get("requested_name") or name,
@@ -681,6 +734,7 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
                 "admin1": city.get("admin1"),
                 "timezone": data.get("timezone") or city.get("timezone"),
                 "source": "Open-Meteo",
+                "source_detail": "Primary API (Open-Meteo)",
                 "days": days,
             }
 
@@ -689,13 +743,16 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
             forecasts = list(executor.map(fetch_city_forecast, requested_names))
 
         payload = {
-            "source_note": f"Open-Meteo forecast, next {forecast_days} forecast days. City coordinates are resolved server-side.",
-            "source": "Open-Meteo",
+            "source_note": f"Weather forecast for next {forecast_days} days. City coordinates resolved server-side.",
+            "source": "Open-Meteo (primary), wttr.in (fallback)",
+            "source_detail": "Uses Open-Meteo with 3 retries; falls back to wttr.in if Open-Meteo fails",
             "requested_cities": requested_names,
-            "unresolved_cities": unresolved,
+            "unresolved_cities": unresolved_local if 'unresolved_local' in dir() else unresolved,
             "forecasts": forecasts,
         }
     except Exception as exc:
+        _weather_logger = logging.getLogger(__name__)
+        _weather_logger.error("Weather snapshot build failed: %s", exc)
         payload = {"error": str(exc), "forecasts": forecasts}
 
     return SystemMessage(
@@ -703,6 +760,7 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
             "<current_weather_snapshot>\n"
             "The latest user request asks for current/future weather. Use this server-fetched forecast directly. "
             "If the snapshot has an error or missing city, explain that clearly instead of guessing.\n"
+            f"API Usage: {payload.get('source_detail', 'N/A')}\n"
             f"{json.dumps(payload, ensure_ascii=False)}\n"
             "</current_weather_snapshot>"
         )
