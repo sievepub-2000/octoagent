@@ -1,12 +1,4 @@
-"""Unified embedding service — provides neural embeddings for the vector stores.
-
-Supports multiple backends:
-  - sentence-transformers (preferred, high-quality)
-  - llama.cpp (via bootstrap runtime, lighter memory footprint)
-  - SHA-256 fallback (deterministic, zero semantic meaning)
-
-The service auto-detects the best available backend on first call.
-"""
+"""Unified embedding service."""
 
 from __future__ import annotations
 
@@ -21,20 +13,16 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
-# Default model for sentence-transformers — compact, multilingual, 384-dim, Apache-2
 _DEFAULT_ST_MODEL = os.getenv(
     "OCTOAGENT_EMBEDDING_MODEL",
     "Qwen/Qwen3-Embedding-0.6B",
 )
 
-# Dimension produced by each backend
 _DIM_MINILM = 384
 _DIM_FALLBACK = 64
 
 
 class EmbeddingBackend(ABC):
-    """Abstract embedding provider."""
-
     @property
     @abstractmethod
     def dim(self) -> int: ...
@@ -47,17 +35,23 @@ class EmbeddingBackend(ABC):
 
 
 class SentenceTransformerBackend(EmbeddingBackend):
-    """sentence-transformers library (best quality)."""
-
     def __init__(self, model_name: str = _DEFAULT_ST_MODEL) -> None:
-        import os
-        from pathlib import Path
-
-        # Check if model is already cached locally; skip download attempt
         st_home = os.environ.get("SENTENCE_TRANSFORMERS_HOME")
         hf_home = os.environ.get("HF_HOME")
+
+        # Use HF_HOME if set, otherwise use project-local cache
+        if hf_home:
+            hub_cache = Path(hf_home).expanduser()
+        else:
+            # Fallback to project cache
+            candidate_paths = [
+                Path("/home/sieve-pub/public-workspace/octoagent/runtime/cache/huggingface/hub"),
+                Path.home() / ".cache" / "huggingface" / "hub",
+            ]
+            hub_cache = next((p for p in candidate_paths if p.exists()), candidate_paths[-1])
+
         cache_root = Path(st_home).expanduser() if st_home else Path.home() / ".cache" / "torch" / "sentence_transformers"
-        hub_cache = Path(hf_home).expanduser() / "hub" if hf_home else Path.home() / ".cache" / "huggingface" / "hub"
+
         model_slug = model_name.replace("/", "_")
         hub_slug = "models--" + model_name.replace("/", "--")
 

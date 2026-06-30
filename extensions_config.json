@@ -19,7 +19,7 @@
       }
     },
     "postgres": {
-      "enabled": true,
+      "enabled": false,
       "type": "stdio",
       "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres",
       "args": [
@@ -39,7 +39,7 @@
       }
     },
     "openapi": {
-      "enabled": true,
+      "enabled": false,
       "type": "stdio",
       "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/openapi-mcp-server",
       "args": [],
