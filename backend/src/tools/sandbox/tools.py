@@ -401,6 +401,49 @@ async def read_file_tool(
         return f"Error: Unexpected error reading file: {type(e).__name__}: {e}"
 
 
+
+async def _convert_markdown_to_office(content: str, output_path: str, sandbox) -> str:
+    """Convert Markdown to office format using Pandoc."""
+    import tempfile
+    import subprocess
+    
+    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
+        f.write(content)
+        md_path = f.name
+    
+    try:
+        _, ext = os.path.splitext(output_path.lower())
+        fmt_map = {'.docx': 'docx', '.xlsx': 'xlsx', '.pptx': 'pptx'}
+        pandoc_fmt = fmt_map.get(ext, 'docx')
+        
+        proc = subprocess.Popen(
+            ['pandoc', md_path, '-o', output_path, '--from=markdown', '--to=' + pandoc_fmt],
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            cwd=str(REPO_ROOT)
+        )
+        stdout, stderr = proc.communicate(timeout=180)
+        
+        if proc.returncode != 0:
+            return "Error: Pandoc failed: " + stderr.decode()[:200]
+        
+        if os.path.exists(output_path):
+            size = os.path.getsize(output_path)
+            return "OK (converted to " + pandoc_fmt + ", " + str(size) + " bytes)"
+        return "Error: Output not created"
+    except subprocess.TimeoutExpired:
+        proc.kill()
+        return "Error: Pandoc timeout (180s)"
+    except FileNotFoundError:
+        return "Error: Pandoc not installed"
+    except Exception as e:
+        return "Error: " + type(e).__name__ + ": " + str(e)
+    finally:
+        try: 
+            os.unlink(md_path)
+        except: 
+            pass
+
+
 @tool("write_file", parse_docstring=True)
 async def write_file_tool(
     runtime: ToolRuntime[ContextT, ThreadState],
@@ -422,6 +465,14 @@ async def write_file_tool(
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
+                # Auto-convert Markdown to office formats (.docx, .xlsx, .pptx)
+        _, ext = os.path.splitext(path.lower())
+        if ext in {'.docx', '.xlsx', '.pptx'}:
+            stripped = content.strip()
+            if stripped.startswith('#') or '```' in stripped:
+                logger.info("write_file_tool: auto-converting Markdown to %s", ext)
+                return await _convert_markdown_to_office(content, path, sandbox)
+
         await sandbox.write_file_async(path, content, append)
         return "OK"
     except SandboxError as e:
