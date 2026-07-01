@@ -181,7 +181,7 @@ class ViewImageMiddleware(AgentMiddleware[ViewImageMiddlewareState]):
         # Create a new human message with mixed content (text + images)
         human_msg = HumanMessage(content=image_content)
 
-        print("[ViewImageMiddleware] Injecting image details message with images before LLM call")
+        logger.info("[ViewImageMiddleware] Injecting image details message with images before LLM call")
 
         # Return state update with the new message
         return {"messages": [human_msg]}

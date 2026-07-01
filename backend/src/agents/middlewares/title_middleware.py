@@ -123,7 +123,7 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
             title_content = str(response.content) if response.content else ""
             return self._normalize_title(title_content, user_msg)
         except Exception as e:
-            print(f"Failed to generate title: {e}")
+            logger.debug("Failed to generate title: {e}")
             return self._normalize_title("", user_msg)
 
     def _generate_title_sync(self, state: TitleMiddlewareState) -> str:
@@ -136,7 +136,7 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
             title_content = str(response.content) if response.content else ""
             return self._normalize_title(title_content, user_msg)
         except Exception as e:
-            print(f"Failed to generate title: {e}")
+            logger.debug("Failed to generate title: {e}")
             return self._normalize_title("", user_msg)
 
     @override
@@ -180,7 +180,7 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
             with _TITLE_CACHE_LOCK:
                 _TITLE_CACHE[thread_id] = title
 
-        print(f"Generated thread title: {title}")
+        logger.debug("Generated thread title: {title}")
         return {"title": title}
 
     @override
@@ -224,5 +224,5 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
             with _TITLE_CACHE_LOCK:
                 _TITLE_CACHE[thread_id] = title
 
-        print(f"Generated thread title: {title}")
+        logger.debug("Generated thread title: {title}")
         return {"title": title}

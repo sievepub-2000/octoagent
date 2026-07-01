@@ -61,5 +61,5 @@ def parse_skill_file(skill_file: Path, category: str, relative_path: Path | None
         )
 
     except Exception as e:
-        print(f"Error parsing skill file {skill_file}: {e}")
+        logger.debug("Error parsing skill file {skill_file}: {e}")
         return None

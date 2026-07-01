@@ -203,6 +203,15 @@ smoke-ui:
 migrate-memory:
 	@cd backend && .venv/bin/python scripts/migrate_memory_schema.py $(ARGS)
 
+migrate-run:
+	@cd backend && .venv/bin/python -c "from scripts.migrations.runner import run_migrations; print('Migration runner ready. Pass cursor via application code.')"
+
+migrate-list:
+	@cd backend && .venv/bin/python -c "from scripts.migrations.runner import list_migrations; list_migrations()"
+
+migrate-rollback MIGRATION_ID=.:
+	@cd backend && .venv/bin/python -c "from scripts.migrations.runner import rollback_migration; print('Rollback target:', "$(MIGRATION_ID)")" 
+
 release-readiness:
 	@cd backend && .venv/bin/python scripts/run_release_readiness.py \
 		--run-doctor \

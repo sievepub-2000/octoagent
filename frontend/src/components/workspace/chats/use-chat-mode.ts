@@ -1,7 +1,7 @@
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef } from "react";
 
-import { usePromptInputController } from "@/components/ai-elements/prompt-input";
+import { usePromptInputController } from "@/components/ai-elements/prompt-input-context";
 import { useI18n } from "@/core/i18n/hooks";
 
 /**

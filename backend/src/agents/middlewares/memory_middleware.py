@@ -281,12 +281,12 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
         runtime_context = runtime.context or {}
         thread_id = runtime_context.get("thread_id")
         if not thread_id:
-            print("MemoryMiddleware: No thread_id in context, skipping memory update")
+            logger.info("MemoryMiddleware: No thread_id in context, skipping memory update")
             return None
 
         messages = state.get("messages", [])
         if not messages:
-            print("MemoryMiddleware: No messages in state, skipping memory update")
+            logger.info("MemoryMiddleware: No messages in state, skipping memory update")
             return None
 
         filtered_messages = _filter_messages_for_memory(messages)

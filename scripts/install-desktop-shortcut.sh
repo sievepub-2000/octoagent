@@ -7,6 +7,8 @@
 # Both shortcuts invoke `octoagent start` and then open the WebUI.
 
 set -euo pipefail
+trap 'echo "ERROR: $0 failed at line $LINENO" >> /var/log/octoagent_errors.log; exit 1' ERR
+
 
 REPO_ROOT="${OCTOAGENT_HOME:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 OCTOAGENT_BIN="${OCTOAGENT_BIN:-$REPO_ROOT/scripts/octoagent}"

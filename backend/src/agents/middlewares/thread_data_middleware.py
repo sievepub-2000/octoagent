@@ -81,7 +81,7 @@ class ThreadDataMiddleware(AgentMiddleware[ThreadDataMiddlewareState]):
         else:
             # Eager initialization: create directories immediately
             paths = self._create_thread_directories(thread_id)
-            print(f"Created thread data directories for thread {thread_id}")
+            logger.debug("Created thread data directories for thread {thread_id}")
 
         return {
             "thread_data": {

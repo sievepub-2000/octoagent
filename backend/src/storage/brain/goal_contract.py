@@ -2,7 +2,7 @@
 
 Defines the structured representation of "what the user actually wants" that
 every long-horizon task should be evaluated against. Plan: the producer agent
-emits one ``GoalContract`` at task entry; the ``GoalDriftMiddleware`` (TODO)
+emits one ``GoalContract`` at task entry; the ``GoalDriftMiddleware`` (TODO@octoagent-team)
 embeds it and compares against the rolling action window every N steps.
 
 Status: schema only. Producer + critic wiring is Sprint-2 work.

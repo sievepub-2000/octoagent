@@ -2,6 +2,8 @@
 # Repository-scoped OctoAgent cleanup. Host-wide package, journal, and /var/log
 # cleanup belongs to host maintenance, not the OctoAgent project launcher.
 set -euo pipefail
+trap 'echo "ERROR: $0 failed at line $LINENO" >> /var/log/octoagent_errors.log; exit 1' ERR
+
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 

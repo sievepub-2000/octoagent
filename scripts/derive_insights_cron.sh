@@ -4,6 +4,8 @@
 # and generate improvement insights for skill evolution.
 
 set -euo pipefail
+trap 'echo "ERROR: $0 failed at line $LINENO" >> $LOG_FILE; exit 1' ERR
+
 
 REPO_ROOT="/home/sieve-pub/public-workspace/octoagent"
 LOG_FILE="${REPO_ROOT}/logs/derive_insights.log"

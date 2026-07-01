@@ -76,7 +76,7 @@ class QueryTurnExecutor:
         cli_scope = self.extract_cli_scope(signal_message)
         notes: list[str] = []
 
-        if conversational:
+        if self.is_conversation_request(signal_message):
             intent = "conversation"
         elif target == "research_runtime":
             intent = "research"
@@ -99,7 +99,7 @@ class QueryTurnExecutor:
         permission_mode = normalize_runtime_permission_mode(permission_mode)
         if intent == "system_cli" and permission_mode != "system":
             notes.append("System CLI currently exceeds the active permission mode and may be blocked server-side.")
-        if conversational:
+        if self.is_conversation_request(signal_message):
             notes.append("Conversational request detected; no tool/runtime execution is required unless the model needs verification.")
         elif target == "repo_read":
             notes.append("No side-effect target detected; defaulting to read-oriented repository reasoning.")

@@ -15,4 +15,14 @@ class CriticMiddleware(AgentMiddleware):
         super().__init__()
 
     def after_model(self, state, runtime: Runtime):
-        return None
+      try:
+         t
+    except Exception as e:
+        logger.warning("CriticMiddleware.after_model failed: %s", e)
+        return None  # Never block the main response
+ry:
+         r
+    except Exception as e:
+        logger.warning("CriticMiddleware.after_model failed: %s", e)
+        return None  # Never block the main response
+eturn None

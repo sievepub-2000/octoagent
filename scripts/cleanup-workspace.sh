@@ -2,6 +2,8 @@
 # Remove stale empty / oversized agent-generated workspace artifacts.
 # Safe to run while services are stopped.
 set -euo pipefail
+trap 'echo "ERROR: $0 failed at line $LINENO" >> /var/log/octoagent_errors.log; exit 1' ERR
+
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 WS="${ROOT}/workspace/default/code"

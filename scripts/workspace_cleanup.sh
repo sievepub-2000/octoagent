@@ -1,8 +1,10 @@
+REPO_ROOT="$REPO_ROOT"
+
 #!/bin/bash
 # OctoAgent workspace periodic cleanup — safe to run at any time.
 # Never touches workspace/runtime/memory (RAG DB) or runtime/cache (model weights).
 set +e
-ROOT=/home/sieve-pub/public-workspace/octoagent
+ROOT=$REPO_ROOT
 LOG="$ROOT/logs/workspace_cleanup.log"
 echo "[$(date -u +%Y-%m-%dT%H:%M:%SZ)] Cleanup start" >> "$LOG"
 

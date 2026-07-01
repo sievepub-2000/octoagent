@@ -501,7 +501,8 @@ def writing_review_suite_tool(
         if _WRITING_PYTHON.exists():
             script = """
 import json, re, sys
-text = open(sys.argv[1], encoding='utf-8', errors='replace').read()
+with open(sys.argv[1], encoding="utf-8", errors="replace") as f:
+    text = f.read()
 try:
     import presidio_analyzer, presidio_anonymizer
     imported = True

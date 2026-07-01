@@ -131,8 +131,8 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         args = _normalize_clarification_args(tool_name, request.tool_call.get("args", {}) or {})
         question = args.get("question", "")
 
-        print(f"[ClarificationMiddleware] Intercepted clarification request via {tool_name!r}")
-        print(f"[ClarificationMiddleware] Question: {question}")
+        logger.debug("[ClarificationMiddleware] Intercepted clarification request via {tool_name!r}")
+        logger.debug("[ClarificationMiddleware] Question: {question}")
 
         # Format the clarification message
         formatted_message = self._format_clarification_message(args)
