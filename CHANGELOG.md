@@ -1,4 +1,42 @@
-## [2026.7.1] - 2026-07-01
+
+## [2026.7.2] - 2026-07-02
+
+### Security Hardening
+
+- **`.env` gitignore enforced**: Verified `.env` and `.env.docker` are in `.gitignore`; no plaintext API keys (Tavily, OpenRouter, Google, NVIDIA, SMTP) can be committed.
+- **Dev auth mode disabled** (`.env`): `OCTO_AUTH_DEV_EXPOSE_CODES` set to `0`, preventing verification codes from leaking in API responses.
+- **ESLint type safety restored** (`frontend/eslint.config.js`): Removed `off` overrides for `@typescript-eslint/no-unsafe-assignment`, `no-unsafe-call`, `no-unsafe-member-access`, `no-unsafe-argument`, `no-unsafe-return`. TypeScript type checking is now fully enforced.
+- **GitHub API key scan**: Scanned all tracked files for real API key patterns (`tvly-*`, `sk-or-v1-*`, `AIzaSy*`, `ghp_*`). Only placeholder values found (e.g., `sk-or-v1-...`, `ghp_xxx` in docs/examples). No real secrets exposed.
+
+### Runtime Cleanup
+
+- **Corrupted vector backups removed**: Deleted 4 `system_guard_vectors.corrupted.*.bak` files from `workspace/` (total ~14MB of corrupted data).
+- **Next.js panic logs cleaned**: Removed 10 `next-panic-*` crash logs from `tmp/`.
+- **Runtime artifacts pruned**: Cleaned old `html_to_canvas` run directories, `flipbook`, and `ssh_probe` outputs from `runtime/system_tools/`.
+
+### Code Quality Improvements
+
+- **hooks.ts split into 3 modules** (`frontend/src/core/threads/`):
+  - `hooks-utils.ts` (275 lines): Utility types, helper functions, detection logic.
+  - `hooks-stream.ts` (981 lines): Core `useThreadStream` hook with auto-continue, error recovery, context handoff.
+  - `hooks-threads.ts` (170 lines): `useThreads`, `useThreadState`, `useDeleteThread`, `useRenameThread`.
+  - Original `hooks.ts` now a re-export barrel for backward compatibility.
+- **prompt-input.tsx split** (`frontend/src/components/ai-elements/`):
+  - `prompt-input-context.tsx` (264 lines): Context providers, controller hooks, attachment types.
+  - `prompt-input.tsx` (1207 lines): Main component and all sub-components, with re-exports for backward compatibility.
+- **NameError fix** (`backend/src/storage/query/execution.py`): Replaced undefined `conversational` variable with `self.is_conversation_request(signal_message)` call in `resolve_client_command`.
+
+### Database Migration Framework
+
+- **New migration system** (`backend/scripts/migrations/`):
+  - `runner.py`: Auto-discovery, ordered execution, and rollback of versioned migrations. Tracks applied migrations in `_applied_migrations` table.
+  - `001_memory_v2.py`: First migration module (memory schema v2 upgrade).
+  - `__init__.py`: Package init with documentation.
+- **Makefile updated**: Added `migrate-run`, `migrate-list`, `migrate-rollback` targets alongside existing `migrate-memory`.
+
+### Bug Fixes
+
+- Fixed gateway `NameError: name 'conversational' is not defined` in query execution routing (pre-existing bug from middleware refactoring).## [2026.7.1] - 2026-07-01
 
 ### Performance Optimizations
 
