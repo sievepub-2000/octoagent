@@ -142,10 +142,10 @@ def web_search_tool(query: str) -> str:
             with DDGS(timeout=25) as ddg:
                 return list(ddg.text(query, region="us-en", max_results=max_results))
 
-            raw = _ddg_search()
     except Exception as exc:
         logger.exception("ddgs search failed: %s", exc)
         return json.dumps([{"error": f"web_search failed: {type(exc).__name__}: {exc}"}])
+    raw = _ddg_search()
 
     normalised = [
         {
