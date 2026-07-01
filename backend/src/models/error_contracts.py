@@ -92,7 +92,7 @@ def normalize_model_exception(
     if any(marker in lowered for marker in ("context length", "maximum context", "too many tokens", "max tokens exceeded", "context window", "token budget", "available context size", "exceed_context_size")):
         code = "context_length_exceeded"
         retryable = False
-    elif "429" in lowered or "rate limit" in lowered or "rate-limit" in lowered or "rate-limited" in lowered:
+    elif "429" in lowered or "rate limit" in lowered or "rate-limit" in lowered or "rate-limited" in lowered or "resource exhausted" in lowered or "worker.*limit reached" in lowered:
         code = "rate_limit_exceeded"
         retryable = True
     elif "404" in lowered or "not found" in lowered:
