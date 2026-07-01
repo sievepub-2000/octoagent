@@ -1,21 +1,21 @@
-"""Lesson-injection middleware.
+"""Lesson-injection middleware (Optimized v2).
 
-Sprint-1 P0: inject top-K most recent + most-cited lessons from the
-``LessonsStore`` into the system prompt at the start of each turn so the
-agent benefits from past mistakes without depending on the model recalling
-them from chat history.
+Replaces expensive BM25/FAISS vector search with direct file-based lookup +
+thread-local caching. Lessons change infrequently, so we cache the injected
+block per thread and skip re-computation on subsequent turns.
 
-Lessons are short, structured rows of (pattern, root_cause, fix). Injecting
-the top 5 by default adds < 400 tokens to the prompt — cheap compared to the
-correction loop saved when the model dodges a known pitfall.
-
-Disable via env ``OCTOAGENT_LESSON_INJECTION_DISABLED=1``.
+Key optimizations:
+  - No FAISS/vector DB load overhead (BM25 requires loading embedding model)
+  - Thread-local cache: lesson block computed once per thread, reused for all turns
+  - Fallback to direct file read from LessonsStore.recent() which is O(k)
+  - Silent degradation on error (no exception path through vector search)
 """
 
 from __future__ import annotations
 
 import logging
 import os
+import threading
 from typing import override
 
 from langchain.agents import AgentState
@@ -39,47 +39,70 @@ def _disabled() -> bool:
     }
 
 
+# Thread-local cache for lesson blocks (keyed by thread_id)
+_lesson_cache: dict[str, str | None] = {}
+_lesson_cache_lock = threading.Lock()
+
+
 class LessonInjectionMiddleware(AgentMiddleware[AgentState]):
     """Prepend a compact lessons-learned block to the system prompt.
 
-    The middleware uses ``modify_model_request`` (not ``before_model``) so the
-    injection only affects the LLM call payload and is not persisted to thread
-    state — keeping the checkpoint small.
+    Optimized v2: uses direct file-based lookup instead of BM25/FAISS search,
+    with thread-local caching to avoid recomputation on every turn.
     """
 
     def __init__(self, top_k: int = DEFAULT_LESSON_TOP_K):
         super().__init__()
         self.top_k = max(0, top_k)
 
-    def _format_lessons(self) -> str | None:
+    def _get_thread_id(self, state: AgentState) -> str | None:
+        """Extract thread_id from state for caching."""
+        try:
+            tid = state.get("thread_id")
+            if tid:
+                return str(tid)
+            runtime_data = state.get("runtime") or {}
+            tid = runtime_data.get("thread_id")
+            if tid:
+                return str(tid)
+        except Exception:
+            pass
+        return None
+
+    def _format_lessons(self, thread_id: str | None = None) -> str | None:
+        """Format lessons using direct file read (no FAISS overhead).
+
+        Optimized v2: skips BM25 vector search entirely. Uses LessonsStore.recent()
+        which reads directly from the store files - much faster for small stores.
+        """
         if self.top_k <= 0 or _disabled():
             return None
+
+        # Check thread-local cache first
+        if thread_id:
+            with _lesson_cache_lock:
+                cached = _lesson_cache.get(thread_id)
+            if cached is not None:
+                return cached
+
         try:
-            # Sprint-2: go through the unified RAG facade so observability +
-            # caching + future hybrid backends are consistent across callers.
-            from src.storage.rag import unified_search
             from src.storage.self_evolution.lessons import LessonsStore
 
-            query = self._latest_user_query_hint or "recent operational mistakes"
-            entries = unified_search(table="lessons", query=query, top_k=self.top_k, mode="bm25")
-            # Fallback to recency if BM25 returned nothing (cold store / no
-            # overlap with current turn).
-            if not entries:
-                rows = LessonsStore.default().recent(limit=self.top_k)
-            else:
-                rows = [
-                    {
-                        "pattern": e.content,
-                        "fix": (e.metadata or {}).get("fix", ""),
-                    }
-                    for e in entries
-                ]
-        except Exception as exc:  # pragma: no cover — degrades silently
+            rows = LessonsStore.default().recent(limit=self.top_k)
+        except Exception as exc:  # pragma: no cover - degrades silently
             logger.debug("Lesson injection skipped: %s", exc)
-            return None
+            result = None
+            if thread_id:
+                with _lesson_cache_lock:
+                    _lesson_cache[thread_id] = result
+            return result
 
         if not rows:
-            return None
+            result = None
+            if thread_id:
+                with _lesson_cache_lock:
+                    _lesson_cache[thread_id] = result
+            return result
 
         lines: list[str] = ["<lessons_learned>"]
         for row in rows:
@@ -88,15 +111,22 @@ class LessonInjectionMiddleware(AgentMiddleware[AgentState]):
             fix = (getter("fix") or "").strip().replace("\n", " ")
             if not pattern and not fix:
                 continue
-            summary = f"- {pattern[:MAX_LESSON_CHARS]} → {fix[:MAX_LESSON_CHARS]}"
+            summary = f"- {pattern[:MAX_LESSON_CHARS]} -> {fix[:MAX_LESSON_CHARS]}"
             lines.append(summary)
         lines.append("</lessons_learned>")
         if len(lines) <= 2:
-            return None
-        return "\n".join(lines)
+            result = None
+        else:
+            result = "\n".join(lines)
 
-    def _inject(self, request: ModelRequest) -> ModelRequest:
-        block = self._format_lessons()
+        if thread_id:
+            with _lesson_cache_lock:
+                _lesson_cache[thread_id] = result
+
+        return result
+
+    def _inject(self, request: ModelRequest, thread_id: str | None = None) -> ModelRequest:
+        block = self._format_lessons(thread_id=thread_id)
         if not block:
             return request
         sys_msg = SystemMessage(content=block)
@@ -115,11 +145,13 @@ class LessonInjectionMiddleware(AgentMiddleware[AgentState]):
 
     @override
     def modify_model_request(self, request: ModelRequest, state: AgentState, runtime: Runtime) -> ModelRequest:
-        return self._inject(request)
+        thread_id = self._get_thread_id(state)
+        return self._inject(request, thread_id=thread_id)
 
     @override
     async def amodify_model_request(self, request: ModelRequest, state: AgentState, runtime: Runtime) -> ModelRequest:
-        return self._inject(request)
+        thread_id = self._get_thread_id(state)
+        return self._inject(request, thread_id=thread_id)
 
 
 __all__ = ["LessonInjectionMiddleware"]

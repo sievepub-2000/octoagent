@@ -1,7 +1,12 @@
-"""Middleware for automatic thread title generation."""
+"""Middleware for automatic thread title generation.
+
+Optimized v2: cache by thread_id so LLM is called at most once per thread,
+skip entirely in flash mode (no titles needed for quick replies).
+"""
 
 import html
 import re
+import threading
 from typing import NotRequired, override
 
 from langchain.agents import AgentState
@@ -18,8 +23,17 @@ class TitleMiddlewareState(AgentState):
     title: NotRequired[str | None]
 
 
+# Thread-safe cache: thread_id -> title string (set once, never changes)
+_TITLE_CACHE: dict[str, str] = {}
+_TITLE_CACHE_LOCK = threading.Lock()
+
+
 class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
-    """Automatically generate a title for the thread after the first user message."""
+    """Automatically generate a title for the thread after the first user message.
+
+    Optimized v2: caches generated titles by thread_id so the LLM is invoked
+    at most once per conversation. Skips entirely in flash mode.
+    """
 
     state_schema = TitleMiddlewareState
     _PLACEHOLDER_TITLE_RE = re.compile(
@@ -34,28 +48,6 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
         cleaned = re.sub(r"<[^>]+>", " ", cleaned)
         cleaned = html.unescape(cleaned)
         return re.sub(r"\s+", " ", cleaned).strip()
-
-    def _should_generate_title(self, state: TitleMiddlewareState) -> bool:
-        """Check if we should generate a title for this thread."""
-        config = get_title_config()
-        if not config.enabled:
-            return False
-
-        # Check if thread already has a title in state
-        if state.get("title"):
-            return False
-
-        # Check if this is the first turn (has at least one user message and one assistant response)
-        messages = state.get("messages", [])
-        if len(messages) < 2:
-            return False
-
-        # Count user and assistant messages
-        user_messages = [m for m in messages if m.type == "human"]
-        assistant_messages = [m for m in messages if m.type == "ai"]
-
-        # Generate title after first complete exchange
-        return len(user_messages) == 1 and len(assistant_messages) >= 1
 
     @staticmethod
     def _to_text(content: object) -> str:
@@ -107,6 +99,20 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
             return user_msg[:fallback_chars].rstrip() + "..."
         return user_msg if user_msg else "New Conversation"
 
+    def _get_thread_id(self, state: TitleMiddlewareState) -> str | None:
+        """Extract thread_id from state for caching."""
+        try:
+            tid = state.get("thread_id")
+            if tid:
+                return str(tid)
+            runtime_data = state.get("runtime") or {}
+            tid = runtime_data.get("thread_id")
+            if tid:
+                return str(tid)
+        except Exception:
+            pass
+        return None
+
     async def _generate_title(self, state: TitleMiddlewareState) -> str:
         """Generate a concise title based on the conversation (async path)."""
         config = get_title_config()
@@ -136,20 +142,87 @@ class TitleMiddleware(AgentMiddleware[TitleMiddlewareState]):
     @override
     def after_model(self, state: TitleMiddlewareState, runtime: Runtime) -> dict | None:
         """Generate and set thread title after the first agent response (sync path)."""
-        if self._should_generate_title(state):
-            title = self._generate_title_sync(state)
-            print(f"Generated thread title: {title}")
-            return {"title": title}
-        return None
+        # Skip in flash mode - titles are unnecessary overhead for quick replies
+        mode = (runtime.context or {}).get("mode") if runtime.context else None
+        if mode == "flash":
+            return None
+
+        config = get_title_config()
+        if not config.enabled:
+            return None
+
+        # Check cache first
+        thread_id = self._get_thread_id(state)
+        if thread_id:
+            with _TITLE_CACHE_LOCK:
+                if thread_id in _TITLE_CACHE:
+                    return {"title": _TITLE_CACHE[thread_id]}
+
+        # Check if already titled
+        if state.get("title"):
+            return None
+
+        # Need at least one user+assistant exchange
+        messages = state.get("messages", [])
+        if len(messages) < 2:
+            return None
+
+        user_messages = [m for m in messages if m.type == "human"]
+        assistant_messages = [m for m in messages if m.type == "ai"]
+        if not (len(user_messages) == 1 and len(assistant_messages) >= 1):
+            return None
+
+        # Generate title
+        title = self._generate_title_sync(state)
+
+        # Cache it
+        if thread_id:
+            with _TITLE_CACHE_LOCK:
+                _TITLE_CACHE[thread_id] = title
+
+        print(f"Generated thread title: {title}")
+        return {"title": title}
 
     @override
     async def aafter_model(self, state: TitleMiddlewareState, runtime: Runtime) -> dict | None:
         """Generate and set thread title after the first agent response."""
-        if self._should_generate_title(state):
-            title = await self._generate_title(state)
-            print(f"Generated thread title: {title}")
+        # Skip in flash mode
+        mode = (runtime.context or {}).get("mode") if runtime.context else None
+        if mode == "flash":
+            return None
 
-            # Store title in state (will be persisted by checkpointer if configured)
-            return {"title": title}
+        config = get_title_config()
+        if not config.enabled:
+            return None
 
-        return None
+        # Check cache first
+        thread_id = self._get_thread_id(state)
+        if thread_id:
+            with _TITLE_CACHE_LOCK:
+                if thread_id in _TITLE_CACHE:
+                    return {"title": _TITLE_CACHE[thread_id]}
+
+        # Check if already titled
+        if state.get("title"):
+            return None
+
+        # Need at least one user+assistant exchange
+        messages = state.get("messages", [])
+        if len(messages) < 2:
+            return None
+
+        user_messages = [m for m in messages if m.type == "human"]
+        assistant_messages = [m for m in messages if m.type == "ai"]
+        if not (len(user_messages) == 1 and len(assistant_messages) >= 1):
+            return None
+
+        # Generate title
+        title = await self._generate_title(state)
+
+        # Cache it
+        if thread_id:
+            with _TITLE_CACHE_LOCK:
+                _TITLE_CACHE[thread_id] = title
+
+        print(f"Generated thread title: {title}")
+        return {"title": title}

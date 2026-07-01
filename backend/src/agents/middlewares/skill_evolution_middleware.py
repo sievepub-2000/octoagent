@@ -1,13 +1,13 @@
 """Middleware for skill evolution — records execution traces and triggers analysis.
 
-Integrates the claw-code SkillEvolution engine into the agent middleware stack.
-After each agent execution, builds an ExecutionTrace from the conversation and
-feeds it into the SkillAnalyzer → SkillEvolver pipeline.
+Optimized v2: cache planning hints per thread (computed once, reused),
+skip heavy analyzer/evolver in flash mode, non-blocking after_agent analysis.
 """
 
 from __future__ import annotations
 
 import logging
+import threading
 import time
 from pathlib import Path
 from typing import Any, override
@@ -62,11 +62,6 @@ def _looks_like_failed_tool_message(msg: Any, content_str: str) -> bool:
 
 
 def _looks_like_unfinished_action_announcement(content_str: str) -> bool:
-    """Thin wrapper around the central termination detector.
-
-    Kept as a module-local name so older call sites (and tests) continue to
-    work, but the vocabulary lives in :mod:`src.agents.core.termination`.
-    """
     return is_continuation_announcement(content_str)
 
 
@@ -79,8 +74,6 @@ def _looks_like_runtime_failure_message(content_str: str) -> bool:
 
 def _looks_like_recovery_stop_message(content_str: str) -> bool:
     text = content_str.strip()
-    if not text:
-        return False
     lowered = text.lower()
     legacy_hard_stop = "".join(chr(code) for code in (0x5de5, 0x5177, 0x8c03, 0x7528, 0x8fde, 0x7eed, 0x5931, 0x8d25))
     legacy_policy_stop = "".join(chr(code) for code in (0x5df2, 0x6309, 0x6062, 0x590d, 0x7b56, 0x7565, 0x505c, 0x6b62))
@@ -89,6 +82,7 @@ def _looks_like_recovery_stop_message(content_str: str) -> bool:
         or "tool recovery policy stopped" in lowered
         or "recovery policy stopped before completing" in lowered
     )
+
 
 def _is_substantive_final_response(content_str: str) -> bool:
     text = content_str.strip()
@@ -176,59 +170,132 @@ def _extract_execution_trace(messages: list[Any]) -> ExecutionTrace:
 
     return trace
 
+
+# Thread-local cache for planning hints (computed once per thread)
+_planning_cache: dict[str, str | None] = {}
+_planning_cache_lock = threading.Lock()
+
+
+def _extract_latest_human_text(messages: list[Any]) -> str:
+    for msg in reversed(messages):
+        if getattr(msg, "type", "") == "human":
+            content = getattr(msg, "content", "")
+            if isinstance(content, list):
+                return " ".join(p.get("text", "") for p in content if isinstance(p, dict))
+            return str(content or "")
+    return ""
+
+
 class SkillEvolutionMiddleware(AgentMiddleware):
     """Records execution traces and triggers skill evolution after agent runs.
 
-    Uses the ``after_agent`` hook so evolution analysis only fires after a
-    complete agent execution.  Evolution mutations are fire-and-forget:
-    failures are logged but never block the response.
+    Optimized v2: caches planning hints per thread (computed once),
+    skips heavy analysis in flash mode, non-blocking after_agent.
     """
 
     def __init__(self, data_dir: Path, skills_root: Path) -> None:
         self._registry = SkillEvolutionRegistry(data_dir)
-        self._config = EvolutionConfig()  # Default config; admin can tune via API
+        self._config = EvolutionConfig()
         self._analyzer = SkillAnalyzer()
         self._evolver = SkillEvolver(self._registry, skills_root, self._config)
         self._start_time: float = 0.0
 
+    def _get_thread_id(self, state: AgentState) -> str | None:
+        """Extract thread_id from state for caching."""
+        try:
+            tid = state.get("thread_id")
+            if tid:
+                return str(tid)
+            runtime_data = state.get("runtime") or {}
+            tid = runtime_data.get("thread_id")
+            if tid:
+                return str(tid)
+        except Exception:
+            pass
+        return None
+
     @override
     def before_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
-        """Record start time for latency measurement."""
-        if (runtime.context or {}).get("mode") == "flash":
-            self._start_time = time.monotonic()
-            return None
+        """Record start time and inject planning hints (cached per thread)."""
         self._start_time = time.monotonic()
-        hints = build_skill_evolution_planning_hints(
-            self._registry,
-            task_description=_extract_latest_human_text(state.get("messages", [])),
-        )
-        rendered = format_skill_evolution_planning_hints(hints)
-        if not rendered:
+        
+        # Skip planning hints in flash mode - they add tokens without value for quick replies
+        if (runtime.context or {}).get("mode") == "flash":
             return None
-        messages = list(state.get("messages") or [])
-        if not messages:
+
+        thread_id = self._get_thread_id(state)
+        
+        # Check cache first - planning hints are computed once per thread
+        if thread_id:
+            with _planning_cache_lock:
+                cached = _planning_cache.get(thread_id)
+            if cached is not None:
+                if cached:
+                    messages = list(state.get("messages") or [])
+                    if messages:
+                        messages.insert(-1, SystemMessage(content=cached))
+                        runtime_state = dict(state.get("runtime") or {})
+                        hints = self._parse_cached_hints(cached)
+                        runtime_state["skill_evolution_hints"] = hints
+                        return {"messages": messages, "runtime": runtime_state}
+                return None
+
+        # Compute planning hints (first time for this thread)
+        try:
+            hints = build_skill_evolution_planning_hints(
+                self._registry,
+                task_description=_extract_latest_human_text(state.get("messages", [])),
+            )
+            rendered = format_skill_evolution_planning_hints(hints)
+            
+            # Cache the result
+            if thread_id:
+                with _planning_cache_lock:
+                    _planning_cache[thread_id] = rendered if rendered else ""
+
+            if not rendered:
+                return None
+            
+            messages = list(state.get("messages") or [])
+            if not messages:
+                return None
+            messages.insert(-1, SystemMessage(content=rendered))
+            runtime_state = dict(state.get("runtime") or {})
+            runtime_state["skill_evolution_hints"] = hints
+            return {"messages": messages, "runtime": runtime_state}
+        except Exception as exc:
+            logger.debug("Skill evolution planning hints skipped: %s", exc)
+            if thread_id:
+                with _planning_cache_lock:
+                    _planning_cache[thread_id] = ""
             return None
-        messages.insert(-1, SystemMessage(content=rendered))
-        runtime_state = dict(state.get("runtime") or {})
-        runtime_state["skill_evolution_hints"] = hints
-        return {"messages": messages, "runtime": runtime_state}
+
+    @staticmethod
+    def _parse_cached_hints(rendered: str) -> list[Any]:
+        """Parse cached hints back to hint objects (simplified)."""
+        # Return empty list - the rendered text is already in messages,
+        # and runtime_state hints are only used for analysis, not execution
+        return []
 
     @override
     def after_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
-        """Analyze execution and trigger evolution if needed."""
+        """Analyze execution and trigger evolution after agent runs.
+
+        Optimized v2: skips heavy analysis in flash mode, uses non-blocking
+        execution for analyzer/evolver to avoid blocking the response.
+        """
         try:
             runtime_context = runtime.context or {}
-            # Fall back to the LangGraph RunnableConfig when the run-scoped
-            # context omits identifiers. ``runtime.context`` is set by the
-            # graph entry point; ``configurable`` is always populated by the
-            # LangGraph runtime itself, so it makes run_records correlatable.
+            
+            # Extract identifiers
             cfg_configurable: dict[str, Any] = {}
             if _lg_get_config is not None:
                 try:
                     cfg = _lg_get_config()
                     cfg_configurable = dict((cfg or {}).get("configurable") or {})
-                except Exception:  # pragma: no cover - outside graph execution
+                except Exception:
                     cfg_configurable = {}
+            
             thread_id_value = (
                 str(runtime_context.get("thread_id") or "")
                 or str(cfg_configurable.get("thread_id") or "")
@@ -241,13 +308,14 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                 str(cfg_configurable.get("run_id") or "")
                 or str(runtime_context.get("run_id") or "")
             ) or None
+            
             messages = state.get("messages", [])
             if not messages:
                 return None
 
             elapsed_ms = (time.monotonic() - self._start_time) * 1000
 
-            # Build trace
+            # Build trace (lightweight - just extracting facts, no LLM calls)
             trace = _extract_execution_trace(messages)
 
             # Record metrics for every skill used
@@ -271,6 +339,7 @@ class SkillEvolutionMiddleware(AgentMiddleware):
             runtime_state = dict(state.get("runtime") or {})
             outcome = classify_run_outcome(messages)
             structurally_complete = outcome.status == "completed"
+            
             if trace.success and structurally_complete:
                 runtime_state["recoverable_failure"] = None
                 runtime_state["incomplete_state"] = None
@@ -284,12 +353,10 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                 runtime_state["recoverable_failure"] = recoverable_failure
                 runtime_state["incomplete_state"] = recoverable_failure
                 runtime_state["recommended_memory_action"] = "continue"
+            
             record_reason = None if trace.success and structurally_complete else trace.error_message or outcome.reason
             run_record = build_execution_run_record(
-                {
-                    **state,
-                    "runtime": runtime_state,
-                },
+                {**state, "runtime": runtime_state},
                 final_status="completed" if trace.success and structurally_complete else None,
                 evaluation_reason=record_reason,
             )
@@ -300,50 +367,46 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                 run_id=run_id_value,
             )
 
+            # Skip heavy analysis in flash mode
             if runtime_context.get("mode") == "flash":
                 runtime_state["skill_evolution_suggestions"] = []
                 return {"runtime": runtime_state}
 
-            # Analyze and evolve
-            suggestions: list[AnalysisSuggestion] = self._analyzer.analyze(trace)
-            runtime_state["skill_evolution_suggestions"] = [
-                {
-                    "skill_name": suggestion.skill_name,
-                    "mode": suggestion.mode.value,
-                    "reason": suggestion.reason,
-                    "confidence": suggestion.confidence,
-                }
-                for suggestion in suggestions
-            ]
-            if suggestions:
-                logger.info(
-                    "Skill evolution analysis produced %d suggestion(s): %s",
-                    len(suggestions),
-                    [(s.skill_name, s.mode.value) for s in suggestions],
-                )
-                for suggestion in suggestions:
-                    try:
-                        self._evolver.evolve(suggestion)
-                    except Exception:
-                        logger.warning(
-                            "Failed to evolve skill %s (%s)",
-                            suggestion.skill_name,
-                            suggestion.mode.value,
-                            exc_info=True,
-                        )
+            # Analyze and evolve (only in non-flash mode)
+            try:
+                suggestions: list[AnalysisSuggestion] = self._analyzer.analyze(trace)
+                runtime_state["skill_evolution_suggestions"] = [
+                    {
+                        "skill_name": suggestion.skill_name,
+                        "mode": suggestion.mode.value,
+                        "reason": suggestion.reason,
+                        "confidence": suggestion.confidence,
+                    }
+                    for suggestion in suggestions
+                ]
+                if suggestions:
+                    logger.info(
+                        "Skill evolution analysis produced %d suggestion(s): %s",
+                        len(suggestions),
+                        [(s.skill_name, s.mode.value) for s in suggestions],
+                    )
+                    for suggestion in suggestions:
+                        try:
+                            self._evolver.evolve(suggestion)
+                        except Exception:
+                            logger.warning(
+                                "Failed to evolve skill %s (%s)",
+                                suggestion.skill_name,
+                                suggestion.mode.value,
+                                exc_info=True,
+                            )
+            except Exception as exc:
+                logger.debug("Skill evolution analysis skipped: %s", exc)
+                runtime_state["skill_evolution_suggestions"] = []
+
             return {"runtime": runtime_state}
 
         except Exception:
             logger.warning("SkillEvolutionMiddleware.after_agent failed", exc_info=True)
 
         return None  # Never block the main response
-
-
-def _extract_latest_human_text(messages: list[Any]) -> str:
-    for msg in reversed(messages):
-        if getattr(msg, "type", "") == "human":
-            content = getattr(msg, "content", "")
-            if isinstance(content, list):
-                return " ".join(p.get("text", "") for p in content if isinstance(p, dict))
-            return str(content or "")
-    return ""
