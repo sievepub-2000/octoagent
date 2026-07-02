@@ -74,6 +74,7 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
     onFinish: (state) => {
       onFinish?.((state.values ?? {}) as AgentThreadState);
     },
+    fetchStateHistory: true,
     initialValues: loadInitialState ? undefined : null,
   });
 

@@ -27,7 +27,7 @@ def main() -> int:
         "${OCTO_FRONTEND_PORT}": os.getenv("OCTO_FRONTEND_PORT", "19806"),
         "${OCTO_PROVISIONER_PORT}": os.getenv("OCTO_PROVISIONER_PORT", "19808"),
         "${OCTO_NGINX_PORT}": nginx_port,
-        "${OCTO_NGINX_BIND_HOST}": os.getenv("OCTO_NGINX_BIND_HOST", "127.0.0.1"),
+        "${OCTO_NGINX_BIND_HOST}": os.getenv("OCTO_NGINX_BIND_HOST", "0.0.0.0"),
         "${OCTO_NGINX_TEMP_ROOT}": os.getenv("OCTO_NGINX_TEMP_ROOT", f"/tmp/octoagent-nginx-{nginx_port}"),
     }
     for token, value in replacements.items():
