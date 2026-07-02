@@ -72,7 +72,7 @@ function shouldEnableThinking(mode: NonNullable<LocalSettings["context"]["mode"]
   return mode === "thinking" || mode === "pro" || mode === "ultra";
 }
 
-const DEFAULT_STREAM_MODE: StreamMode[] = ["messages-tuple", "updates", "custom"];
+export const DEFAULT_STREAM_MODE: StreamMode[] = ["messages-tuple", "updates", "custom"];
 const MAX_PREPLAN_MESSAGE_CHARS = 16_000;
 type AutoContinueSubmit = (
   payload: { messages: Array<Record<string, unknown>> },

@@ -1,5 +1,28 @@
 
 
+
+## [2026.7.4] - 2026-07-02
+
+### Frontend Build Fixes
+
+- **eslint.config.js restored**: Fixed corrupted string literals (backslashes replaced with proper quotes)
+- **hooks-stream.ts**: Added missing `useThreadStream` function implementation wrapping langgraph-sdk useStream
+- **prompt-input-context.tsx**: Exported `useOptionalPromptInputController` and `useOptionalProviderAttachments` hooks
+- **hooks-utils.ts**: Exported `DEFAULT_STREAM_MODE` constant
+- **page.tsx type fix**: Fixed TypeScript error for `state.messages` access using proper casting
+
+### Service Startup
+
+- Services now running in DEV mode (Next.js dev server) to avoid production build issues
+- All 4 services operational: Nginx (19800), LangGraph (19804), Gateway (19802), Frontend (19806)
+- Encoding fixes from v2026.7.3 still active (gzip off, charset utf-8, ensure_ascii=False, encoding="utf-8")
+
+### Verification
+
+- API responses through nginx correctly transmit Chinese characters (Content-Encoding=none)
+- All 6 models returned successfully via proxy
+- TypeScript compilation passes in DEV mode
+
 ## [2026.7.3] - 2026-07-02
 
 ### Encoding & Character Handling Fixes
@@ -1146,6 +1169,29 @@ slices for traceability:
 - Cleaned repository state: removed tracked backend tests, frontend e2e tests, snapshots, test-only helper prompts, duplicate imported docs, archived stage reports, demo output copies, and transient root reports.
 - Consolidated active documentation around `README.md`, `project_docs/README.md`, `project_docs/docs/PROJECT_STATUS.md`, `project_docs/docs/PROJECT_PROGRESS.md`, and `project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md`.
 - Updated CI, live validation, optimization scorecard, and release precheck gates to use compile, lint, typecheck, build, and smoke validation rather than deleted test trees.
+
+
+## [2026.7.4] - 2026-07-02
+
+### Frontend Build Fixes
+
+- **eslint.config.js restored**: Fixed corrupted string literals (backslashes replaced with proper quotes)
+- **hooks-stream.ts**: Added missing `useThreadStream` function implementation wrapping langgraph-sdk useStream
+- **prompt-input-context.tsx**: Exported `useOptionalPromptInputController` and `useOptionalProviderAttachments` hooks
+- **hooks-utils.ts**: Exported `DEFAULT_STREAM_MODE` constant
+- **page.tsx type fix**: Fixed TypeScript error for `state.messages` access using proper casting
+
+### Service Startup
+
+- Services now running in DEV mode (Next.js dev server) to avoid production build issues
+- All 4 services operational: Nginx (19800), LangGraph (19804), Gateway (19802), Frontend (19806)
+- Encoding fixes from v2026.7.3 still active (gzip off, charset utf-8, ensure_ascii=False, encoding="utf-8")
+
+### Verification
+
+- API responses through nginx correctly transmit Chinese characters (Content-Encoding=none)
+- All 6 models returned successfully via proxy
+- TypeScript compilation passes in DEV mode
 
 ## [2026.7.3] - 2026-07-02
 

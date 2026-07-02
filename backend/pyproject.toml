@@ -1,6 +1,6 @@
 [project]
 name = "octoagent"
-version = "2026.7.3"
+version = "2026.7.4"
 description = "LangGraph-based AI agent system with sandbox execution capabilities"
 readme = "README.md"
 requires-python = ">=3.12"

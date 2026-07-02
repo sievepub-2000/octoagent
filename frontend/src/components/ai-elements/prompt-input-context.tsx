@@ -118,7 +118,7 @@ export const usePromptInputController = () => {
 };
 
 // Optional variants (do NOT throw). Useful for dual-mode components.
-const useOptionalPromptInputController = () =>
+export const useOptionalPromptInputController = () =>
   useContext(PromptInputController);
 
 export const useProviderAttachments = () => {
@@ -131,7 +131,7 @@ export const useProviderAttachments = () => {
   return ctx;
 };
 
-const useOptionalProviderAttachments = () =>
+export const useOptionalProviderAttachments = () =>
   useContext(ProviderAttachmentsContext);
 
 export type PromptInputProviderProps = PropsWithChildren<{

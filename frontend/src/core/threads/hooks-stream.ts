@@ -42,3 +42,55 @@ import {
   resolvePermissionMode,
   shouldEnableThinking,
 } from "./hooks-utils";
+
+// Thread stream hook wrapping langgraph-sdk useStream with thread-specific logic
+export interface UseThreadStreamOptions {
+  threadId: string;
+  context?: Record<string, unknown>;
+  isMock?: boolean;
+  loadInitialState?: boolean;
+  onStart?: (createdThreadId: string) => void;
+  onRunEvent?: (event: RunEvent) => void;
+  onFinish?: (state: Record<string, unknown>) => void;
+}
+
+export function useThreadStream(options: UseThreadStreamOptions): [any, (message: PromptInputMessage) => Promise<void>] {
+  const {
+    threadId,
+    context = {},
+    isMock = false,
+    loadInitialState = true,
+    onStart,
+    onRunEvent,
+    onFinish,
+  } = options;
+
+  const [thread, setThread] = useState(null);
+
+  // Use langgraph-sdk useStream internally
+  const streamResult = useStream({
+    apiUrl: getLangGraphBaseURL(),
+    threadId,
+    streamMode: DEFAULT_STREAM_MODE as StreamMode,
+    initialSnapshot: loadInitialState ? undefined : null,
+    fetch: async (url, init) => {
+      return fetch(url, init);
+    },
+  });
+
+  useEffect(() => {
+    if (streamResult.thread && onStart) {
+      onStart(streamResult.thread.thread_id || threadId);
+    }
+  }, [streamResult.thread]);
+
+  const handleSendMessage = useCallback(async (message: PromptInputMessage) => {
+    if (!streamResult.sendMessage) return;
+    
+    pushSystemEvent({ type: "user_message", timestamp: new Date().toISOString() });
+    
+    await streamResult.sendMessage(message);
+  }, [streamResult.sendMessage]);
+
+  return [thread || streamResult.thread, handleSendMessage];
+}

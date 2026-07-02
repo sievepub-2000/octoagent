@@ -229,7 +229,8 @@ function AgentChatThreadView({
     onFinish: (state) => {
       if (document.hidden || !document.hasFocus()) {
         let body = "Conversation finished";
-        const lastMessage = state.messages[state.messages.length - 1];
+        const msgs = (state as any)?.messages;
+        const lastMessage = msgs && msgs.length > 0 ? msgs[msgs.length - 1] : null;
         if (lastMessage) {
           const textContent = textOfMessage(lastMessage);
           if (textContent) {
