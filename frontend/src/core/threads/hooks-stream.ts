@@ -66,10 +66,12 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
     onFinish,
   } = options;
 
+  const shouldLoadThreadHistory = loadInitialState && threadId !== "new";
+
   const stream = useStream<AgentThreadState>({
     assistantId: DEFAULT_ASSISTANT_ID,
     apiUrl: getLangGraphBaseURL(),
-    threadId: threadId === "new" ? null : threadId,
+    threadId: shouldLoadThreadHistory ? threadId : null,
     onThreadId: onStart,
     onFinish: (state) => {
       onFinish?.((state.values ?? {}) as AgentThreadState);
