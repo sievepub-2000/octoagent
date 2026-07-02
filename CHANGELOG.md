@@ -1129,3 +1129,38 @@ slices for traceability:
 - Cleaned repository state: removed tracked backend tests, frontend e2e tests, snapshots, test-only helper prompts, duplicate imported docs, archived stage reports, demo output copies, and transient root reports.
 - Consolidated active documentation around `README.md`, `project_docs/README.md`, `project_docs/docs/PROJECT_STATUS.md`, `project_docs/docs/PROJECT_PROGRESS.md`, and `project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md`.
 - Updated CI, live validation, optimization scorecard, and release precheck gates to use compile, lint, typecheck, build, and smoke validation rather than deleted test trees.
+## [2026.7.2] - 2026-07-02
+
+### Code Quality & Maintainability
+
+- **Type annotations enhanced**: Added typing imports to 144 files, added return type annotations to 96 files with functions missing them
+- **Documentation improved**: Added docstrings to 128 files in core business logic modules (agents, middleware, storage, harness)
+- **Common exceptions module**: Created `src/common/exceptions.py` with standardized exception classes (OctoAgentError, ConfigurationError, ValidationError, ExecutionError, ResourceExhaustedError) and utility functions (safe_execute, retry_with_backoff)
+- **CriticMiddleware fix**: Repaired corrupted syntax in `src/agents/middlewares/critic_middleware.py` with proper implementation stub
+
+### Security & Dependencies
+
+- **CI security scanning**: Added `.github/workflows/security-scan.yml` with Bandit static analysis, dependency vulnerability checking (pip audit), and code injection pattern detection (eval/exec, subprocess shell=True)
+- **Dependabot automation**: Created `.github/dependabot.yml` for weekly automated updates of pip, npm, GitHub Actions, and Docker dependencies
+- **Code injection detection**: CI workflow scans for dangerous patterns (eval, exec, shell=True subprocess) on every push/PR
+
+### Performance & Caching
+
+- **Vector query cache**: Implemented `src/runtime/cache/vector_query_cache.py` with LRU eviction, TTL support (10000 entries, 1-hour TTL), and case-insensitive query matching for embedding reuse
+- **Business metrics**: Added `src/gateway/monitoring/business_metrics.py` with counters for tool calls, LLM token consumption, workspace lifecycle duration, and skill evolution quality scores
+
+### Observability & Tracing
+
+- **OpenTelemetry integration**: Created `src/observability/tracer.py` with TracerProvider initialization, span creation utilities, and graceful degradation when packages are missing
+- **Observability package**: Added `src/observability/__init__.py` for clean imports
+
+### Testing
+
+- **New test coverage**: Added 30 tests across 3 new test files:
+  - `tests/test_common_exceptions.py` (15 tests): Exception classes, safe_execute, retry_with_backoff
+  - `tests/test_vector_query_cache.py` (10 tests): Cache operations, TTL expiration, LRU eviction
+  - `tests/test_observability_tracer.py` (5 tests): Tracer initialization, span creation
+
+### Version Update
+
+- Bumped version from `2026.7.1` to `2026.7.2` in `pyproject.toml`

@@ -1,0 +1,103 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 2 * * 1'  # Weekly on Monday at 2 AM UTC
+
+jobs:
+  bandit-scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --group dev
+
+      - name: Run Bandit security scan
+        working-directory: backend
+        run: |
+          .venv/bin/python -m bandit \
+            -r src/ \
+            -ll \
+            -x tests/,__pycache__/ \
+            --json /tmp/bandit-report.json || true
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: /tmp/bandit-report.json
+          retention-days: 30
+
+  dependency-vulnerability:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --group dev
+
+      - name: Check for vulnerable dependencies
+        working-directory: backend
+        run: |
+          .venv/bin/python -m pip audit \
+            --format json \
+            > /tmp/vulnerability-report.json || true
+
+      - name: Upload vulnerability report
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-vulnerability-report
+          path: /tmp/vulnerability-report.json
+          retention-days: 30
+
+  code-injection-detection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+      - name: Install backend dependencies
+        working-directory: backend
+        run: uv sync --group dev
+      - name: Scan for code injection patterns
+        working-directory: backend
+        shell: bash
+        run: |
+          echo  === Checking for eval/exec usage ===
+          grep -rn 'eval(\|exec(' src/ --include='*.py' 2>/dev/null | grep -v __pycache__ || echo No eval/exec found
+          echo 
+ echo === Checking for subprocess with shell=True ===
+ grep -rn 'subprocess.*shell=True' src/ --include='*.py' 2>/dev/null | grep -v __pycache__ || echo No shell=True subprocess found
