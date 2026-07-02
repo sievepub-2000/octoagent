@@ -35,6 +35,21 @@ def test_update_auto_config_requires_admin_token(monkeypatch):
     assert response.status_code == 403
 
 
+def test_update_check_rejects_missing_operator_token_configuration(monkeypatch):
+    monkeypatch.delenv("OCTO_OPERATOR_TOKEN", raising=False)
+    app = FastAPI()
+    app.include_router(system_update.router)
+    client = TestClient(app)
+
+    response = client.get(
+        "/api/system/update/check",
+        headers={"X-OctoAgent-Operator-Token": "anything", "X-OctoAgent-Operator-Role": "operator"},
+    )
+
+    assert response.status_code == 403
+    assert response.json()["detail"] == "Operator token is not configured"
+
+
 def test_update_check_accepts_operator_token(monkeypatch):
     client = _client(monkeypatch)
 

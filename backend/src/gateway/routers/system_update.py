@@ -457,7 +457,9 @@ def _rollback_to_commit(sha: str) -> None:
 
 
 def _require_update_operator(role: str | None, token: str | None, *, minimum: str = "operator") -> None:
-    """Require an operator token for update-management endpoints."""
+    """Require a configured operator token for update-management endpoints."""
+    if not os.getenv("OCTO_OPERATOR_TOKEN", "").strip():
+        raise HTTPException(status_code=403, detail="Operator token is not configured")
     require_operator_or_403(role=role, token=token, minimum=minimum)
 
 
