@@ -257,7 +257,7 @@ class LocalSandbox(Sandbox):
             else:
                 fd, tmp_path = tempfile.mkstemp(dir=dir_path if dir_path else None, prefix=".llamaswap_")
                 try:
-                    with os.fdopen(fd, "w") as f:
+                    with os.fdopen(fd, "w", encoding="utf-8") as f:
                         f.write(content)
                     os.replace(tmp_path, resolved_path)
                 except BaseException:

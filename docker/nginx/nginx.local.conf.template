@@ -17,6 +17,9 @@ http {
     uwsgi_temp_path ${OCTO_NGINX_TEMP_ROOT}/uwsgi;
     scgi_temp_path ${OCTO_NGINX_TEMP_ROOT}/scgi;
 
+    # Disable gzip at http level to prevent corruption of multi-byte chars (Chinese) and binary files
+    gzip off;
+
     upstream gateway {
         server 127.0.0.1:${OCTO_GATEWAY_PORT};
     }
@@ -33,6 +36,9 @@ http {
         listen ${OCTO_NGINX_PORT};
         listen [::]:${OCTO_NGINX_PORT};
         server_name _;
+
+        # UTF-8 charset for all responses (fixes Chinese character display)
+        charset utf-8;
 
         proxy_hide_header 'Access-Control-Allow-Origin';
         proxy_hide_header 'Access-Control-Allow-Methods';

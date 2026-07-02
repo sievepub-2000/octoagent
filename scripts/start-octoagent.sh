@@ -43,7 +43,7 @@ systemctl_cmd() {
 
 wait_ready() {
     local elapsed=0
-    while [ "$elapsed" -lt 120 ]; do
+    while [ "$elapsed" -lt 600 ]; do
         if curl -fsS --max-time 5 "http://127.0.0.1:${ENTRY_PORT}/api/models" >/dev/null 2>&1; then
             return 0
         fi

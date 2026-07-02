@@ -778,7 +778,7 @@ class DeepAgentExecutor:
 
     def _checkpoint_plan(self, plan: TaskPlan) -> None:
         """Create a checkpoint hash to detect context rot."""
-        checkpoint_data = json.dumps(plan.to_checkpoint(), sort_keys=True)
+        checkpoint_data = json.dumps(plan.to_checkpoint(), sort_keys=True, ensure_ascii=False)
         checkpoint_hash = hashlib.sha256(checkpoint_data.encode()).hexdigest()[:16]
         plan.checkpoint_hashes.append(checkpoint_hash)
         logger.debug("DeepAgent checkpoint: %s (progress: %s)", checkpoint_hash, f"{plan.progress_ratio:.0%}")

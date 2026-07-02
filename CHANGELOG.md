@@ -1,4 +1,21 @@
 
+
+## [2026.7.3] - 2026-07-02
+
+### Encoding & Character Handling Fixes
+
+- **Nginx gzip disabled**: Added `gzip off;` to nginx config to prevent corruption of multi-byte characters (Chinese) and binary files during proxy transmission
+- **UTF-8 charset declared**: Added `charset utf-8;` to nginx server block for proper character set identification
+- **JSON serialization fix**: Fixed `deep_agent.py` to use `ensure_ascii=False` in `json.dumps()` preventing Chinese characters from being escaped as `\uXXXX` sequences
+- **File encoding fix**: Fixed `local_sandbox.py` to use `encoding="utf-8"` in `os.fdopen()` ensuring consistent UTF-8 file writes
+- **Health check timeout increased**: Increased `wait_ready()` timeout from 120s to 600s to accommodate Next.js production build time
+
+### Verification
+
+- API responses through nginx correctly transmit Chinese characters (Content-Encoding=none)
+- DOCX generation with pandoc preserves UTF-8 encoded Chinese content
+- All encoding tests passed (models API, DOCX generation, file writes)
+
 ## [2026.7.2] - 2026-07-02
 
 ### Security Hardening
@@ -1129,6 +1146,23 @@ slices for traceability:
 - Cleaned repository state: removed tracked backend tests, frontend e2e tests, snapshots, test-only helper prompts, duplicate imported docs, archived stage reports, demo output copies, and transient root reports.
 - Consolidated active documentation around `README.md`, `project_docs/README.md`, `project_docs/docs/PROJECT_STATUS.md`, `project_docs/docs/PROJECT_PROGRESS.md`, and `project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md`.
 - Updated CI, live validation, optimization scorecard, and release precheck gates to use compile, lint, typecheck, build, and smoke validation rather than deleted test trees.
+
+## [2026.7.3] - 2026-07-02
+
+### Encoding & Character Handling Fixes
+
+- **Nginx gzip disabled**: Added `gzip off;` to nginx config to prevent corruption of multi-byte characters (Chinese) and binary files during proxy transmission
+- **UTF-8 charset declared**: Added `charset utf-8;` to nginx server block for proper character set identification
+- **JSON serialization fix**: Fixed `deep_agent.py` to use `ensure_ascii=False` in `json.dumps()` preventing Chinese characters from being escaped as `\uXXXX` sequences
+- **File encoding fix**: Fixed `local_sandbox.py` to use `encoding="utf-8"` in `os.fdopen()` ensuring consistent UTF-8 file writes
+- **Health check timeout increased**: Increased `wait_ready()` timeout from 120s to 600s to accommodate Next.js production build time
+
+### Verification
+
+- API responses through nginx correctly transmit Chinese characters (Content-Encoding=none)
+- DOCX generation with pandoc preserves UTF-8 encoded Chinese content
+- All encoding tests passed (models API, DOCX generation, file writes)
+
 ## [2026.7.2] - 2026-07-02
 
 ### Code Quality & Maintainability
