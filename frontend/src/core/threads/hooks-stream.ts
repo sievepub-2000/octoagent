@@ -84,10 +84,10 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
     const values = (stream.values ?? {}) as AgentThreadState;
     const messages = ((stream.messages ?? values.messages ?? []) as Message[]);
     return {
-      ...stream,
       values,
       messages,
       isLoading: Boolean(stream.isLoading || stream.isThreadLoading),
+      isThreadLoading: stream.isThreadLoading,
       error: stream.error,
       stop: stream.stop,
     };
@@ -107,10 +107,12 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
           ...extraContext,
         },
         streamMode: DEFAULT_STREAM_MODE,
-        threadId: targetThreadId === "new" ? undefined : targetThreadId,
+        threadId: shouldLoadThreadHistory && targetThreadId !== "new"
+          ? targetThreadId
+          : undefined,
       } as never);
     },
-    [context, stream],
+    [context, shouldLoadThreadHistory, stream],
   );
 
   return [thread, sendMessage];

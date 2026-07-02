@@ -1,25 +1,32 @@
 "use client";
 
 import { useParams, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { uuid } from "@/core/utils/uuid";
+
+function currentThreadIdFromLocation() {
+  if (typeof window === "undefined") return null;
+  const match = window.location.pathname.match(/\/chats\/([^/?#]+)/);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
 
 export function useThreadChat() {
   const { agent_name: agentNameFromPath, thread_id: threadIdFromPath } = useParams<{
     agent_name?: string;
     thread_id: string;
   }>();
+  const routeThreadId = currentThreadIdFromLocation() ?? threadIdFromPath ?? "new";
   const searchParams = useSearchParams();
   const continueFromThreadId = searchParams.get("continue_from");
   const draftKey = searchParams.get("draft") ?? "";
   const isFreshRoute = searchParams.get("fresh") === "1";
-  const isRouteNew = threadIdFromPath === "new" || isFreshRoute;
+  const isRouteNew = routeThreadId === "new" || isFreshRoute;
   const newThreadKeyRef = useRef<string | null>(null);
 
   const nextNewThreadKey = [
     agentNameFromPath ? `agent:${agentNameFromPath}` : "workspace",
-    threadIdFromPath,
+    routeThreadId,
     continueFromThreadId ?? "",
     draftKey,
     isFreshRoute ? "fresh" : "new",
@@ -29,10 +36,17 @@ export function useThreadChat() {
   // user turn. Keep that id stable while the route is marked as fresh.
   const stableId = useRef<string | null>(null);
   if (!isRouteNew) {
-    stableId.current = threadIdFromPath;
-  } else if (threadIdFromPath !== "new") {
-    stableId.current = threadIdFromPath;
-    newThreadKeyRef.current = nextNewThreadKey;
+    stableId.current = routeThreadId;
+  } else if (routeThreadId !== "new") {
+    const hasServerCreatedFreshThread =
+      isFreshRoute &&
+      stableId.current &&
+      newThreadKeyRef.current === nextNewThreadKey &&
+      stableId.current !== routeThreadId;
+    if (!hasServerCreatedFreshThread) {
+      stableId.current = routeThreadId;
+      newThreadKeyRef.current = nextNewThreadKey;
+    }
   } else if (stableId.current === null && typeof window !== "undefined") {
     stableId.current = uuid();
     newThreadKeyRef.current = nextNewThreadKey;
@@ -42,7 +56,7 @@ export function useThreadChat() {
   }
 
   const [threadId, setThreadId] = useState(
-    () => stableId.current ?? threadIdFromPath,
+    () => stableId.current ?? routeThreadId,
   );
 
   const [isNewThread, setIsNewThread] = useState(
@@ -51,20 +65,34 @@ export function useThreadChat() {
 
   useEffect(() => {
     if (!isRouteNew) {
-      stableId.current = threadIdFromPath;
+      stableId.current = routeThreadId;
       newThreadKeyRef.current = null;
       setThreadId((current) =>
-        current === threadIdFromPath ? current : threadIdFromPath,
+        current === routeThreadId ? current : routeThreadId,
       );
       setIsNewThread(false);
       return;
     }
 
-    if (threadIdFromPath !== "new") {
-      stableId.current = threadIdFromPath;
+    if (routeThreadId !== "new") {
+      const stableThreadId = stableId.current;
+      if (
+        isFreshRoute &&
+        stableThreadId &&
+        newThreadKeyRef.current === nextNewThreadKey &&
+        stableThreadId !== routeThreadId
+      ) {
+        setThreadId((current) =>
+          current === stableThreadId ? current : stableThreadId,
+        );
+        setIsNewThread(true);
+        return;
+      }
+
+      stableId.current = routeThreadId;
       newThreadKeyRef.current = nextNewThreadKey;
       setThreadId((current) =>
-        current === threadIdFromPath ? current : threadIdFromPath,
+        current === routeThreadId ? current : routeThreadId,
       );
       setIsNewThread(true);
       return;
@@ -100,15 +128,20 @@ export function useThreadChat() {
     isFreshRoute,
     isRouteNew,
     nextNewThreadKey,
-    threadIdFromPath,
+    routeThreadId,
   ]);
+
+  const updateThreadId = useCallback((nextThreadId: string) => {
+    stableId.current = nextThreadId;
+    setThreadId(nextThreadId);
+  }, []);
 
   const isMock = searchParams.get("mock") === "true";
   return {
     threadId,
     isNewThread,
     isFreshRoute,
-    setThreadId,
+    setThreadId: updateThreadId,
     setIsNewThread,
     isMock,
     continueFromThreadId,

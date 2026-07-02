@@ -440,9 +440,12 @@ function ChatThreadView({
       }
 
       routeSyncRef.current = createdThreadId;
-      // Note (2026-05-26): URL cleanup of ?fresh=1&draft=... is intentionally
+      const url = new URL(window.location.href);
+      url.pathname = `/workspace/chats/${createdThreadId}`;
+      history.replaceState(null, "", url.pathname + url.search);
+      // Note (2026-05-26): query cleanup of ?fresh=1&draft=... is intentionally
       // deferred to the "first AI message arrives" effect below. Stripping
-      // the URL here used to fire BEFORE the upload + thread.submit pipeline
+      // the query here used to fire BEFORE the upload + thread.submit pipeline
       // completed, causing a cascade:
       //   history.replaceState → useSearchParams re-renders →
       //   useThreadChat setIsNewThread(false) → page re-evaluation →
@@ -451,8 +454,9 @@ function ChatThreadView({
       //   ChatThreadView UNMOUNTS → in-flight thread.submit() orphaned →
       //   no /runs/stream POST ever reaches the server → user sees the
       //   chat silently "reset" with no agent reply.
-      // Mature implementations (Vercel AI SDK / Anthropic console) keep the
-      // route URL stable through the first turn; we now do the same.
+      // Keep fresh/draft through the first turn, but sync the pathname to the
+      // real server-created thread immediately so stale client-generated UUIDs
+      // are never verified as existing conversations.
       // The "first AI message" effect (below) handles fresh/draft cleanup
       // once a streamed reply has actually started arriving.
     },
@@ -561,12 +565,13 @@ function ChatThreadView({
     if (!hasAssistantMessage) {
       return;
     }
-    setIsNewThread(false);
     const url = new URL(window.location.href);
+    url.pathname = `/workspace/chats/${threadId}`;
     url.searchParams.delete("fresh");
     url.searchParams.delete("draft");
     history.replaceState(null, "", url.pathname + url.search);
-  }, [isFreshRoute, isNewThread, setIsNewThread, thread.isLoading, thread.messages]);
+    setIsNewThread(false);
+  }, [isFreshRoute, isNewThread, setIsNewThread, thread.isLoading, thread.messages, threadId]);
 
   useEffect(() => {
     setRunEvents([]);
