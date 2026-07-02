@@ -30,11 +30,11 @@ export function ThemePresetController() {
     const colorScheme = def.isDark || isSystemDark ? "dark" : "light";
 
     // Generate CSS rule from tokens
-    let css = `:root[data-appearance="${presetId}"] {\n  color-scheme: ${colorScheme};\n`;
+    let css = `:root[data-appearance="${presetId}"] {  color-scheme: ${colorScheme};`;
     for (const [key, value] of Object.entries(tokens)) {
-      css += `  --${key}: ${value};\n`;
+      css += `  --${key}: ${value};`;
     }
-    css += "}\n";
+    css += "}";
 
     // Inject/update <style> element
     if (!styleRef.current) {

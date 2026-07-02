@@ -12,20 +12,8 @@ import { useI18n } from "@/core/i18n/hooks";
 import { useToolTrace } from "@/core/observation/hooks";
 import type { ToolTraceEntry } from "@/core/observation/types";
 
-const PluginsConfigPage = dynamic(() => import("@/app/workspace/config/plugins/page"), {
-  ssr: false,
-  loading: () => <p className="text-sm text-muted-foreground">Loading plugins…</p>,
-});
-const HooksSettingsPage = dynamic(
-  () =>
-    import("@/components/workspace/settings/hooks-settings-page").then(
-      (module) => module.HooksSettingsPage,
-    ),
-  {
-    ssr: false,
-    loading: () => <p className="text-sm text-muted-foreground">Loading hooks…</p>,
-  },
-);
+import PluginsConfigPage from "@/app/workspace/config/plugins/page";
+import { HooksSettingsPage } from "@/components/workspace/settings/hooks-settings-page";
 
 type HubTab = "tools" | "plugins" | "hooks";
 type TraceFilter = "" | "subprocess_start" | "subprocess_end" | "artifact_lifecycle" | "subagent_runtime_cleanup" | "exception";

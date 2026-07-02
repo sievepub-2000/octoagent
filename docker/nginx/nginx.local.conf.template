@@ -33,25 +33,14 @@ http {
     }
 
     server {
-        listen ${OCTO_NGINX_PORT};
-        listen [::]:${OCTO_NGINX_PORT};
+        listen ${OCTO_NGINX_BIND_HOST}:${OCTO_NGINX_PORT};
         server_name _;
 
         # UTF-8 charset for all responses (fixes Chinese character display)
         charset utf-8;
 
-        proxy_hide_header 'Access-Control-Allow-Origin';
-        proxy_hide_header 'Access-Control-Allow-Methods';
-        proxy_hide_header 'Access-Control-Allow-Headers';
-        proxy_hide_header 'Access-Control-Allow-Credentials';
-
-        add_header 'Access-Control-Allow-Origin' '*' always;
-        add_header 'Access-Control-Allow-Methods' 'GET, POST, PUT, DELETE, PATCH, OPTIONS' always;
-        add_header 'Access-Control-Allow-Headers' '*' always;
-
-        if ($request_method = 'OPTIONS') {
-            return 204;
-        }
+        add_header X-Content-Type-Options nosniff always;
+        add_header Referrer-Policy same-origin always;
 
         location /api/langgraph/ {
             rewrite ^/api/langgraph/(.*) /$1 break;

@@ -257,7 +257,7 @@ function extractMessageText(content: unknown): string {
         }
         return "";
       })
-      .join("\n")
+      .join("")
       .trim();
   }
   return "";

@@ -18,7 +18,7 @@ export default function WorkspaceError({
   const isChunkError = isChunkLoadFailure(error.message) || isChunkLoadFailure(error.stack);
 
   useEffect(() => {
-    recoverFromChunkLoadFailure(`${error.message}\n${error.stack ?? ""}`);
+    recoverFromChunkLoadFailure(`${error.message}${error.stack ?? ""}`);
   }, [error.message, error.stack]);
 
   return (

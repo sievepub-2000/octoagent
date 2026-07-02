@@ -43,7 +43,7 @@ export function textOfMessage(message: Message) {
         }
       }
     }
-    return textParts.length > 0 ? textParts.join("\n") : null;
+    return textParts.length > 0 ? textParts.join("") : null;
   }
   return null;
 }

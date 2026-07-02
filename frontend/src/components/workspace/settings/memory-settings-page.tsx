@@ -50,7 +50,7 @@ function formatMemorySection(
       `> ${t.settings.memory.markdown.updatedAt}: \`${formatTimeAgo(updatedAt)}\``,
   ]
     .filter(Boolean)
-    .join("\n");
+    .join("");
 }
 
 function memoryToMarkdown(
@@ -64,7 +64,7 @@ function memoryToMarkdown(
     `- **${t.common.lastUpdated}**: \`${formatTimeAgo(memory.lastUpdated)}\``,
   );
 
-  parts.push(`\n## ${t.settings.memory.markdown.userContext}`);
+  parts.push(`## ${t.settings.memory.markdown.userContext}`);
   parts.push(
     formatMemorySection(
       t.settings.memory.markdown.work,
@@ -90,7 +90,7 @@ function memoryToMarkdown(
     ),
   );
 
-  parts.push(`\n## ${t.settings.memory.markdown.historyBackground}`);
+  parts.push(`## ${t.settings.memory.markdown.historyBackground}`);
   parts.push(
     formatMemorySection(
       t.settings.memory.markdown.recentMonths,
@@ -116,7 +116,7 @@ function memoryToMarkdown(
     ),
   );
 
-  parts.push(`\n## ${t.settings.memory.markdown.facts}`);
+  parts.push(`## ${t.settings.memory.markdown.facts}`);
   if (memory.facts.length === 0) {
     parts.push(
       `<span class="text-muted-foreground">${t.settings.memory.markdown.empty}</span>`,
@@ -134,14 +134,14 @@ function memoryToMarkdown(
             typeof value === "number" ? `${levelLabel}` : levelLabel;
           return `| ${upperFirst(f.category)} | ${confidenceText} | ${f.content} | [${t.settings.memory.markdown.table.view}](${pathOfThread(f.source)}) | ${formatTimeAgo(f.createdAt)} |`;
         }),
-      ].join("\n"),
+      ].join(""),
     );
   }
 
-  const markdown = parts.join("\n\n");
+  const markdown = parts.join("");
 
   // Ensure every level-2 heading (##) is preceded by a horizontal rule.
-  const lines = markdown.split("\n");
+  const lines = markdown.split("");
   const out: string[] = [];
   let i = 0;
   for (const line of lines) {
@@ -154,7 +154,7 @@ function memoryToMarkdown(
     out.push(line);
   }
 
-  return out.join("\n");
+  return out.join("");
 }
 
 export function MemorySettingsPage() {

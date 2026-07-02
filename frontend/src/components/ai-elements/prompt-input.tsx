@@ -1,6 +1,26 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import type { ChatStatus, FileUIPart } from "ai";
+import {
+  ArrowUpIcon,
+  Loader2Icon,
+  MicIcon,
+  PaperclipIcon,
+  PlusIcon,
+  SquareIcon,
+  XIcon,
+} from "lucide-react";
+import { nanoid } from "nanoid";
+import {
+  createContext,
+  Fragment,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 
 import type {
   ChangeEvent,
@@ -43,12 +63,21 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@/components/ui/input-group";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useI18n } from "@/core/i18n/hooks";
 import { useLocalSettings } from "@/core/settings/hooks";
+import { cn } from "@/lib/utils";
 
-import type { PromptInputMessage } from "./prompt-input-context";
+import type { AttachmentsContext } from "./prompt-input-context";
 import {
   useOptionalPromptInputController,
+  useOptionalProviderAttachments,
 } from "./prompt-input-context";
 const LocalAttachmentsContext = createContext<AttachmentsContext | null>(null);
 

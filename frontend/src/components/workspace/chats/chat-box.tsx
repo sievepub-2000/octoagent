@@ -1,5 +1,4 @@
 import { PanelRightOpenIcon } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GroupImperativeHandle } from "react-resizable-panels";
 
@@ -27,13 +26,7 @@ import {
 } from "../artifacts";
 import { useThread } from "../messages/context";
 
-const WorkflowInspector = dynamic(
-  () => import("../orchestrator/workflow-inspector").then((module) => module.WorkflowInspector),
-  {
-    ssr: false,
-    loading: () => <InspectorFallback />,
-  },
-);
+import { WorkflowInspector } from "../orchestrator/workflow-inspector";
 
 const CLOSE_MODE = { chat: 100, artifacts: 0 };
 const OPEN_MODE = { chat: 62, artifacts: 38 };

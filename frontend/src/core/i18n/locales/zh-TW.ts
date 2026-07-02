@@ -58,7 +58,7 @@ export const zhTW: Translations = {
       "🐙 歡迎使用 OctoAgent，一個開源的超級智能代理。透過內建及自訂技能，我可以協助您完成幾乎任何事情，包括網路搜尋、資料分析、生成簡報和網頁等產出物。",
     createYourOwnSkill: "建立您自己的技能",
     createYourOwnSkillDescription:
-      "建立您自己的技能來釋放 OctoAgent 的全部力量。透過自訂技能，您可以\n進行網路搜尋、資料分析、生成簡報和網頁等\n產出物，幾乎無所不能。",
+      "建立您自己的技能來釋放 OctoAgent 的全部力量。透過自訂技能，您可以進行網路搜尋、資料分析、生成簡報和網頁等產出物，幾乎無所不能。",
     bootstrapModelReady: "啟動模型已就緒",
     bootstrapModelNotInstalled: "啟動模型尚未安裝",
     bootstrapRecommendedModel: "建議的本地啟動模型：{model}",

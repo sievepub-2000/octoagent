@@ -71,7 +71,7 @@ fi
 export HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}"
 export TRANSFORMERS_OFFLINE="${TRANSFORMERS_OFFLINE:-1}"
 export OCTOAGENT_MANAGE_EXTERNAL_BRIDGES="${OCTOAGENT_MANAGE_EXTERNAL_BRIDGES:-1}"
-export OCTOAGENT_MANAGE_TTYD="${OCTOAGENT_MANAGE_TTYD:-1}"
+export OCTOAGENT_MANAGE_TTYD="${OCTOAGENT_MANAGE_TTYD:-0}"
 
 # ---------------------------------------------------------------------------
 # On-demand optional service backends (lazy by default)
@@ -374,7 +374,7 @@ start_ttyd() {
     local ttyd_pid
     ttyd_pid=$(
         start_detached "$REPO_ROOT" "$REPO_ROOT/logs/ttyd.log" \
-            ttyd --interface 127.0.0.1 --port "$TTYD_PORT" --writable --cwd "$REPO_ROOT" /bin/bash -l
+            ttyd --interface 127.0.0.1 --port "$TTYD_PORT" --readonly --cwd "$REPO_ROOT" /bin/bash -l
     )
     printf '%s\n' "$ttyd_pid" > "$REPO_ROOT/runtime/pids/ttyd.pid"
     ./scripts/wait-for-port.sh "$TTYD_PORT" 20 "ttyd" || {

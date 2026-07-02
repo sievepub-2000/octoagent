@@ -16,10 +16,11 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, urlsplit, urlunsplit
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel
 
 from src.gateway.observability import record_exception_trace, record_tool_trace
+from src.gateway.security import require_operator_or_403
 from src.runtime.governance import get_runtime_worker_isolation
 
 logger = logging.getLogger(__name__)
@@ -455,6 +456,11 @@ def _rollback_to_commit(sha: str) -> None:
         logger.exception("Rollback to %s raised an exception: %s", sha, exc)
 
 
+def _require_update_operator(role: str | None, token: str | None, *, minimum: str = "operator") -> None:
+    """Require an operator token for update-management endpoints."""
+    require_operator_or_403(role=role, token=token, minimum=minimum)
+
+
 # ---------- endpoints ---------------------------------------------------
 
 
@@ -468,8 +474,13 @@ async def get_version() -> dict[str, str]:
 
 
 @router.get("/update/check")
-async def check_update() -> UpdateInfo:
+async def check_update(
+    x_octoagent_operator_token: str | None = Header(default=None, alias="X-OctoAgent-Operator-Token"),
+    x_octoagent_operator_role: str | None = Header(default="operator", alias="X-OctoAgent-Operator-Role"),
+) -> UpdateInfo:
     """Check the configured remote repository for an updated version file."""
+    _require_update_operator(x_octoagent_operator_role, x_octoagent_operator_token)
+
     current_version = _read_current_version()
 
     try:
@@ -492,7 +503,10 @@ async def check_update() -> UpdateInfo:
 
 
 @router.post("/update/apply")
-async def apply_update() -> UpdateResult:
+async def apply_update(
+    x_octoagent_operator_token: str | None = Header(default=None, alias="X-OctoAgent-Operator-Token"),
+    x_octoagent_operator_role: str | None = Header(default="admin", alias="X-OctoAgent-Operator-Role"),
+) -> UpdateResult:
     """Pull the latest code from GitHub and restart the full stack.
 
     This preserves all user configuration (config.yaml, .env, data/) by doing
@@ -500,6 +514,8 @@ async def apply_update() -> UpdateResult:
 
     If any step fails, the working tree is rolled back to the pre-update commit.
     """
+    _require_update_operator(x_octoagent_operator_role, x_octoagent_operator_token, minimum="admin")
+
     saved_head_sha = ""
     try:
         remote = await _fetch_remote_version_info()
@@ -633,14 +649,25 @@ def _schedule_restart() -> None:
 
 
 @router.get("/update/auto-config")
-async def get_auto_update_config() -> AutoUpdateConfig:
+async def get_auto_update_config(
+    x_octoagent_operator_token: str | None = Header(default=None, alias="X-OctoAgent-Operator-Token"),
+    x_octoagent_operator_role: str | None = Header(default="admin", alias="X-OctoAgent-Operator-Role"),
+) -> AutoUpdateConfig:
     """Get auto-update configuration."""
+    _require_update_operator(x_octoagent_operator_role, x_octoagent_operator_token, minimum="admin")
+
     return _read_auto_update_config()
 
 
 @router.post("/update/auto-config")
-async def set_auto_update_config(cfg: AutoUpdateConfig) -> AutoUpdateConfig:
+async def set_auto_update_config(
+    cfg: AutoUpdateConfig,
+    x_octoagent_operator_token: str | None = Header(default=None, alias="X-OctoAgent-Operator-Token"),
+    x_octoagent_operator_role: str | None = Header(default="admin", alias="X-OctoAgent-Operator-Role"),
+) -> AutoUpdateConfig:
     """Set auto-update configuration."""
+    _require_update_operator(x_octoagent_operator_role, x_octoagent_operator_token, minimum="admin")
+
     cfg.last_check = cfg.last_check or datetime.now(UTC).isoformat()
     _write_auto_update_config(cfg)
     return cfg

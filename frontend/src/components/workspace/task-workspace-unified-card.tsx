@@ -644,7 +644,7 @@ export function TaskWorkspaceUnifiedCard({
                   {event.summary ? <div className="mt-2 text-sm text-muted-foreground">{event.summary}</div> : null}
                   {event.details.length > 0 ? (
                     <pre className="mt-3 whitespace-pre-wrap rounded-2xl border border-border/70 bg-background p-3 text-xs leading-5 text-foreground">
-                      {event.details.join("\n")}
+                      {event.details.join("")}
                     </pre>
                   ) : null}
                 </div>

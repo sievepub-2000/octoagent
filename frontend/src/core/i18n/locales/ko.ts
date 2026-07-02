@@ -59,7 +59,7 @@ export const ko: Translations = {
       "🐙 OctoAgent에 오신 것을 환영합니다. 오픈 소스 슈퍼 에이전트입니다. 내장 및 사용자 정의 스킬로 웹 검색, 데이터 분석, 슬라이드 및 웹 페이지와 같은 산출물 생성 등 거의 모든 것을 도와드릴 수 있습니다.",
     createYourOwnSkill: "나만의 스킬 만들기",
     createYourOwnSkillDescription:
-      "OctoAgent의 힘을 발휘하기 위해 나만의 스킬을 만들어 보세요. 사용자 정의 스킬로\n웹 검색, 데이터 분석, 슬라이드 및 웹 페이지와 같은\n산출물 생성 등 거의 모든 것을 할 수 있습니다.",
+      "OctoAgent의 힘을 발휘하기 위해 나만의 스킬을 만들어 보세요. 사용자 정의 스킬로웹 검색, 데이터 분석, 슬라이드 및 웹 페이지와 같은산출물 생성 등 거의 모든 것을 할 수 있습니다.",
     bootstrapModelReady: "부트스트랩 모델 준비됨",
     bootstrapModelNotInstalled: "부트스트랩 모델 미설치",
     bootstrapRecommendedModel: "권장 로컬 부트스트랩 모델: {model}",

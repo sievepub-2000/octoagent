@@ -49,7 +49,7 @@ export type ThreadStreamOptions = {
   onToolEnd?: (event: ToolEndEvent) => void;
 };
 
-function normalizeRuntimeMode(
+export function normalizeRuntimeMode(
   mode: LocalSettings["context"]["mode"],
   reasoningEffort?: LocalSettings["context"]["reasoning_effort"],
 ): NonNullable<LocalSettings["context"]["mode"]> {
@@ -59,7 +59,7 @@ function normalizeRuntimeMode(
   return mode ?? "flash";
 }
 
-function resolvePermissionMode(
+export function resolvePermissionMode(
   permissionMode?: LocalSettings["context"]["permission_mode"],
 ): "approval" | "directory" | "system" {
   if (permissionMode === "directory" || permissionMode === "system") {
@@ -68,12 +68,12 @@ function resolvePermissionMode(
   return "approval";
 }
 
-function shouldEnableThinking(mode: NonNullable<LocalSettings["context"]["mode"]>) {
+export function shouldEnableThinking(mode: NonNullable<LocalSettings["context"]["mode"]>) {
   return mode === "thinking" || mode === "pro" || mode === "ultra";
 }
 
 export const DEFAULT_STREAM_MODE: StreamMode[] = ["messages-tuple", "updates", "custom"];
-const MAX_PREPLAN_MESSAGE_CHARS = 16_000;
+export const MAX_PREPLAN_MESSAGE_CHARS = 16_000;
 type AutoContinueSubmit = (
   payload: { messages: Array<Record<string, unknown>> },
   options: Record<string, unknown>,
@@ -96,7 +96,7 @@ async function fetchThreadStateValues(threadId: string): Promise<AgentThreadStat
   return state.values as AgentThreadState | null;
 }
 
-function contextHandoffMatches(
+export function contextHandoffMatches(
   state: AgentThreadState | null | undefined,
   expected: ExpectedContextHandoff,
 ): boolean {
@@ -120,7 +120,7 @@ async function verifyContextHandoffAfterStream(expected: ExpectedContextHandoff)
   return false;
 }
 
-function messageText(message: Message | undefined): string {
+export function messageText(message: Message | undefined): string {
   if (!message) return "";
   if (typeof message.content === "string") return message.content.trim();
   if (!Array.isArray(message.content)) return "";
@@ -131,7 +131,7 @@ function messageText(message: Message | undefined): string {
       }
       return "";
     })
-    .join("\n")
+    .join("")
     .trim();
 }
 
@@ -144,7 +144,7 @@ function messageHasFiles(message: Message | undefined): boolean {
   return Array.isArray(files) && files.length > 0;
 }
 
-function isDuplicateOptimisticHuman(
+export function isDuplicateOptimisticHuman(
   optimistic: Message,
   serverMessages: Message[],
 ): boolean {
@@ -172,7 +172,7 @@ function isDuplicateOptimisticHuman(
   return false;
 }
 
-function isUnfinishedActionAnnouncement(message: Message | undefined): boolean {
+export function isUnfinishedActionAnnouncement(message: Message | undefined): boolean {
   if (message?.type !== "ai" || (message.tool_calls?.length ?? 0) > 0) {
     return false;
   }
@@ -200,7 +200,7 @@ function isUnfinishedActionAnnouncement(message: Message | undefined): boolean {
   return !completionMarkers.test(text);
 }
 
-function lastMessage(messages: Message[]): Message | undefined {
+export function lastMessage(messages: Message[]): Message | undefined {
   return messages.length > 0 ? messages[messages.length - 1] : undefined;
 }
 
@@ -232,7 +232,7 @@ function resolvedToolIdsAfter(messages: Message[], index: number): Set<string> {
   return ids;
 }
 
-function detectRecoverableIncompleteState(values: AgentThreadState): RecoverableIncompleteDetection | null {
+export function detectRecoverableIncompleteState(values: AgentThreadState): RecoverableIncompleteDetection | null {
   const runtimeState = (values.runtime ?? {}) as Record<string, unknown>;
   const recoverableFailure = runtimeState.recoverable_failure as Record<string, unknown> | undefined;
   const incompleteState = runtimeState.incomplete_state as Record<string, unknown> | undefined;

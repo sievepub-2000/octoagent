@@ -2,7 +2,6 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangleIcon, BotIcon, BoxesIcon, CableIcon, CpuIcon, SparklesIcon, WorkflowIcon } from "lucide-react";
-import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef } from "react";
 
 import { useAgents } from "@/core/agents/hooks";
@@ -12,10 +11,7 @@ import { useNotification } from "@/core/notification/hooks";
 import { useRuntimeLongRunningHealth } from "@/core/runtime";
 import { useTaskWorkspaces } from "@/core/task-workspaces/hooks";
 
-const SystemEventsButton = dynamic(
-  () => import("@/components/workspace/system-events/system-events-button").then((m) => m.SystemEventsButton),
-  { ssr: false },
-);
+import { SystemEventsButton } from "@/components/workspace/system-events/system-events-button";
 
 type StatusItem = {
   id: string;

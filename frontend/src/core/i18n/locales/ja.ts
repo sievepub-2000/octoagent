@@ -59,7 +59,7 @@ export const ja: Translations = {
       "🐙 OctoAgent へようこそ。オープンソースのスーパーエージェントです。組み込みおよびカスタムスキルで、Web検索、データ分析、スライドやWebページなどの成果物の生成など、ほぼ何でもお手伝いします。",
     createYourOwnSkill: "独自のスキルを作成",
     createYourOwnSkillDescription:
-      "OctoAgent の力を解放するために独自のスキルを作成しましょう。カスタムスキルで、\nWeb検索、データ分析、スライドやWebページなどの\n成果物の生成など、ほぼ何でもできます。",
+      "OctoAgent の力を解放するために独自のスキルを作成しましょう。カスタムスキルで、Web検索、データ分析、スライドやWebページなどの成果物の生成など、ほぼ何でもできます。",
     bootstrapModelReady: "ブートストラップモデル準備完了",
     bootstrapModelNotInstalled: "ブートストラップモデル未インストール",
     bootstrapRecommendedModel: "推奨ローカルブートストラップモデル: {model}",

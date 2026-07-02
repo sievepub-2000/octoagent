@@ -1,6 +1,5 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import { PlayIcon, RotateCcwIcon, SquareIcon } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -34,29 +33,11 @@ import { useWorkflows } from "@/core/workflows";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
-const ChatBox = dynamic(
-  () => import("@/components/workspace/chats/chat-box").then((module) => module.ChatBox),
-  { ssr: false, loading: () => <ChatRouteFallback /> },
-);
-const InputBox = dynamic(
-  () => import("@/components/workspace/input-box").then((module) => module.InputBox),
-  {
-    ssr: false,
-    loading: () => <div className="octo-panel h-24 w-full rounded-[1.75rem] border border-border/60" />,
-  },
-);
-const MessageList = dynamic(
-  () => import("@/components/workspace/messages/message-list").then((module) => module.MessageList),
-  { ssr: false },
-);
-const ThreadTitle = dynamic(
-  () => import("@/components/workspace/thread-title").then((module) => module.ThreadTitle),
-  { ssr: false },
-);
-const TodoList = dynamic(
-  () => import("@/components/workspace/todo-list").then((module) => module.TodoList),
-  { ssr: false },
-);
+import { ChatBox } from "@/components/workspace/chats/chat-box";
+import { InputBox } from "@/components/workspace/input-box";
+import { MessageList } from "@/components/workspace/messages/message-list";
+import { ThreadTitle } from "@/components/workspace/thread-title";
+import { TodoList } from "@/components/workspace/todo-list";
 function ChatRouteFallback() {
   const { t } = useI18n();
   return (

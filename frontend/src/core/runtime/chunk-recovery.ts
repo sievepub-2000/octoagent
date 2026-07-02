@@ -10,7 +10,7 @@ type StoredRecovery = {
 function messageFromUnknown(value: unknown): string {
   if (value == null) return "";
   if (typeof value === "string") return value;
-  if (value instanceof Error) return `${value.message}\n${value.stack ?? ""}`;
+  if (value instanceof Error) return `${value.message}${value.stack ?? ""}`;
   if (
     typeof value === "number" ||
     typeof value === "boolean" ||
@@ -28,7 +28,7 @@ function messageFromUnknown(value: unknown): string {
 
 export function isChunkLoadFailure(value: unknown): boolean {
   const message = messageFromUnknown(value);
-  return /ChunkLoadError|Loading chunk [^\n]+ failed|Loading CSS chunk [^\n]+ failed|Failed to fetch dynamically imported module/i.test(message);
+  return /ChunkLoadError|Loading chunk [^]+ failed|Loading CSS chunk [^]+ failed|Failed to fetch dynamically imported module/i.test(message);
 }
 
 function isNextStaticAsset(target: EventTarget | null): boolean {

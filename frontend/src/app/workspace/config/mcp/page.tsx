@@ -62,12 +62,12 @@ function serializeEnv(env: Record<string, unknown> | undefined): string {
   return Object.entries(env)
     .filter(([, value]) => typeof value === "string")
     .map(([key, value]) => `${key}=${value as string}`)
-    .join("\n");
+    .join("");
 }
 
 function parseEnv(value: string): Record<string, string> {
   return value
-    .split(/\r?\n/)
+    .split(/\r?/)
     .map((line) => line.trim())
     .filter(Boolean)
     .reduce<Record<string, string>>((acc, line) => {

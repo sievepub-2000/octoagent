@@ -23,7 +23,7 @@ export interface ContinuationInfo {
 }
 
 function normalizeWelcomeParagraph(value: string) {
-  return value.replace(/\s*\n\s*/g, " ").replace(/\s{2,}/g, " ").trim();
+  return value.replace(/\s*\s*/g, " ").replace(/\s{2,}/g, " ").trim();
 }
 
 export function Welcome({
@@ -106,7 +106,7 @@ export function Welcome({
           : message.content;
         return `${marker}  ${text}`;
       })
-      .join("\n");
+      .join("");
   }, [continuation]);
 
   if (showWizard) {

@@ -49,7 +49,7 @@ export function buildContinuationContext(
     continue_message_count: sourceState.messages?.length ?? 0,
     continue_recent_messages: recentMessages,
     continue_memory_summary:
-      memorySummaryParts.length > 0 ? memorySummaryParts.join("\n\n") : undefined,
+      memorySummaryParts.length > 0 ? memorySummaryParts.join("") : undefined,
     continue_todos: sourceState.todos ?? [],
     continue_task_state: sourceState.task_state ?? null,
     continue_workflows: sourceState.workflows ?? [],

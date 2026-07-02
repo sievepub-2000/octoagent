@@ -87,7 +87,7 @@ function eventText(event: RunEvent) {
     event.detail,
     event.taskId ? `task: ${event.taskId}` : undefined,
     event.runId ? `run: ${event.runId}` : undefined,
-  ].filter(Boolean).join("\n");
+  ].filter(Boolean).join("");
 }
 
 function RunTimelinePanelImpl({
@@ -238,7 +238,7 @@ function RunTimelinePanelImpl({
                     <div className="border-t border-border/50 px-2.5 py-2">
                       <pre className="max-h-56 overflow-auto whitespace-pre-wrap break-words rounded bg-background/80 p-2 font-mono text-[11px] leading-relaxed text-muted-foreground">
                         {eventText(event)}
-                        {event.payload ? `\n\n${JSON.stringify(event.payload, null, 2)}` : ""}
+                        {event.payload ? `${JSON.stringify(event.payload, null, 2)}` : ""}
                       </pre>
                     </div>
                   ) : null}

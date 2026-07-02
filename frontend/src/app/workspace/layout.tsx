@@ -1,7 +1,6 @@
 "use client";
 
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
@@ -24,35 +23,11 @@ type SettingsSectionId =
   | "update"
   | "about";
 
-const WorkspaceSidebar = dynamic(
-  () => import("@/components/workspace/workspace-sidebar").then((module) => module.WorkspaceSidebar),
-  {
-    ssr: false,
-    loading: () => (
-      <aside
-        aria-label="Workspace navigation loading"
-        className="hidden h-screen w-64 shrink-0 border-r border-border/60 bg-sidebar md:block"
-      />
-    ),
-  },
-);
+import { WorkspaceSidebar } from "@/components/workspace/workspace-sidebar";
 
-const SystemStatusBar = dynamic(
-  () => import("@/components/workspace/system-status-bar").then((module) => module.SystemStatusBar),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="border-b border-border/60 bg-background/84 px-4 py-2.5 backdrop-blur-md" aria-hidden="true">
-        <div className="octo-chip h-10 rounded-[1rem]" />
-      </div>
-    ),
-  },
-);
+import { SystemStatusBar } from "@/components/workspace/system-status-bar";
 
-const SettingsPanel = dynamic(
-  () => import("@/components/workspace/settings").then((module) => module.SettingsPanel),
-  { ssr: false },
-);
+import { SettingsPanel } from "@/components/workspace/settings";
 
 const SETTINGS_SECTIONS: SettingsSectionId[] = [
   "overview",

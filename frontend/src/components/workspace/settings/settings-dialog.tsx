@@ -1,7 +1,6 @@
 "use client";
 
 import { ActivityIcon, BellIcon, SparklesIcon, BrainIcon, CpuIcon, DnaIcon, DownloadCloudIcon, InfoIcon, LaptopIcon, LayoutDashboardIcon, PaletteIcon, ShieldCheckIcon, WrenchIcon } from "lucide-react";
-import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -22,58 +21,19 @@ function SettingsSectionFallback() {
   );
 }
 
-const AboutSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/about-settings-page").then((module) => module.AboutSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const AppearanceSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/appearance-settings-page").then((module) => module.AppearanceSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const BootstrapSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/bootstrap-settings-page").then((module) => module.BootstrapSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const EvolutionConfigPage = dynamic(
-  () => import("@/app/workspace/config/evolution/page"),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const MemorySettingsPage = dynamic(
-  () => import("@/components/workspace/settings/memory-settings-page").then((module) => module.MemorySettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const NotificationSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/notification-settings-page").then((module) => module.NotificationSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const RuntimeHealthSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/runtime-health-settings-page").then((module) => module.RuntimeHealthSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const RagSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/rag-settings-page").then((module) => module.RagSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const SystemExecutionSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/system-execution-settings-page").then((module) => module.SystemExecutionSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const SystemGuardSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/system-guard-settings-page").then((module) => module.SystemGuardSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const SystemSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/system-settings-page").then((module) => module.SystemSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const ToolsHubPage = dynamic(
-  () => import("@/app/workspace/config/tools/page"),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
-const UpdateSettingsPage = dynamic(
-  () => import("@/components/workspace/settings/update-settings-page").then((module) => module.UpdateSettingsPage),
-  { ssr: false, loading: () => <SettingsSectionFallback /> },
-);
+import { AboutSettingsPage } from "@/components/workspace/settings/about-settings-page";
+import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
+import { BootstrapSettingsPage } from "@/components/workspace/settings/bootstrap-settings-page";
+import EvolutionConfigPage from "@/app/workspace/config/evolution/page";
+import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
+import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
+import { RuntimeHealthSettingsPage } from "@/components/workspace/settings/runtime-health-settings-page";
+import { RagSettingsPage } from "@/components/workspace/settings/rag-settings-page";
+import { SystemExecutionSettingsPage } from "@/components/workspace/settings/system-execution-settings-page";
+import { SystemGuardSettingsPage } from "@/components/workspace/settings/system-guard-settings-page";
+import { SystemSettingsPage } from "@/components/workspace/settings/system-settings-page";
+import ToolsHubPage from "@/app/workspace/config/tools/page";
+import { UpdateSettingsPage } from "@/components/workspace/settings/update-settings-page";
 
 type SettingsSection =
   | "overview"

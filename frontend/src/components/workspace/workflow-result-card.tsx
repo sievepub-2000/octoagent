@@ -63,7 +63,7 @@ function buildLiveThreadResult(messages: Message[] | undefined) {
     }
   }
 
-  return parts.length > 0 ? parts.join("\n\n---\n\n") : null;
+  return parts.length > 0 ? parts.join("---") : null;
 }
 
 function metadataString(config: Record<string, unknown>, key: string) {
@@ -306,7 +306,7 @@ export function WorkflowResultCard({
     if (status !== "failed" || !effectiveResultContent) {
       return null;
     }
-    const lines = effectiveResultContent.split("\n");
+    const lines = effectiveResultContent.split("");
     let failureReason = "";
     let output = "";
     let inOutput = false;
@@ -324,7 +324,7 @@ export function WorkflowResultCard({
         continue;
       }
       if (inOutput) {
-        output += `${line}\n`;
+        output += `${line}`;
       }
     }
     return { reason: failureReason, output: output.trim() };

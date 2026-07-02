@@ -147,7 +147,7 @@ function buildDraft(channel: ChannelStatusItem): Record<string, ChannelDraftValu
     }
     if (field.kind === "string_list") {
       draft[field.name] = Array.isArray(value)
-        ? value.filter((item): item is string => typeof item === "string").join("\n")
+        ? value.filter((item): item is string => typeof item === "string").join("")
         : typeof value === "string"
           ? value
           : "";

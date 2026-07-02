@@ -77,12 +77,12 @@ OctoAgent port map
 
 | Port | Variable | Component | Bind / exposure | Notes |
 | --- | --- | --- | --- | --- |
-| ${OCTO_NGINX_PORT} | OCTO_NGINX_PORT | nginx ingress | 0.0.0.0 / localhost | Unified WebUI and API entrypoint: ${OCTO_PUBLIC_BASE_URL} |
+| ${OCTO_NGINX_PORT} | OCTO_NGINX_PORT | nginx ingress | ${OCTO_NGINX_BIND_HOST} | Unified WebUI and API entrypoint: ${OCTO_PUBLIC_BASE_URL} |
 | ${OCTO_GATEWAY_PORT} | OCTO_GATEWAY_PORT | FastAPI gateway | 127.0.0.1 | REST APIs, auth proxy, model/config/tool endpoints |
 | ${OCTO_LANGGRAPH_PORT} | OCTO_LANGGRAPH_PORT | LangGraph runtime | 127.0.0.1 | Agent run and stream runtime |
 | ${OCTO_FRONTEND_PORT} | OCTO_FRONTEND_PORT | Next.js frontend | 127.0.0.1 | Internal frontend target behind nginx |
 | ${OCTO_PROVISIONER_PORT} | OCTO_PROVISIONER_PORT | Sandbox provisioner | optional | Docker/Kubernetes provisioner mode only |
-| ${OCTO_TTYD_PORT} | OCTO_TTYD_PORT | ttyd terminal | 127.0.0.1 | Local terminal bridge when enabled by runtime scripts |
+| ${OCTO_TTYD_PORT} | OCTO_TTYD_PORT | ttyd terminal | 127.0.0.1 | Disabled by default; set OCTOAGENT_MANAGE_TTYD=1 for an explicit local terminal bridge |
 | ${OCTO_SANDBOX_BASE_PORT}+ | OCTO_SANDBOX_BASE_PORT | Sandbox containers | dynamic | Per-sandbox ports allocated from this base |
 | 19812 | OCTO_EXECUTION_WORKER_PORT | Execution worker | optional | Only used by the distributed worker service |
 | 19814 | LISTEN_PORT | Generic webhook bridge | optional | Example external bridge listener |

@@ -41,8 +41,8 @@ function estimateMessageTokens(message: Message): number {
 export function estimateContextTokens(state: AgentThreadState | undefined, draftText: string): number {
   const messages = state?.messages ?? [];
   const messageTokens = messages.reduce((total, message) => total + estimateMessageTokens(message), 0);
-  const todoTokens = estimateTextTokens((state?.todos ?? []).map((todo) => `${todo.content ?? ""} ${todo.status}`).join("\n"));
-  const workflowTokens = estimateTextTokens((state?.workflows ?? []).map((workflow) => `${workflow.title ?? ""} ${workflow.goal ?? ""}`).join("\n"));
+  const todoTokens = estimateTextTokens((state?.todos ?? []).map((todo) => `${todo.content ?? ""} ${todo.status}`).join(""));
+  const workflowTokens = estimateTextTokens((state?.workflows ?? []).map((workflow) => `${workflow.title ?? ""} ${workflow.goal ?? ""}`).join(""));
   const draftTokens = estimateTextTokens(draftText);
   return messageTokens + todoTokens + workflowTokens + draftTokens;
 }

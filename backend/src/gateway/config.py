@@ -10,6 +10,10 @@ class GatewayConfig(BaseModel):
     port: int = Field(default=19882, description="Port to bind the gateway server")
     cors_origins: list[str] = Field(
         default_factory=lambda: [
+            "http://localhost:19800",
+            "http://127.0.0.1:19800",
+            "http://localhost:19806",
+            "http://127.0.0.1:19806",
             "http://localhost:19886",
             "http://127.0.0.1:19886",
             "http://localhost:19880",
@@ -39,9 +43,10 @@ def get_gateway_config() -> GatewayConfig:
                 ]
             ),
         )
+        cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
         _gateway_config = GatewayConfig(
             host=os.getenv("GATEWAY_HOST", "0.0.0.0"),
             port=int(os.getenv("GATEWAY_PORT", os.getenv("OCTO_GATEWAY_PORT", "19882"))),
-            cors_origins=cors_origins_str.split(","),
+            cors_origins=cors_origins,
         )
     return _gateway_config

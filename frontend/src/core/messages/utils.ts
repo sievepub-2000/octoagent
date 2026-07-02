@@ -134,7 +134,7 @@ export function extractTextFromMessage(message: Message) {
   if (Array.isArray(message.content)) {
     return message.content
       .map((content) => (content.type === "text" ? content.text : ""))
-      .join("\n")
+      .join("")
       .trim();
   }
   return "";
@@ -157,7 +157,7 @@ export function extractContentFromMessage(message: Message) {
             return "";
         }
       })
-      .join("\n")
+      .join("")
       .trim();
   }
   return "";
@@ -336,8 +336,8 @@ export function parseUploadedFiles(content: string): FileInMessage[] {
   }
 
   // Parse file list
-  // Format: - filename (size)\n  Path: /path/to/file
-  const fileRegex = /- ([^\n(]+)\s*\(([^)]+)\)\s*\n\s*Path:\s*([^\n]+)/g;
+  // Format: - filename (size)  Path: /path/to/file
+  const fileRegex = /- ([^(]+)\s*\(([^)]+)\)\s*\s*Path:\s*([^]+)/g;
   const files: FileInMessage[] = [];
   let fileMatch;
 

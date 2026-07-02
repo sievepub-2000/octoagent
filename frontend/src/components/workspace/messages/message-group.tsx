@@ -394,7 +394,7 @@ function ToolCall({
             className="mx-0 cursor-pointer border-none px-0"
             showLineNumbers={false}
             language="bash"
-            code={cwd && cwd !== "." ? `# cwd: ${cwd}\n${command}` : command}
+            code={cwd && cwd !== "." ? `# cwd: ${cwd}${command}` : command}
           />
         )}
       </ChainOfThoughtStep>

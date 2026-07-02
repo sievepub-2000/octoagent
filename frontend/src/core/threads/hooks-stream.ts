@@ -1,49 +1,31 @@
-import type { AIMessage, Message, StreamMode } from "@langchain/langgraph-sdk";
-import type { ThreadsClient } from "@langchain/langgraph-sdk/client";
+import type { Message, StreamMode } from "@langchain/langgraph-sdk";
 import { useStream } from "@langchain/langgraph-sdk/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import { useCallback, useMemo } from "react";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { pushSystemEvent } from "@/core/system-events/store";
 
-
-import {
-  getAPIClient,
-  isRecoverableThreadMissingError,
-  markThreadPersisted,
-  markThreadProvisional,
-} from "../api";
-import { deleteJSON } from "../api/http";
 import { getLangGraphBaseURL } from "../config";
-import { useI18n } from "../i18n/hooks";
-import type { FileInMessage } from "../messages/utils";
-import { buildMlInternThreadContext, resolveMlInternProfile } from "../ml-intern/defaults";
-import { planQueryOperation } from "../query-engine/api";
-import { getRecursionLimit } from "../runtime-profile";
-import { createRunEvent, normalizeRunEvent, type RunEvent } from "../runtime/run-events";
 import type { LocalSettings } from "../settings";
-import { useUpdateSubtask } from "../tasks/context";
-import type { UploadedFileInfo } from "../uploads";
-import { uploadFiles } from "../uploads";
-import { createWorkflowEvent, useWorkflows } from "../workflows";
+import type { RunEvent } from "../runtime/run-events";
+import type { AgentThreadState } from "./types";
 
-import {
-  contextHandoffMatches,
-  DEFAULT_STREAM_MODE,
-  detectRecoverableIncompleteState,
-  isDuplicateOptimisticHuman,
-  isUnfinishedActionAnnouncement,
-  lastMessage,
-  MAX_PREPLAN_MESSAGE_CHARS,
-  messageText,
-  normalizeRuntimeMode,
-  resolvePermissionMode,
-  shouldEnableThinking,
-} from "./hooks-utils";
+export type ToolEndEvent = {
+  name: string;
+  data: unknown;
+};
 
-// Thread stream hook wrapping langgraph-sdk useStream with thread-specific logic
+export type ThreadStreamOptions = {
+  threadId?: string | null | undefined;
+  context: LocalSettings["context"];
+  isMock?: boolean;
+  loadInitialState?: boolean;
+  onStart?: (threadId: string) => void;
+  onFinish?: (state: AgentThreadState) => void;
+  onRunEvent?: (event: RunEvent) => void;
+  onToolEnd?: (event: ToolEndEvent) => void;
+};
+
 export interface UseThreadStreamOptions {
   threadId: string;
   context?: Record<string, unknown>;
@@ -51,46 +33,82 @@ export interface UseThreadStreamOptions {
   loadInitialState?: boolean;
   onStart?: (createdThreadId: string) => void;
   onRunEvent?: (event: RunEvent) => void;
-  onFinish?: (state: Record<string, unknown>) => void;
+  onFinish?: (state: AgentThreadState) => void;
 }
 
-export function useThreadStream(options: UseThreadStreamOptions): [any, (message: PromptInputMessage) => Promise<void>] {
+type SendThreadMessage = (
+  threadId: string,
+  message: PromptInputMessage,
+  context?: Record<string, unknown>,
+) => Promise<void>;
+
+const DEFAULT_STREAM_MODE: StreamMode[] = ["messages-tuple", "updates", "custom"];
+const DEFAULT_ASSISTANT_ID = "lead_agent";
+
+function buildMessagePayload(message: PromptInputMessage): Record<string, unknown> {
+  return {
+    messages: [
+      {
+        type: "human",
+        content: message.text,
+        additional_kwargs: message.files.length > 0 ? { files: message.files } : {},
+      },
+    ],
+  };
+}
+
+export function useThreadStream(options: UseThreadStreamOptions): [any, SendThreadMessage] {
   const {
     threadId,
     context = {},
-    isMock = false,
     loadInitialState = true,
     onStart,
-    onRunEvent,
     onFinish,
   } = options;
 
-  const [thread, setThread] = useState(null);
-
-  // Use langgraph-sdk useStream internally
-  const streamResult = useStream({
+  const stream = useStream<AgentThreadState>({
+    assistantId: DEFAULT_ASSISTANT_ID,
     apiUrl: getLangGraphBaseURL(),
-    threadId,
-    streamMode: DEFAULT_STREAM_MODE as StreamMode,
-    initialSnapshot: loadInitialState ? undefined : null,
-    fetch: async (url, init) => {
-      return fetch(url, init);
+    threadId: threadId === "new" ? null : threadId,
+    onThreadId: onStart,
+    onFinish: (state) => {
+      onFinish?.((state.values ?? {}) as AgentThreadState);
     },
+    initialValues: loadInitialState ? undefined : null,
   });
 
-  useEffect(() => {
-    if (streamResult.thread && onStart) {
-      onStart(streamResult.thread.thread_id || threadId);
-    }
-  }, [streamResult.thread]);
+  const thread = useMemo(() => {
+    const values = (stream.values ?? {}) as AgentThreadState;
+    const messages = ((stream.messages ?? values.messages ?? []) as Message[]);
+    return {
+      ...stream,
+      values,
+      messages,
+      isLoading: Boolean(stream.isLoading || stream.isThreadLoading),
+      error: stream.error,
+      stop: stream.stop,
+    };
+  }, [stream]);
 
-  const handleSendMessage = useCallback(async (message: PromptInputMessage) => {
-    if (!streamResult.sendMessage) return;
-    
-    pushSystemEvent({ type: "user_message", timestamp: new Date().toISOString() });
-    
-    await streamResult.sendMessage(message);
-  }, [streamResult.sendMessage]);
+  const sendMessage = useCallback<SendThreadMessage>(
+    async (targetThreadId, message, extraContext = {}) => {
+      pushSystemEvent({
+        level: "info",
+        message: "Sending user message.",
+        source: "session",
+      });
 
-  return [thread || streamResult.thread, handleSendMessage];
+      await stream.submit(buildMessagePayload(message) as never, {
+        context: {
+          ...context,
+          ...extraContext,
+        },
+        streamMode: DEFAULT_STREAM_MODE,
+        threadId: targetThreadId === "new" ? undefined : targetThreadId,
+      } as never);
+    },
+    [context, stream],
+  );
+
+  return [thread, sendMessage];
 }
