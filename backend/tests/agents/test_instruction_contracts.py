@@ -28,3 +28,13 @@ def test_x_source_contract_does_not_require_ten_urls_for_top_ten() -> None:
 
     assert contract.required_domains == ("x.com",)
     assert contract.min_evidence_links == 5
+
+
+def test_weather_forecast_requires_current_research_contract() -> None:
+    contract = detect_instruction_contract("查一下济南、纽约明天的天气预报，汇总报告")
+
+    assert contract.intent == "current_research"
+    assert contract.required_tool_categories == ("web",)
+
+    prompt = build_contract_prompt(contract)
+    assert "Required tool categories: web" in prompt

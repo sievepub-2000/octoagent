@@ -132,7 +132,9 @@ def classify_dialogue_route(
         return DialogueRoute(ROUTE_TOOL_ACTION, "action_or_workspace_keywords", needs_tools=True, needs_memory=True)
     if _DEEP_RE.search(stripped) or len(stripped) > 420:
         return DialogueRoute(ROUTE_DEEP_AGENT, "deep_analysis_keywords_or_long_request", needs_tools=True, needs_memory=True, needs_deep_agent=True)
-    if _CURRENT_WEATHER_RE.search(stripped) or _CURRENT_X_TRENDS_RE.search(stripped) or _SYSTEM_TOOLS_RE.search(stripped):
+    if _CURRENT_WEATHER_RE.search(stripped):
+        return DialogueRoute(ROUTE_CURRENT_RESEARCH, "weather_requires_current_research", needs_tools=True)
+    if _CURRENT_X_TRENDS_RE.search(stripped) or _SYSTEM_TOOLS_RE.search(stripped):
         return DialogueRoute(ROUTE_CURRENT_SNAPSHOT, "server_snapshot_supported_current_info")
     if _CURRENT_RESEARCH_RE.search(stripped):
         return DialogueRoute(ROUTE_CURRENT_RESEARCH, "general_current_info_requires_research", needs_tools=True)

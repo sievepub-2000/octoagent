@@ -74,11 +74,10 @@ export function classifyDialogueRoute({
   if (DEEP_RE.test(trimmed) || trimmed.length > 420) {
     return route("deep_agent", "deep_analysis_keywords_or_long_request");
   }
-  if (
-    CURRENT_WEATHER_RE.test(trimmed) ||
-    CURRENT_X_TRENDS_RE.test(trimmed) ||
-    SYSTEM_TOOLS_RE.test(trimmed)
-  ) {
+  if (CURRENT_WEATHER_RE.test(trimmed)) {
+    return route("current_research", "weather_requires_current_research");
+  }
+  if (CURRENT_X_TRENDS_RE.test(trimmed) || SYSTEM_TOOLS_RE.test(trimmed)) {
     return route("current_snapshot", "server_snapshot_supported_current_info");
   }
   if (CURRENT_RESEARCH_RE.test(trimmed)) {

@@ -82,3 +82,34 @@ def test_current_research_keeps_valid_web_tool_call() -> None:
     repaired = _repair_response_for_instruction_contract(response, messages, {})
 
     assert repaired is response
+
+
+def test_current_research_replaces_weather_pseudo_tool_with_web_search() -> None:
+    response = ModelResponse(
+        result=[
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {"id": "pseudo-weather", "name": "print", "args": {"arg1": "weather(city='济南', date='2026-07-04')"}}
+                ],
+            )
+        ],
+        structured_response=None,
+    )
+    messages = [
+        SystemMessage(
+            content=(
+                "<instruction_contract>\n"
+                "- Intent: current_research\n"
+                "- Required tool categories: web\n"
+                "</instruction_contract>"
+            )
+        ),
+        HumanMessage(content="查一下济南、纽约明天的天气预报，汇总报告"),
+    ]
+
+    repaired = _repair_response_for_instruction_contract(response, messages, {})
+
+    tool_call = repaired.result[0].tool_calls[0]
+    assert tool_call["name"] == "web_search"
+    assert "济南" in tool_call["args"]["query"]

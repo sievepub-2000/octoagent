@@ -8,6 +8,7 @@ import { pushSystemEvent } from "@/core/system-events/store";
 import { getLangGraphBaseURL } from "../config";
 import type { LocalSettings } from "../settings";
 import type { RunEvent } from "../runtime/run-events";
+import { classifyDialogueRoute } from "./dialogue-routing";
 import type { AgentThreadState } from "./types";
 
 export type ToolEndEvent = {
@@ -121,11 +122,28 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
           ? targetThreadId
           : undefined
       );
+      const route = classifyDialogueRoute({
+        text: message.text,
+        mode: typeof context.mode === "string" ? context.mode : undefined,
+        hasFiles: message.files.length > 0,
+      });
+      const threadMessages = ((stream.messages ?? stream.values?.messages ?? []) as Message[]);
 
       await stream.submit(buildMessagePayload(message) as never, {
         context: {
           ...context,
           ...extraContext,
+          dialogue_text: message.text,
+          last_user_message: message.text,
+          dialogue_route: {
+            kind: route.kind,
+            reason: route.reason,
+            needs_tools: route.needsTools,
+            needs_memory: route.needsMemory,
+            needs_deep_agent: route.needsDeepAgent,
+          },
+          has_files: message.files.length > 0,
+          thread_message_count: threadMessages.length,
         },
         streamMode: DEFAULT_STREAM_MODE,
         threadId: submitThreadId,

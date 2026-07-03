@@ -84,6 +84,20 @@ class TestResearchIntentRouting:
         assert route.kind == ROUTE_CURRENT_RESEARCH
         assert route.needs_tools is True
 
+    def test_weather_forecast_requires_current_research_tools(self):
+        route = classify_dialogue_route("查一下济南、纽约明天的天气预报，汇总报告")
+
+        assert route.kind == ROUTE_CURRENT_RESEARCH
+        assert route.needs_tools is True
+        assert route.reason in {"weather_requires_current_research", "strong_current_research_keywords"}
+
+    def test_short_weather_forecast_uses_weather_route(self):
+        route = classify_dialogue_route("明天纽约天气")
+
+        assert route.kind == ROUTE_CURRENT_RESEARCH
+        assert route.needs_tools is True
+        assert route.reason == "weather_requires_current_research"
+
     def test_research_intent_overrides_bad_client_route(self):
         route = classify_dialogue_route(
             "帮我查一下阿特劳炼油厂LPG出口量和到中国贸易记录",
