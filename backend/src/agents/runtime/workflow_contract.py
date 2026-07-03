@@ -293,13 +293,14 @@ class LangGraphWorkflowContractService:
                 if len(thread.runs) > max_runs_per_thread:
                     pruned_runs += len(thread.runs) - max_runs_per_thread
                     thread.runs = thread.runs[:max_runs_per_thread]
-            self._audit(
-                "langgraph_contract.pruned",
-                pruned_checkpoints=pruned_checkpoints,
-                pruned_runs=pruned_runs,
-                max_checkpoints_per_thread=max_checkpoints_per_thread,
-                max_runs_per_thread=max_runs_per_thread,
-            )
+            if pruned_checkpoints > 0 or pruned_runs > 0:
+                self._audit(
+                    "langgraph_contract.pruned",
+                    pruned_checkpoints=pruned_checkpoints,
+                    pruned_runs=pruned_runs,
+                    max_checkpoints_per_thread=max_checkpoints_per_thread,
+                    max_runs_per_thread=max_runs_per_thread,
+                )
             self._save()
             return {
                 "pruned_checkpoints": pruned_checkpoints,

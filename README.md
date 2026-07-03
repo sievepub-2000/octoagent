@@ -166,6 +166,27 @@ To **change the default model assignments**, edit
 `runtime/config/models.yaml` (a starter copy is generated on first
 configure) — the schema mirrors `backend/src/governance/model_auth/`.
 
+#### Unified System-Level Model Configuration (v2026.7.4+)
+
+Starting from v2026.7.4, OctoAgent uses a **single entry point** for system-level model configuration:
+
+- **`runtime/config/config.yaml`** — the canonical source for `system.default_model`
+- All backend services read default model from this file via `load_setup_state()` in `backend/src/runtime/config/paths.py`
+- Priority: `config.yaml` > `setup_state.json` (fallback)
+
+This eliminates configuration drift between multiple config files. The workspace-level setup (`workspace/env/setup.json`) remains independent for per-project overrides.
+
+```yaml
+# runtime/config/config.yaml
+system:
+  default_model: "ornith-1.0-35b-nvfp4"  # Single source of truth
+
+models:
+- name: ornith-1.0-35b-nvfp4
+  priority: 120
+  ...
+```
+
 ### Start the service
 
 Foreground (development):

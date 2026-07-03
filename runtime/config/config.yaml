@@ -1,0 +1,200 @@
+models:
+- name: ornith-1.0-35b-nvfp4
+  priority: 120
+  display_name: Ornith 1.0 35B NVFP4 (Local)
+  description: Ornith-1.0-35B NVFP4, self-scaffolding RL agentic coding model via
+    llama.cpp. 3B active / 35B MoE, 262K context, multimodal (vision).
+  provider_name: llamacpp
+  model: ornith
+  interface_type: openai_compatible
+  api_key: none
+  base_url: http://localhost:8000/v1
+  max_tokens: 4096
+  temperature: 0.2
+  request_timeout: 300
+  supports_thinking: true
+  supports_reasoning_effort: false
+  supports_vision: true
+  max_context_tokens: 262144
+  fallback_models:
+  - google-gemini-3.5-pro
+  - nvidia-nemotron-3-super
+- name: google-gemini-3.1-pro
+  priority: 90
+  display_name: Google Gemini 3.1 Pro
+  description: Google Gemini 3.1 Pro via Google GenAI API, 1M context, multimodal.
+  provider_name: google
+  model: gemini-3.1-pro-preview
+  interface_type: google_genai
+  api_key: $GOOGLE_API_KEY
+  temperature: 0.85
+  request_timeout: 30
+  max_context_tokens: 1048576
+  supports_thinking: true
+  supports_reasoning_effort: false
+  supports_vision: true
+  fallback_models:
+  - google-gemini-3.5-pro
+  - nvidia-nemotron-3-super
+- name: google-gemini-3.5-pro
+  priority: 85
+  display_name: Google Gemini 3.5 Pro
+  description: Google Gemini 3.5 Pro via Google GenAI API, latest flagship model with
+    extended thinking.
+  provider_name: google
+  model: gemini-3.5-pro-preview
+  interface_type: google_genai
+  api_key: $GOOGLE_API_KEY
+  temperature: 0.85
+  request_timeout: 60
+  max_context_tokens: 1048576
+  supports_thinking: true
+  supports_reasoning_effort: true
+  supports_vision: true
+  fallback_models:
+  - nvidia-nemotron-3-super
+- name: lyria-3-pro-free
+  priority: 65
+  display_name: Google Lyria 3 Pro Preview (Free)
+  description: Google Lyria 3 Pro Preview via OpenRouter free tier, 1M context.
+  provider_name: openrouter
+  model: google/lyria-3-pro-preview
+  interface_type: openai_compatible
+  api_key: $OPENROUTER_API_KEY
+  base_url: https://openrouter.ai/api/v1
+  max_tokens: 4096
+  temperature: 0.7
+  request_timeout: 120
+  max_context_tokens: 1048576
+  supports_thinking: false
+  supports_reasoning_effort: false
+  supports_vision: true
+  pricing_free: true
+  fallback_models:
+  - nvidia-nemotron-3-super
+- name: nvidia-nemotron-3-super
+  priority: 8
+  display_name: NVIDIA · Nemotron 3 Super
+  description: NVIDIA Nemotron 3 Super 120B A12B via NVIDIA NIM OpenAI-compatible
+    endpoint.
+  provider_name: nvidia
+  model: nvidia/nemotron-3-super-120b-a12b
+  api_key: $NVIDIA_API_KEY
+  base_url: https://integrate.api.nvidia.com/v1
+  interface_type: openai_compatible
+  max_tokens: 4096
+  temperature: 0.85
+  request_timeout: 120
+  supports_thinking: true
+  supports_reasoning_effort: true
+  supports_vision: false
+  max_context_tokens: 262144
+  profile_tags:
+  - reasoning
+  - fallback
+  source: operator_nvidia_api_key
+  fallback_models: []
+tool_groups:
+- name: web
+- name: file:read
+- name: file:write
+- name: bash
+tools:
+- name: web_search
+  group: web
+  use: src.community.tavily.tools:web_search_tool
+  max_results: 8
+- name: web_fetch
+  group: web
+  use: src.community.tavily.tools:web_fetch_tool
+- name: web_search_ddg
+  group: web
+  use: src.community.ddg.tools:web_search_tool
+  max_results: 8
+- name: web_fetch_ddg
+  group: web
+  use: src.community.ddg.tools:web_fetch_tool
+  timeout: 30
+- name: web_fetch_heavy
+  group: web
+  use: src.community.tavily.tools:web_fetch_heavy_tool
+- name: web_fetch_scrapling
+  group: web
+  use: src.community.scrapling.tools:scrapling_fetch
+- name: web_fetch_stealth
+  group: web
+  use: src.community.scrapling.tools:scrapling_fetch_stealth
+- name: image_search
+  group: web
+  use: src.community.image_search.tools:image_search_tool
+  max_results: 5
+- name: ls
+  group: file:read
+  use: src.tools.sandbox.tools:ls_tool
+- name: read_file
+  group: file:read
+  use: src.tools.sandbox.tools:read_file_tool
+- name: write_file
+  group: file:write
+  use: src.tools.sandbox.tools:write_file_tool
+- name: str_replace
+  group: file:write
+  use: src.tools.sandbox.tools:str_replace_tool
+- name: bash
+  group: bash
+  use: src.tools.sandbox.tools:bash_tool
+sandbox:
+  use: src.tools.sandbox.local:LocalSandboxProvider
+checkpointer:
+  type: postgres
+  connection_string: postgresql://octoagent:octoagent_local_2026@127.0.0.1:5432/octoagent?sslmode=disable
+title:
+  enabled: false
+memory:
+  enabled: true
+channels:
+  qq:
+    enabled: true
+    login_status_url: http://127.0.0.1:19814/identity
+    shared_secret: change-me
+    outbound_url: http://127.0.0.1:19814/outbound
+    logout_url: http://127.0.0.1:19814/logout
+    timeout_seconds: 120
+  feishu:
+    enabled: false
+    app_id: ''
+    app_secret: ''
+    verification_token: ''
+integrations:
+  browser:
+    enabled: true
+    engine: patchright
+    embedded_headless: true
+    headless: true
+    executable_path: null
+    artifacts_dir: runtime/browser_runtime/artifacts
+    supports_authenticated_sessions: false
+    supports_remote_browser_pool: false
+  system_execution:
+    enabled: true
+    engine: sandbox_exec
+embedded_model:
+  project_managed: true
+  enabled: true
+  framework: llama_cpp
+  repo_id: local/gemma-4-e2b-it-GGUF
+  filename: gemma-4-e2b-it-Q8_0.gguf
+  cache_dir: deploy/system/bootstrap/models
+  vector_store_path: workspace/runtime/memory/octoagent_rag.duckdb
+  onboarding_enabled: true
+  use_for_embeddings: true
+  auto_download: false
+  n_ctx: 4096
+  n_batch: 256
+  n_threads: 4
+  max_tokens: 256
+  temperature: 0.85
+  top_p: 0.9
+  retrieval_top_k: 8
+system:
+  default_model: ornith-1.0-35b-nvfp4

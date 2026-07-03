@@ -186,16 +186,9 @@ def _setup_state_file() -> Path:
 
 
 def _load_setup_state() -> dict[str, str]:
-    target = _setup_state_file()
-    if not target.exists():
-        return {}
-    try:
-        data = json.loads(target.read_text(encoding="utf-8"))
-        if isinstance(data, dict):
-            return {str(key): str(value) for key, value in data.items()}
-    except Exception:
-        logger.warning("Failed to load setup state from %s", target, exc_info=True)
-    return {}
+    """Load setup state using the unified entry point (config.yaml > setup_state.json)."""
+    from src.runtime.config.paths import load_setup_state as unified_load_setup_state
+    return unified_load_setup_state()
 
 
 def _save_setup_state(*, workspace_path: str, default_model: str, sandbox_mode: str) -> None:

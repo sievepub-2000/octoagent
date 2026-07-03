@@ -30,7 +30,6 @@ backend/reports/
 .env.docker
 
 # Configuration files
-config.yaml
 mcp_config.json
 extensions_config.json
 

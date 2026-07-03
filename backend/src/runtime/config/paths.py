@@ -4,6 +4,8 @@ import os
 import re
 from collections.abc import Iterable
 from pathlib import Path, PurePosixPath
+import yaml
+
 
 # Virtual path prefix seen by agents inside the sandbox
 VIRTUAL_PATH_PREFIX = "/mnt/user-data"
@@ -11,6 +13,25 @@ DEFAULT_WORKSPACE_DIRNAME = "octoagent-workspace"
 SETUP_STATE_ENV_VAR = "OCTO_AGENT_SETUP_STATE_FILE"
 
 _SAFE_THREAD_ID_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
+
+
+def _load_system_default_model_from_config() -> str | None:
+    """Load the system-level default model from config.yaml (single source of truth)."""
+    try:
+        from src.runtime.config.app_config import resolve_app_config_path
+        config_path = resolve_app_config_path()
+        if config_path.exists():
+            with open(config_path, encoding="utf-8") as f:
+                config_data = yaml.safe_load(f) or {}
+            system_section = config_data.get("system", {})
+            default_model = system_section.get("default_model", "").strip()
+            if default_model:
+                return default_model
+    except Exception:
+        pass
+    return None
+
+
 
 
 def get_setup_state_file() -> Path:
@@ -21,17 +42,36 @@ def get_setup_state_file() -> Path:
 
 
 def load_setup_state() -> dict[str, str]:
-    """Read persisted setup state from the user-scoped setup file."""
+    """Read persisted setup state from the user-scoped setup file.
+    
+    Priority: config.yaml system.default_model > setup_state.json default_model
+    """
+    # First check config.yaml for system-level default model (single source of truth)
+    system_default = _load_system_default_model_from_config()
+    
     state_file = get_setup_state_file()
     if not state_file.exists():
+        if system_default:
+            return {"default_model": system_default}
         return {}
     try:
         payload = json.loads(state_file.read_text(encoding="utf-8"))
     except Exception:
+        if system_default:
+            return {"default_model": system_default}
         return {}
     if not isinstance(payload, dict):
+        if system_default:
+            return {"default_model": system_default}
         return {}
-    return {str(key): str(value) for key, value in payload.items() if value is not None}
+    
+    result = {str(key): str(value) for key, value in payload.items() if value is not None}
+    
+    # Override with config.yaml default_model if present and setup_state doesn't have explicit override
+    if system_default and "default_model" not in result:
+        result["default_model"] = system_default
+    
+    return result
 
 
 def resolve_configured_default_model_name(available_model_names: Iterable[str]) -> str | None:
