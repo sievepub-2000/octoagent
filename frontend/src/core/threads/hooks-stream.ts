@@ -1,5 +1,6 @@
 import type { Message, StreamMode } from "@langchain/langgraph-sdk";
 import { useStream } from "@langchain/langgraph-sdk/react";
+import { useQueryClient, type QueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
@@ -46,6 +47,10 @@ type SendThreadMessage = (
 const DEFAULT_STREAM_MODE: StreamMode[] = ["messages-tuple", "updates", "custom"];
 const DEFAULT_ASSISTANT_ID = "lead_agent";
 
+function invalidateThreadSearchQueries(queryClient: QueryClient) {
+  void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
+}
+
 function buildMessagePayload(message: PromptInputMessage): Record<string, unknown> {
   return {
     messages: [
@@ -67,6 +72,7 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
     onFinish,
   } = options;
 
+  const queryClient = useQueryClient();
   const shouldLoadThreadHistory = loadInitialState && threadId !== "new";
   const [createdThreadId, setCreatedThreadId] = useState<string | null>(null);
   const effectiveThreadId = shouldLoadThreadHistory ? threadId : createdThreadId;
@@ -80,8 +86,9 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
       activeThreadIdRef.current = nextThreadId;
       setCreatedThreadId(nextThreadId);
       onStart?.(nextThreadId);
+      invalidateThreadSearchQueries(queryClient);
     },
-    [onStart],
+    [onStart, queryClient],
   );
 
   const stream = useStream<AgentThreadState>({
@@ -91,6 +98,7 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
     onThreadId: handleThreadId,
     onFinish: (state) => {
       onFinish?.((state.values ?? {}) as AgentThreadState);
+      invalidateThreadSearchQueries(queryClient);
     },
     fetchStateHistory: true,
     initialValues: loadInitialState ? undefined : null,
