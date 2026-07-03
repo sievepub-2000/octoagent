@@ -1,6 +1,6 @@
 import type { Message, StreamMode } from "@langchain/langgraph-sdk";
 import { useStream } from "@langchain/langgraph-sdk/react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { pushSystemEvent } from "@/core/system-events/store";
@@ -67,12 +67,27 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
   } = options;
 
   const shouldLoadThreadHistory = loadInitialState && threadId !== "new";
+  const [createdThreadId, setCreatedThreadId] = useState<string | null>(null);
+  const effectiveThreadId = shouldLoadThreadHistory ? threadId : createdThreadId;
+  const activeThreadIdRef = useRef<string | null>(effectiveThreadId);
+  if (effectiveThreadId && activeThreadIdRef.current !== effectiveThreadId) {
+    activeThreadIdRef.current = effectiveThreadId;
+  }
+
+  const handleThreadId = useCallback(
+    (nextThreadId: string) => {
+      activeThreadIdRef.current = nextThreadId;
+      setCreatedThreadId(nextThreadId);
+      onStart?.(nextThreadId);
+    },
+    [onStart],
+  );
 
   const stream = useStream<AgentThreadState>({
     assistantId: DEFAULT_ASSISTANT_ID,
     apiUrl: getLangGraphBaseURL(),
-    threadId: shouldLoadThreadHistory ? threadId : null,
-    onThreadId: onStart,
+    threadId: effectiveThreadId,
+    onThreadId: handleThreadId,
     onFinish: (state) => {
       onFinish?.((state.values ?? {}) as AgentThreadState);
     },
@@ -101,15 +116,19 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
         source: "session",
       });
 
+      const submitThreadId = activeThreadIdRef.current ?? (
+        shouldLoadThreadHistory && targetThreadId !== "new"
+          ? targetThreadId
+          : undefined
+      );
+
       await stream.submit(buildMessagePayload(message) as never, {
         context: {
           ...context,
           ...extraContext,
         },
         streamMode: DEFAULT_STREAM_MODE,
-        threadId: shouldLoadThreadHistory && targetThreadId !== "new"
-          ? targetThreadId
-          : undefined,
+        threadId: submitThreadId,
       } as never);
     },
     [context, shouldLoadThreadHistory, stream],
