@@ -137,15 +137,15 @@ def web_search_tool(query: str) -> str:
     except ImportError:
         return json.dumps([{"error": "ddgs package not installed"}])
 
-    try:
-        def _ddg_search():
-            with DDGS(timeout=25) as ddg:
-                return list(ddg.text(query, region="us-en", max_results=max_results))
+    def _ddg_search():
+        with DDGS(timeout=25) as ddg:
+            return list(ddg.text(query, region="us-en", max_results=max_results))
 
+    try:
+        raw = _ddg_search()
     except Exception as exc:
-        logger.exception("ddgs search failed: %s", exc)
+        logger.warning("ddgs search failed: %s", exc)
         return json.dumps([{"error": f"web_search failed: {type(exc).__name__}: {exc}"}])
-    raw = _ddg_search()
 
     normalised = [
         {

@@ -24,12 +24,18 @@ _INIT_TRIED = False
 
 
 def _get_proxy_from_env() -> str | None:
-    # No proxy service configured -- always use direct connections.
     if os.environ.get("OCTOAGENT_WEB_SCRAPING_DISABLED"):
         raise RuntimeError(
             "Web scraping tools are disabled (OCTOAGENT_WEB_SCRAPING_DISABLED=1). "
             "Set the env var to 0 or configure HTTPS_PROXY to re-enable."
         )
+    # curl_cffi HTTP Fetcher honours proxy env vars automatically, but the
+    # Playwright-based StealthyFetcher does not -- so resolve the proxy here and
+    # pass it explicitly to keep both fetchers routed through the proxy.
+    for key in ("HTTPS_PROXY", "https_proxy", "HTTP_PROXY", "http_proxy", "ALL_PROXY", "all_proxy"):
+        val = os.environ.get(key, "").strip()
+        if val:
+            return val
     return None
 
 def _lazy_init() -> None:
@@ -107,6 +113,9 @@ def scrapling_fetch(url: str) -> str:
         return json.dumps({"error": "scrapling not installed", "url": url})
     try:
         fetch_kwargs = dict(stealthy_headers=True, timeout=15)
+        proxy = _get_proxy_from_env()
+        if proxy:
+            fetch_kwargs["proxy"] = proxy
         page = _FETCHER.get(url, **fetch_kwargs)
         return _fmt_result(url, page, mode="http")
     except Exception as e:
@@ -141,6 +150,9 @@ def scrapling_fetch_stealth(url: str) -> str:
             "network_idle": True,
             "timeout": 60000,
         }
+        proxy = _get_proxy_from_env()
+        if proxy:
+            kwargs["proxy"] = proxy
         page = _STEALTHY.fetch(url, **kwargs)
         return _fmt_result(url, page, mode="stealth")
     except Exception as e:

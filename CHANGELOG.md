@@ -1,5 +1,10 @@
+## [2026.7.7] - 2026-07-07
 
+### Web Tool Reliability Fixes
 
+- **ddg web_search**: Fixed a `try/except` that only wrapped the inner `_ddg_search` function definition, leaving the actual call unguarded so a `DDGSException` (e.g. "No results found") propagated as a hard tool error. The call is now inside the guard and returns a JSON error payload instead of raising.
+- **tavily web_search**: Queries longer than 400 characters no longer hard-fail with Tavily `BadRequestError`; the query is truncated to 400 chars for the Tavily API call (the full query is still used for the DDG fallback), and the DDG fallback is wrapped so it degrades gracefully instead of raising.
+- **scrapling fetchers**: `_get_proxy_from_env()` now resolves `HTTPS_PROXY`/`HTTP_PROXY` from the environment (it previously always returned `None`). The resolved proxy is passed explicitly to the Playwright-based `StealthyFetcher` (which does not inherit env proxies), so stealth fetches for anti-bot pages route through the proxy.
 
 ## [2026.7.4] - 2026-07-02
 

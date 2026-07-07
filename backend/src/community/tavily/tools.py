@@ -104,13 +104,23 @@ def web_search_tool(query: str) -> str:
     Args:
         query: The query to search for.
     """
+    # Tavily rejects queries longer than 400 chars with a hard BadRequestError;
+    # truncate for the API call while keeping the full query for the DDG fallback.
+    tavily_query = query[:400] if isinstance(query, str) else query
     try:
-        res = _client().search(query, max_results=_max_results())
+        res = _client().search(tavily_query, max_results=_max_results())
     except Exception as exc:
         logger.warning("tavily.search failed: %s; falling back to DDG", exc)
         from src.community.ddg.tools import web_search_tool as ddg_search
 
-        return ddg_search.invoke({"query": query})
+        try:
+            return ddg_search.invoke({"query": query})
+        except Exception as ddg_exc:
+            logger.warning("DDG web_search fallback also failed: %s", ddg_exc)
+            return json.dumps(
+                [{"error": f"web_search failed (tavily+ddg): {type(ddg_exc).__name__}: {ddg_exc}"}],
+                ensure_ascii=False,
+            )
     out: list[dict[str, Any]] = []
     for r in res.get("results", []):
         out.append({"title": r.get("title", ""), "url": r.get("url", ""), "snippet": r.get("content", "")})
