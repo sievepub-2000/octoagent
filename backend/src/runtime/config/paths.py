@@ -3,9 +3,10 @@ import json
 import os
 import re
 from collections.abc import Iterable
+from functools import lru_cache
 from pathlib import Path, PurePosixPath
-import yaml
 
+import yaml
 
 # Virtual path prefix seen by agents inside the sandbox
 VIRTUAL_PATH_PREFIX = "/mnt/user-data"
@@ -15,21 +16,30 @@ SETUP_STATE_ENV_VAR = "OCTO_AGENT_SETUP_STATE_FILE"
 _SAFE_THREAD_ID_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
 
 
+@lru_cache(maxsize=8)
+def _read_system_default_model(config_path: str, mtime_ns: int, size: int) -> str | None:
+    """Read a config revision once; the file metadata forms the cache key."""
+    del mtime_ns, size
+    try:
+        with Path(config_path).open(encoding="utf-8") as f:
+            config_data = yaml.safe_load(f) or {}
+        system_section = config_data.get("system", {})
+        default_model = system_section.get("default_model", "").strip()
+        return default_model or None
+    except Exception:
+        return None
+
+
 def _load_system_default_model_from_config() -> str | None:
-    """Load the system-level default model from config.yaml (single source of truth)."""
+    """Load the system-level default model without reparsing an unchanged file."""
     try:
         from src.runtime.config.app_config import resolve_app_config_path
+
         config_path = resolve_app_config_path()
-        if config_path.exists():
-            with open(config_path, encoding="utf-8") as f:
-                config_data = yaml.safe_load(f) or {}
-            system_section = config_data.get("system", {})
-            default_model = system_section.get("default_model", "").strip()
-            if default_model:
-                return default_model
-    except Exception:
-        pass
-    return None
+        stat = config_path.stat()
+    except (OSError, RuntimeError):
+        return None
+    return _read_system_default_model(str(config_path), stat.st_mtime_ns, stat.st_size)
 
 
 

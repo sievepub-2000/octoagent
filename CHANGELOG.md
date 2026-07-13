@@ -1,3 +1,27 @@
+## [20260714] - 2026-07-14
+
+### Runtime performance
+
+- Cached unchanged model configuration revisions instead of reparsing YAML several times during every Agent build.
+- Removed the cold Agent dependency on the legacy workflow storage import chain while preserving the kernel lifecycle contract.
+- Replaced the blocking host CPU sample with an immediate sample and a thread-safe two-second system-overview snapshot cache.
+- Stopped polling host telemetry while the context panel is closed or a non-system tab is selected.
+- Enabled text-only gzip for JavaScript, CSS, JSON, XML, and SVG while leaving binary responses and Agent event streams uncompressed.
+
+### Frontend and dependency cleanup
+
+- Unmounted the right context panel when closed, reducing hidden rendering and background work while preserving Activity, Files, and System views.
+- Replaced the decorative confetti action with the standard accessible button.
+- Updated the frontend check command for Next.js 16, which no longer provides `next lint`.
+- Aligned the production and container package manager on pnpm 11.12, moved security overrides and dependency build policy to the supported workspace configuration, and removed the deprecated type-only `hast` runtime package.
+- Removed unused Galaxy and Magic Bento components and the unused `canvas-confetti`, `gsap`, `ogl`, and `@types/gsap` packages (more than 1,300 lines of unreachable UI code).
+- Unified backend package, API, and frontend release versions at `20260714`.
+
+### Verification
+
+- Added regression tests for configuration cache invalidation, nonblocking CPU sampling, and system-overview snapshot reuse.
+- Verified backend affected tests and lint, frontend ESLint and TypeScript checks, production build, Nginx configuration, API and Agent smoke tests, browser interaction, restart persistence, compressed UTF-8 responses, and service logs.
+
 ## [2026.7.9] - 2026-07-13
 
 ### Project execution contract

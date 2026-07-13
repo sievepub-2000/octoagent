@@ -17,12 +17,9 @@ _DEFAULT_OCTO_LIFECYCLE_STATES = (
 
 
 def _resolve_lifecycle_states() -> tuple[str, ...]:
-    try:
-        from src.storage.workflow.status import LIFECYCLE_STATES
-
-        return tuple(sorted(LIFECYCLE_STATES))
-    except Exception:
-        return _DEFAULT_OCTO_LIFECYCLE_STATES
+    # Keep the stable kernel contract local. Importing workflow storage here
+    # loaded the legacy workflow subsystem during every cold agent build.
+    return _DEFAULT_OCTO_LIFECYCLE_STATES
 
 
 @dataclass(frozen=True, slots=True)

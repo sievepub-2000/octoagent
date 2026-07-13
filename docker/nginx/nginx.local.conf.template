@@ -17,8 +17,14 @@ http {
     uwsgi_temp_path ${OCTO_NGINX_TEMP_ROOT}/uwsgi;
     scgi_temp_path ${OCTO_NGINX_TEMP_ROOT}/scgi;
 
-    # Disable gzip at http level to prevent corruption of multi-byte chars (Chinese) and binary files
-    gzip off;
+    # Compress text assets only. gzip is byte-safe for UTF-8; binary and SSE
+    # response types are deliberately excluded.
+    gzip on;
+    gzip_comp_level 5;
+    gzip_min_length 1024;
+    gzip_vary on;
+    gzip_proxied any;
+    gzip_types application/javascript application/json application/xml image/svg+xml text/css text/javascript text/plain text/xml;
 
     upstream gateway {
         server 127.0.0.1:${OCTO_GATEWAY_PORT};

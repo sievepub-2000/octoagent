@@ -1,4 +1,13 @@
-ignoredBuiltDependencies:
-  - esbuild
-  - sharp
-  - unrs-resolver
+allowBuilds:
+  esbuild: true
+  msw: false
+  sharp: true
+  unrs-resolver: true
+
+overrides:
+  postcss: ">=8.4.49"
+  langsmith: "0.7.15"
+  mermaid: "11.16.0"
+  dompurify: "3.4.11"
+  ws: "8.21.0"
+  "@babel/core": "7.29.6"

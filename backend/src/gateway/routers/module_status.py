@@ -15,6 +15,7 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
+import threading
 import time
 import traceback
 from collections.abc import Callable
@@ -27,6 +28,10 @@ from fastapi import APIRouter
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["system"])
+
+_OVERVIEW_CACHE_TTL_SECONDS = 2.0
+_overview_cache: tuple[float, dict[str, Any] | None] = (0.0, None)
+_overview_cache_lock = threading.Lock()
 
 
 def _thermal_sensors() -> list[dict[str, Any]]:
@@ -93,7 +98,25 @@ def _service_status(name: str) -> dict[str, str]:
 
 @router.get("/overview")
 def system_overview() -> dict[str, Any]:
-    """Small, read-only host overview for the workspace context panel."""
+    """Return a short-lived host snapshot without blocking on CPU sampling."""
+    global _overview_cache
+
+    now = time.monotonic()
+    cached_at, cached = _overview_cache
+    if cached is not None and now - cached_at < _OVERVIEW_CACHE_TTL_SECONDS:
+        return cached
+
+    with _overview_cache_lock:
+        now = time.monotonic()
+        cached_at, cached = _overview_cache
+        if cached is not None and now - cached_at < _OVERVIEW_CACHE_TTL_SECONDS:
+            return cached
+        snapshot = _build_system_overview()
+        _overview_cache = (now, snapshot)
+        return snapshot
+
+
+def _build_system_overview() -> dict[str, Any]:
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
     services = [_service_status(name) for name in ("octoagent-local.service", "clash-verge-service.service")]
@@ -103,7 +126,7 @@ def system_overview() -> dict[str, Any]:
     return {
         "overall": overall,
         "generated_at": time.time(),
-        "cpu": {"percent": psutil.cpu_percent(interval=0.1), "load": list(os.getloadavg())},
+        "cpu": {"percent": psutil.cpu_percent(interval=None), "load": list(os.getloadavg())},
         "memory": {"percent": memory.percent, "used_bytes": memory.used, "total_bytes": memory.total},
         "disk": {"percent": disk.percent, "used_bytes": disk.used, "total_bytes": disk.total},
         "gpu": gpu,
