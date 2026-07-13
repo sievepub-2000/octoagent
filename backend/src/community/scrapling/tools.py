@@ -14,6 +14,7 @@ from typing import Any
 
 from langchain.tools import tool
 
+from src.utils.proxy_env import should_trust_proxy_env
 from src.utils.url_safety import is_url_safe
 
 logger = logging.getLogger(__name__)
@@ -29,6 +30,8 @@ def _get_proxy_from_env() -> str | None:
             "Web scraping tools are disabled (OCTOAGENT_WEB_SCRAPING_DISABLED=1). "
             "Set the env var to 0 or configure HTTPS_PROXY to re-enable."
         )
+    if not should_trust_proxy_env():
+        return None
     # curl_cffi HTTP Fetcher honours proxy env vars automatically, but the
     # Playwright-based StealthyFetcher does not -- so resolve the proxy here and
     # pass it explicitly to keep both fetchers routed through the proxy.
@@ -58,7 +61,7 @@ def _lazy_init() -> None:
 
 
 def _allow_insecure_ssl_retry() -> bool:
-    return os.environ.get("OCTO_SCRAPLING_ALLOW_INSECURE_SSL_RETRY", "1").strip().lower() in {"1", "true", "yes", "on"}
+    return os.environ.get("OCTO_SCRAPLING_ALLOW_INSECURE_SSL_RETRY", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _is_certificate_verify_error(exc: BaseException) -> bool:
@@ -122,7 +125,8 @@ def scrapling_fetch(url: str) -> str:
         if _allow_insecure_ssl_retry() and _is_certificate_verify_error(e):
             logger.warning("scrapling_fetch TLS verification failed for %s; retrying without verification: %s", url, e)
             try:
-                page = _FETCHER.get(url, stealthy_headers=True, timeout=30, verify=False)
+                retry_kwargs = dict(fetch_kwargs, timeout=30, verify=False)
+                page = _FETCHER.get(url, **retry_kwargs)
                 return _fmt_result(url, page, mode="http", tls_verification="disabled_after_certificate_error")
             except Exception as retry_e:
                 logger.warning("scrapling_fetch insecure TLS retry failed for %s: %s", url, retry_e)

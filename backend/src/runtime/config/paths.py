@@ -152,6 +152,11 @@ class Paths:
         return self.base_dir / "workflow"
 
     @property
+    def projects_dir(self) -> Path:
+        """Persistent long-lived project definitions."""
+        return self.base_dir / "projects"
+
+    @property
     def workflow_tasks_dir(self) -> Path:
         return self.workflow_root / "taskwork"
 

@@ -13,7 +13,6 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { useI18n } from "@/core/i18n/hooks";
-import type { RunEvent } from "@/core/runtime";
 import {
   extractContentFromMessage,
   extractPresentFilesFromMessage,
@@ -24,6 +23,7 @@ import {
 } from "@/core/messages/utils";
 import type { MessageGroup } from "@/core/messages/utils";
 import { useRehypeSplitWordsIntoSpans } from "@/core/rehype";
+import type { RunEvent } from "@/core/runtime";
 import type { Subtask } from "@/core/tasks";
 import { useUpdateSubtask } from "@/core/tasks/context";
 import type { AgentThreadState } from "@/core/threads";

@@ -1249,3 +1249,19 @@ slices for traceability:
 ### Version Update
 
 - Bumped version from `2026.7.1` to `2026.7.2` in `pyproject.toml`
+## [2026.7.8] - 2026-07-13
+
+### Project-first WebUI
+
+- Replaced workflow-shaped projects with persistent project contexts: working directory, Git remote/branch, instructions, default model, permission mode, pinned files, archive state, and project memory.
+- Added project-scoped task creation and thread association through `project_id`.
+- Simplified navigation to chats and projects; advanced model, agent, skill, MCP, and channel controls remain available in Settings.
+- Rebuilt the chat context panel around Activity, Files, and live System status. Removed the public workflow inspector, oversized task-workspace card, and global status strip.
+- Flattened the visual system to standard shadcn-style surfaces and removed decorative welcome/management presentation.
+
+### Reliability and operations
+
+- Added `/api/system/overview` for CPU, memory, disk, GPU, temperature, service, proxy, and encrypted-DNS status.
+- Fixed proxy trust and TLS behavior for DDG, Scrapling, and webpage reading, with secure certificate verification enabled by default.
+- Standardized UTF-8 subprocess handling and corrected two invalid encoding arguments in system operations.
+- Frontend release gates now pass with zero ESLint warnings/errors, TypeScript success, and a clean Next.js production build.

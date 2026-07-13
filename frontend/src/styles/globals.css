@@ -491,12 +491,9 @@
   }
 
   .octo-panel {
-    background: linear-gradient(180deg, var(--panel-start), var(--panel-end));
-    border: 1px solid var(--panel-border);
-    box-shadow:
-      3px 3px 6px var(--neu-dark),
-      -3px -3px 6px var(--neu-light);
-    backdrop-filter: blur(26px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: none;
   }
 
   .octo-management-card {
@@ -529,27 +526,15 @@
   }
 
   .octo-surface {
-    background: linear-gradient(180deg, var(--panel-start), var(--panel-end));
-    border: 1px solid color-mix(in srgb, var(--panel-border) 82%, transparent);
-    box-shadow:
-      0 18px 40px color-mix(in srgb, var(--panel-shadow) 42%, transparent),
-      4px 4px 8px var(--neu-dark),
-      -4px -4px 8px var(--neu-light);
-    backdrop-filter: blur(26px);
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: none;
   }
 
   .octo-surface-soft {
-    background: linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--panel-start) 96%, white 4%),
-      color-mix(in srgb, var(--panel-end) 94%, transparent 6%)
-    );
-    border: 1px solid color-mix(in srgb, var(--panel-border) 72%, transparent);
-    box-shadow:
-      inset 1px 1px 0 color-mix(in srgb, var(--emboss-top) 72%, transparent),
-      2px 2px 5px var(--neu-dark),
-      -2px -2px 5px var(--neu-light);
-    backdrop-filter: blur(20px);
+    background: var(--muted);
+    border: 1px solid var(--border);
+    box-shadow: none;
   }
 
   .octo-markdown {
@@ -614,11 +599,9 @@
   }
 
   :root.dark .octo-panel {
-    background: linear-gradient(180deg, var(--panel-start), var(--panel-end));
-    border-color: var(--panel-border);
-    box-shadow:
-      3px 3px 6px var(--neu-dark),
-      -2px -2px 5px var(--neu-light);
+    background: var(--card);
+    border-color: var(--border);
+    box-shadow: none;
   }
 
   :root.dark .octo-surface,
@@ -671,12 +654,9 @@
   }
 
   .octo-chip {
-    background: linear-gradient(180deg, color-mix(in srgb, var(--panel-start) 94%, white 6%), color-mix(in srgb, var(--panel-end) 96%, transparent 4%));
-    border: 1px solid color-mix(in srgb, var(--panel-border) 50%, transparent);
-    box-shadow:
-      2px 2px 4px var(--neu-dark),
-      -2px -2px 4px var(--neu-light);
-    backdrop-filter: blur(18px);
+    background: var(--muted);
+    border: 1px solid var(--border);
+    box-shadow: none;
   }
 
   .unified-single-layer-surface {

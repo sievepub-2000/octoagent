@@ -92,7 +92,7 @@ def _ssl_verify_context() -> ssl.SSLContext | bool:
 
 
 def _allow_insecure_ssl_retry() -> bool:
-    return os.environ.get("OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY", "1").strip().lower() in {"1", "true", "yes", "on"}
+    return os.environ.get("OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _is_certificate_verify_error(exc: BaseException) -> bool:
@@ -103,7 +103,7 @@ def _is_certificate_verify_error(exc: BaseException) -> bool:
 def _client(timeout: float = _DEFAULT_TIMEOUT, *, verify: ssl.SSLContext | bool | None = None) -> httpx.Client:
     """httpx client that honours usable HTTP_PROXY/HTTPS_PROXY env vars."""
     return httpx.Client(
-        trust_env=True,
+        trust_env=should_trust_proxy_env(),
         timeout=httpx.Timeout(timeout, connect=_DEFAULT_CONNECT),
         headers={
             "User-Agent": _USER_AGENT,
@@ -138,8 +138,9 @@ def web_search_tool(query: str) -> str:
         return json.dumps([{"error": "ddgs package not installed"}])
 
     def _ddg_search():
-        with DDGS(timeout=25) as ddg:
-            return list(ddg.text(query, region="us-en", max_results=max_results))
+        with without_unavailable_local_proxy():
+            with DDGS(timeout=25) as ddg:
+                return list(ddg.text(query, region="us-en", max_results=max_results))
 
     try:
         raw = _ddg_search()
@@ -269,6 +270,7 @@ def web_fetch_tool(url: str) -> str:
             pass
 
     tls_warning = ""
+    fetch_error = ""
     try:
         status, ctype, body = _fetch_raw(url, timeout=timeout)
     except Exception as exc:
@@ -282,9 +284,11 @@ def web_fetch_tool(url: str) -> str:
                 )
             except Exception as retry_exc:
                 logger.warning("web_fetch insecure TLS retry failed for %s: %s", url, retry_exc)
+                fetch_error = f"{type(retry_exc).__name__}: {retry_exc}"
                 status, ctype, body = 0, "", ""
         else:
             logger.warning("web_fetch initial GET failed for %s: %s", url, exc)
+            fetch_error = f"{type(exc).__name__}: {exc}"
             status, ctype, body = 0, "", ""
 
     blocked_reason = _anti_bot_reason(status, body)
@@ -311,7 +315,8 @@ def web_fetch_tool(url: str) -> str:
                 logger.warning("web_fetch RSS fallback failed: %s", exc)
 
     if not body:
-        return f"Web fetch failed for {url}: status={status}. Consider trying a different source URL or web_search for alternatives."
+        detail = f", error={fetch_error}" if fetch_error else ""
+        return f"Web fetch failed for {url}: status={status}{detail}. Consider trying a different source URL or web_search for alternatives."
 
     # XML/RSS content: return raw (truncated) — readability does not help.
     if "xml" in ctype or url.endswith((".rss", ".xml", ".atom")):

@@ -81,7 +81,7 @@ def _run(args: list[str], *, timeout: int = 10) -> dict[str, Any]:
         display=env.get("DISPLAY"),
     )
     try:
-        result = subprocess.run(args, capture_output=True, text=True, timeout=timeout, check=False, env=env)
+        result = subprocess.run(args, capture_output=True, text=True, encoding="utf-8", timeout=timeout, check=False, env=env)
     except Exception as exc:
         record_exception_trace("desktop_driver._run", exc, args=args)
         return {"success": False, "status": "transport_error", "detail": str(exc)}

@@ -18,6 +18,7 @@ from langgraph.types import Command
 from langgraph.typing import ContextT
 
 from src.agents.thread_state import ThreadState
+from src.utils.proxy_env import should_trust_proxy_env
 from src.utils.url_safety import is_url_safe, safe_join_url
 
 logger = logging.getLogger(__name__)
@@ -185,7 +186,7 @@ def read_webpage_tool(
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         }
         current_url = url
-        with httpx.Client(timeout=30.0, follow_redirects=False) as client:
+        with httpx.Client(timeout=30.0, follow_redirects=False, trust_env=should_trust_proxy_env()) as client:
             for _ in range(8):
                 resp = client.get(current_url, headers=headers)
                 if resp.is_redirect:

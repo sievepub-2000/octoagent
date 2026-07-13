@@ -85,6 +85,7 @@ export interface ThreadRuntimeState {
 }
 
 export interface AgentThreadState extends Record<string, unknown> {
+  project_id?: string | null;
   title: string;
   messages: Message[];
   artifacts: string[];
@@ -101,6 +102,7 @@ export interface AgentThreadState extends Record<string, unknown> {
 export interface AgentThread extends Thread<AgentThreadState> {}
 
 export interface AgentThreadContext extends Record<string, unknown> {
+  project_id?: string;
   thread_id: string;
   model_name: string | undefined;
   thinking_enabled: boolean;

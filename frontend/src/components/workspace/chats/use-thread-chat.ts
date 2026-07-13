@@ -7,7 +7,7 @@ import { uuid } from "@/core/utils/uuid";
 
 function currentThreadIdFromLocation() {
   if (typeof window === "undefined") return null;
-  const match = window.location.pathname.match(/\/chats\/([^/?#]+)/);
+  const match = /\/chats\/([^/?#]+)/.exec(window.location.pathname);
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 

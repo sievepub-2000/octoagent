@@ -4,7 +4,20 @@ import { ActivityIcon, BellIcon, SparklesIcon, BrainIcon, CpuIcon, DnaIcon, Down
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
+import EvolutionConfigPage from "@/app/workspace/config/evolution/page";
+import ToolsHubPage from "@/app/workspace/config/tools/page";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { AboutSettingsPage } from "@/components/workspace/settings/about-settings-page";
+import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
+import { BootstrapSettingsPage } from "@/components/workspace/settings/bootstrap-settings-page";
+import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
+import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
+import { RagSettingsPage } from "@/components/workspace/settings/rag-settings-page";
+import { RuntimeHealthSettingsPage } from "@/components/workspace/settings/runtime-health-settings-page";
+import { SystemExecutionSettingsPage } from "@/components/workspace/settings/system-execution-settings-page";
+import { SystemGuardSettingsPage } from "@/components/workspace/settings/system-guard-settings-page";
+import { SystemSettingsPage } from "@/components/workspace/settings/system-settings-page";
+import { UpdateSettingsPage } from "@/components/workspace/settings/update-settings-page";
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
 
@@ -20,20 +33,6 @@ function SettingsSectionFallback() {
     </div>
   );
 }
-
-import { AboutSettingsPage } from "@/components/workspace/settings/about-settings-page";
-import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
-import { BootstrapSettingsPage } from "@/components/workspace/settings/bootstrap-settings-page";
-import EvolutionConfigPage from "@/app/workspace/config/evolution/page";
-import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
-import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
-import { RuntimeHealthSettingsPage } from "@/components/workspace/settings/runtime-health-settings-page";
-import { RagSettingsPage } from "@/components/workspace/settings/rag-settings-page";
-import { SystemExecutionSettingsPage } from "@/components/workspace/settings/system-execution-settings-page";
-import { SystemGuardSettingsPage } from "@/components/workspace/settings/system-guard-settings-page";
-import { SystemSettingsPage } from "@/components/workspace/settings/system-settings-page";
-import ToolsHubPage from "@/app/workspace/config/tools/page";
-import { UpdateSettingsPage } from "@/components/workspace/settings/update-settings-page";
 
 type SettingsSection =
   | "overview"

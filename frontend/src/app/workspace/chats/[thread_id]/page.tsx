@@ -1,16 +1,21 @@
 "use client";
 
 import { PlayIcon, RotateCcwIcon, SquareIcon } from "lucide-react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { type PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ChatBox } from "@/components/workspace/chats/chat-box";
 import { useSpecificChatMode } from "@/components/workspace/chats/use-chat-mode";
 import { useThreadChat } from "@/components/workspace/chats/use-thread-chat";
+import { InputBox } from "@/components/workspace/input-box";
 import { ThreadContext } from "@/components/workspace/messages/context";
+import { MessageList } from "@/components/workspace/messages/message-list";
+import { ThreadTitle } from "@/components/workspace/thread-title";
+import { TodoList } from "@/components/workspace/todo-list";
 import { Welcome } from "@/components/workspace/welcome";
 import { isRecoverableThreadMissingError } from "@/core/api";
 import type { ContextTokenUsage } from "@/core/context/context-token-counter";
@@ -33,11 +38,6 @@ import { useWorkflows } from "@/core/workflows";
 import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
-import { ChatBox } from "@/components/workspace/chats/chat-box";
-import { InputBox } from "@/components/workspace/input-box";
-import { MessageList } from "@/components/workspace/messages/message-list";
-import { ThreadTitle } from "@/components/workspace/thread-title";
-import { TodoList } from "@/components/workspace/todo-list";
 function ChatRouteFallback() {
   const { t } = useI18n();
   return (
@@ -197,6 +197,7 @@ type ChatInputContext = Omit<
 export default function ChatPage() {
   const { t } = useI18n();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [settings, setSettings] = useLocalSettings();
 
   // Defer rendering until after hydration — ChatThreadView contains Radix UI
@@ -357,6 +358,7 @@ export default function ChatPage() {
       isMock={isMock}
       isFreshRoute={isFreshRoute}
       isNewThread={isNewThread}
+      projectId={searchParams.get("project") ?? existingThreadState?.project_id ?? null}
       onThreadActivated={markThreadJustActivated}
       router={router}
       settings={settings}
@@ -377,6 +379,7 @@ function ChatThreadView({
   isMock,
   isFreshRoute,
   isNewThread,
+  projectId,
   onThreadActivated,
   router,
   settings,
@@ -393,6 +396,7 @@ function ChatThreadView({
   isMock: boolean;
   isFreshRoute: boolean;
   isNewThread: boolean;
+  projectId: string | null;
   onThreadActivated: (threadId: string) => void;
   router: ReturnType<typeof useRouter>;
   settings: ReturnType<typeof useLocalSettings>[0];
@@ -465,6 +469,7 @@ function ChatThreadView({
 
   const [thread, sendMessage] = useThreadStream({
     threadId: threadId,
+    projectId,
     context: settings.context,
     isMock,
     loadInitialState: !initialIsNewRef.current,
@@ -608,7 +613,7 @@ function ChatThreadView({
   const lastUserText = useMemo(() => {
     for (let index = thread.messages.length - 1; index >= 0; index -= 1) {
       const message = thread.messages[index];
-      if (!message || message.type !== "human") continue;
+      if (message?.type !== "human") continue;
       const text = (textOfMessage(message) ?? "").trim();
       if (text) return text;
     }

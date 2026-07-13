@@ -14,17 +14,114 @@ from __future__ import annotations
 
 import logging
 import os
+import subprocess
 import time
 import traceback
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+import psutil
 from fastapi import APIRouter
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/system", tags=["system"])
+
+
+def _thermal_sensors() -> list[dict[str, Any]]:
+    sensors: list[dict[str, Any]] = []
+    for zone in sorted(Path("/sys/class/thermal").glob("thermal_zone*")):
+        try:
+            value = float((zone / "temp").read_text().strip()) / 1000
+            label = (zone / "type").read_text().strip()
+        except (OSError, ValueError):
+            continue
+        if 0 < value < 150:
+            sensors.append({"name": label, "temperature_c": round(value, 1)})
+    return sensors
+
+
+def _gpu_status() -> dict[str, Any] | None:
+    try:
+        result = subprocess.run(
+            [
+                "nvidia-smi",
+                "--query-gpu=name,utilization.gpu,memory.used,memory.total,temperature.gpu,power.draw",
+                "--format=csv,noheader,nounits",
+            ],
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            timeout=2,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode != 0 or not result.stdout.strip():
+        return None
+    name, utilization, used, total, temperature, power = [part.strip() for part in result.stdout.splitlines()[0].split(",")]
+
+    def number(value: str) -> float:
+        try:
+            return float(value)
+        except ValueError:
+            return 0.0
+
+    return {
+        "name": name,
+        "utilization_percent": number(utilization),
+        "memory_used_mb": number(used),
+        "memory_total_mb": number(total),
+        "temperature_c": number(temperature),
+        "power_w": number(power),
+    }
+
+
+def _service_status(name: str) -> dict[str, str]:
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", name],
+            capture_output=True,
+            check=False,
+            encoding="utf-8",
+            timeout=2,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return {"name": name, "status": "unknown"}
+    return {"name": name, "status": result.stdout.strip() or "inactive"}
+
+
+@router.get("/overview")
+def system_overview() -> dict[str, Any]:
+    """Small, read-only host overview for the workspace context panel."""
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage("/")
+    services = [_service_status(name) for name in ("octoagent-local.service", "clash-verge-service.service")]
+    temperatures = _thermal_sensors()
+    gpu = _gpu_status()
+    overall = "ok" if all(item["status"] == "active" for item in services) else "degraded"
+    return {
+        "overall": overall,
+        "generated_at": time.time(),
+        "cpu": {"percent": psutil.cpu_percent(interval=0.1), "load": list(os.getloadavg())},
+        "memory": {"percent": memory.percent, "used_bytes": memory.used, "total_bytes": memory.total},
+        "disk": {"percent": disk.percent, "used_bytes": disk.used, "total_bytes": disk.total},
+        "gpu": gpu,
+        "temperatures": temperatures,
+        "services": services,
+        "network": {
+            "proxy_configured": bool(os.getenv("HTTP_PROXY") or os.getenv("HTTPS_PROXY")),
+            "dns_over_tls": "+DNSOverTLS" in _command_output(["resolvectl", "status"]),
+        },
+    }
+
+
+def _command_output(command: list[str]) -> str:
+    try:
+        result = subprocess.run(command, capture_output=True, check=False, encoding="utf-8", timeout=2)
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+    return result.stdout
 
 
 def _probe(name: str, fn: Callable[[], dict[str, Any]]) -> dict[str, Any]:

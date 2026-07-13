@@ -321,7 +321,7 @@ def _run_node_script(script_path: Path, config_path: Path, *, timeout: int) -> d
     record_tool_trace("subprocess_start", tool="system_ops.node", args=args, cwd=str(_FRONTEND_ROOT), timeout=timeout)
     try:
         with get_runtime_worker_isolation().slot("system"):
-            result = subprocess.run(args, cwd=str(_FRONTEND_ROOT), capture_output=True, text=True, timeout=timeout, check=False)
+            result = subprocess.run(args, cwd=str(_FRONTEND_ROOT), capture_output=True, text=True, encoding="utf-8", timeout=timeout, check=False)
     except subprocess.TimeoutExpired:
         record_tool_trace("subprocess_timeout", tool="system_ops.node", args=args, cwd=str(_FRONTEND_ROOT), timeout=timeout)
         return {"available": True, "timeout": timeout}
@@ -1190,7 +1190,7 @@ def python_package_install_tool(
     record_tool_trace("subprocess_start", tool="python_package_install", args=args, cwd=str(tool_root), timeout=3600)
     try:
         with get_runtime_worker_isolation().slot("system"):
-            result = subprocess.run(args, cwd=str(tool_root), capture_output=True, text=True, timeout=3600, check=False)
+            result = subprocess.run(args, cwd=str(tool_root), capture_output=True, text=True, encoding="utf-8", timeout=3600, check=False)
     except Exception as exc:
         record_exception_trace("system_ops.python_package_install", exc, args=args, cwd=str(tool_root), timeout=3600)
         return _json({"error": str(exc), "args": args, "install_root": str(tool_root)})
@@ -1202,7 +1202,7 @@ def python_package_install_tool(
         record_tool_trace("subprocess_start", tool="python_package_install.verify", args=verify_args, cwd=str(tool_root), timeout=600)
         try:
             with get_runtime_worker_isolation().slot("system"):
-                verify_result = subprocess.run(verify_args, cwd=str(tool_root), capture_output=True, text=True, timeout=600, check=False)
+                verify_result = subprocess.run(verify_args, cwd=str(tool_root), capture_output=True, text=True, encoding="utf-8", timeout=600, check=False)
             verification = {
                 "args": verify_args,
                 "exit_code": verify_result.returncode,

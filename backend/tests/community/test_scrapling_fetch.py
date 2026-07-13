@@ -32,6 +32,7 @@ class _FakeFetcher:
 
 def test_scrapling_fetch_retries_public_cert_chain_failures(monkeypatch) -> None:
     _FakeFetcher.calls = []
+    monkeypatch.setenv("OCTO_SCRAPLING_ALLOW_INSECURE_SSL_RETRY", "1")
     monkeypatch.setattr(scrapling_tools, "_INIT_TRIED", True)
     monkeypatch.setattr(scrapling_tools, "_FETCHER", _FakeFetcher)
 

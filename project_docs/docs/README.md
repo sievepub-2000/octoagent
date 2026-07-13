@@ -4,6 +4,7 @@ This directory contains current architecture, status, delivery, and operation gu
 
 ## Start Here
 
+- [`P26_PROJECT_FIRST_WEBUI_REFACTOR_2026-07-13.md`](P26_PROJECT_FIRST_WEBUI_REFACTOR_2026-07-13.md) - project-first WebUI, persistent project context, system panel, and verification baseline
 - [`PROJECT_STATUS.md`](PROJECT_STATUS.md) - current module map and implementation status
 - [`PROJECT_PROGRESS.md`](PROJECT_PROGRESS.md) - current progress and next delivery steps
 - [`ARCHITECTURE.md`](ARCHITECTURE.md) - system architecture and runtime shape

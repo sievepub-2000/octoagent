@@ -51,6 +51,7 @@ def codex_cli_tool(
                 cwd=str(target_cwd),
                 capture_output=True,
                 text=True,
+                encoding="utf-8",
                 timeout=safe_timeout,
                 check=False,
             )

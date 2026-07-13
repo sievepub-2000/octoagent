@@ -89,21 +89,21 @@ function patchThread404<T extends object>(
 ): void {
   // Walk prototype chain to pick up inherited BaseClient methods too
   const seen = new Set<string>();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   let proto: any = target;
   while (proto && proto !== Object.prototype) {
     for (const name of Object.getOwnPropertyNames(proto)) {
       if (seen.has(name) || name === "constructor") continue;
       seen.add(name);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       const descriptor = Object.getOwnPropertyDescriptor(proto, name) as any;
       if (typeof descriptor?.value !== "function") continue;
       if (!nameTest(name)) continue;
 
-       
+
       const orig = descriptor.value.bind(target) as (...args: unknown[]) => Promise<unknown>;
       const fb = fallbackFor(name);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       (target as any)[name] = async (...args: any[]) => {
         try {
           return await orig(...args);

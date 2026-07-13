@@ -21,6 +21,7 @@ def test_ddg_web_fetch_supports_sync_invoke(monkeypatch) -> None:
 
 
 def test_ddg_web_fetch_retries_public_cert_chain_failures(monkeypatch) -> None:
+    monkeypatch.setenv("OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY", "1")
     def fake_fetch_raw(url: str, timeout: float) -> tuple[int, str, str]:
         raise httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate")
 
@@ -35,6 +36,23 @@ def test_ddg_web_fetch_retries_public_cert_chain_failures(monkeypatch) -> None:
 
     assert "TLS certificate verification failed" in result
     assert "Recovered over TLS fallback" in result or "Raw HTML" in result
+
+
+def test_ddg_web_fetch_does_not_disable_tls_verification_by_default(monkeypatch) -> None:
+    monkeypatch.delenv("OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY", raising=False)
+
+    def fake_fetch_raw(url: str, timeout: float) -> tuple[int, str, str]:
+        raise httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed")
+
+    def fail_if_called(url: str, timeout: float) -> tuple[int, str, str]:
+        raise AssertionError("insecure TLS retry must be opt-in")
+
+    monkeypatch.setattr(ddg_tools, "_fetch_raw", fake_fetch_raw)
+    monkeypatch.setattr(ddg_tools, "_fetch_raw_without_verification", fail_if_called)
+
+    result = ddg_tools.web_fetch_tool.invoke({"url": "https://example.com/broken-chain"})
+
+    assert "CERTIFICATE_VERIFY_FAILED" in result
 
 
 def test_ddg_web_fetch_retries_antibot_status_with_scrapling(monkeypatch) -> None:

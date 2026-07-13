@@ -32,7 +32,7 @@ def _index_path() -> str:
 
 def _read_json(path: str) -> dict[str, Any]:
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except (FileNotFoundError, json.JSONDecodeError):
         return {}
@@ -76,13 +76,14 @@ class ProjectMemoryService:
         _write_json(_index_path(), idx)
 
     @staticmethod
-    def ensure_project_memory(project_id: str, name: str, goal: str) -> dict:
+    def ensure_project_memory(project_id: str, name: str, goal: str) -> dict[str, Any]:
         path = _project_memory_path(project_id)
         if not os.path.exists(path):
-            return ProjectMemoryService.save_project_memory(
+            ProjectMemoryService.save_project_memory(
                 project_id, f"Project: {name}. Goal: {goal}",
                 {"status": "active", "tags": []},
             )
+            return _read_json(path)
         return _read_json(path)
 
     @staticmethod
@@ -125,7 +126,10 @@ class ProjectMemoryService:
             pass
         idx = _read_json(_index_path())
         idx.pop(project_id, None)
-        _write_json(_index_path(), idx)
+        if idx:
+            _write_json(_index_path(), idx)
+        else:
+            Path(_index_path()).unlink(missing_ok=True)
         return True
 
 

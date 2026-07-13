@@ -6,6 +6,8 @@ import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
+import { SettingsPanel } from "@/components/workspace/settings";
+import { WorkspaceSidebar } from "@/components/workspace/workspace-sidebar";
 import { getLocalSettings, useLocalSettings } from "@/core/settings";
 
 type SettingsSectionId =
@@ -22,12 +24,6 @@ type SettingsSectionId =
   | "tools"
   | "update"
   | "about";
-
-import { WorkspaceSidebar } from "@/components/workspace/workspace-sidebar";
-
-import { SystemStatusBar } from "@/components/workspace/system-status-bar";
-
-import { SettingsPanel } from "@/components/workspace/settings";
 
 const SETTINGS_SECTIONS: SettingsSectionId[] = [
   "overview",
@@ -108,7 +104,6 @@ export default function WorkspaceLayout({
         </a>
         <WorkspaceSidebar />
         <SidebarInset id="maincontent" tabIndex={-1} className="min-w-0 flex flex-col">
-          <SystemStatusBar />
           <div className="min-h-0 flex-1 overflow-hidden">
             <div className="flex h-full min-h-0">
               <div className="min-w-0 flex-1">{children}</div>

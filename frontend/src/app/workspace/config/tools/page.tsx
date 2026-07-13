@@ -5,15 +5,15 @@ import { ActivityIcon, AlertTriangleIcon, CheckCircle2Icon, ExternalLinkIcon, Pl
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useState } from "react";
 
+import PluginsConfigPage from "@/app/workspace/config/plugins/page";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { HooksSettingsPage } from "@/components/workspace/settings/hooks-settings-page";
 import { getJSON } from "@/core/api/http";
 import { useI18n } from "@/core/i18n/hooks";
 import { useToolTrace } from "@/core/observation/hooks";
 import type { ToolTraceEntry } from "@/core/observation/types";
 
-import PluginsConfigPage from "@/app/workspace/config/plugins/page";
-import { HooksSettingsPage } from "@/components/workspace/settings/hooks-settings-page";
 
 type HubTab = "tools" | "plugins" | "hooks";
 type TraceFilter = "" | "subprocess_start" | "subprocess_end" | "artifact_lifecycle" | "subagent_runtime_cleanup" | "exception";

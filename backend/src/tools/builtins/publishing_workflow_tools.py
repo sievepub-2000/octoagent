@@ -69,6 +69,7 @@ def _run(args: list[str], *, cwd: Path | None = None, timeout: int = 120) -> dic
             cwd=str(cwd or _REPO_ROOT),
             capture_output=True,
             text=True,
+            encoding="utf-8",
             timeout=timeout,
             check=False,
             env=env,

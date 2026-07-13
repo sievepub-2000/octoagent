@@ -7,8 +7,9 @@ import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import { pushSystemEvent } from "@/core/system-events/store";
 
 import { getLangGraphBaseURL } from "../config";
-import type { LocalSettings } from "../settings";
 import type { RunEvent } from "../runtime/run-events";
+import type { LocalSettings } from "../settings";
+
 import { classifyDialogueRoute } from "./dialogue-routing";
 import type { AgentThreadState } from "./types";
 
@@ -30,6 +31,7 @@ export type ThreadStreamOptions = {
 
 export interface UseThreadStreamOptions {
   threadId: string;
+  projectId?: string | null;
   context?: Record<string, unknown>;
   isMock?: boolean;
   loadInitialState?: boolean;
@@ -51,8 +53,9 @@ function invalidateThreadSearchQueries(queryClient: QueryClient) {
   void queryClient.invalidateQueries({ queryKey: ["threads", "search"] });
 }
 
-function buildMessagePayload(message: PromptInputMessage): Record<string, unknown> {
+function buildMessagePayload(message: PromptInputMessage, projectId?: string | null): Record<string, unknown> {
   return {
+    ...(projectId ? { project_id: projectId } : {}),
     messages: [
       {
         type: "human",
@@ -66,6 +69,7 @@ function buildMessagePayload(message: PromptInputMessage): Record<string, unknow
 export function useThreadStream(options: UseThreadStreamOptions): [any, SendThreadMessage] {
   const {
     threadId,
+    projectId,
     context = {},
     loadInitialState = true,
     onStart,
@@ -137,9 +141,10 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
       });
       const threadMessages = ((stream.messages ?? stream.values?.messages ?? []) as Message[]);
 
-      await stream.submit(buildMessagePayload(message) as never, {
+      await stream.submit(buildMessagePayload(message, projectId) as never, {
         context: {
           ...context,
+          ...(projectId ? { project_id: projectId } : {}),
           ...extraContext,
           dialogue_text: message.text,
           last_user_message: message.text,
@@ -157,7 +162,7 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
         threadId: submitThreadId,
       } as never);
     },
-    [context, shouldLoadThreadHistory, stream],
+    [context, projectId, shouldLoadThreadHistory, stream],
   );
 
   return [thread, sendMessage];

@@ -1,385 +1,62 @@
-import { PanelRightOpenIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GroupImperativeHandle } from "react-resizable-panels";
+import { useQuery } from "@tanstack/react-query";
+import { ActivityIcon, FilesIcon, PanelRightCloseIcon, PanelRightOpenIcon, ServerIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import {
-  ResizableHandle,
-  ResizablePanel,
-  ResizablePanelGroup,
-} from "@/components/ui/resizable";
-import { Tooltip } from "@/components/workspace/tooltip";
-import { getAPIClient } from "@/core/api";
-import {
-  buildThreadRuntimeTelemetry,
-  type RunEvent,
-  useRuntimeCapabilities,
-} from "@/core/runtime";
-import type { AgentThreadState } from "@/core/threads";
-import { createWorkflowEvent, useWorkflows } from "@/core/workflows";
-import { env } from "@/env";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useArtifacts } from "@/components/workspace/artifacts";
+import { ArtifactFileList } from "@/components/workspace/artifacts/artifact-file-list";
+import { useThread } from "@/components/workspace/messages/context";
+import { getJSON } from "@/core/api/http";
+import type { RunEvent } from "@/core/runtime";
 import { cn } from "@/lib/utils";
 
-import {
-  useArtifacts,
-} from "../artifacts";
-import { useThread } from "../messages/context";
+interface SystemOverview {
+  overall: "ok" | "degraded";
+  cpu: { percent: number };
+  memory: { percent: number };
+  disk: { percent: number };
+  gpu: { name: string; utilization_percent: number; memory_used_mb: number; memory_total_mb: number; temperature_c: number; power_w: number } | null;
+  temperatures: Array<{ name: string; temperature_c: number }>;
+  services: Array<{ name: string; status: string }>;
+  network: { proxy_configured: boolean; dns_over_tls: boolean };
+}
 
-import { WorkflowInspector } from "../orchestrator/workflow-inspector";
+function Metric({ label, value }: { label: string; value: string }) {
+  return <div className="flex items-center justify-between gap-4 border-b py-2 text-sm last:border-b-0"><span className="text-muted-foreground">{label}</span><span className="font-medium">{value}</span></div>;
+}
 
-const CLOSE_MODE = { chat: 100, artifacts: 0 };
-const OPEN_MODE = { chat: 62, artifacts: 38 };
-const OPEN_MODE_MOBILE = { chat: 54, artifacts: 46 };
+function ContextPanel({ onClose, runEvents, threadId }: { onClose: () => void; runEvents: RunEvent[]; threadId: string }) {
+  const { thread } = useThread();
+  const files = useMemo(() => thread.values.artifacts ?? [], [thread.values.artifacts]);
+  const { setArtifacts } = useArtifacts();
+  const system = useQuery({ queryKey: ["system", "overview"], queryFn: () => getJSON<SystemOverview>("/api/system/overview"), refetchInterval: 15_000 });
 
-function InspectorFallback() {
+  useEffect(() => setArtifacts(files), [files, setArtifacts]);
+
   return (
-    <div className="octo-panel flex size-full min-h-[16rem] items-center justify-center rounded-[1.75rem] px-4 text-center text-sm text-muted-foreground" aria-busy="true" aria-live="polite">
-      Loading runtime inspector...
-    </div>
+    <aside className="flex size-full min-h-0 flex-col border-l bg-background">
+      <div className="flex h-12 items-center justify-between border-b px-3"><span className="text-sm font-medium">Context</span><Button aria-label="Close context panel" size="icon-sm" variant="ghost" onClick={onClose}><PanelRightCloseIcon className="size-4" /></Button></div>
+      <Tabs defaultValue="activity" className="flex min-h-0 flex-1 flex-col">
+        <TabsList className="mx-3 mt-3 grid grid-cols-3"><TabsTrigger value="activity"><ActivityIcon className="size-3.5" /> Activity</TabsTrigger><TabsTrigger value="files"><FilesIcon className="size-3.5" /> Files</TabsTrigger><TabsTrigger value="system"><ServerIcon className="size-3.5" /> System</TabsTrigger></TabsList>
+        <TabsContent value="activity" className="min-h-0 flex-1 overflow-y-auto p-3">
+          {runEvents.length === 0 ? <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">Run activity will appear here.</p> : <ol className="space-y-2">{runEvents.slice().reverse().map((event, index) => <li key={`${event.id ?? "event"}-${index}`} className="rounded-lg border p-3"><p className="text-sm font-medium">{event.title}</p>{event.detail && <p className="mt-1 text-xs text-muted-foreground">{event.detail}</p>}</li>)}</ol>}
+        </TabsContent>
+        <TabsContent value="files" className="min-h-0 flex-1 overflow-y-auto p-3">{files.length > 0 ? <ArtifactFileList files={files} threadId={threadId} /> : <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">No generated files.</p>}</TabsContent>
+        <TabsContent value="system" className="min-h-0 flex-1 overflow-y-auto p-3">
+          {system.isLoading ? <p className="text-sm text-muted-foreground">Loading system status…</p> : system.data ? <div className="rounded-lg border px-3"><Metric label="Status" value={system.data.overall} /><Metric label="CPU" value={`${system.data.cpu.percent.toFixed(1)}%`} /><Metric label="Memory" value={`${system.data.memory.percent.toFixed(1)}%`} /><Metric label="Disk" value={`${system.data.disk.percent.toFixed(1)}%`} />{system.data.gpu && <><Metric label="GPU" value={`${system.data.gpu.utilization_percent.toFixed(0)}%`} /><Metric label="GPU temperature" value={`${system.data.gpu.temperature_c.toFixed(0)}°C`} /></>}<Metric label="Encrypted DNS" value={system.data.network.dns_over_tls ? "On" : "Off"} />{system.data.services.map((service) => <Metric key={service.name} label={service.name.replace(".service", "")} value={service.status} />)}</div> : <p className="text-sm text-destructive">System status unavailable.</p>}
+        </TabsContent>
+      </Tabs>
+    </aside>
   );
 }
 
-const ChatBox: React.FC<{
-  children: React.ReactNode;
-  isNewThread: boolean;
-  mode: "flash" | "thinking" | "pro" | "ultra" | undefined;
-  runEvents?: RunEvent[];
-  threadId: string;
-  contextModelName?: string;
-}> = ({
-  children,
-  contextModelName,
-  isNewThread,
-  mode,
-  runEvents = [],
-  threadId,
-}) => {
+const ChatBox: React.FC<{ children: React.ReactNode; isNewThread: boolean; mode: "flash" | "thinking" | "pro" | "ultra" | undefined; runEvents?: RunEvent[]; threadId: string; contextModelName?: string }> = ({ children, isNewThread, runEvents = [], threadId }) => {
   const { thread } = useThread();
-  const threadValues = thread.values;
-  const threadIdRef = useRef(threadId);
-  const layoutRef = useRef<GroupImperativeHandle>(null);
-  const hydratedThreadRef = useRef<string | null>(null);
-  const persistTimeoutRef = useRef<number | null>(null);
-  const workflowSnapshotRef = useRef<string>("[]");
-  const { appendEvent, events, hydrate, workflows } = useWorkflows();
-  const [artifactPanelOpen, setArtifactPanelOpen] = useState(false);
-  const [inspectorReady, setInspectorReady] = useState(false);
-  const { runtime } = useRuntimeCapabilities({
-    enabled: threadId !== "new" && artifactPanelOpen && inspectorReady,
-  });
-  const isMobile = useIsMobile();
-
-  const {
-    setArtifacts,
-    select: selectArtifact,
-    deselect,
-    selectedArtifact,
-  } = useArtifacts();
-
-  const [autoSelectFirstArtifact, setAutoSelectFirstArtifact] = useState(true);
-  const threadArtifacts = useMemo(
-    () => threadValues.artifacts ?? [],
-    [threadValues.artifacts],
-  );
-  const inspectorMessages = useMemo(
-    () => (threadValues.messages ?? []).slice(-40),
-    [threadValues.messages],
-  );
-  const inspectorThreadState = useMemo<AgentThreadState>(
-    () => ({
-      title: threadValues.title ?? "",
-      messages: inspectorMessages,
-      artifacts: threadArtifacts,
-      continuation: threadValues.continuation,
-      runtime: threadValues.runtime,
-      todos: threadValues.todos,
-      workflows: threadValues.workflows,
-      workflow_events: threadValues.workflow_events,
-      task_workspace_ids: threadValues.task_workspace_ids,
-      active_task_workspace_id: threadValues.active_task_workspace_id,
-    }),
-    [
-      inspectorMessages,
-      threadArtifacts,
-      threadValues.active_task_workspace_id,
-      threadValues.continuation,
-      threadValues.runtime,
-      threadValues.task_workspace_ids,
-      threadValues.title,
-      threadValues.todos,
-      threadValues.workflow_events,
-      threadValues.workflows,
-    ],
-  );
-
-  useEffect(() => {
-    if (threadIdRef.current !== threadId) {
-      threadIdRef.current = threadId;
-      deselect();
-    }
-
-    // Update artifacts from the current thread
-    setArtifacts(threadArtifacts);
-
-    // Fallback: scan messages for present_files tool calls if artifacts are missing
-    if (threadArtifacts.length === 0 && threadValues.messages?.length > 0) {
-      const messageArtifacts: string[] = [];
-      for (const msg of threadValues.messages) {
-        if (msg.type === "ai" && msg.tool_calls) {
-          for (const tc of msg.tool_calls) {
-            if (tc.name === "present_files" && tc.args?.files) {
-              const files = Array.isArray(tc.args.files) ? tc.args.files : [tc.args.files];
-              messageArtifacts.push(...files.filter(Boolean));
-            }
-          }
-        }
-      }
-      if (messageArtifacts.length > 0) {
-        setArtifacts(messageArtifacts);
-      }
-    }
-
-    // Auto-deselect artifact when switching to a thread without it
-    if (selectedArtifact && !threadArtifacts.includes(selectedArtifact)) {
-      deselect();
-    }
-    // Also close artifact panel entirely if new thread has no artifacts
-    if (threadArtifacts.length === 0 && selectedArtifact) {
-      deselect();
-    }
-
-    if (
-      env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" &&
-      autoSelectFirstArtifact
-    ) {
-      if (threadArtifacts.length > 0) {
-        setAutoSelectFirstArtifact(false);
-        selectArtifact(threadArtifacts[0]!);
-      }
-    }
-  }, [
-    threadId,
-    autoSelectFirstArtifact,
-    deselect,
-    selectArtifact,
-    selectedArtifact,
-    setArtifacts,
-    threadArtifacts,
-  ]);
-
-  useEffect(() => {
-    if (hydratedThreadRef.current === threadId) {
-      return;
-    }
-    if (
-      !thread.values.workflows &&
-      !thread.values.workflow_events &&
-      workflows.length > 0
-    ) {
-      hydratedThreadRef.current = threadId;
-      workflowSnapshotRef.current = JSON.stringify(workflows);
-      return;
-    }
-    hydrate(thread.values.workflows ?? [], thread.values.workflow_events ?? []);
-    hydratedThreadRef.current = threadId;
-    workflowSnapshotRef.current = JSON.stringify(thread.values.workflows ?? []);
-  }, [hydrate, thread.values.workflow_events, thread.values.workflows, threadId, workflows]);
-
-  useEffect(() => {
-    if (!threadId || threadId === "new" || isNewThread || thread.isLoading) {
-      return;
-    }
-
-    const hasLocalWorkflowState = workflows.length > 0 || events.length > 0;
-    const hasRemoteWorkflowState =
-      (threadValues.workflows?.length ?? 0) > 0
-      || (threadValues.workflow_events?.length ?? 0) > 0;
-
-    // Fresh chats should not write a runtime-only snapshot before the thread
-    // has any persisted workflow state. That early update produces LangGraph
-    // conflicts while the first user run is still being prepared.
-    if (!hasLocalWorkflowState && !hasRemoteWorkflowState && threadValues.runtime == null) {
-      return;
-    }
-
-    const remoteWorkflows = JSON.stringify(threadValues.workflows ?? []);
-    const localWorkflows = JSON.stringify(workflows);
-    const remoteEvents = JSON.stringify(threadValues.workflow_events ?? []);
-    const localEvents = JSON.stringify(events);
-    const nextRuntimeTelemetry = buildThreadRuntimeTelemetry(threadValues, runtime, undefined, contextModelName);
-    const remoteRuntime = JSON.stringify(threadValues.runtime ?? null);
-    const localRuntime = JSON.stringify(nextRuntimeTelemetry);
-
-    if (
-      remoteWorkflows === localWorkflows &&
-      remoteEvents === localEvents &&
-      remoteRuntime === localRuntime
-    ) {
-      return;
-    }
-
-    if (persistTimeoutRef.current) {
-      window.clearTimeout(persistTimeoutRef.current);
-    }
-
-    persistTimeoutRef.current = window.setTimeout(() => {
-      getAPIClient()
-        .threads.updateState(threadId, {
-          values: {
-            workflows,
-            workflow_events: events,
-            runtime: nextRuntimeTelemetry,
-          },
-        })
-        .catch(() => {
-          // Thread may have been deleted (server restart, etc.).
-          // Silently ignore — the page-level guard will redirect.
-        });
-    }, 250);
-
-    return () => {
-      if (persistTimeoutRef.current) {
-        window.clearTimeout(persistTimeoutRef.current);
-      }
-    };
-  }, [
-    events,
-    contextModelName,
-    runtime,
-    threadValues,
-    thread.isLoading,
-    isNewThread,
-    threadId,
-    workflows,
-  ]);
-
-  useEffect(() => {
-    const snapshot = JSON.stringify(workflows);
-    if (snapshot !== workflowSnapshotRef.current && workflows.length > 0) {
-      workflowSnapshotRef.current = snapshot;
-      appendEvent(
-        createWorkflowEvent(
-          "workflow_saved",
-          "Workflow configuration updated",
-          "Thread state synchronized with the current orchestration cards.",
-          "info",
-        ),
-      );
-    }
-  }, [appendEvent, workflows]);
-
-  const toggleArtifactPanel = useCallback(() => {
-    setArtifactPanelOpen((open) => !open);
-  }, []);
-
-  useEffect(() => {
-    if (threadArtifacts.length > 0 || workflows.length > 0 || events.length > 0) {
-      setArtifactPanelOpen(true);
-    }
-  }, [events.length, threadArtifacts.length, workflows.length]);
-
-  useEffect(() => {
-    if (layoutRef.current) {
-      if (artifactPanelOpen) {
-        layoutRef.current.setLayout(isMobile ? OPEN_MODE_MOBILE : OPEN_MODE);
-      } else {
-        layoutRef.current.setLayout(CLOSE_MODE);
-      }
-    }
-  }, [artifactPanelOpen, isMobile]);
-
-  useEffect(() => {
-    setInspectorReady(false);
-    const scheduleIdle = window.requestIdleCallback
-      ?? ((callback: IdleRequestCallback) => window.setTimeout(
-        () => callback({ didTimeout: false, timeRemaining: () => 0 }),
-        1,
-      ));
-    const cancelIdle = window.cancelIdleCallback ?? window.clearTimeout;
-    let idleId: number | null = null;
-    if (!artifactPanelOpen) {
-      return undefined;
-    }
-    const delayId = window.setTimeout(() => {
-      idleId = scheduleIdle(() => setInspectorReady(true), { timeout: 1_800 });
-    }, 900);
-    return () => {
-      window.clearTimeout(delayId);
-      if (idleId != null) {
-        cancelIdle(idleId);
-      }
-    };
-  }, [artifactPanelOpen, threadId]);
-
-  return (
-    <div className="relative size-full min-h-0">
-      {!artifactPanelOpen && (
-        <Tooltip content="Expand right sidebar">
-          <Button
-            aria-label="Expand right sidebar"
-            className="absolute right-3 top-3 z-50 hidden shadow-[0_12px_28px_rgba(0,0,0,0.12)] lg:inline-flex"
-            onClick={toggleArtifactPanel}
-            size="icon-sm"
-            type="button"
-            variant="ghost"
-          >
-            <PanelRightOpenIcon className="size-4" />
-          </Button>
-        </Tooltip>
-      )}
-      <ResizablePanelGroup
-        id="workspace-chat-layout"
-        orientation={isMobile ? "vertical" : "horizontal"}
-        defaultLayout={{ chat: 100, artifacts: 0 }}
-        groupRef={layoutRef}
-      >
-        <ResizablePanel className="relative" defaultSize={100} id="chat" minSize={isMobile ? 0 : undefined}>
-          {children}
-        </ResizablePanel>
-        <ResizableHandle
-          withHandle
-          className={cn(
-            "rounded-full opacity-70 transition-opacity hover:opacity-100",
-            isMobile ? "my-1" : "mx-1",
-            !artifactPanelOpen && "pointer-events-none opacity-0",
-          )}
-        />
-        <ResizablePanel
-          className={cn(
-            "transition-all duration-300 ease-in-out",
-            !artifactPanelOpen && "pointer-events-none opacity-0",
-          )}
-          collapsible
-          collapsedSize={0}
-          defaultSize={isMobile ? 72 : 38}
-          minSize={artifactPanelOpen ? (isMobile ? 60 : 24) : 0}
-          id="artifacts"
-        >
-          <div
-            className={cn(
-              "h-full transition-transform duration-300 ease-in-out",
-              isMobile ? "px-3 pb-3 pt-1" : "p-4",
-              artifactPanelOpen ? "translate-x-0 translate-y-0" : isMobile ? "translate-y-full" : "translate-x-full",
-            )}
-          >
-            {artifactPanelOpen && inspectorReady ? (
-              <WorkflowInspector
-                currentModelName={contextModelName}
-                isStreaming={thread.isLoading}
-                mode={mode}
-                onCollapsePanel={toggleArtifactPanel}
-                runEvents={runEvents}
-                runtimeCapabilities={runtime}
-                threadId={threadId}
-                threadState={inspectorThreadState}
-              />
-            ) : <InspectorFallback />}
-          </div>
-        </ResizablePanel>
-      </ResizablePanelGroup>
-    </div>
-  );
+  const [open, setOpen] = useState(!isNewThread);
+  const hasContext = runEvents.length > 0 || (thread.values.artifacts?.length ?? 0) > 0;
+  useEffect(() => { if (hasContext) setOpen(true); }, [hasContext]);
+  return <div className="relative flex size-full min-h-0"><section className="relative min-w-0 flex-1">{children}{!open && <Button aria-label="Open context panel" className="absolute right-3 top-3" size="icon-sm" variant="outline" onClick={() => setOpen(true)}><PanelRightOpenIcon className="size-4" /></Button>}</section><div className={cn("min-h-0 w-[min(34vw,28rem)] shrink-0", !open && "hidden")}><ContextPanel onClose={() => setOpen(false)} runEvents={runEvents} threadId={threadId} /></div></div>;
 };
 
 export { ChatBox };

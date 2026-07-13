@@ -1,20 +1,26 @@
 """Helpers for safely using proxy environment variables.
 
-Local deployments often inherit HTTP(S)_PROXY from an operator shell. If that
-proxy points at localhost but the proxy process is not running, web tools should
-fall back to direct egress instead of failing every request with connection
-refused.
+Local deployments often inherit HTTP(S)_PROXY from an operator shell. A local
+proxy can accept TCP connections while all of its upstream nodes are dead, so a
+port check alone is not enough.  Web tools probe a small HTTPS endpoint through
+the proxy and fall back to direct egress when that end-to-end check fails.
 """
 
 from __future__ import annotations
 
 import os
 import socket
+import ssl
+import time
 from contextlib import contextmanager
+from threading import Lock
 from urllib.parse import urlparse
+from urllib.request import HTTPSHandler, ProxyHandler, Request, build_opener
 
 _PROXY_KEYS = ("HTTP_PROXY", "HTTPS_PROXY", "http_proxy", "https_proxy", "ALL_PROXY", "all_proxy")
 _LOCAL_PROXY_HOSTS = {"127.0.0.1", "localhost", "::1"}
+_HEALTH_CACHE: dict[str, tuple[float, bool]] = {}
+_HEALTH_CACHE_LOCK = Lock()
 
 
 def _proxy_endpoint(value: str) -> tuple[str, int] | None:
@@ -22,6 +28,39 @@ def _proxy_endpoint(value: str) -> tuple[str, int] | None:
     if not parsed.hostname or parsed.port is None:
         return None
     return parsed.hostname, parsed.port
+
+
+def _probe_proxy_https(proxy_url: str) -> bool:
+    health_url = os.getenv("OCTOAGENT_PROXY_HEALTH_URL", "https://www.gstatic.com/generate_204")
+    try:
+        timeout = max(0.5, float(os.getenv("OCTOAGENT_PROXY_HEALTH_TIMEOUT", "4")))
+    except ValueError:
+        timeout = 4.0
+    opener = build_opener(
+        ProxyHandler({"http": proxy_url, "https": proxy_url}),
+        HTTPSHandler(context=ssl.create_default_context()),
+    )
+    try:
+        with opener.open(Request(health_url, headers={"User-Agent": "OctoAgent/proxy-health"}), timeout=timeout) as response:
+            return 200 <= response.status < 400
+    except Exception:
+        return False
+
+
+def _proxy_https_healthy(value: str) -> bool:
+    try:
+        ttl = max(1.0, float(os.getenv("OCTOAGENT_PROXY_HEALTH_TTL", "30")))
+    except ValueError:
+        ttl = 30.0
+    now = time.monotonic()
+    with _HEALTH_CACHE_LOCK:
+        cached = _HEALTH_CACHE.get(value)
+        if cached and now - cached[0] < ttl:
+            return cached[1]
+    healthy = _probe_proxy_https(value)
+    with _HEALTH_CACHE_LOCK:
+        _HEALTH_CACHE[value] = (now, healthy)
+    return healthy
 
 
 def _is_unavailable_local_proxy(value: str) -> bool:
@@ -33,7 +72,7 @@ def _is_unavailable_local_proxy(value: str) -> bool:
         return False
     try:
         with socket.create_connection((host, port), timeout=0.35):
-            return False
+            return not _proxy_https_healthy(value)
     except OSError:
         return True
 

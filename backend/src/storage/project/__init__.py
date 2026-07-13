@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from .service import ProjectService, get_project_service
 from .memory import ProjectMemoryService, get_project_memory_service
+from .service import ProjectService, get_project_service
 
 __all__ = [
-    "ProjectService",
-    "get_project_service",
     "ProjectMemoryService",
+    "ProjectService",
     "get_project_memory_service",
+    "get_project_service",
 ]

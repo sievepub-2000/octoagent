@@ -1,63 +1,39 @@
 import { deleteJSON, getJSON, postJSON, putJSON } from "../api/http";
 
-export interface ProjectSummary {
+export interface Project {
   project_id: string;
   name: string;
-  goal: string;
-  status: string;
+  root_path: string;
+  instructions: string;
+  default_model: string;
+  permission_mode: "approval" | "directory" | "system";
+  status: "active" | "archived";
+  repo_url: string;
+  branch: string;
   created_at: string;
   updated_at: string;
-  progress: Record<string, unknown>;
   memory_summary: string;
-}
-
-export interface ProjectDetail extends ProjectSummary {
-  summary: string;
-  agents: Array<{ agent_id: string; name: string; role: string; status: string }>;
-  run_log: string;
-  artifacts: string[];
-  timeline: Array<{ created_at: string; title: string; details: string[] }>;
-  memory: Record<string, unknown>;
+  pinned_files: string[];
 }
 
 export interface ProjectCreateRequest {
   name: string;
-  goal?: string;
+  root_path: string;
+  instructions?: string;
+  default_model?: string;
+  permission_mode?: Project["permission_mode"];
 }
 
-export interface ProjectUpdateRequest {
+export type ProjectUpdateRequest = Partial<Omit<ProjectCreateRequest, "name">> & {
   name?: string;
-  goal?: string;
-}
+  status?: Project["status"];
+  pinned_files?: string[];
+};
 
-export interface ProjectMemoryUpdateRequest {
-  summary: string;
-}
-
-export async function listProjects() {
-  return getJSON<ProjectSummary[]>("/api/projects");
-}
-
-export async function createProject(input: ProjectCreateRequest) {
-  return postJSON<ProjectDetail>("/api/projects", input);
-}
-
-export async function loadProject(projectId: string) {
-  return getJSON<ProjectDetail>(`/api/projects/${projectId}`);
-}
-
-export async function updateProject(projectId: string, input: ProjectUpdateRequest) {
-  return putJSON<ProjectDetail>(`/api/projects/${projectId}`, input);
-}
-
-export async function deleteProject(projectId: string) {
-  return deleteJSON<void>(`/api/projects/${projectId}`);
-}
-
-export async function loadProjectMemory(projectId: string) {
-  return getJSON<Record<string, unknown>>(`/api/projects/${projectId}/memory`);
-}
-
-export async function updateProjectMemory(projectId: string, input: ProjectMemoryUpdateRequest) {
-  return putJSON<Record<string, unknown>>(`/api/projects/${projectId}/memory`, input);
-}
+export const listProjects = () => getJSON<Project[]>("/api/projects");
+export const createProject = (input: ProjectCreateRequest) => postJSON<Project>("/api/projects", input);
+export const loadProject = (projectId: string) => getJSON<Project>(`/api/projects/${projectId}`);
+export const updateProject = (projectId: string, input: ProjectUpdateRequest) => putJSON<Project>(`/api/projects/${projectId}`, input);
+export const deleteProject = (projectId: string) => deleteJSON<void>(`/api/projects/${projectId}`);
+export const loadProjectMemory = (projectId: string) => getJSON<Record<string, unknown>>(`/api/projects/${projectId}/memory`);
+export const updateProjectMemory = (projectId: string, input: { summary: string }) => putJSON<Record<string, unknown>>(`/api/projects/${projectId}/memory`, input);

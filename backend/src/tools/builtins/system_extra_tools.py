@@ -161,7 +161,7 @@ def _run(args: list[str], *, cwd: Path | None = None, timeout: int = 120, tool_n
     started = time.monotonic()
     cwd = cwd or _REPO_ROOT
     try:
-        result = subprocess.run(args, cwd=str(cwd), capture_output=True, text=True, timeout=timeout, check=False)
+        result = subprocess.run(args, cwd=str(cwd), capture_output=True, text=True, encoding="utf-8", timeout=timeout, check=False)
         stdout = result.stdout or ""
         stderr = result.stderr or ""
         artifact_path = None
