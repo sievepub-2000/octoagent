@@ -56,7 +56,7 @@ const ChatBox: React.FC<{ children: React.ReactNode; isNewThread: boolean; mode:
   const [open, setOpen] = useState(!isNewThread);
   const hasContext = runEvents.length > 0 || (thread.values.artifacts?.length ?? 0) > 0;
   useEffect(() => { if (hasContext) setOpen(true); }, [hasContext]);
-  return <div className="relative flex size-full min-h-0"><section className="relative min-w-0 flex-1">{children}{!open && <Button aria-label="Open context panel" className="absolute right-3 top-3" size="icon-sm" variant="outline" onClick={() => setOpen(true)}><PanelRightOpenIcon className="size-4" /></Button>}</section><div className={cn("min-h-0 w-[min(34vw,28rem)] shrink-0", !open && "hidden")}><ContextPanel onClose={() => setOpen(false)} runEvents={runEvents} threadId={threadId} /></div></div>;
+  return <div className="relative flex size-full min-h-0"><section className="relative min-w-0 flex-1">{children}{!open && <Button aria-label="Open context panel" className="absolute right-3 top-3 z-40" size="icon-sm" variant="outline" onClick={() => setOpen(true)}><PanelRightOpenIcon className="size-4" /></Button>}</section><div className={cn("min-h-0 w-[min(34vw,28rem)] shrink-0", !open && "hidden")}><ContextPanel onClose={() => setOpen(false)} runEvents={runEvents} threadId={threadId} /></div></div>;
 };
 
 export { ChatBox };
