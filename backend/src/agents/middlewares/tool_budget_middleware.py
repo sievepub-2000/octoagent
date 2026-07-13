@@ -5,22 +5,18 @@ import hashlib
 import json
 import logging
 import os as _os
-import re
-import threading
-import time
-from collections import Counter
 from collections.abc import Awaitable, Callable
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from typing import Any, override
-from urllib.parse import urlparse
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain.agents.middleware.types import ModelRequest, ModelResponse, ToolCallRequest
+from langchain.agents.middleware.types import ToolCallRequest
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 from langgraph.runtime import Runtime
 
-from src.utils.messages import latest_human_index, message_text as _message_text
+from src.utils.messages import latest_human_index
+from src.utils.messages import message_text as _message_text
 
 logger = logging.getLogger(__name__)
 
@@ -114,13 +110,28 @@ def _recent_consecutive_errors(messages: list[object], *, include_recovery_guard
 
 
 def _consecutive_recent_tool_signatures(messages: list[object], limit: int = 30) -> list[str]:
+    scoped = messages[latest_human_index(messages) + 1:]
+    calls_by_id: dict[str, str] = {}
+    for msg in scoped:
+        if not isinstance(msg, AIMessage):
+            continue
+        for call in getattr(msg, "tool_calls", None) or []:
+            call_id = call.get("id")
+            if call_id:
+                calls_by_id[str(call_id)] = _tool_call_args_signature(
+                    str(call.get("name") or "tool"), call.get("args")
+                )
     sigs: list[str] = []
-    for msg in reversed(messages[latest_human_index(messages) + 1:]):
+    for msg in reversed(scoped):
         if isinstance(msg, ToolMessage):
-            sigs.append(_tool_call_args_signature(
-                str(getattr(msg, "name", None) or "tool"),
-                getattr(msg, "additional_kwargs", None),
-            ))
+            call_id = str(getattr(msg, "tool_call_id", "") or "")
+            sigs.append(
+                calls_by_id.get(call_id)
+                or _tool_call_args_signature(
+                    str(getattr(msg, "name", None) or "tool"),
+                    getattr(msg, "additional_kwargs", None),
+                )
+            )
         if len(sigs) >= limit:
             break
     return sigs
@@ -173,9 +184,9 @@ def _tool_texts(messages: list[object]) -> list[str]:
     return [_message_text(m) for m in messages if isinstance(m, ToolMessage)]
 
 
-def _parse_soft_tool_budget(text: str) -> int | None:
+def _parse_soft_tool_budget(text: object) -> int | None:
     try:
-        return int(text.strip())
+        return int(str(text).strip())
     except (ValueError, TypeError):
         return None
 
@@ -328,7 +339,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
                 return {"messages": [SystemMessage(content=instruction)], "runtime": runtime_state}
 
         # Soft tool budget
-        tool_texts = _tool_texts(messages)
+        tool_texts = _tool_texts(_messages_since_latest_human(messages))
         soft_budget = self._effective_soft_tool_budget(runtime)
         if soft_budget is not None and len(tool_texts) >= soft_budget:
             if not any(isinstance(m, SystemMessage) and "<tool_soft_budget_policy>" in _message_text(m)

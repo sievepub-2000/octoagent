@@ -1,5 +1,13 @@
 ## [20260714] - 2026-07-14
 
+### Legacy test debt cleanup
+
+- Resolved all 53 inherited policy, RAG, prompt-cache, artifact-tool, and tool-catalog test failures; the backend suite now passes 628 tests with no failures.
+- Replaced the oversized legacy tool-recovery matrix with focused tests for the current advisory recovery interface, and removed assertions for retired research-closure hard stops, implicit system-tool loading, and default insecure TLS retries.
+- Fixed the context fast path so one oversized tool result cannot bypass truncation, and corrected soft tool budgets to accept numeric runtime values and count only the current user turn.
+- Unified FAISS incremental additions behind one count-returning interface and repaired RAG tests that depended on private globals, missing imports, stale BM25 dirty-state assumptions, or invalid tokenization expectations.
+- Preserved system operations through intent-based lazy loading while keeping them out of the default narrow-waist prompt catalog.
+
 ### Runtime performance
 
 - Cached unchanged model configuration revisions instead of reparsing YAML several times during every Agent build.

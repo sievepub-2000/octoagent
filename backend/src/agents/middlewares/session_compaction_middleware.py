@@ -20,6 +20,8 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import BaseMessage, SystemMessage
 from langgraph.runtime import Runtime
 
+from src.agents.core.compression_config import load_compression_config
+from src.agents.core.context_compressor import ContextCompressor
 from src.runtime.context_budget import (
     SYSTEM_SESSION_CONTINUE_PROMPT,
     MessageTokenLimits,
@@ -32,8 +34,6 @@ from src.runtime.context_budget import (
     trim_text_to_token_budget,
     truncate_oversized_messages,
 )
-from src.agents.core.context_compressor import ContextCompressor, TokenBudget
-from src.agents.core.compression_config import CompressionConfig, load_compression_config
 from src.storage.session_compaction.compactor import (
     CompactionConfig,
     Message,
@@ -521,7 +521,14 @@ class SessionCompactionMiddleware(AgentMiddleware):
         # Cheap pre-check: skip expensive token estimation for short conversations.
         # Compaction is only needed when context is large; < threshold messages
         # will never exceed the budget, so return early without O(n) work.
-        if len(messages) < _FAST_ROUTE_MSG_THRESHOLD:
+        # Message count alone is not a safe proxy for context size: a single
+        # tool result can contain megabytes. Keep the fast route only when no
+        # individual message is large enough to require the context guard.
+        has_oversized_message = any(
+            _message_estimated_tokens(message) > _max_tokens_for_message(message)
+            for message in messages
+        )
+        if len(messages) < _FAST_ROUTE_MSG_THRESHOLD and not has_oversized_message:
             merged_ts_short, phase_u_short = _merge_task_progress_state(state)
             if merged_ts_short is not None and merged_ts_short != state.get("task_state"):
                 return {"runtime": dict(state.get("runtime") or {}), "task_state": merged_ts_short}

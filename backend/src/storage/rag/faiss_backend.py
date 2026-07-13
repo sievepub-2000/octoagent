@@ -15,7 +15,6 @@ from __future__ import annotations
 import importlib
 import json
 import logging
-import os
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -110,12 +109,10 @@ class FAISSIndexManager:
             self._stats.total_searches += 1
             return []
 
-        cache_key = f"{table_name}_{len(vectors)}"
         index_path = self._cache_dir / f"{table_name}_faiss_index.bin"
 
         start_time = time.time()
         try:
-            normalized_query = None
             # Try to load cached index (avoids full rebuild)
             if index_path.exists() and len(vectors) <= 10000:
                 try:
@@ -183,31 +180,14 @@ class FAISSIndexManager:
             alpha * elapsed_ms + (1 - alpha) * self._stats.avg_search_time_ms
         )
 
-    def add_to_index(self, table_name: str, vectors: list[list[float]]) -> None:
-        """Add vectors to a cached FAISS index.
+    def add_to_index(self, table_name: str, vectors: list[list[float]]) -> int:
+        """Add vectors to a cached FAISS index and return the added count.
 
         Args:
             table_name: Name of the table.
             vectors: List of vector embeddings to add.
         """
-        index_path = self._cache_dir / f"{table_name}_faiss_index.bin"
-        if not index_path.exists():
-            return
-
-        try:
-            numpy, faiss = _optional_modules()
-            if numpy is None or faiss is None:
-                return
-
-            index = faiss.read_index(str(index_path))
-            matrix = numpy.asarray(vectors, dtype="float32")
-            faiss.normalize_L2(matrix)
-            index.add(matrix)
-            faiss.write_index(index, str(index_path))
-            self._stats.total_adds += len(vectors)
-            self._stats.current_index_size = index.ntotal
-        except Exception as exc:
-            logger.debug("Failed to add vectors to FAISS index: %s", exc)
+        return self.add_vectors_to_existing_index(table_name, vectors)
 
     def get_stats(self) -> dict[str, Any]:
         """Get FAISS index manager statistics."""

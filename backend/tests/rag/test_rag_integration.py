@@ -10,7 +10,6 @@ Tests cover:
 from __future__ import annotations
 
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -18,17 +17,13 @@ import pytest
 from src.storage.rag.bm25_backend import BM25Index, BM25IndexManager, bm25_search
 from src.storage.rag.faiss_backend import (
     FAISSIndexManager,
-    FAISSStats,
     search_rows,
-    get_faiss_index_manager,
 )
-from src.storage.rag.unified_store import UnifiedRAGStore, RAGMatch
 from src.storage.rag.quality_monitor import (
     RetrievalQualityMonitor,
     RetrievalResult,
-    get_quality_monitor,
 )
-
+from src.storage.rag.unified_store import UnifiedRAGStore
 
 # ── M1: BM25 Index Persistence ──────────────────────────────────────────────
 
@@ -63,7 +58,7 @@ class TestBM25Persistence:
         mgr.get_or_create_index("tbl", ["d1"], ["doc1"])
         mgr.update_index("tbl", ["d2", "d3"], ["doc2", "doc3"])
         idx = mgr._indexes["tbl"]
-        assert idx.is_dirty() is True
+        assert idx.is_dirty() is False  # manager auto-persists every mutation
         assert len(idx.doc_ids) == 3
 
         # Reload
@@ -96,7 +91,7 @@ class TestBM25Persistence:
         mgr.update_index("a", ["d2"], ["doc2"])
         mgr.get_or_create_index("b", ["d1"], ["doc1"])
         count = mgr.save_all_indexes()
-        assert count >= 1
+        assert count == 0  # all manager mutations were already persisted
 
 
 # ── M2: Retrieval Quality Monitoring ────────────────────────────────────────
@@ -176,7 +171,7 @@ class TestFAISSPersistence:
     def test_search_with_persistence(self, tmp_path: Path) -> None:
         """Search → save index → search again with cached index."""
         import numpy  # noqa: F401 - ensures numpy is available
-        faiss = pytest.importorskip("faiss")
+        pytest.importorskip("faiss")
 
         cache_dir = tmp_path / "faiss"
         mgr = FAISSIndexManager(cache_dir=cache_dir)
@@ -196,7 +191,7 @@ class TestFAISSPersistence:
     def test_incremental_vector_add(self, tmp_path: Path) -> None:
         """Add vectors to existing persisted FAISS index."""
         import numpy  # noqa: F401
-        faiss = pytest.importorskip("faiss")
+        pytest.importorskip("faiss")
 
         cache_dir = tmp_path / "faiss"
         mgr = FAISSIndexManager(cache_dir=cache_dir)
@@ -220,7 +215,7 @@ class TestFAISSPersistence:
     def test_faiss_clear_cache(self, tmp_path: Path) -> None:
         """Test clearing FAISS cache."""
         import numpy  # noqa: F401
-        faiss = pytest.importorskip("faiss")
+        pytest.importorskip("faiss")
 
         mgr = FAISSIndexManager(cache_dir=tmp_path / "faiss")
         rows = [("r0", "ns", "c0", "{}", [0.1] * 10)]
@@ -282,7 +277,7 @@ class TestEndToEnd:
         idx = mgr2.get_or_create_index("e2e", ["d1"], ["doc1"])
         assert len(idx.doc_ids) == 3  # d1, d3, d4
         assert "d2" not in idx.doc_ids
-        results = idx.query("doc", top_k=10)
+        results = idx.query("doc1", top_k=10)
         assert len(results) > 0
 
     def test_quality_monitor_full_cycle(self) -> None:
@@ -303,7 +298,7 @@ class TestEndToEnd:
     def test_faiss_full_pipeline(self, tmp_path: Path) -> None:
         """Create → persist → add → reload → search."""
         import numpy  # noqa: F401
-        faiss = pytest.importorskip("faiss")
+        pytest.importorskip("faiss")
 
         mgr = FAISSIndexManager(cache_dir=tmp_path / "faiss")
         rows = [(f"r{i}", "ns", f"c{i}", "{}", [0.1] * 10) for i in range(10)]
@@ -346,7 +341,7 @@ class TestErrorHandling:
 
     def test_faiss_add_vectors_large(self, tmp_path: Path) -> None:
         import numpy  # noqa: F401
-        faiss = pytest.importorskip("faiss")
+        pytest.importorskip("faiss")
         mgr = FAISSIndexManager(cache_dir=tmp_path / "faiss")
         rows = [("r0", "ns", "c0", "{}", [0.1] * 10)]
         mgr.search_with_persistence("test", rows, [0.1] * 10, top_k=1)

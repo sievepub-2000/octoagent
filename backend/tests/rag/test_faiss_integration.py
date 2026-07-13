@@ -10,22 +10,20 @@ Tests cover:
 
 from __future__ import annotations
 
-import math
-import os
+import json
 import tempfile
 from pathlib import Path
 
 import pytest
 
+from src.storage.rag import faiss_backend
 from src.storage.rag.faiss_backend import (
     FAISSIndexManager,
     search_rows,
-    get_faiss_index_manager,
 )
 from src.storage.rag.quality_monitor import (
     RetrievalQualityMonitor,
     RetrievalResult,
-    get_quality_monitor,
 )
 
 
@@ -347,26 +345,13 @@ class TestFAISSErrorHandling:
             count = manager.add_to_index("test", vectors)
             assert count == 50
 
-    def test_add_vectors_no_fallback(self):
+    def test_add_vectors_no_fallback(self, monkeypatch):
         """Test add_to_index when FAISS is unavailable."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = FAISSIndexManager(cache_dir=Path(tmpdir))
-            # Manually set numpy/faiss to None to simulate unavailability
-            original_optional = _optional_modules
-            try:
-                import builtins
-                old_import = builtins.__import__
-
-                def mock_import(name, *args, **kwargs):
-                    if name in ("numpy", "faiss"):
-                        raise ImportError(f"No module named '{name}'")
-                    return old_import(name, *args, **kwargs)
-
-                builtins.__import__ = mock_import
-                count = manager.add_to_index("test", [[0.1] * 10])
-                assert count == 0
-            finally:
-                builtins.__import__ = old_import
+            monkeypatch.setattr(faiss_backend, "_optional_modules", lambda: (None, None))
+            count = manager.add_to_index("test", [[0.1] * 10])
+            assert count == 0
 
     def test_search_with_all_invalid_rows(self):
         """Test search when all rows have invalid embeddings."""
@@ -486,7 +471,7 @@ class TestRetrievalQualityMonitorIntegration:
             monitor.record_result(result)
             path = Path(tmpdir) / "metrics.json"
             monitor.export_metrics(path)
-            with open(path, "r") as f:
+            with open(path) as f:
                 data = json.load(f)
             assert "total_queries" in data
             assert data["total_queries"] == 1

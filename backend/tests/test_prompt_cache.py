@@ -72,14 +72,14 @@ def test_dynamic_section_uses_placeholders_for_missing_keys() -> None:
 
 
 def test_build_messages_assembles_system_user_history() -> None:
-    lc = pytest.importorskip("langchain_core", reason="langchain_core not installed")
+    messages_module = pytest.importorskip("langchain_core.messages", reason="langchain_core not installed")
 
     cache = _make_cache()
     messages = cache.build_messages(
         context={"skills": "bash"},
         conversation_history=[
-            lc.HumanMessage(content="hi"),
-            lc.AIMessage(content="hello back"),
+            messages_module.HumanMessage(content="hi"),
+            messages_module.AIMessage(content="hello back"),
         ],
     )
     assert len(messages) == 4  # system + dynamic user + human + ai
@@ -90,11 +90,11 @@ def test_build_messages_assembles_system_user_history() -> None:
 
 
 def test_build_messages_handles_dict_history() -> None:
-    lc = pytest.importorskip("langchain_core", reason="langchain_core not installed")
+    messages_module = pytest.importorskip("langchain_core.messages", reason="langchain_core not installed")
 
     cache = _make_cache()
     messages = cache.build_messages(
-        conversation_history=[lc.HumanMessage(content="hello")],
+        conversation_history=[messages_module.HumanMessage(content="hello")],
     )
     human_msgs = [m for m in messages if m.get("role") == "human" and m.get("content") == "hello"]
     assert len(human_msgs) == 1

@@ -73,7 +73,11 @@ def test_artifact_dir_treats_null_output_name_as_auto_name(tmp_path: Path, monke
     assert artifact_dir.name.startswith("html_to_canvas-")
 
 
-def test_flipbook_generates_html_artifact(tmp_path: Path) -> None:
+def test_flipbook_generates_html_artifact(tmp_path: Path, monkeypatch) -> None:
+    flipbook_lib = tmp_path / "flipbook.js"
+    flipbook_lib.write_text("window.flipbook = () => {};", encoding="utf-8")
+    monkeypatch.setattr(system_ops_tools, "_node_package_file", lambda *_: flipbook_lib)
+    monkeypatch.setattr(system_ops_tools, "_SYSTEM_TOOL_ARTIFACT_ROOT", tmp_path / "artifacts")
     image_file = tmp_path / "frame.png"
     Image.new("RGB", (8, 6), color="blue").save(image_file)
 

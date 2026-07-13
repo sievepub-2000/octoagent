@@ -1,6 +1,10 @@
+"""System tools follow the narrow-waist, intent-loaded catalog contract."""
+
 from __future__ import annotations
 
-import importlib
+from src.agents.core.tool_loader import clear_session_cache, load_tools_for_intent
+from src.tools import get_available_tools
+from src.tools.catalog import BUILTIN_TOOLS, LAZY_LOAD_REGISTRY
 
 SYSTEM_TOOL_NAMES = {
     "flipbook",
@@ -14,49 +18,23 @@ SYSTEM_TOOL_NAMES = {
 }
 
 
-def _reload_catalog(monkeypatch, **env: str):
-    import src.tools.catalog as catalog
-
-    for key in ("OCTOAGENT_SYSTEM_TOOLS_ENABLED", "OCTOAGENT_SYSTEM_TOOLS"):
-        monkeypatch.delenv(key, raising=False)
-    for key, value in env.items():
-        monkeypatch.setenv(key, value)
-    return importlib.reload(catalog)
-
-
-def test_system_tools_can_be_disabled(monkeypatch) -> None:
-    catalog = _reload_catalog(monkeypatch, OCTOAGENT_SYSTEM_TOOLS_ENABLED="0")
-    names = {tool.name for tool in catalog.BUILTIN_TOOLS}
+def test_default_catalog_keeps_system_tools_out_of_every_prompt() -> None:
+    names = {tool.name for tool in BUILTIN_TOOLS}
     assert names.isdisjoint(SYSTEM_TOOL_NAMES)
 
 
-def test_system_tools_allowlist(monkeypatch) -> None:
-    catalog = _reload_catalog(monkeypatch, OCTOAGENT_SYSTEM_TOOLS="host_shell,process_manage")
-    selected = {tool.name for tool in catalog.BUILTIN_TOOLS if tool.name in SYSTEM_TOOL_NAMES}
-    assert selected == {"host_shell", "process_manage"}
+def test_system_tools_remain_available_through_the_lazy_registry() -> None:
+    names = {tool.name for tool in LAZY_LOAD_REGISTRY["system_ops"]}
+    assert {"host_shell", "process_manage"} <= names
 
 
-def test_default_system_tool_policy_preserves_backwards_compatibility(monkeypatch) -> None:
-    catalog = _reload_catalog(monkeypatch)
-    names = {tool.name for tool in catalog.BUILTIN_TOOLS}
-    assert "host_shell" in names
-    assert "process_manage" in names
+def test_system_intent_loads_system_tools_on_demand() -> None:
+    clear_session_cache("system-policy-test")
+    tools = load_tools_for_intent("inspect server cpu and process state", session_id="system-policy-test")
+    names = {tool.name for tool in tools}
+    assert {"host_shell", "process_manage"} <= names
 
 
-def test_runtime_permission_mode_hides_system_tools_by_default(monkeypatch) -> None:
-    _reload_catalog(monkeypatch)
-    from src.tools import get_available_tools
-
-    names = {tool.name for tool in get_available_tools(include_mcp=False, permission_mode="approval")}
+def test_permission_mode_does_not_bypass_intent_loading() -> None:
+    names = {tool.name for tool in get_available_tools(include_mcp=False, permission_mode="system")}
     assert names.isdisjoint(SYSTEM_TOOL_NAMES)
-
-
-def test_runtime_permission_mode_allows_system_tools_only_in_system_mode(monkeypatch) -> None:
-    _reload_catalog(monkeypatch)
-    from src.tools import get_available_tools
-
-    directory_names = {tool.name for tool in get_available_tools(include_mcp=False, permission_mode="directory")}
-    system_names = {tool.name for tool in get_available_tools(include_mcp=False, permission_mode="system")}
-    assert directory_names.isdisjoint(SYSTEM_TOOL_NAMES)
-    assert "host_shell" in system_names
-    assert "process_manage" in system_names
