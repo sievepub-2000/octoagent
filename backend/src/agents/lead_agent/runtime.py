@@ -12,6 +12,7 @@ from src.runtime.config.agents_config import load_agent_config
 from src.runtime.config.app_config import get_app_config
 from src.runtime.config.ml_intern_defaults import build_ml_intern_runtime_context, resolve_ml_intern_profile_name
 from src.runtime.config.paths import resolve_configured_default_model_name
+from src.storage.project.service import get_project_service
 from src.tools.permissions import normalize_runtime_permission_mode
 
 logger = logging.getLogger(__name__)
@@ -67,6 +68,9 @@ class LeadAgentRuntimeOptions:
     dialogue_route_reason: str
     dialogue_needs_tools: bool
     dialogue_needs_memory: bool
+    project_id: str | None
+    project_root_path: str | None
+    project_prompt: str
 
 
 def embedded_backup_system_prompt(conversation_language: str | None = None) -> str:
@@ -138,9 +142,16 @@ def resolve_flash_model_name(
 
 
 class LeadAgentRuntimeResolver:
-    def __init__(self, *, app_config_getter=get_app_config, agent_config_loader=load_agent_config):
+    def __init__(
+        self,
+        *,
+        app_config_getter=get_app_config,
+        agent_config_loader=load_agent_config,
+        project_service_getter=get_project_service,
+    ):
         self._app_config_getter = app_config_getter
         self._agent_config_loader = agent_config_loader
+        self._project_service_getter = project_service_getter
 
     def resolve(self, config: RunnableConfig) -> LeadAgentRuntimeOptions:
         thinking_enabled = runtime_config_value(config, "thinking_enabled", False)
@@ -149,6 +160,20 @@ class LeadAgentRuntimeResolver:
             config,
             "model_name",
         ) or runtime_config_value(config, "model")
+        project_id = str(runtime_config_value(config, "project_id") or "").strip() or None
+        project_root_path: str | None = None
+        project_prompt = ""
+        requested_permission = runtime_config_value(config, "permission_mode")
+        if project_id:
+            project_context = self._project_service_getter().resolve_execution_context(
+                project_id,
+                requested_model=requested_model_name,
+                requested_permission=requested_permission,
+            )
+            requested_model_name = project_context.model_name or None
+            requested_permission = project_context.permission_mode
+            project_root_path = project_context.root_path
+            project_prompt = project_context.prompt_section()
         is_plan_mode = runtime_config_value(config, "is_plan_mode", False)
         subagent_enabled = runtime_config_value(config, "subagent_enabled", False)
         max_concurrent_subagents = runtime_config_value(
@@ -159,7 +184,7 @@ class LeadAgentRuntimeResolver:
         is_bootstrap = runtime_config_value(config, "is_bootstrap", False)
         agent_name = runtime_config_value(config, "agent_name")
         conversation_language = runtime_config_value(config, "conversation_language")
-        permission_mode = normalize_runtime_permission_mode(runtime_config_value(config, "permission_mode"))
+        permission_mode = normalize_runtime_permission_mode(requested_permission)
         workflow_run_mode = runtime_config_value(config, "workflow_run_mode")
         runtime_mode = runtime_config_value(config, "mode")
         dialogue_route_payload = runtime_config_value(config, "dialogue_route")
@@ -193,11 +218,15 @@ class LeadAgentRuntimeResolver:
         system_continue_reason = runtime_config_value(config, "system_continue_reason")
         continue_message_count = runtime_config_value(config, "continue_message_count")
         thread_message_count = runtime_config_value(config, "thread_message_count")
-        if route.kind in FAST_ROUTES and route.kind not in {ROUTE_CONTROL_COMMAND, ROUTE_PLAN_ONLY} and (
-            continue_trigger == "continue"
-            or bool(system_continue_reason)
-            or (isinstance(continue_message_count, (int, float)) and int(continue_message_count) >= 1)
-            or (isinstance(thread_message_count, (int, float)) and int(thread_message_count) >= 2)
+        if (
+            route.kind in FAST_ROUTES
+            and route.kind not in {ROUTE_CONTROL_COMMAND, ROUTE_PLAN_ONLY}
+            and (
+                continue_trigger == "continue"
+                or bool(system_continue_reason)
+                or (isinstance(continue_message_count, (int, float)) and int(continue_message_count) >= 1)
+                or (isinstance(thread_message_count, (int, float)) and int(thread_message_count) >= 2)
+            )
         ):
             route = classify_dialogue_route(
                 "",
@@ -280,6 +309,9 @@ class LeadAgentRuntimeResolver:
             dialogue_route_reason=route.reason,
             dialogue_needs_tools=route.needs_tools,
             dialogue_needs_memory=route.needs_memory,
+            project_id=project_id,
+            project_root_path=project_root_path,
+            project_prompt=project_prompt,
         )
 
     @staticmethod
@@ -303,5 +335,7 @@ class LeadAgentRuntimeResolver:
                 "dialogue_route_reason": options.dialogue_route_reason,
                 "dialogue_needs_tools": options.dialogue_needs_tools,
                 "dialogue_needs_memory": options.dialogue_needs_memory,
+                "project_id": options.project_id,
+                "project_root_path": options.project_root_path,
             }
         )

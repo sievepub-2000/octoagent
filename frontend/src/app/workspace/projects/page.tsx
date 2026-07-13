@@ -1,6 +1,6 @@
 "use client";
 
-import { ArchiveIcon, FolderGit2Icon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ArchiveIcon, FolderGit2Icon, PlusIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useCreateProject, useDeleteProject, useProjects, useUpdateProject } from "@/core/projects/hooks";
+import { useCreateProject, useProjects, useUpdateProject } from "@/core/projects/hooks";
 
 const EMPTY_FORM = { name: "", root_path: "/home/sieve-pub/public-workspace", instructions: "" };
 
@@ -18,7 +18,6 @@ export default function ProjectsPage() {
   const router = useRouter();
   const { data: projects = [], isLoading } = useProjects();
   const createProject = useCreateProject();
-  const deleteProject = useDeleteProject();
   const updateProject = useUpdateProject();
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -72,7 +71,6 @@ export default function ProjectsPage() {
               <p className="mt-1 truncate font-mono text-xs text-muted-foreground">{project.root_path}</p>
             </Link>
             <Button aria-label="Archive project" size="icon-sm" variant="ghost" onClick={() => updateProject.mutate({ projectId: project.project_id, input: { status: "archived" } })}><ArchiveIcon className="size-4" /></Button>
-            <Button aria-label="Delete project" size="icon-sm" variant="ghost" onClick={() => { if (window.confirm(`Delete ${project.name}?`)) deleteProject.mutate(project.project_id); }}><Trash2Icon className="size-4" /></Button>
           </div>
         ))}
       </section>

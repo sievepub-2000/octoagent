@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from langchain_core.messages import HumanMessage, SystemMessage
 
-from src.agents.middlewares.execution_mode_middleware import ExecutionModeMiddleware, resolve_execution_mode
+from src.agents.middlewares.execution_middleware import ExecutionMiddleware, resolve_execution_mode
 
 
 class _Runtime:
@@ -24,7 +24,7 @@ def test_plan_only_forces_assisted_even_when_thinking_enabled() -> None:
 
 
 def test_execution_mode_contract_is_injected_before_latest_user_turn() -> None:
-    middleware = ExecutionModeMiddleware()
+    middleware = ExecutionMiddleware()
     user = HumanMessage(content="深度分析并修复")
 
     update = middleware.before_agent({"messages": [user], "runtime": {}}, _Runtime({"mode": "goal", "dialogue_route": "deep_agent"}))
@@ -33,6 +33,6 @@ def test_execution_mode_contract_is_injected_before_latest_user_turn() -> None:
     assert isinstance(update["messages"][0], SystemMessage)
     assert update["messages"][1] is user
     content = str(update["messages"][0].content)
-    assert '<execution_mode_contract origin="execution_mode_middleware" mode="goal_autopilot"' in content
+    assert '<execution_mode_contract origin="execution_middleware" mode="goal_autopilot"' in content
     assert "Try at least two different strategies" in content
     assert update["runtime"]["execution_mode"] == "goal_autopilot"

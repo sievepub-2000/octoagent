@@ -5,9 +5,9 @@ from collections.abc import Callable
 
 from langchain_core.runnables import RunnableConfig
 
-from ..dialogue_routing import FAST_ROUTES
 from src.models import is_embedded_backup_model_name
 
+from ..dialogue_routing import FAST_ROUTES
 from .runtime import LeadAgentRuntimeOptions
 
 logger = logging.getLogger(__name__)
@@ -36,6 +36,7 @@ class LeadAgentBuilder:
         self._embedded_backup_prompt_fn = embedded_backup_prompt_fn
 
     def build(self, config: RunnableConfig, options: LeadAgentRuntimeOptions):
+        project_prompt = f"\n{options.project_prompt}" if options.project_prompt else ""
         logger.info(
             "Create Agent(%s) -> thinking_enabled: %s, reasoning_effort: %s, model_name: %s, is_plan_mode: %s, subagent_enabled: %s, max_concurrent_subagents: %s",
             options.agent_name or "default",
@@ -60,7 +61,7 @@ class LeadAgentBuilder:
                     agent_name=options.agent_name,
                     dialogue_route=options.dialogue_route,
                 ),
-                system_prompt=self._embedded_backup_prompt_fn(options.conversation_language),
+                system_prompt=self._embedded_backup_prompt_fn(options.conversation_language) + project_prompt,
                 state_schema=self._state_schema,
             )
 
@@ -87,7 +88,8 @@ class LeadAgentBuilder:
                     available_skills={"bootstrap"},
                     conversation_language=options.conversation_language,
                     ml_intern_profile=options.ml_intern_profile,
-                ),
+                )
+                + project_prompt,
                 state_schema=self._state_schema,
             )
 
@@ -125,6 +127,7 @@ class LeadAgentBuilder:
                 ml_intern_profile=options.ml_intern_profile,
                 compact_prompt=lightweight_dialogue_mode or compact_tool_mode,
                 dialogue_route=options.dialogue_route,
-            ),
+            )
+            + project_prompt,
             state_schema=self._state_schema,
         )

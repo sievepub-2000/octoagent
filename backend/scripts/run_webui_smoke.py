@@ -615,17 +615,9 @@ def main() -> None:
                 result.notes.append("bootstrap_guide_generation_not_observed")
 
         page.keyboard.press("Escape")
-        _note("opening task workspace page")
-        page.goto(
-            f"{args.frontend_url}/workspace/tasks/{task_workspace_id}",
-            wait_until="domcontentloaded",
-        )
-        page.wait_for_url(
-            re.compile(rf".*/workspace/(?:tasks|workflows)/{re.escape(task_workspace_id)}(?:\?.*)?$"),
-            timeout=10000,
-        )
-        if f"/workspace/tasks/{task_workspace_id}" not in page.url and f"/workspace/workflows/{task_workspace_id}" not in page.url:
-            raise RuntimeError(f"Task workspace route did not resolve to a task detail page: {page.url}")
+        _note("opening projects page")
+        page.goto(f"{args.frontend_url}/workspace/projects", wait_until="domcontentloaded")
+        page.wait_for_url(re.compile(r".*/workspace/projects(?:\?.*)?$"), timeout=10000)
         result.workflow_task_created = True
 
         browser.close()

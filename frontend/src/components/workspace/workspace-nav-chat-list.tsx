@@ -32,7 +32,7 @@ export function WorkspaceNavChatList() {
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton
-              isActive={pathname.startsWith("/workspace/projects") || pathname.startsWith("/workspace/tasks")}
+              isActive={pathname.startsWith("/workspace/projects")}
               asChild
             >
               <Link

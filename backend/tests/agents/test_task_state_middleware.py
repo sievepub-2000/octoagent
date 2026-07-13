@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
 
-from src.agents.middlewares.task_state_middleware import TaskStateMiddleware
+from src.agents.middlewares.state_middleware import StateMiddleware
 
 
 class _Runtime:
@@ -11,7 +11,7 @@ class _Runtime:
 
 
 def test_complex_task_creates_and_injects_checkpoint() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     messages = [HumanMessage(content="请分析系统问题，修复上下文压缩，并完成测试验证。")]
 
     update = middleware.before_agent({"messages": messages, "runtime": {}}, _Runtime())
@@ -23,7 +23,7 @@ def test_complex_task_creates_and_injects_checkpoint() -> None:
 
 
 def test_after_agent_marks_unfinished_action_as_recoverable() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     state = {
         "messages": [
             HumanMessage(content="请完整排查并修复系统问题。"),
@@ -45,7 +45,7 @@ def test_after_agent_marks_unfinished_action_as_recoverable() -> None:
 
 
 def test_after_agent_carries_tool_failures_into_task_state() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     state = {
         "messages": [
             HumanMessage(content="请研究公开资料并完成报告。"),
@@ -73,7 +73,7 @@ def test_after_agent_carries_tool_failures_into_task_state() -> None:
 
 
 def test_completed_todos_are_removed_from_pending_after_compaction_resume() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     state = {
         "messages": [
             HumanMessage(content="continue the long task"),
@@ -104,7 +104,7 @@ def test_completed_todos_are_removed_from_pending_after_compaction_resume() -> N
 
 
 def test_task_checkpoint_marks_completed_steps_as_non_repeatable() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     state = {
         "messages": [HumanMessage(content="continue")],
         "runtime": {},
@@ -125,7 +125,7 @@ def test_task_checkpoint_marks_completed_steps_as_non_repeatable() -> None:
     assert "Continue only pending steps" in str(checkpoint.content)
 
 def test_new_complex_user_goal_replaces_stale_task_state() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     new_goal = "如果我有一台服务器4核心24g内存，arm服务器ubuntu系统，可以接cloude flare分发cdn，那么以此服务器为基础，你建议我做什么服务最快赚钱？具体怎样部署？"
     state = {
         "messages": [
@@ -151,7 +151,7 @@ def test_new_complex_user_goal_replaces_stale_task_state() -> None:
 
 
 def test_research_goal_replaces_stale_task_state_before_recovery_continue() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     research_goal = "帮我查一下今天日本前十大新闻内容，去日本最大的新闻门户网站查找并给出详细新闻内容"
     state = {
         "messages": [
@@ -184,7 +184,7 @@ def test_research_goal_replaces_stale_task_state_before_recovery_continue() -> N
 
 
 def test_recovery_continue_does_not_replace_active_task_goal() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     state = {
         "messages": [
             HumanMessage(content="请完整排查并修复系统问题。"),
@@ -206,7 +206,7 @@ def test_recovery_continue_does_not_replace_active_task_goal() -> None:
 
 
 def test_chinese_recovery_continue_does_not_replace_latest_real_goal() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     latest_goal = "查询日本雅虎今天前十大新闻内容"
     state = {
         "messages": [
@@ -232,7 +232,7 @@ def test_chinese_recovery_continue_does_not_replace_latest_real_goal() -> None:
 
 
 def test_think_only_answer_keeps_task_recoverable_despite_completed_todos() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     state = {
         "messages": [
             HumanMessage(content="请给出服务器最快赚钱服务和部署方案。"),
@@ -254,7 +254,7 @@ def test_think_only_answer_keeps_task_recoverable_despite_completed_todos() -> N
 
 
 def test_tool_failure_final_keeps_task_incomplete() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     state = {
         "messages": [HumanMessage(content="请联网分析并给结论。"), AIMessage(content="工具调用连续失败，已按恢复策略停止继续消耗工具调用。")],
         "runtime": {},
@@ -268,7 +268,7 @@ def test_tool_failure_final_keeps_task_incomplete() -> None:
     assert update["task_state"]["status"] == "incomplete"
 
 def test_substantive_advisory_answer_completes_task_state_without_todos() -> None:
-    middleware = TaskStateMiddleware()
+    middleware = StateMiddleware()
     goal = "如果我有一台服务器4核心24g内存，arm服务器ubuntu系统，可以接cloude flare分发cdn，那么以此服务器为基础，你建议我做什么服务最快赚钱？具体怎样部署？"
     answer = (
         "基于你的4核24G ARM Ubuntu服务器和Cloudflare CDN，推荐优先做轻量级AI应用网关。"

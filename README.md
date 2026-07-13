@@ -581,6 +581,8 @@ The command writes local-only artifacts that are intentionally ignored by Git:
 
 ## Local Verification Commands
 
+Project pages now use a server-owned execution contract. See [Projects](docs/PROJECTS.md) for workspace mapping, model precedence, permission ceilings, SQLite migration, and lifecycle rules.
+
 Use these commands before merging runtime or UI changes:
 
 ```bash

@@ -64,6 +64,7 @@ class ThreadRuntimeState(TypedDict):
     run_events: NotRequired[list[dict] | None]
     workplans: NotRequired[list[dict] | None]
 
+
 def merge_runtime_state(
     existing: Mapping[str, Any] | None,
     new: Mapping[str, Any] | None,
@@ -121,6 +122,7 @@ def merge_viewed_images(existing: dict[str, ViewedImageData] | None, new: dict[s
 
 
 class ThreadState(AgentState):
+    project_id: NotRequired[str | None]
     sandbox: NotRequired[SandboxState | None]
     thread_data: NotRequired[ThreadDataState | None]
     continuation: NotRequired[ThreadContinuationState | None]

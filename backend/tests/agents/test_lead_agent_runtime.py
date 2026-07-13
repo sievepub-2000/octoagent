@@ -6,6 +6,7 @@ from src.agents.lead_agent.runtime import (
     resolve_flash_model_name,
 )
 from src.runtime.config.model_config import ModelConfig
+from src.storage.project.service import ProjectExecutionContext
 
 
 class RuntimeConfigStub:
@@ -181,3 +182,43 @@ def test_runtime_resolver_uses_dialogue_text_even_in_flash_mode() -> None:
 
     assert options.dialogue_route in {"current_research", "tool_action", "deep_agent"}
     assert options.dialogue_needs_tools is True
+
+
+def test_runtime_resolver_applies_project_context_and_caps_permission() -> None:
+    config = RuntimeConfigStub([_model("project-model", "llamacpp")])
+
+    class ProjectServiceStub:
+        @staticmethod
+        def resolve_execution_context(project_id: str, **_kwargs) -> ProjectExecutionContext:
+            return ProjectExecutionContext(
+                project_id=project_id,
+                name="OctoAgent",
+                root_path="/home/octoagent",
+                instructions="Run project checks",
+                model_name="project-model",
+                permission_mode="directory",
+                memory_summary="Known-good baseline",
+                pinned_files=["README.md"],
+            )
+
+    resolver = LeadAgentRuntimeResolver(
+        app_config_getter=lambda: config,
+        agent_config_loader=lambda _name: None,
+        project_service_getter=lambda: ProjectServiceStub(),
+    )
+
+    options = resolver.resolve(
+        {
+            "configurable": {
+                "project_id": "proj-1",
+                "permission_mode": "system",
+                "dialogue_text": "check the repository",
+            }
+        }
+    )
+
+    assert options.project_id == "proj-1"
+    assert options.project_root_path == "/home/octoagent"
+    assert options.model_name == "project-model"
+    assert options.permission_mode == "directory"
+    assert "Run project checks" in options.project_prompt

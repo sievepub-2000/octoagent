@@ -1,3 +1,24 @@
+## [2026.7.9] - 2026-07-13
+
+### Project execution contract
+
+- Added a server-owned project execution context that resolves the working directory, project instructions, default model, permission ceiling, pinned files, and project memory for every Agent run.
+- Persisted `project_id` in the canonical thread state so project task grouping survives reloads and restarts.
+- Project permissions now cap requested runtime permissions and can never elevate them.
+- Project workspaces now map `/mnt/user-data/workspace` to the validated project root while keeping uploads and outputs isolated per thread.
+
+### Storage and interface cleanup
+
+- Replaced the process-local JSON project store with transactional SQLite and automatic legacy JSON migration.
+- Consolidated project memory into the project record; removed the duplicate memory-file module, compatibility router wrapper, hard-delete route, and unused frontend delete/memory hooks.
+- Removed the hidden legacy workflow/task pages and their obsolete navigation fallback; persistent Projects are now the only project-management surface.
+- Added an effective-context endpoint and complete project settings editor for instructions, workspace, model, permissions, memory, and pinned files.
+
+### Verification
+
+- Added regression coverage for migration, execution-context resolution, permission non-escalation, and project workspace mapping.
+- Passed affected backend regression tests and lint, frontend ESLint and TypeScript checks, production build, API contract smoke, browser interaction checks, restart persistence, and warning/error log review.
+
 ## [2026.7.7] - 2026-07-07
 
 ### Web Tool Reliability Fixes

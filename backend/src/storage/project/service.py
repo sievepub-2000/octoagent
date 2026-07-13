@@ -1,9 +1,9 @@
-"""Persistent long-lived projects, independent from workflow executions."""
+"""Persistent project definitions and their effective agent execution context."""
 
 from __future__ import annotations
 
 import json
-import os
+import sqlite3
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,11 +15,10 @@ from pydantic import BaseModel, Field
 
 from src.runtime.config.paths import get_paths
 
-from .memory import get_project_memory_service
-
 PermissionMode = Literal["approval", "directory", "system"]
 ProjectStatus = Literal["active", "archived"]
 _ALLOWED_ROOTS = (Path("/home"), Path("/opt"), Path("/srv"), Path("/tmp"), Path("/var/lib"))
+_PERMISSION_ORDER = {"approval": 0, "directory": 1, "system": 2}
 
 
 def _now() -> str:
@@ -40,6 +39,32 @@ class Project(BaseModel):
     updated_at: str
     memory_summary: str = ""
     pinned_files: list[str] = Field(default_factory=list)
+
+
+class ProjectExecutionContext(BaseModel):
+    project_id: str
+    name: str
+    root_path: str
+    instructions: str
+    model_name: str
+    permission_mode: PermissionMode
+    memory_summary: str
+    pinned_files: list[str]
+
+    def prompt_section(self) -> str:
+        lines = [
+            "<project_context>",
+            f"Project: {self.name}",
+            f"Working directory: {self.root_path}",
+        ]
+        if self.instructions:
+            lines.extend(("Project instructions:", self.instructions))
+        if self.memory_summary:
+            lines.extend(("Project memory:", self.memory_summary))
+        if self.pinned_files:
+            lines.append("Pinned files: " + ", ".join(self.pinned_files))
+        lines.append("</project_context>")
+        return "\n".join(lines)
 
 
 def _git_value(root: Path, *args: str) -> str:
@@ -65,43 +90,112 @@ def _resolve_root(value: str) -> Path:
     return root
 
 
+def _effective_permission(project_mode: str, requested_mode: str | None) -> PermissionMode:
+    def normalize(value: str | None) -> PermissionMode:
+        normalized = (value or "").strip().lower()
+        if normalized in {"system", "yolo", "full"}:
+            return "system"
+        if normalized in {"directory", "workspace", "repo", "project"}:
+            return "directory"
+        return "approval"
+
+    project = normalize(project_mode)
+    requested = normalize(requested_mode) if requested_mode is not None else project
+    return min((project, requested), key=_PERMISSION_ORDER.__getitem__)
+
+
 class ProjectService:
+    """Single source of truth for projects and runtime project policy."""
+
     def __init__(self, store_path: Path | None = None) -> None:
-        self._store_path = store_path
+        default_dir = get_paths().projects_dir
+        self._database_path = store_path.with_suffix(".sqlite3") if store_path and store_path.suffix == ".json" else store_path or default_dir / "projects.sqlite3"
+        self._legacy_path = store_path if store_path and store_path.suffix == ".json" else default_dir / "projects.json"
         self._lock = RLock()
-        self._memory = get_project_memory_service()
+        self._initialize()
 
     @property
     def store_path(self) -> Path:
-        return self._store_path or (get_paths().projects_dir / "projects.json")
+        return self._database_path
 
-    def _read(self) -> list[Project]:
-        try:
-            payload = json.loads(self.store_path.read_text(encoding="utf-8"))
-        except (FileNotFoundError, json.JSONDecodeError):
-            return []
-        return [Project.model_validate(item) for item in payload.get("projects", [])]
+    def _connect(self) -> sqlite3.Connection:
+        connection = sqlite3.connect(self._database_path, timeout=10)
+        connection.row_factory = sqlite3.Row
+        return connection
 
-    def _write(self, projects: list[Project]) -> None:
-        path = self.store_path
-        path.parent.mkdir(parents=True, exist_ok=True)
-        temporary = path.with_suffix(".tmp")
-        temporary.write_text(
-            json.dumps({"projects": [item.model_dump(mode="json") for item in projects]}, ensure_ascii=False, indent=2),
-            encoding="utf-8",
+    def _initialize(self) -> None:
+        self._database_path.parent.mkdir(parents=True, exist_ok=True)
+        with self._lock, self._connect() as connection:
+            connection.execute("PRAGMA journal_mode=WAL")
+            connection.execute(
+                """
+                CREATE TABLE IF NOT EXISTS projects (
+                    project_id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    root_path TEXT NOT NULL,
+                    instructions TEXT NOT NULL DEFAULT '',
+                    default_model TEXT NOT NULL DEFAULT '',
+                    permission_mode TEXT NOT NULL DEFAULT 'directory',
+                    status TEXT NOT NULL DEFAULT 'active',
+                    repo_url TEXT NOT NULL DEFAULT '',
+                    branch TEXT NOT NULL DEFAULT '',
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    memory_summary TEXT NOT NULL DEFAULT '',
+                    pinned_files TEXT NOT NULL DEFAULT '[]'
+                )
+                """
+            )
+            count = connection.execute("SELECT COUNT(*) FROM projects").fetchone()[0]
+            if count == 0 and self._legacy_path.exists():
+                try:
+                    payload = json.loads(self._legacy_path.read_text(encoding="utf-8"))
+                    projects = [Project.model_validate(item) for item in payload.get("projects", [])]
+                except (json.JSONDecodeError, ValueError):
+                    projects = []
+                for project in projects:
+                    self._insert(connection, project)
+
+    @staticmethod
+    def _insert(connection: sqlite3.Connection, project: Project) -> None:
+        payload = project.model_dump()
+        payload["pinned_files"] = json.dumps(project.pinned_files, ensure_ascii=False)
+        connection.execute(
+            """
+            INSERT OR REPLACE INTO projects
+            (project_id, name, root_path, instructions, default_model, permission_mode,
+             status, repo_url, branch, created_at, updated_at, memory_summary, pinned_files)
+            VALUES (:project_id, :name, :root_path, :instructions, :default_model, :permission_mode,
+                    :status, :repo_url, :branch, :created_at, :updated_at, :memory_summary, :pinned_files)
+            """,
+            payload,
         )
-        os.replace(temporary, path)
+
+    @staticmethod
+    def _project(row: sqlite3.Row | None) -> Project | None:
+        if row is None:
+            return None
+        payload = dict(row)
+        try:
+            payload["pinned_files"] = json.loads(payload["pinned_files"])
+        except (TypeError, json.JSONDecodeError):
+            payload["pinned_files"] = []
+        return Project.model_validate(payload)
 
     def list_projects(self, *, include_archived: bool = False) -> list[dict[str, Any]]:
-        with self._lock:
-            projects = self._read()
+        query = "SELECT * FROM projects"
+        params: tuple[Any, ...] = ()
         if not include_archived:
-            projects = [item for item in projects if item.status == "active"]
-        return [item.model_dump(mode="json") for item in sorted(projects, key=lambda item: item.updated_at, reverse=True)]
+            query += " WHERE status = ?"
+            params = ("active",)
+        query += " ORDER BY updated_at DESC"
+        with self._connect() as connection:
+            rows = connection.execute(query, params).fetchall()
+        return [project.model_dump(mode="json") for row in rows if (project := self._project(row))]
 
     def get_project(self, project_id: str) -> dict[str, Any] | None:
-        with self._lock:
-            project = next((item for item in self._read() if item.project_id == project_id), None)
+        with self._connect() as connection:
+            project = self._project(connection.execute("SELECT * FROM projects WHERE project_id = ?", (project_id,)).fetchone())
         return project.model_dump(mode="json") if project else None
 
     def create_project(
@@ -126,52 +220,53 @@ class ProjectService:
             created_at=timestamp,
             updated_at=timestamp,
         )
-        with self._lock:
-            projects = self._read()
-            projects.append(project)
-            self._write(projects)
-        self._memory.ensure_project_memory(project.project_id, project.name, project.instructions)
+        with self._lock, self._connect() as connection:
+            self._insert(connection, project)
         return project.model_dump(mode="json")
 
     def update_project(self, project_id: str, **changes: Any) -> dict[str, Any] | None:
-        with self._lock:
-            projects = self._read()
-            for index, project in enumerate(projects):
-                if project.project_id != project_id:
-                    continue
-                payload = project.model_dump()
-                for key in ("name", "instructions", "default_model", "permission_mode", "status", "pinned_files"):
-                    if key in changes and changes[key] is not None:
-                        payload[key] = changes[key]
-                if changes.get("root_path") is not None:
-                    root = _resolve_root(str(changes["root_path"]))
-                    payload.update(
-                        root_path=str(root),
-                        repo_url=_git_value(root, "remote", "get-url", "origin"),
-                        branch=_git_value(root, "branch", "--show-current"),
-                    )
-                payload["updated_at"] = _now()
-                projects[index] = Project.model_validate(payload)
-                self._write(projects)
-                return projects[index].model_dump(mode="json")
-        return None
+        current = self.get_project(project_id)
+        if current is None:
+            return None
+        for key in ("name", "instructions", "default_model", "permission_mode", "status", "pinned_files", "memory_summary"):
+            if key in changes and changes[key] is not None:
+                current[key] = changes[key]
+        if changes.get("root_path") is not None:
+            root = _resolve_root(str(changes["root_path"]))
+            current.update(
+                root_path=str(root),
+                repo_url=_git_value(root, "remote", "get-url", "origin"),
+                branch=_git_value(root, "branch", "--show-current"),
+            )
+        current["updated_at"] = _now()
+        project = Project.model_validate(current)
+        with self._lock, self._connect() as connection:
+            self._insert(connection, project)
+        return project.model_dump(mode="json")
 
-    def delete_project(self, project_id: str) -> bool:
-        with self._lock:
-            projects = self._read()
-            remaining = [item for item in projects if item.project_id != project_id]
-            if len(remaining) == len(projects):
-                return False
-            self._write(remaining)
-        self._memory.delete_project_memory(project_id)
-        return True
-
-    def get_project_memory(self, project_id: str) -> dict[str, Any]:
-        return self._memory.load_project_memory(project_id) or {}
-
-    def update_project_memory(self, project_id: str, summary: str) -> dict[str, Any]:
-        self._memory.save_project_memory(project_id, summary)
-        return self.get_project_memory(project_id)
+    def resolve_execution_context(
+        self,
+        project_id: str,
+        *,
+        requested_model: str | None = None,
+        requested_permission: str | None = None,
+    ) -> ProjectExecutionContext:
+        payload = self.get_project(project_id)
+        if payload is None:
+            raise ValueError(f"Project not found: {project_id}")
+        project = Project.model_validate(payload)
+        if project.status != "active":
+            raise ValueError(f"Project is archived: {project_id}")
+        return ProjectExecutionContext(
+            project_id=project.project_id,
+            name=project.name,
+            root_path=project.root_path,
+            instructions=project.instructions,
+            model_name=(requested_model or project.default_model).strip(),
+            permission_mode=_effective_permission(project.permission_mode, requested_permission),
+            memory_summary=project.memory_summary,
+            pinned_files=project.pinned_files,
+        )
 
 
 _service = ProjectService()

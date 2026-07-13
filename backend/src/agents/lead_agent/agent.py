@@ -4,30 +4,6 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.runnables import RunnableConfig
 
-from .builder import LeadAgentBuilder
-from .kernel import OctoLeadAgentKernel
-from .prompt import apply_prompt_template
-from .runtime import (
-    LeadAgentRuntimeResolver,
-    embedded_backup_system_prompt,
-    runtime_config_value,
-)
-from ..middlewares.clarification_middleware import ClarificationMiddleware
-from ..middlewares.client_command_middleware import ClientCommandMiddleware
-from ..middlewares.continuation_middleware import ContinuationMiddleware
-from ..middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
-from ..middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
-from ..middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
-from ..middlewares.execution_middleware import ExecutionMiddleware
-from ..middlewares.goal_middleware import GoalMiddleware
-from ..middlewares.state_middleware import StateMiddleware
-from ..middlewares.instruction_contract_middleware import InstructionContractMiddleware
-from ..middlewares.lesson_injection_middleware import LessonInjectionMiddleware
-from ..middlewares.memory_middleware import MemoryMiddleware
-from ..middlewares.runtime_state_middleware import RuntimeStateMiddleware
-from ..middlewares.session_compaction_middleware import SessionCompactionMiddleware
-from ..middlewares.skill_evolution_middleware import SkillEvolutionMiddleware
-from ..middlewares.subagent_limit_middleware import SubagentLimitMiddleware
 from src.agents.middlewares.title_middleware import TitleMiddleware
 from src.agents.middlewares.todo_middleware import TodoMiddleware
 from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
@@ -44,6 +20,31 @@ from src.runtime.config.app_config import get_app_config
 from src.runtime.config.paths import resolve_configured_default_model_name
 from src.runtime.config.summarization_config import get_summarization_config
 from src.tools.sandbox.middleware import SandboxMiddleware
+
+from ..middlewares.clarification_middleware import ClarificationMiddleware
+from ..middlewares.client_command_middleware import ClientCommandMiddleware
+from ..middlewares.continuation_middleware import ContinuationMiddleware
+from ..middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
+from ..middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
+from ..middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
+from ..middlewares.execution_middleware import ExecutionMiddleware
+from ..middlewares.goal_middleware import GoalMiddleware
+from ..middlewares.instruction_contract_middleware import InstructionContractMiddleware
+from ..middlewares.lesson_injection_middleware import LessonInjectionMiddleware
+from ..middlewares.memory_middleware import MemoryMiddleware
+from ..middlewares.runtime_state_middleware import RuntimeStateMiddleware
+from ..middlewares.session_compaction_middleware import SessionCompactionMiddleware
+from ..middlewares.skill_evolution_middleware import SkillEvolutionMiddleware
+from ..middlewares.state_middleware import StateMiddleware
+from ..middlewares.subagent_limit_middleware import SubagentLimitMiddleware
+from .builder import LeadAgentBuilder
+from .kernel import OctoLeadAgentKernel
+from .prompt import apply_prompt_template
+from .runtime import (
+    LeadAgentRuntimeResolver,
+    embedded_backup_system_prompt,
+    runtime_config_value,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -252,6 +253,7 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     """
     # Determine if this is a fast route (simple query, no tools needed).
     from src.agents.dialogue_routing import FAST_ROUTES
+
     is_fast_route = dialogue_route in FAST_ROUTES if dialogue_route else False
 
     _SKIP_FOR_FAST = {
@@ -265,7 +267,7 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     }
 
     middlewares = [
-        StateMiddleware(),
+        StateMiddleware(project_root_path=runtime_config_value(config, "project_root_path")),
         UploadsMiddleware(),
         ContinuationMiddleware(),
         ClientCommandMiddleware(),

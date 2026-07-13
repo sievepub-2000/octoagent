@@ -101,6 +101,7 @@ workspace/default/memory.json
 workspace/default/agents/*/memory.json
 workspace/env/setup.json
 workspace/default/threads/
+workspace/projects/
 workspace/tools/
 workspace/default/code/
 workspace/runtime/**

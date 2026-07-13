@@ -7,11 +7,13 @@ import os
 import re
 import threading
 from html import unescape
+from pathlib import Path
 from typing import Annotated, Any, NotRequired, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import SystemMessage, ToolMessage
+from langgraph.config import get_config
 from langgraph.runtime import Runtime
 
 from src.agents.core.termination import classify_run_outcome
@@ -51,6 +53,7 @@ _RECOVERY_HUMAN_PATTERN = re.compile(
 
 # ── Thread data helpers ──
 
+
 def _get_thread_paths(paths: Paths, thread_id: str) -> dict[str, str]:
     return {
         "workspace_path": str(paths.sandbox_work_dir(thread_id)),
@@ -60,6 +63,7 @@ def _get_thread_paths(paths: Paths, thread_id: str) -> dict[str, str]:
 
 
 # ── Task state helpers ──
+
 
 def _visible_message_text(message: Any) -> str:
     text = _message_text(message)
@@ -281,6 +285,7 @@ def _persist_task_summary_async(summary: str, thread_id: str) -> None:
     def _worker():
         try:
             from src.agents.memory.simplemem_bridge import get_simplemem_bridge
+
             bridge = get_simplemem_bridge()
             bridge.store_fact(summary, namespace="conversation_summary", metadata={"thread_id": thread_id, "type": "task_summary"})
             logger.info("Task completion summary persisted for thread %s", thread_id[:8])
@@ -303,16 +308,32 @@ class StateMiddleware(AgentMiddleware[StateMiddlewareState]):
 
     state_schema = StateMiddlewareState
 
-    def __init__(self, base_dir: str | None = None, lazy_init: bool = True):
+    def __init__(self, base_dir: str | None = None, lazy_init: bool = True, project_root_path: str | None = None):
         super().__init__()
         self._paths = Paths(base_dir) if base_dir else get_paths()
         self._lazy_init = lazy_init
+        self._project_root_path = str(Path(project_root_path).resolve()) if project_root_path else None
 
     def _thread_data_update(self, thread_id: str) -> dict:
         paths = _get_thread_paths(self._paths, thread_id)
+        if self._project_root_path:
+            paths["workspace_path"] = self._project_root_path
         if not self._lazy_init:
             self._paths.ensure_thread_dirs(thread_id)
         return {"thread_data": {**paths}}
+
+    @staticmethod
+    def _thread_id(runtime: Runtime) -> str | None:
+        context = runtime.context if runtime is not None and runtime.context else {}
+        thread_id = context.get("thread_id") if isinstance(context, dict) else None
+        if thread_id:
+            return str(thread_id)
+        try:
+            configurable = get_config().get("configurable", {})
+        except RuntimeError:
+            return None
+        value = configurable.get("thread_id") if isinstance(configurable, dict) else None
+        return str(value) if value else None
 
     def _merge_context_task_state(self, state: StateMiddlewareState, runtime: Runtime) -> dict[str, Any] | None:
         existing = _normalize_task_state(state.get("task_state"))
@@ -323,7 +344,7 @@ class StateMiddleware(AgentMiddleware[StateMiddlewareState]):
 
     @override
     def before_agent(self, state: StateMiddlewareState, runtime: Runtime) -> dict[str, Any] | None:
-        thread_id = (runtime.context or {}).get("thread_id")
+        thread_id = self._thread_id(runtime)
         update: dict[str, Any] = {}
         if thread_id:
             update.update(self._thread_data_update(thread_id))
