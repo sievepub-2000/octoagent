@@ -5,7 +5,7 @@
 - Replaced ambiguous resume summaries with a deterministic continuation contract that preserves the latest objective, phase, next action, constraints, acceptance criteria, evidence, blockers, and permission scope while treating compressed transcript text as history rather than a new instruction.
 - Preserved tool-call identity and message roles through compaction, restored active task state before generic bootstrap text, and removed the duplicate lead-agent summarization path that could produce conflicting handoffs.
 - Reduced the production chat route payload by lazy-loading Settings, editors, and Markdown rendering; removed per-character animation work, bounded active message grouping, cached token counts, and eliminated redundant history and thread-list fetches.
-- Cleared 146 repository-wide Ruff findings across runtime and tests, including undefined variables and loggers, an invalid async parallel-execution path, duplicate response keys, stale imports, and malformed Office-output helpers; source compilation, Ruff, and import-boundary checks are clean.
+- Cleared 147 repository-wide static and compatibility findings across runtime and tests, including undefined variables and loggers, an invalid async parallel-execution path, duplicate response keys, stale imports, malformed Office-output helpers, and the obsolete plain-SHA audit-signature assertion; source compilation, Ruff, and import-boundary checks are clean.
 - Aligned source development with Python 3.12, Node.js 22, and pnpm 11.12.0, including the supported Windows CPU-wheel installation path for `llama-cpp-python`.
 
 ### Five-language translation parity

@@ -86,7 +86,7 @@ def test_audit_event_records_actor_and_outcome():
     # operation payload under `details`.
     assert event.get("actor") == "alice"
     assert event.get("role") == "operator"
-    assert event.get("signature_algorithm") == "sha256"
+    assert event.get("signature_algorithm") == "hmac-sha256"
     assert isinstance(event.get("signature"), str) and event["signature"]
     details = event.get("details") or {}
     assert details.get("command") == "sudo systemctl restart nginx"
