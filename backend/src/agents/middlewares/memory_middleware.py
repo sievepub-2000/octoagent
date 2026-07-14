@@ -13,6 +13,7 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import ModelRequest
 from langgraph.runtime import Runtime
 
+from src.agents.memory.global_memory import build_global_memory_prompt
 from src.agents.memory.queue import get_memory_queue
 from src.runtime.config.memory_config import get_memory_config
 from src.utils.messages import message_text as _message_text
@@ -253,11 +254,15 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
 
             query = _extract_user_query_from_messages(list(request.messages))
             current_goal = _extract_goal_from_context(request)
-            if not query and not current_goal:
-                return request
-
-            block = _build_semantic_recall_block(query or "", current_goal=current_goal)
-            if not block:
+            blocks = [
+                block
+                for block in (
+                    build_global_memory_prompt(max_chars=config.max_injection_tokens * 4),
+                    _build_semantic_recall_block(query or "", current_goal=current_goal) if query or current_goal else None,
+                )
+                if block
+            ]
+            if not blocks:
                 return request
 
             from langchain_core.messages import SystemMessage as _SystemMessage
@@ -269,7 +274,7 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
                     insert_at = idx + 1
                 else:
                     break
-            messages.insert(insert_at, _SystemMessage(content=block))
+            messages.insert(insert_at, _SystemMessage(content="\n\n".join(blocks)))
             request.messages = messages
         except Exception as exc:
             logger.debug("Semantic memory injection skipped: %s", exc)

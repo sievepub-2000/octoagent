@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from src.gateway.security import require_operator_or_403
 from src.harness.hook_core import get_hook_core_service
+from src.harness.hooks import get_hook_registry
 from src.utils.agent_tool_guide import async_refresh_agent_tool_guide
 
 logger = logging.getLogger(__name__)
@@ -108,6 +109,19 @@ class HookEmitResponse(BaseModel):
 @router.get("/hooks", response_model=HooksListResponse)
 async def list_hooks() -> HooksListResponse:
     hooks = [HookResponse.model_validate(item) for item in get_hook_core_service().list_available_hooks()]
+    runtime_events: dict[str, list[HookTriggerResponse]] = {}
+    for name, event in get_hook_registry().list_registered():
+        runtime_events.setdefault(name, []).append(HookTriggerResponse(trigger=event, command_count=1))
+    hooks.extend(
+        HookResponse(
+            name=name,
+            description="OctoAgent runtime hook",
+            enabled=True,
+            triggers=triggers,
+            files=[],
+        )
+        for name, triggers in sorted(runtime_events.items())
+    )
     return HooksListResponse(hooks=hooks)
 
 

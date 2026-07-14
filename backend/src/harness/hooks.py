@@ -203,6 +203,10 @@ class HookRegistry:
     def total_count(self) -> int:
         return sum(len(b) for b in self._hooks.values())
 
+    def list_registered(self) -> list[tuple[str, str]]:
+        """Return stable hook-name/event pairs for health and UI inspection."""
+        return sorted((hook.name, event.value) for event, hooks in self._hooks.items() for hook in hooks)
+
 
 class HookExecutor:
     """Run hooks for a given event with safe error isolation."""

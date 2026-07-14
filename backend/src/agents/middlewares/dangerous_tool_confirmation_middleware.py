@@ -245,13 +245,8 @@ class DangerousToolConfirmationMiddleware(AgentMiddleware[DangerousToolConfirmat
         if not _requires_confirmation(request):
             return None
 
-        approved_key = f"dangerous_tool_approved:{sig}"
-        if runtime_state.get(approved_key):
-            return None
-
         decision = _user_decision_for_pending(messages, pending)
         if decision == "approve":
-            runtime_state[approved_key] = True
             runtime_state["dangerous_tool_pending"] = None
             _set_runtime_state(request, runtime_state)
             return None

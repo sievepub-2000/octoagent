@@ -31,6 +31,7 @@ from src.agents.memory.governance import (
     is_memory_expired,
     prepare_memory_write,
 )
+from src.agents.memory.text_normalization import repair_mojibake
 from src.runtime.config.memory_config import get_memory_config
 from src.storage.rag import get_unified_rag_store
 from src.storage.rag.unified_store import connect_duckdb_with_retry
@@ -86,6 +87,7 @@ class SystemRAGStore:
         self._search_cache: dict[str, tuple[float, list[SystemMemoryEntry]]] = {}
         self._search_cache_lock = threading.Lock()
         self._write_gen: dict[str, int] = defaultdict(int)
+        self._all_write_gen = 0
         self._initialize()
 
     def _connect(self) -> duckdb.DuckDBPyConnection:
@@ -120,6 +122,9 @@ class SystemRAGStore:
     ) -> str:
         """Add a single system memory entry with auto-generated embedding."""
         namespace = validate_system_memory_namespace(namespace)
+        content = repair_mojibake(content).strip()
+        if not content:
+            return ""
         configured = get_memory_config()
         governed = prepare_memory_write(
             namespace,
@@ -138,6 +143,7 @@ class SystemRAGStore:
 
         entry_id = uuid.uuid4().hex[:16]
         self._write_gen[namespace] += 1
+        self._all_write_gen += 1
         embedding = self._embedding.embed_one(content)
         meta = dict(governed.metadata)
         meta["created_at"] = datetime.now(UTC).isoformat()
@@ -171,6 +177,8 @@ class SystemRAGStore:
         agent_name: str | None = None,
     ) -> list[str]:
         """Add multiple entries efficiently."""
+        contents = [repair_mojibake(content).strip() for content in contents]
+        contents = [content for content in contents if content]
         if not contents:
             return []
         namespace = validate_system_memory_namespace(namespace)
@@ -199,6 +207,7 @@ class SystemRAGStore:
             return []
 
         self._write_gen[namespace] += 1
+        self._all_write_gen += 1
         embeddings = self._embedding.embed(approved_contents)
         now = datetime.now(UTC).isoformat()
         ids: list[str] = []
@@ -301,7 +310,7 @@ class SystemRAGStore:
         top_k = clamp_system_memory_search_top_k(top_k)
 
         # ── Cache lookup ──────────────────────────────────────────────────
-        gen = self._write_gen.get(namespace or "__all__", 0)
+        gen = self._write_gen.get(namespace, 0) if namespace else self._all_write_gen
         cache_key = hashlib.md5(  # noqa: S324 — non-security, performance cache key
             f"{namespace}:{gen}:{query}:{top_k}".encode()
         ).hexdigest()
@@ -423,8 +432,33 @@ class SystemRAGStore:
                 """,
                 params,
             ).fetchall()
-        active_entries = self._active_entries_from_rows(rows)
-        return active_entries[offset : offset + limit]
+        return self._active_entries_from_rows(rows)
+
+    def maintenance_entries(self, *, namespace: str) -> list[SystemMemoryEntry]:
+        """Return every active entry in a validated namespace for maintenance."""
+        namespace = validate_system_memory_namespace(namespace)
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT id, namespace, content, metadata_json FROM system_memories WHERE namespace = ? ORDER BY created_at DESC",
+                [namespace],
+            ).fetchall()
+        return self._active_entries_from_rows(rows)
+
+    def delete_ids(self, entry_ids: list[str]) -> int:
+        """Delete entries and invalidate namespace and global search caches."""
+        ids = list(dict.fromkeys(entry_id for entry_id in entry_ids if entry_id))
+        if not ids:
+            return 0
+        placeholders = ",".join("?" for _ in ids)
+        with self._connect() as conn:
+            namespaces = [row[0] for row in conn.execute(f"SELECT DISTINCT namespace FROM system_memories WHERE id IN ({placeholders})", ids).fetchall()]
+            conn.execute(f"DELETE FROM system_memories WHERE id IN ({placeholders})", ids)
+        for namespace in namespaces:
+            self._write_gen[str(namespace)] += 1
+        self._all_write_gen += 1
+        with self._search_cache_lock:
+            self._search_cache.clear()
+        return len(ids)
 
     def cleanup_expired(
         self,
@@ -453,6 +487,7 @@ class SystemRAGStore:
                 conn.execute("DELETE FROM system_memories WHERE id = ?", [entry_id])
                 deleted_by_namespace[entry_namespace] = deleted_by_namespace.get(entry_namespace, 0) + 1
                 self._write_gen[entry_namespace] += 1
+                self._all_write_gen += 1
 
         return {
             "deleted_count": len(expired_rows),

@@ -10,7 +10,7 @@
       "env": {},
       "headers": {},
       "description": "System-scoped filesystem MCP with full host filesystem access; guarded by chat permission mode.",
-      "permission_scope": "sandbox",
+      "permission_scope": "directory",
       "smoke_test": {
         "enabled": true,
         "tool": "list_allowed_directories",
@@ -28,7 +28,7 @@
       "env": {},
       "headers": {},
       "description": "PostgreSQL MCP using local socket connection.",
-      "permission_scope": "sandbox",
+      "permission_scope": "system",
       "smoke_test": {
         "enabled": true,
         "tool": "query",
@@ -51,7 +51,7 @@
       },
       "headers": {},
       "description": "OpenAPI MCP package exposing OctoAgent gateway endpoints as MCP resources/tools.",
-      "permission_scope": "sandbox",
+      "permission_scope": "system",
       "smoke_test": {
         "enabled": true,
         "tool": "list-api-endpoints",
@@ -72,7 +72,7 @@
       },
       "headers": {},
       "description": "Local Docker Compose inspection MCP for version and compose config validation.",
-      "permission_scope": "sandbox",
+      "permission_scope": "directory",
       "smoke_test": {
         "enabled": true,
         "tool": "compose_version",
@@ -90,7 +90,7 @@
       "env": {},
       "headers": {},
       "description": "Redis MCP package connected to local Redis for cache/session key inspection.",
-      "permission_scope": "sandbox",
+      "permission_scope": "system",
       "smoke_test": {
         "enabled": true,
         "tool": "get",
@@ -110,7 +110,7 @@
       },
       "headers": {},
       "description": "Docker MCP package connected to the local Docker daemon; includes safe listing/version smoke checks.",
-      "permission_scope": "sandbox",
+      "permission_scope": "system",
       "smoke_test": {
         "enabled": true,
         "tool": "docker_container_list",
@@ -120,11 +120,7 @@
     }
   },
   "skills": {},
-  "hooks": {
-    "session-logger": {
-      "enabled": true
-    }
-  },
+  "hooks": {},
   "agentSkillsCompat": {
     "enabled": false,
     "sourceRoot": "/absolute/path/to/agent-skills",

@@ -67,6 +67,25 @@ def test_dangerous_tool_allows_after_user_confirmation() -> None:
     assert blocked is None
 
 
+def test_confirmation_is_consumed_after_one_execution() -> None:
+    middleware = DangerousToolConfirmationMiddleware()
+    initial_human = SimpleNamespace(type="human", content="重启服务")
+    confirmation_human = SimpleNamespace(type="human", content="1")
+    approved_request = _request(messages=[initial_human, confirmation_human], runtime=_pending_runtime())
+
+    assert middleware._maybe_block(approved_request) is None
+    runtime = approved_request.state["runtime"]
+
+    repeated = middleware._maybe_block(
+        _request(
+            messages=[initial_human, confirmation_human],
+            runtime=runtime,
+        )
+    )
+    assert isinstance(repeated, Command)
+    assert (repeated.update or {}).get("messages")
+
+
 def test_dangerous_tool_cancels_after_user_denial() -> None:
     middleware = DangerousToolConfirmationMiddleware()
     initial_human = SimpleNamespace(type="human", content="重启服务")

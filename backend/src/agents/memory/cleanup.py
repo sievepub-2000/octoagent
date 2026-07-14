@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # ── tunables (all overridable at runtime via environment / config) ─────────
 _DEFAULT_INTERVAL_SECONDS = 3600  # run hourly
 _DEFAULT_MIN_CONFIDENCE = 0.3  # prune entries below this confidence
-_DEFAULT_MAX_ENTRIES_PER_NS = 500  # hard cap per namespace
+_DEFAULT_MAX_ENTRIES_PER_NS = 100  # hard cap per namespace
 
 
 class MemoryCleanupScheduler:
@@ -95,6 +95,10 @@ class MemoryCleanupScheduler:
         """Stats from the most recent cleanup cycle."""
         return dict(self._stats)
 
+    @property
+    def is_running(self) -> bool:
+        return self._thread is not None and self._thread.is_alive()
+
     # ── internal ───────────────────────────────────────────────────────────
 
     def _loop(self) -> None:
@@ -114,6 +118,7 @@ class MemoryCleanupScheduler:
             "ttl_evicted": 0,
             "confidence_pruned": 0,
             "cap_evicted": 0,
+            "duplicates_pruned": 0,
             "errors": 0,
         }
         now = datetime.now(UTC)
@@ -135,6 +140,7 @@ class MemoryCleanupScheduler:
                     ns_stats = self._cleanup_namespace(ns, now)
                     stats["confidence_pruned"] += ns_stats.get("confidence_pruned", 0)
                     stats["cap_evicted"] += ns_stats.get("cap_evicted", 0)
+                    stats["duplicates_pruned"] += ns_stats.get("duplicates_pruned", 0)
                 except Exception:
                     logger.exception("Cleanup error in namespace %s", ns)
                     stats["errors"] += 1
@@ -148,11 +154,11 @@ class MemoryCleanupScheduler:
 
     def _cleanup_namespace(self, namespace: str, now: datetime) -> dict[str, int]:
         """Run confidence-floor and cap rules for a single namespace."""
-        stats: dict[str, int] = {"confidence_pruned": 0, "cap_evicted": 0}
+        stats: dict[str, int] = {"confidence_pruned": 0, "cap_evicted": 0, "duplicates_pruned": 0}
 
         # Fetch active entries
         try:
-            entries = self._store.list_entries(namespace=namespace, limit=10_000)
+            entries = self._store.maintenance_entries(namespace=namespace)
         except Exception:
             logger.debug("Could not list namespace %s", namespace)
             return stats
@@ -163,21 +169,40 @@ class MemoryCleanupScheduler:
             if confidence < self._min_confidence:
                 low_confidence.append(entry.id)
 
-        # Remove low-confidence entries via SQL directly (store exposes cleanup_expired
-        # for TTL; we do a targeted eviction by marking them as expired-like using
-        # the store's internal connection only if the store exposes a delete path)
+        # Remove low-confidence entries through the store so caches are invalidated.
         try:
             self._evict_ids_via_store(low_confidence)
             stats["confidence_pruned"] += len(low_confidence)
         except Exception:
             logger.debug("Confidence eviction unsupported for namespace %s", namespace)
 
+        # Exact normalized-content deduplication. Entries are newest-first.
+        seen_content: set[str] = set()
+        duplicate_ids: list[str] = []
+        low_confidence_set = set(low_confidence)
+        for entry in entries:
+            if entry.id in low_confidence_set:
+                continue
+            normalized = " ".join(str(entry.content).lower().split())
+            if normalized in seen_content:
+                duplicate_ids.append(entry.id)
+            else:
+                seen_content.add(normalized)
+        self._evict_ids_via_store(duplicate_ids)
+        stats["duplicates_pruned"] += len(duplicate_ids)
+
         # Cap: keep only top-N by confidence
-        survivors = [e for e in entries if e.id not in set(low_confidence)]
+        removed = set(low_confidence) | set(duplicate_ids)
+        survivors = [e for e in entries if e.id not in removed]
         if len(survivors) > self._max_entries_per_ns:
-            survivors.sort(key=lambda e: self._get_confidence(e))
             over_cap = len(survivors) - self._max_entries_per_ns
-            evict_ids = [e.id for e in survivors[:over_cap]]
+            # maintenance_entries is newest-first: at equal confidence, evict
+            # the older entry (the one with the larger original index).
+            ranked = sorted(
+                enumerate(survivors),
+                key=lambda item: (self._get_confidence(item[1]), -item[0]),
+            )
+            evict_ids = [entry.id for _, entry in ranked[:over_cap]]
             try:
                 self._evict_ids_via_store(evict_ids)
                 stats["cap_evicted"] += len(evict_ids)
@@ -190,15 +215,7 @@ class MemoryCleanupScheduler:
         """Evict a list of entry IDs by direct DuckDB DELETE (internal access)."""
         if not ids:
             return
-        # Access the store's internal DuckDB connection if available
-        if not hasattr(self._store, "_connect"):
-            raise AttributeError("Store does not expose _connect")
-        with self._store._connect() as conn:  # noqa: SLF001
-            placeholders = ",".join("?" * len(ids))
-            conn.execute(
-                f"DELETE FROM system_memories WHERE id IN ({placeholders})",
-                ids,
-            )
+        self._store.delete_ids(ids)
 
     def _get_confidence(self, entry: object) -> float:
         """Extract confidence score from entry metadata."""

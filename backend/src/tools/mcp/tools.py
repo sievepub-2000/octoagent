@@ -11,6 +11,7 @@ from langchain_core.tools import BaseTool
 from src.runtime.config.extensions_config import ExtensionsConfig
 from src.tools.mcp.client import build_servers_config
 from src.tools.mcp.oauth import build_oauth_tool_interceptor, get_initial_oauth_headers
+from src.tools.permissions import set_tool_permission_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +98,15 @@ async def get_mcp_tools() -> list[BaseTool]:
             conn_with_interceptors = dict(connection)
 
             tools = await _load_single_server_tools(server_name, conn_with_interceptors)
+            server = extensions_config.mcp_servers[server_name]
+            for tool in tools:
+                set_tool_permission_metadata(
+                    tool,
+                    server.permission_scope,
+                    source="mcp",
+                    group=server_name,
+                )
+                tool.metadata = {**(tool.metadata or {}), "mcp_server": server_name}
             all_tools.extend(tools)
 
             # Brief pause between servers to avoid resource competition

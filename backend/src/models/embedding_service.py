@@ -20,6 +20,7 @@ _DEFAULT_ST_MODEL = os.getenv(
 
 _DIM_MINILM = 384
 _DIM_FALLBACK = 64
+_PROJECT_HF_HUB = Path("/home/sieve-pub/public-workspace/octoagent/runtime/cache/huggingface/hub")
 
 
 class EmbeddingBackend(ABC):
@@ -36,32 +37,8 @@ class EmbeddingBackend(ABC):
 
 class SentenceTransformerBackend(EmbeddingBackend):
     def __init__(self, model_name: str = _DEFAULT_ST_MODEL) -> None:
-        st_home = os.environ.get("SENTENCE_TRANSFORMERS_HOME")
-        hf_home = os.environ.get("HF_HOME")
-
-        # Use HF_HOME if set, otherwise use project-local cache
-        if hf_home:
-            hub_cache = Path(hf_home).expanduser()
-        else:
-            # Fallback to project cache
-            candidate_paths = [
-                Path("/home/sieve-pub/public-workspace/octoagent/runtime/cache/huggingface/hub"),
-                Path.home() / ".cache" / "huggingface" / "hub",
-            ]
-            hub_cache = next((p for p in candidate_paths if p.exists()), candidate_paths[-1])
-
-        cache_root = Path(st_home).expanduser() if st_home else Path.home() / ".cache" / "torch" / "sentence_transformers"
-
-        model_slug = model_name.replace("/", "_")
-        hub_slug = "models--" + model_name.replace("/", "--")
-
-        local_model_path = cache_root / model_slug
-        if not local_model_path.exists():
-            hub_model_path = _latest_hf_snapshot(hub_cache / hub_slug)
-            if hub_model_path is not None:
-                local_model_path = hub_model_path
-
-        if not local_model_path.exists():
+        local_model_path = _resolve_cached_model_path(model_name)
+        if local_model_path is None:
             raise RuntimeError(f"Model {model_name} not cached locally; skipping to avoid network download hang")
 
         from sentence_transformers import SentenceTransformer  # type: ignore[import-untyped]
@@ -69,9 +46,9 @@ class SentenceTransformerBackend(EmbeddingBackend):
         logger.info("Loading sentence-transformers model from local cache: %s", local_model_path)
         trust_remote_code = model_name.startswith(("Qwen/", "jinaai/"))
         try:
-            self._model = SentenceTransformer(str(local_model_path), trust_remote_code=trust_remote_code)
+            self._model = SentenceTransformer(str(local_model_path), trust_remote_code=trust_remote_code, device="cpu")
         except TypeError:
-            self._model = SentenceTransformer(str(local_model_path))
+            self._model = SentenceTransformer(str(local_model_path), device="cpu")
         self._dim = self._model.get_sentence_embedding_dimension() or _DIM_MINILM
 
     @property
@@ -108,6 +85,32 @@ def _latest_hf_snapshot(model_cache: Path) -> Path | None:
     if not candidates:
         return None
     return max(candidates, key=lambda path: path.stat().st_mtime)
+
+
+def _resolve_cached_model_path(model_name: str) -> Path | None:
+    st_home = os.environ.get("SENTENCE_TRANSFORMERS_HOME")
+    hf_home = os.environ.get("HF_HOME")
+    cache_root = Path(st_home).expanduser() if st_home else Path.home() / ".cache" / "torch" / "sentence_transformers"
+    local_path = cache_root / model_name.replace("/", "_")
+    if local_path.exists():
+        return local_path
+
+    hub_caches: list[Path] = []
+    if hf_home:
+        hf_root = Path(hf_home).expanduser()
+        hub_caches.append(hf_root if hf_root.name == "hub" else hf_root / "hub")
+    hub_caches.extend(
+        [
+            _PROJECT_HF_HUB,
+            Path.home() / ".cache" / "huggingface" / "hub",
+        ]
+    )
+    model_dir = "models--" + model_name.replace("/", "--")
+    for hub_cache in dict.fromkeys(hub_caches):
+        snapshot = _latest_hf_snapshot(hub_cache / model_dir)
+        if snapshot is not None:
+            return snapshot
+    return None
 
 
 # ---------------------------------------------------------------------------

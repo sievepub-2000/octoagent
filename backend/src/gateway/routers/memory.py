@@ -10,6 +10,7 @@ from pathlib import Path
 
 from fastapi import APIRouter, HTTPException
 
+from src.agents.memory.global_memory import load_global_memory, save_global_memory
 from src.agents.memory.layer_accessor import (
     get_memory_layer_accessor,
 )
@@ -320,25 +321,13 @@ async def get_memory_status() -> MemoryStatusResponse:
 # Global Memory (user-editable persistent prompt / instructions)
 # ---------------------------------------------------------------------------
 
-_GLOBAL_MEMORY_PATH = Path(".octoagent/global_memory.json")
-
 
 def _load_global_memory() -> GlobalMemoryStore:
-    if _GLOBAL_MEMORY_PATH.exists():
-        try:
-            raw = json.loads(_GLOBAL_MEMORY_PATH.read_text(encoding="utf-8"))
-            return GlobalMemoryStore(**raw)
-        except Exception:
-            pass
-    return GlobalMemoryStore()
+    return GlobalMemoryStore(**load_global_memory())
 
 
 def _save_global_memory(store: GlobalMemoryStore) -> None:
-    _GLOBAL_MEMORY_PATH.parent.mkdir(parents=True, exist_ok=True)
-    _GLOBAL_MEMORY_PATH.write_text(
-        json.dumps(store.model_dump(), ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    save_global_memory(store.model_dump())
 
 
 @router.get(
@@ -424,3 +413,32 @@ async def get_system_memory_stats():
         return store.stats()
     except Exception as e:
         return {"error": str(e), "total_entries": 0}
+
+
+@router.get("/memory/health")
+async def get_memory_health() -> dict:
+    """Return the live ingest, summarize, vectorize, cleanup, and recall state."""
+    from src.agents.memory.cleanup import get_cleanup_scheduler
+    from src.agents.memory.queue import get_memory_queue
+
+    store_stats = get_system_rag_store().stats()
+    queue = get_memory_queue()
+    scheduler = get_cleanup_scheduler()
+    working = ensure_memory_schema(get_memory_layer_accessor().get_working_memory())
+    global_entries = load_global_memory().get("entries", [])
+    backend = str(store_stats.get("embedding_backend") or "")
+    return {
+        "status": "healthy" if scheduler is not None and scheduler.is_running and backend != "FallbackBackend" else "degraded",
+        "queue": {"pending": queue.pending_count, "processing": queue.is_processing},
+        "working_memory": {
+            "facts": len(working.get("facts") or []),
+            "last_updated": working.get("lastUpdated") or "",
+        },
+        "global_memory": {"entries": len(global_entries) if isinstance(global_entries, list) else 0, "injection_enabled": True},
+        "vector_memory": store_stats,
+        "cleanup": {
+            "running": bool(scheduler and scheduler.is_running),
+            "last_run": scheduler.last_run.isoformat() if scheduler and scheduler.last_run else None,
+            "last_stats": scheduler.stats if scheduler else {},
+        },
+    }

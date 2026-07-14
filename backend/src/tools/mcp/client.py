@@ -4,7 +4,6 @@ import logging
 from typing import Any
 
 from src.runtime.config.extensions_config import ExtensionsConfig, McpServerConfig
-from src.tools.mcp.smoke import server_smoke_failure_reason
 
 logger = logging.getLogger(__name__)
 
@@ -52,6 +51,8 @@ def build_servers_config(extensions_config: ExtensionsConfig) -> dict[str, dict[
     Returns:
         Dictionary mapping server names to their parameters.
     """
+    from src.tools.mcp.smoke import server_smoke_failure_reason
+
     enabled_servers = extensions_config.get_enabled_mcp_servers()
 
     if not enabled_servers:

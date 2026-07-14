@@ -29,6 +29,8 @@ from dataclasses import dataclass, field
 from datetime import UTC
 from typing import Any
 
+from src.agents.memory.text_normalization import repair_mojibake
+
 logger = logging.getLogger(__name__)
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -233,7 +235,7 @@ class SimpleMemCompressor:
         for item in items:
             if not isinstance(item, dict):
                 continue
-            content = str(item.get("content", "")).strip()
+            content = repair_mojibake(str(item.get("content", ""))).strip()
             if not content:
                 continue
             entry_id = uuid.uuid4().hex[:16]
@@ -822,7 +824,7 @@ def _normalise_messages(messages: list[Any]) -> list[dict[str, str]]:
             if isinstance(content, list):
                 # multimodal content blocks
                 content = " ".join(p.get("text", "") for p in content if isinstance(p, dict))
-        content_str = str(content).strip()
+        content_str = repair_mojibake(str(content)).strip()
         if content_str:
             result.append({"role": role, "content": content_str})
     return result

@@ -1,5 +1,6 @@
 """Memory update queue with debounce mechanism."""
 
+import asyncio
 import logging
 import threading
 import time
@@ -113,11 +114,13 @@ class MemoryUpdateQueue:
             for context in contexts_to_process:
                 try:
                     logger.debug("Updating memory for thread %s", context.thread_id)
-                    success = updater.update_memory(
-                        messages=context.messages,
-                        thread_id=context.thread_id,
-                        agent_name=context.agent_name,
-                        metadata=context.metadata,
+                    success = asyncio.run(
+                        updater.update_memory(
+                            messages=context.messages,
+                            thread_id=context.thread_id,
+                            agent_name=context.agent_name,
+                            metadata=context.metadata,
+                        )
                     )
                     if success:
                         logger.debug("Memory updated successfully for thread %s", context.thread_id)

@@ -97,8 +97,10 @@ async def _start_channel_service() -> None:
 
 def _register_reflection_hooks() -> None:
     try:
+        from src.harness.hook_middleware import install_default_hooks
         from src.harness.reflection.skill_evolution_bridge import register_reflection_hooks
 
+        install_default_hooks()
         register_reflection_hooks()
     except Exception:
         logger.exception("Failed to register reflection→skill_evolution hooks")
@@ -334,5 +336,11 @@ async def gateway_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     await _shutdown_orphan_run_sweeper(app)
     await _shutdown_runtime_maintenance_scheduler(app)
     await _shutdown_channel_service()
+    try:
+        from src.agents.memory.cleanup import stop_cleanup_scheduler
+
+        stop_cleanup_scheduler()
+    except Exception:
+        logger.exception("Failed to stop memory cleanup scheduler")
     _shutdown_system_guard(app)
     logger.info("Shutting down API Gateway")

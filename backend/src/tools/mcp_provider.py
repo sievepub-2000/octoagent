@@ -4,8 +4,6 @@ import logging
 
 from langchain.tools import BaseTool
 
-from src.tools.permissions import max_tool_permission_scope, set_tool_permission_metadata
-
 logger = logging.getLogger(__name__)
 
 
@@ -26,8 +24,7 @@ class MCPToolProvider:
             mcp_tools = get_cached_mcp_tools()
             if mcp_tools:
                 logger.info("Using %s cached MCP tool(s)", len(mcp_tools))
-            scope = max_tool_permission_scope([server.permission_scope for server in enabled_servers.values()])
-            return [set_tool_permission_metadata(tool, scope, source="mcp") for tool in mcp_tools]
+            return mcp_tools
         except ImportError:
             logger.warning("MCP module not available. Install 'langchain-mcp-adapters' package to enable MCP tools.")
         except Exception as exc:

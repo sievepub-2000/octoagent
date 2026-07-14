@@ -603,7 +603,7 @@ class MemoryUpdater:
             recent["updatedAt"] = now
 
 
-def update_memory_from_conversation(
+async def update_memory_from_conversation(
     messages: list[Any],
     thread_id: str | None = None,
     agent_name: str | None = None,
@@ -620,4 +620,4 @@ def update_memory_from_conversation(
         True if successful, False otherwise.
     """
     updater = MemoryUpdater()
-    return updater.update_memory(messages, thread_id, agent_name, metadata=metadata)
+    return await updater.update_memory(messages, thread_id, agent_name, metadata=metadata)
