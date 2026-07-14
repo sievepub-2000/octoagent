@@ -35,16 +35,19 @@ logger = logging.getLogger(__name__)
 
 
 def load_project_dotenv() -> None:
+    module_path = Path(__file__).resolve()
     search_paths = [
+        module_path.parents[3] / ".env",
         Path.cwd() / ".env",
         Path.cwd().parent / ".env",
-        Path(__file__).resolve().parents[2] / ".env",
-        Path(__file__).resolve().parents[3] / ".env",
+        module_path.parents[4] / ".env",
     ]
+    loaded: set[Path] = set()
     for dotenv_path in search_paths:
-        if dotenv_path.exists():
+        resolved_path = dotenv_path.resolve()
+        if resolved_path not in loaded and resolved_path.exists():
             load_dotenv(dotenv_path=dotenv_path, override=True)
-            break
+            loaded.add(resolved_path)
 
 
 def resolve_app_config_path(config_path: str | None = None) -> Path:

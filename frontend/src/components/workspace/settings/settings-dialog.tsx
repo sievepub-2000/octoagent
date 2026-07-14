@@ -1,6 +1,6 @@
 "use client";
 
-import { ActivityIcon, BellIcon, BlocksIcon, BrainIcon, DownloadCloudIcon, InfoIcon, LaptopIcon, PaletteIcon, PlugZapIcon, SparklesIcon, WebhookIcon } from "lucide-react";
+import { ActivityIcon, BellIcon, BlocksIcon, BrainIcon, DownloadCloudIcon, InfoIcon, LaptopIcon, PaletteIcon, PlugZapIcon, SparklesIcon, WebhookIcon, WrenchIcon } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
@@ -8,6 +8,7 @@ import MCPConfigPage from "@/app/workspace/config/mcp/page";
 import ModelsConfigPage from "@/app/workspace/config/models/page";
 import PluginsConfigPage from "@/app/workspace/config/plugins/page";
 import SkillsConfigPage from "@/app/workspace/config/skills/page";
+import ToolsHubPage from "@/app/workspace/config/tools/page";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AboutSettingsPage } from "@/components/workspace/settings/about-settings-page";
 import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
@@ -28,6 +29,7 @@ export type SettingsSectionId =
   | "mcp"
   | "plugins"
   | "hooks"
+  | "tools"
   | "memory"
   | "permissions"
   | "notifications"
@@ -68,6 +70,7 @@ export function SettingsPanel({ defaultSection = "general", open, onOpenChange }
     { group: "AI & capabilities", id: "mcp", label: "MCP servers", icon: PlugZapIcon },
     { group: "AI & capabilities", id: "plugins", label: "Plugins", icon: BlocksIcon },
     { group: "AI & capabilities", id: "hooks", label: "Hooks", icon: WebhookIcon },
+    { group: "AI & capabilities", id: "tools", label: "Tools Hub", icon: WrenchIcon },
     { group: "System", id: "memory", label: t.settings.sections.memory, icon: BrainIcon },
     { group: "System", id: "permissions", label: "Permissions", icon: LaptopIcon },
     { group: "System", id: "notifications", label: t.settings.sections.notification, icon: BellIcon },
@@ -120,6 +123,7 @@ export function SettingsPanel({ defaultSection = "general", open, onOpenChange }
           {activeSection === "mcp" && <MCPConfigPage />}
           {activeSection === "plugins" && <PluginsConfigPage />}
           {activeSection === "hooks" && <div className="p-5"><HooksSettingsPage /></div>}
+          {activeSection === "tools" && <ToolsHubPage />}
           {activeSection === "memory" && <div className="p-5"><MemorySettingsPage /></div>}
           {activeSection === "permissions" && <div className="p-5"><SystemExecutionSettingsPage /></div>}
           {activeSection === "notifications" && <div className="p-5"><NotificationSettingsPage /></div>}

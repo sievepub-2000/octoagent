@@ -26,6 +26,7 @@ export function useEnableSkill() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
+      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
     },
   });
 }
@@ -38,6 +39,7 @@ export function useDeleteSkill() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
+      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
     },
   });
 }
@@ -50,6 +52,7 @@ export function useCreateSkill() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
+      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
     },
   });
 }
@@ -66,6 +69,7 @@ export function useUpdateSkill() {
     }) => updateSkill(skillName, request),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
+      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
     },
   });
 }
@@ -76,6 +80,7 @@ export function useInstallAgencyAgents() {
     mutationFn: () => installAgencyAgents(),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
+      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
       void queryClient.invalidateQueries({ queryKey: ["agent-templates"] });
     },
   });

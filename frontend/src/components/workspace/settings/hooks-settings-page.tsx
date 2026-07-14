@@ -1,10 +1,12 @@
 "use client";
 
-import { RefreshCcwIcon, WaypointsIcon } from "lucide-react";
+import { KeyRoundIcon, RefreshCcwIcon, WaypointsIcon } from "lucide-react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
 import { useRepoHooks, useUpdateRepoHook } from "@/core/repo-hooks/hooks";
@@ -13,6 +15,18 @@ export function HooksSettingsPage() {
   const { t } = useI18n();
   const { hooks, isLoading, error, refetch } = useRepoHooks();
   const updateHook = useUpdateRepoHook();
+  const [operatorToken, setOperatorToken] = useState("");
+
+  useEffect(() => {
+    setOperatorToken(sessionStorage.getItem("octoagent_operator_token") ?? "");
+  }, []);
+
+  function saveOperatorToken() {
+    const value = operatorToken.trim();
+    if (value) sessionStorage.setItem("octoagent_operator_token", value);
+    else sessionStorage.removeItem("octoagent_operator_token");
+    toast.success(value ? "Operator authorization saved for this browser session." : "Operator authorization cleared.");
+  }
 
   async function handleToggle(hookName: string, enabled: boolean) {
     try {
@@ -39,6 +53,17 @@ export function HooksSettingsPage() {
           </Button>
         </div>
       </header>
+
+      <div className="mb-5 flex flex-wrap items-end gap-2 border-b border-border/60 pb-5">
+        <label className="min-w-64 flex-1 space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">Operator token</span>
+          <Input type="password" autoComplete="off" value={operatorToken} onChange={(event) => setOperatorToken(event.target.value)} placeholder="Required to enable or disable hooks" />
+        </label>
+        <Button size="sm" variant="outline" onClick={saveOperatorToken}>
+          <KeyRoundIcon className="size-4" />
+          Authorize
+        </Button>
+      </div>
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground">{t.common.loading}</div>

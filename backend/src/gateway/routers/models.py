@@ -20,6 +20,8 @@ from src.runtime.config.paths import get_setup_state_file
 
 router = APIRouter(prefix="/api", tags=["models"])
 _MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
+_ENV_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+_MANAGED_SECRET_PREFIX = "OCTOAGENT_MODEL_"
 _SENSITIVE_MODEL_KEYS = {
     "api_key",
     "apikey",
@@ -151,6 +153,65 @@ def _write_config_data(config_data: dict) -> None:
     reload_app_config(str(config_path))
 
 
+def _project_dotenv_path() -> Path:
+    config_path = _config_path().resolve()
+    return config_path.parents[2] / ".env"
+
+
+def _managed_secret_name(model_name: str, key: str) -> str:
+    model_token = re.sub(r"[^A-Za-z0-9]+", "_", model_name).strip("_").upper()
+    key_token = re.sub(r"[^A-Za-z0-9]+", "_", key).strip("_").upper()
+    return f"{_MANAGED_SECRET_PREFIX}{model_token}_{key_token}"
+
+
+def _persist_dotenv_secret(env_name: str, secret: str) -> None:
+    dotenv_path = _project_dotenv_path()
+    lines = dotenv_path.read_text(encoding="utf-8").splitlines() if dotenv_path.exists() else []
+    assignment = f"{env_name}={secret}"
+    prefix = f"{env_name}="
+    updated = False
+    for index, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[index] = assignment
+            updated = True
+            break
+    if not updated:
+        if lines and lines[-1].strip():
+            lines.append("")
+        lines.append(assignment)
+    dotenv_path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        "w",
+        encoding="utf-8",
+        dir=str(dotenv_path.parent),
+        prefix=".env.",
+        suffix=".tmp",
+        delete=False,
+    ) as handle:
+        handle.write("\n".join(lines) + "\n")
+        temp_path = Path(handle.name)
+    try:
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, dotenv_path)
+        os.chmod(dotenv_path, 0o600)
+    finally:
+        temp_path.unlink(missing_ok=True)
+    os.environ[env_name] = secret
+
+
+def _remove_managed_dotenv_secrets(env_names: set[str]) -> None:
+    if not env_names:
+        return
+    dotenv_path = _project_dotenv_path()
+    if dotenv_path.exists():
+        lines = dotenv_path.read_text(encoding="utf-8").splitlines()
+        filtered = [line for line in lines if not any(line.startswith(f"{name}=") for name in env_names)]
+        dotenv_path.write_text("\n".join(filtered) + "\n", encoding="utf-8")
+        os.chmod(dotenv_path, 0o600)
+    for name in env_names:
+        os.environ.pop(name, None)
+
+
 def _normalize_model_payload(
     payload: dict,
     *,
@@ -207,12 +268,23 @@ def _normalize_model_payload(
         if not secret_ref:
             normalized.pop(key, None)
             continue
-        if not secret_ref.startswith("$"):
-            raise HTTPException(
-                status_code=400,
-                detail=f"{key} must be an environment variable reference such as $OPENROUTER_API_KEY; raw secrets are not written to config.yaml.",
-            )
-        normalized[key] = secret_ref
+        if secret_ref.lower() == "none":
+            normalized[key] = "none"
+            continue
+        if secret_ref.startswith("$"):
+            env_name = secret_ref[1:]
+            if not _ENV_NAME_RE.fullmatch(env_name):
+                raise HTTPException(status_code=400, detail=f"{key} contains an invalid environment variable reference")
+            normalized[key] = secret_ref
+            continue
+        if "\n" in secret_ref or "\r" in secret_ref:
+            raise HTTPException(status_code=400, detail=f"{key} cannot contain line breaks")
+        env_name = _managed_secret_name(name, key)
+        _persist_dotenv_secret(env_name, secret_ref)
+        normalized[key] = "$" + env_name
+
+    if normalized.get("interface_type") == "google_genai" and "api_key" in normalized and "google_api_key" not in normalized:
+        normalized["google_api_key"] = normalized.pop("api_key")
 
     return normalized
 
@@ -324,6 +396,7 @@ def _set_default_model_in_config(model_name: str) -> ModelResponse:
 def _delete_model_from_config(model_name: str) -> bool:
     config_data = _load_config_data()
     models = list(config_data.get("models") or [])
+    removed = next((model for model in models if str(model.get("name")) == model_name), None)
     filtered = [model for model in models if str(model.get("name")) != model_name]
     if len(filtered) == len(models):
         return False
@@ -337,6 +410,15 @@ def _delete_model_from_config(model_name: str) -> bool:
         else:
             system.pop("default_model", None)
     _write_config_data(config_data)
+    if isinstance(removed, dict):
+        managed_env_names = {
+            str(value)[1:]
+            for key, value in removed.items()
+            if key in _SENSITIVE_MODEL_KEYS
+            and isinstance(value, str)
+            and value.startswith("$" + _MANAGED_SECRET_PREFIX)
+        }
+        _remove_managed_dotenv_secrets(managed_env_names)
     _repair_setup_default_model(model_name, filtered)
     return True
 

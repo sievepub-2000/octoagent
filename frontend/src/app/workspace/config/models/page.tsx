@@ -95,7 +95,6 @@ export default function ModelsConfigPage() {
       model: form.model.trim(),
       interface_type: form.interfaceType,
       api_key: form.apiKey.trim() || undefined,
-      google_api_key: form.interfaceType === "google_genai" ? (form.apiKey.trim() || undefined) : undefined,
       base_url: form.baseUrl.trim() || undefined,
       max_context_tokens: form.contextTokens.trim() ? Number(form.contextTokens) : undefined,
       supports_thinking: form.supportsThinking,
@@ -128,14 +127,14 @@ export default function ModelsConfigPage() {
         <section className="octo-panel mb-6 rounded-[1.5rem] p-5">
           <div className="mb-4">
             <h2 className="text-sm font-medium">{editing ? "Edit model" : "Add model"}</h2>
-            <p className="text-xs text-muted-foreground">Credentials are stored as environment-variable references, never as raw keys.</p>
+            <p className="text-xs text-muted-foreground">Enter a key directly or reference an existing environment variable. Raw keys are stored in the protected service environment and never written to model configuration.</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-1"><span className="text-xs text-muted-foreground">Configuration name</span><Input value={form.name} disabled={Boolean(editing)} onChange={(event) => setField("name", event.target.value)} placeholder="openai-gpt" /></label>
             <label className="space-y-1"><span className="text-xs text-muted-foreground">Display name</span><Input value={form.displayName} onChange={(event) => setField("displayName", event.target.value)} placeholder="GPT" /></label>
             <label className="space-y-1"><span className="text-xs text-muted-foreground">Provider</span><select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={form.provider} onChange={(event) => { const preset = PROVIDERS.find((item) => item.value === event.target.value); if (preset) setForm((current) => ({ ...current, provider: preset.value, interfaceType: preset.interfaceType, baseUrl: preset.baseUrl })); }}>{PROVIDERS.map((provider) => <option key={provider.value} value={provider.value}>{provider.label}</option>)}</select></label>
             <label className="space-y-1"><span className="text-xs text-muted-foreground">Provider model ID</span><Input value={form.model} onChange={(event) => setField("model", event.target.value)} placeholder="gpt-5.2 or local-model-name" /></label>
-            <label className="space-y-1"><span className="text-xs text-muted-foreground">API key environment variable</span><Input value={form.apiKey} onChange={(event) => setField("apiKey", event.target.value)} placeholder="$OPENAI_API_KEY (blank for no-auth local model)" /><span className="block text-[11px] text-muted-foreground">Set the referenced variable in the service environment before testing.</span></label>
+            <label className="space-y-1"><span className="text-xs text-muted-foreground">API key</span><Input type="password" autoComplete="off" value={form.apiKey} onChange={(event) => setField("apiKey", event.target.value)} placeholder="Paste a key or use $OPENAI_API_KEY" /><span className="block text-[11px] text-muted-foreground">Leave blank to keep the current key when editing, or for a no-auth local model.</span></label>
             <label className="space-y-1"><span className="text-xs text-muted-foreground">Base URL</span><Input value={form.baseUrl} onChange={(event) => setField("baseUrl", event.target.value)} placeholder="https://api.example.com/v1" /></label>
             <label className="space-y-1"><span className="text-xs text-muted-foreground">Interface</span><select className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm" value={form.interfaceType} onChange={(event) => setField("interfaceType", event.target.value)}><option value="openai_compatible">OpenAI compatible</option><option value="anthropic_messages">Anthropic Messages</option><option value="google_genai">Google GenAI</option><option value="deepseek_reasoner">DeepSeek Reasoner</option><option value="generic">Custom LangChain adapter</option></select></label>
             <label className="space-y-1"><span className="text-xs text-muted-foreground">Context window</span><Input inputMode="numeric" value={form.contextTokens} onChange={(event) => setField("contextTokens", event.target.value)} placeholder="128000" /></label>

@@ -55,11 +55,16 @@ export async function apiRequest<T>(
   if (typeof window !== "undefined") {
     const sessionToken = localStorage.getItem("octoagent_session_token");
     const tenantId = localStorage.getItem("octoagent_tenant_id");
+    const operatorToken = sessionStorage.getItem("octoagent_operator_token");
     if (sessionToken && !requestHeaders.has("X-OctoAgent-Session-Token")) {
       requestHeaders.set("X-OctoAgent-Session-Token", sessionToken);
     }
     if (tenantId && !requestHeaders.has("X-Tenant-ID")) {
       requestHeaders.set("X-Tenant-ID", tenantId);
+    }
+    if (operatorToken && !requestHeaders.has("X-OctoAgent-Operator-Token")) {
+      requestHeaders.set("X-OctoAgent-Operator-Token", operatorToken);
+      requestHeaders.set("X-OctoAgent-Operator-Role", "operator");
     }
   }
   let requestBody: BodyInit | undefined;

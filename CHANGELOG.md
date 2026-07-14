@@ -1,23 +1,33 @@
 ## [20260714] - 2026-07-14
 
+### Capability and model restoration
+
+- Restored the six operator-managed MCP services (filesystem, PostgreSQL, OpenAPI, Docker Compose, Redis, and Docker) with their original permission scopes; all six pass startup, tool discovery, and minimal-call smoke tests.
+- Restored Tools Hub as a live registry view for Skills, MCP, Plugins, Hooks, built-in tools, and usage guidance. Capability mutations now invalidate the hub immediately, while the generated system tool guide refreshes on backend install, remove, enable, and disable operations.
+- Preserved the existing credential files and fixed deterministic dotenv precedence so the production service uses the project-level credential values while retaining backend-only variables.
+- Added protected direct API-key entry for model configuration. Raw keys are written only to the gitignored mode-0600 environment file, represented in YAML by generated environment references, omitted from API responses, and removed with their model.
+- Restored the synchronized chat model picker from the live model API. Verified Ornith, Google Gemini 3.5 Flash, and NVIDIA Nemotron 3 Super through real end-to-end inference.
+- Removed only model entries proven unusable upstream: Gemini 3.1 Pro had zero account quota, the configured Gemini 3.5 Pro ID no longer existed, and OpenRouter Lyria was region-blocked. Their stored credential variables were not deleted.
+- Added browser-session operator authorization for protected Hook mutations without persisting the operator token in application storage.
+
 ### Settings and configuration consolidation
 
 - Rebuilt Settings as the single user-facing configuration center with General, Appearance, Models, Skills, MCP servers, Plugins, Hooks, Memory, Permissions, Notifications, Update, and About sections.
-- Restored universal local and commercial API model configuration with provider presets, environment-variable credential references, default-model selection, edit/delete controls, and a real connection/latency test.
+- Restored universal local and commercial API model configuration with provider presets, protected direct-key or environment-reference credentials, default-model selection, edit/delete controls, and a real connection/latency test.
 - Added remote MCP HTTP-header configuration, fixed multi-line environment parsing, and removed the host-specific MarkItDown command preset.
-- Removed the retired Evolution and Tools Hub pages; skills, plugins, hooks, and MCP now represent repeatable capabilities without a separate workflow-builder surface.
+- Removed the retired Evolution/workflow-builder surface and restored Tools Hub as a read-only live capability and usage registry.
 
 ### Runtime and repository cleanup
 
 - Reduced built-in delegation roles to `general-purpose` and `bash`; removed six overlapping built-in roles, 57 repository-shipped system-agent profiles, and implicit Agency Agents injection.
-- Removed automatic NVIDIA/OpenRouter fallback-model injection, the obsolete model-auth/OAuth provider-import subsystem, four unavailable sample cloud models, and the embedded emergency model from the default runtime.
-- Cleared six default high-privilege MCP connections and disabled the unused QQ placeholder channel. Users can add only the integrations they actually need from Settings.
+- Removed automatic fallback-model injection, the obsolete model-auth/OAuth provider-import subsystem, and the embedded emergency model from the default runtime while preserving operator-managed model credentials.
+- Preserved and verified the six existing operator-managed MCP connections and their permission scopes; disabled the unused QQ placeholder channel.
 - Preserved LangGraph workflow execution internals because they are runtime infrastructure, while removing their obsolete product configuration surfaces.
 
 ### Configuration verification
 
-- Verified the production runtime resolves exactly one configured/default model (`ornith-1.0-35b-nvfp4`) and zero default MCP servers.
-- Verified 623 backend tests, focused Ruff checks, frontend ESLint and TypeScript, two production builds, gateway/PostgreSQL health, browser navigation across Models/Skills/MCP, a clean browser console, and a real Ornith connection response (`OK`).
+- Verified the production runtime resolves three working selectable models and six working MCP servers.
+- Verified backend focused tests, frontend ESLint and TypeScript, production builds, capability CRUD/load cleanup, gateway health, browser navigation, and real model responses.
 
 ### Legacy test debt cleanup
 

@@ -18,6 +18,7 @@ type SettingsSectionId =
   | "mcp"
   | "plugins"
   | "hooks"
+  | "tools"
   | "memory"
   | "permissions"
   | "notifications"
@@ -32,6 +33,7 @@ const SETTINGS_SECTIONS: SettingsSectionId[] = [
   "mcp",
   "plugins",
   "hooks",
+  "tools",
   "memory",
   "permissions",
   "notifications",

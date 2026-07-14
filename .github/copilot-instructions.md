@@ -13,14 +13,14 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
 
 ## Registry Summary
 
-- Generated at: 2026-06-26T10:52:42.624555+00:00
-- Total capabilities: 87
-- Enabled capabilities: 77
-- Installed capabilities: 87
-- Channel: 10 total, 1 enabled
-- MCP Servers: 8 total, 7 enabled
+- Generated at: 2026-07-14T10:20:23.543209+00:00
+- Total capabilities: 82
+- Enabled capabilities: 72
+- Installed capabilities: 82
+- Channel: 10 total, 0 enabled
+- MCP Servers: 6 total, 6 enabled
 - Plugins: 16 total, 16 enabled
-- Skills: 53 total, 53 enabled
+- Skills: 50 total, 50 enabled
 
 ## Interface Contract
 
@@ -60,7 +60,7 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Requires: config:shared_secret
 
 - QQ (channel:qq)
-  State: installed, enabled
+  State: installed, disabled
   Description: Bridge-backed QQ connector relayed through an external webhook adapter.
   Source: external_bridge
   Provides: channel:qq, transport:webhook_bridge, integration:external_bridge, /api/channels/qq/ingest
@@ -101,7 +101,7 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Provides: channel:zalo, transport:webhook_bridge, integration:external_bridge, /api/channels/zalo/ingest
   Requires: config:shared_secret
 
-## MCP Servers (8)
+## MCP Servers (6)
 
 - docker (mcp_server:docker)
   State: installed, enabled
@@ -132,28 +132,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Transport: stdio
   Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-filesystem
   Provides: mcp_server:filesystem
-  Requires: none
-  When to use: external systems, hosted tools, or remote resources are required.
-  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
-
-- http-api (mcp_server:http-api)
-  State: installed, enabled
-  Description: Local read-only HTTP API probing MCP for health checks and API smoke tests.
-  Source: stdio
-  Transport: stdio
-  Command: /home/sieve-pub/public-workspace/octoagent/backend/.venv/bin/python
-  Provides: mcp_server:http-api
-  Requires: none
-  When to use: external systems, hosted tools, or remote resources are required.
-  How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
-
-- kubernetes (mcp_server:kubernetes)
-  State: installed, disabled
-  Description: Kubernetes MCP package (disabled: kubectl not available on this host).
-  Source: stdio
-  Transport: stdio
-  Command: /home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-kubernetes
-  Provides: mcp_server:kubernetes
   Requires: none
   When to use: external systems, hosted tools, or remote resources are required.
   How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.
@@ -385,7 +363,7 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the requested capability already exists as an installed plugin or command set.
   How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
 
-## Skills (53)
+## Skills (50)
 
 - agent-rules-books (skill:public:agent-rules-books)
   State: installed, enabled
@@ -499,7 +477,7 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
 
 - cloakbrowser-controlled-browser (skill:public:cloakbrowser-controlled-browser)
   State: installed, enabled
-  Description: Controlled browser automation skill for authorized web workflows.
+  Description: Default browser tool for general web automation without explicit authorization required.
   Source: skills/public/cloakbrowser-controlled-browser
   Category: public
   Skill file: cloakbrowser-controlled-browser
@@ -706,17 +684,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
-- onionclaw (skill:custom:onionclaw)
-  State: installed, enabled
-  Description: Search the Tor dark web, fetch .onion hidden service pages, rotate Tor identity, and run structured OSINT investigations. Use when user asks to search dark web, investigate .onion sites, find if data appeared on dark web, conduct Tor-based OSINT, look up dark web leaks, fetch any .onion URL, check for leaked credentials, or investigate ransomware groups.
-  Source: skills/custom/onionclaw
-  Category: custom
-  Skill file: onionclaw
-  Provides: skill:onionclaw
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
 - peekaboo-vision-mcp (skill:public:peekaboo-vision-mcp)
   State: installed, enabled
   Description: Screen capture and visual QA skill for MCP-backed observation workflows.
@@ -878,28 +845,6 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   Category: public
   Skill file: tokenspeed-benchmark
   Provides: skill:tokenspeed-benchmark
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- tools-hub-check-0c3c8535 (skill:custom:tools-hub-check-0c3c8535)
-  State: installed, enabled
-  Description: Temporary Tools Hub registration smoke skill.
-  Source: skills/custom/tools-hub-check-0c3c8535
-  Category: custom
-  Skill file: tools-hub-check-0c3c8535
-  Provides: skill:tools-hub-check-0c3c8535
-  Requires: none
-  When to use: the user task clearly matches this domain or workflow.
-  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
-
-- tools-hub-check-124139b5 (skill:custom:tools-hub-check-124139b5)
-  State: installed, enabled
-  Description: Temporary Tools Hub registration smoke skill.
-  Source: skills/custom/tools-hub-check-124139b5
-  Category: custom
-  Skill file: tools-hub-check-124139b5
-  Provides: skill:tools-hub-check-124139b5
   Requires: none
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.

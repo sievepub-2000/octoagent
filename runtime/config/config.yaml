@@ -16,6 +16,46 @@ models:
   supports_reasoning_effort: false
   supports_vision: true
   max_context_tokens: 262144
+  fallback_models:
+  - google-gemini-3.5-flash
+  - nvidia-nemotron-3-super
+- name: google-gemini-3.5-flash
+  priority: 85
+  display_name: Google Gemini 3.5 Flash
+  description: Google Gemini 3.5 Flash via Google GenAI API, verified with the preserved Google credential.
+  provider_name: google
+  model: gemini-3.5-flash
+  interface_type: google_genai
+  google_api_key: $GOOGLE_API_KEY
+  temperature: 0.85
+  request_timeout: 60
+  max_context_tokens: 1048576
+  supports_thinking: true
+  supports_reasoning_effort: true
+  supports_vision: true
+  fallback_models:
+  - nvidia-nemotron-3-super
+- name: nvidia-nemotron-3-super
+  priority: 8
+  display_name: NVIDIA · Nemotron 3 Super
+  description: NVIDIA Nemotron 3 Super 120B A12B via NVIDIA NIM OpenAI-compatible
+    endpoint.
+  provider_name: nvidia
+  model: nvidia/nemotron-3-super-120b-a12b
+  api_key: $NVIDIA_API_KEY
+  base_url: https://integrate.api.nvidia.com/v1
+  interface_type: openai_compatible
+  max_tokens: 4096
+  temperature: 0.85
+  request_timeout: 120
+  supports_thinking: true
+  supports_reasoning_effort: true
+  supports_vision: false
+  max_context_tokens: 262144
+  profile_tags:
+  - reasoning
+  - fallback
+  source: operator_nvidia_api_key
   fallback_models: []
 tool_groups:
 - name: web
