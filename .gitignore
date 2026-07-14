@@ -100,6 +100,7 @@ workspace/.octoagent/
 workspace/default/memory.json
 workspace/default/agents/*/memory.json
 workspace/env/setup.json
+workspace/env/global_memory.json
 workspace/default/threads/
 workspace/projects/
 workspace/tools/
