@@ -9,16 +9,15 @@ tasks described in the compressed summary.
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from dataclasses import dataclass
 from typing import Any
 
 from src.agents.core.compression_config import CompressionConfig, load_compression_config
 
-
 # ---------------------------------------------------------------------------
 # Token estimation helpers (re-exported from context_budget for convenience)
 # ---------------------------------------------------------------------------
+
 
 def _estimate_text_tokens(text: str) -> int:
     """Rough token estimate: ~4 chars/token ASCII, ~2 chars/token CJK."""
@@ -61,6 +60,7 @@ def _message_role(message: Any) -> str:
 # TokenBudget
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class TokenBudget:
     """Tracks token usage across conversation categories with hard limits.
@@ -88,7 +88,7 @@ class TokenBudget:
         pass
 
     @classmethod
-    def from_config(cls, config: CompressionConfig) -> "TokenBudget":
+    def from_config(cls, config: CompressionConfig) -> TokenBudget:
         return cls(
             max_context_size=config.max_context_size,
             _system_ratio=config.system_prompt_budget_ratio,
@@ -165,6 +165,7 @@ def _extract_events_from_text(text: str) -> list[str]:
 # ContextCompressor
 # ---------------------------------------------------------------------------
 
+
 class ContextCompressor:
     """Compresses conversation history while preventing task resumption."""
 
@@ -234,9 +235,7 @@ class ContextCompressor:
     # Internal compression logic
     # ------------------------------------------------------------------
 
-    def _summarize_older_messages(
-        self, messages: list[Any], cutoff_index: int
-    ) -> str:
+    def _summarize_older_messages(self, messages: list[Any], cutoff_index: int) -> str:
         """Summarize messages before the cutoff index."""
         events = self._extract_key_events(messages[:cutoff_index])
         return self._build_summary_template(events)
@@ -265,12 +264,14 @@ class ContextCompressor:
 
             for phrase in phrases:
                 event_ts = self._guess_timestamp_from_index(len(events))
-                events.append({
-                    "timestamp": event_ts,
-                    "role": role,
-                    "action": phrase,
-                    "result": "",  # filled below if we can infer it
-                })
+                events.append(
+                    {
+                        "timestamp": event_ts,
+                        "role": role,
+                        "action": phrase,
+                        "result": "",  # filled below if we can infer it
+                    }
+                )
 
         return events
 

@@ -26,10 +26,7 @@ _INIT_TRIED = False
 
 def _get_proxy_from_env() -> str | None:
     if os.environ.get("OCTOAGENT_WEB_SCRAPING_DISABLED"):
-        raise RuntimeError(
-            "Web scraping tools are disabled (OCTOAGENT_WEB_SCRAPING_DISABLED=1). "
-            "Set the env var to 0 or configure HTTPS_PROXY to re-enable."
-        )
+        raise RuntimeError("Web scraping tools are disabled (OCTOAGENT_WEB_SCRAPING_DISABLED=1). Set the env var to 0 or configure HTTPS_PROXY to re-enable.")
     if not should_trust_proxy_env():
         return None
     # curl_cffi HTTP Fetcher honours proxy env vars automatically, but the
@@ -40,6 +37,7 @@ def _get_proxy_from_env() -> str | None:
         if val:
             return val
     return None
+
 
 def _lazy_init() -> None:
     global _FETCHER, _STEALTHY, _INIT_TRIED

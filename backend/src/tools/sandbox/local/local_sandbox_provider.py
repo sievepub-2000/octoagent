@@ -57,11 +57,13 @@ class LocalSandboxProvider(SandboxProvider):
         # remove stale temp directories tied to completed threads.
         try:
             from src.runtime.config.paths import get_paths
+
             paths = get_paths()
             base = paths.base_dir
             if base and base.exists():
                 import os
                 import time
+
                 now = time.time()
                 for entry in os.scandir(str(base)):
                     if not entry.is_dir():
@@ -69,12 +71,13 @@ class LocalSandboxProvider(SandboxProvider):
                     name = entry.name
                     # Clean up directories older than 1 hour
                     # that look like thread data dirs
-                    if name.startswith(('thread_', 'sandbox_', 'ws_')):
+                    if name.startswith(("thread_", "sandbox_", "ws_")):
                         age = now - entry.stat().st_mtime
                         if age > 3600:
                             import shutil
+
                             shutil.rmtree(entry.path, ignore_errors=True)
         except Exception as exc:
             import logging
-            logging.getLogger(__name__).warning(
-                "LocalSandboxProvider.release cleanup error: %s", exc)
+
+            logging.getLogger(__name__).warning("LocalSandboxProvider.release cleanup error: %s", exc)

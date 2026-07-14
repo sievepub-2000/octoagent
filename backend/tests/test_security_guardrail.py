@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 def _make_guardrail(**overrides):
     from src.agents.middlewares.security_guardrail import SecurityGuardrail
@@ -22,6 +20,7 @@ def _make_guardrail(**overrides):
 # ---------------------------------------------------------------------------
 # Command pattern detection
 # ---------------------------------------------------------------------------
+
 
 def test_blocks_rm_rf_root() -> None:
     guard = _make_guardrail()
@@ -66,6 +65,7 @@ def test_allows_safe_commands() -> None:
 # ---------------------------------------------------------------------------
 # File operation guards
 # ---------------------------------------------------------------------------
+
 
 def test_blocks_write_to_etc() -> None:
     guard = _make_guardrail()
@@ -118,6 +118,7 @@ def test_no_alert_within_threshold() -> None:
 # Network operation guards
 # ---------------------------------------------------------------------------
 
+
 def test_warns_on_internal_ip_connection() -> None:
     guard = _make_guardrail()
     v = guard.check_network_target("http://192.168.1.100/api/data")
@@ -160,9 +161,11 @@ def test_rate_limit_allows_within_threshold() -> None:
 # Resource guards
 # ---------------------------------------------------------------------------
 
+
 def test_timeout_violation_after_limit() -> None:
     guard = _make_guardrail(timeout_seconds=1.0)
     import time
+
     call_id = 42
     guard.track_tool_call_start(call_id)
     time.sleep(1.1)
@@ -195,6 +198,7 @@ def test_no_memory_violation_below_limit() -> None:
 # ---------------------------------------------------------------------------
 # Unified check entry point
 # ---------------------------------------------------------------------------
+
 
 def test_unified_check_detects_dangerous_command() -> None:
     guard = _make_guardrail(rate_limit_per_minute=100)

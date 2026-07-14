@@ -8,10 +8,15 @@ import {
 } from "@/components/ui/collapsible";
 import { cn } from "@/lib/utils";
 import { BrainIcon, ChevronDownIcon } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { ComponentProps, ReactNode } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
-import { Streamdown } from "streamdown";
 import { Shimmer } from "./shimmer";
+
+const Streamdown = dynamic(
+  () => import("streamdown").then((module) => module.Streamdown),
+  { loading: () => null },
+);
 
 type ReasoningContextValue = {
   isStreaming: boolean;

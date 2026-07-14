@@ -396,9 +396,7 @@ class BrowserSessionExecutionEngine:
                 provider = EmbeddedHeadlessProvider()
                 if not provider.enabled or provider.engine in {"none", "remote_cdp", "cloakbrowser"}:
                     raise ValueError("embedded headless provider is not enabled for screenshot")
-                artifact_path = _run_browser_call(
-                    lambda: provider.screenshot(session, session.current_url or next_action.target or session.target)
-                )
+                artifact_path = _run_browser_call(lambda: provider.screenshot(session, session.current_url or next_action.target or session.target))
                 session.latest_artifact_path = artifact_path
                 detail = f"Screenshot captured to {artifact_path}."
             elif next_action.kind == "eval":

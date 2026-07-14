@@ -7,7 +7,6 @@ computation when the same or similar queries are executed repeatedly.
 import hashlib
 import logging
 from collections import OrderedDict
-from typing import Any, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +36,7 @@ class VectorQueryCache:
         normalized = query.lower().strip()
         return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
-    def get(self, query: str) -> Optional[list[float]]:
+    def get(self, query: str) -> list[float] | None:
         """Retrieve an embedding from the cache.
 
         Args:
@@ -47,19 +46,20 @@ class VectorQueryCache:
             The cached embedding vector, or None if not found/expired.
         """
         key = self._make_key(query)
-        
+
         if key not in self._cache:
             return None
-        
+
         embedding, timestamp = self._cache[key]
-        
+
         # Check TTL
         import time
+
         if time.time() - timestamp > self.ttl_seconds:
             del self._cache[key]
             logger.debug("Cache entry expired for query: %s", query[:50])
             return None
-        
+
         # Move to end (most recently used)
         self._cache.move_to_end(key)
         return embedding
@@ -72,17 +72,18 @@ class VectorQueryCache:
             embedding: The embedding vector to cache.
         """
         key = self._make_key(query)
-        
+
         # Remove old entry if exists
         if key in self._cache:
             del self._cache[key]
-        
+
         # Evict oldest entries if at capacity
         while len(self._cache) >= self.max_size:
             oldest_key, _ = self._cache.popitem(last=False)
             logger.debug("Cache eviction: removed key %s", oldest_key[:8])
-        
+
         import time
+
         self._cache[key] = (embedding, time.time())
 
     def clear(self) -> None:
@@ -97,7 +98,7 @@ class VectorQueryCache:
 
 
 # Global cache instance
-_vector_cache: Optional[VectorQueryCache] = None
+_vector_cache: VectorQueryCache | None = None
 
 
 def get_vector_cache() -> VectorQueryCache:

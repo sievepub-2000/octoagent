@@ -128,6 +128,7 @@ def test_ignored_user_handoff_does_not_replace_more_tool_calls_by_default(mw_mod
     assert update["runtime"]["progress_stall"]["escalation"] == "ignored_handoff_observed"
     assert update["runtime"]["progress_stall"]["hard_stop"] is False
 
+
 def test_no_action_when_below_threshold(mw_module):
     msgs = _make_messages("write_todos", {"todos": ["a"]}, dup=2)
     assert _run(mw_module, msgs) is None

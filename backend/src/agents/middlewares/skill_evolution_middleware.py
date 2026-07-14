@@ -69,19 +69,15 @@ def _looks_like_runtime_failure_message(content_str: str) -> bool:
     text = content_str.strip()
     if not text:
         return False
-    return '我在执行这轮任务时遇到了运行时错误' in text or '错误类型：NormalizedModelError' in text or '错误类型: NormalizedModelError' in text or 'Cannot have 2 or more assistant messages at the end of the list' in text
+    return "我在执行这轮任务时遇到了运行时错误" in text or "错误类型：NormalizedModelError" in text or "错误类型: NormalizedModelError" in text or "Cannot have 2 or more assistant messages at the end of the list" in text
 
 
 def _looks_like_recovery_stop_message(content_str: str) -> bool:
     text = content_str.strip()
     lowered = text.lower()
-    legacy_hard_stop = "".join(chr(code) for code in (0x5de5, 0x5177, 0x8c03, 0x7528, 0x8fde, 0x7eed, 0x5931, 0x8d25))
-    legacy_policy_stop = "".join(chr(code) for code in (0x5df2, 0x6309, 0x6062, 0x590d, 0x7b56, 0x7565, 0x505c, 0x6b62))
-    return (
-        (legacy_hard_stop in text and legacy_policy_stop in text)
-        or "tool recovery policy stopped" in lowered
-        or "recovery policy stopped before completing" in lowered
-    )
+    legacy_hard_stop = "".join(chr(code) for code in (0x5DE5, 0x5177, 0x8C03, 0x7528, 0x8FDE, 0x7EED, 0x5931, 0x8D25))
+    legacy_policy_stop = "".join(chr(code) for code in (0x5DF2, 0x6309, 0x6062, 0x590D, 0x7B56, 0x7565, 0x505C, 0x6B62))
+    return (legacy_hard_stop in text and legacy_policy_stop in text) or "tool recovery policy stopped" in lowered or "recovery policy stopped before completing" in lowered
 
 
 def _is_substantive_final_response(content_str: str) -> bool:
@@ -104,61 +100,61 @@ def _extract_execution_trace(messages: list[Any]) -> ExecutionTrace:
     tools_used: set[str] = set()
     tools_failed: set[str] = set()
     total_tokens = 0
-    last_error = ''
+    last_error = ""
     last_error_index = -1
-    last_final_ai_text = ''
+    last_final_ai_text = ""
     last_final_ai_index = -1
 
     for index, msg in enumerate(messages):
-        msg_type = getattr(msg, 'type', '')
-        content = getattr(msg, 'content', '')
+        msg_type = getattr(msg, "type", "")
+        content = getattr(msg, "content", "")
         content_str = _message_content_text(content)
 
-        if msg_type == 'human' and not trace.task_description:
+        if msg_type == "human" and not trace.task_description:
             trace.task_description = content_str[:300]
 
-        tool_calls = getattr(msg, 'tool_calls', None) or []
+        tool_calls = getattr(msg, "tool_calls", None) or []
         for tc in tool_calls:
-            name = tc.get('name', '') if isinstance(tc, dict) else getattr(tc, 'name', '')
+            name = tc.get("name", "") if isinstance(tc, dict) else getattr(tc, "name", "")
             if name:
                 tools_used.add(name)
-                if name.startswith('skill_') or name.endswith('_skill'):
+                if name.startswith("skill_") or name.endswith("_skill"):
                     skills_used.add(name)
 
-        if msg_type == 'tool':
-            tool_name = getattr(msg, 'name', '')
+        if msg_type == "tool":
+            tool_name = getattr(msg, "name", "")
             if tool_name:
                 tools_used.add(tool_name)
             if _looks_like_failed_tool_message(msg, content_str):
                 tools_failed.add(tool_name)
-                if tool_name.startswith('skill_') or tool_name.endswith('_skill'):
+                if tool_name.startswith("skill_") or tool_name.endswith("_skill"):
                     skills_failed.add(tool_name)
                 last_error = content_str[:200]
                 last_error_index = index
 
-        if msg_type == 'ai' and not tool_calls:
+        if msg_type == "ai" and not tool_calls:
             stripped = content_str.strip()
             if stripped:
                 last_final_ai_text = stripped
                 last_final_ai_index = index
             if _looks_like_unfinished_action_announcement(content_str):
-                last_error = 'Assistant ended with an unfinished action announcement.'
+                last_error = "Assistant ended with an unfinished action announcement."
                 last_error_index = index
             elif _looks_like_runtime_failure_message(content_str):
-                last_error = 'Assistant ended with a runtime model error.'
+                last_error = "Assistant ended with a runtime model error."
                 last_error_index = index
             elif _looks_like_recovery_stop_message(content_str):
-                last_error = 'Tool recovery policy stopped before completing the user task.'
+                last_error = "Tool recovery policy stopped before completing the user task."
                 last_error_index = index
 
-        metadata = getattr(msg, 'response_metadata', {}) or {}
-        usage = metadata.get('usage', {}) or metadata.get('token_usage', {})
+        metadata = getattr(msg, "response_metadata", {}) or {}
+        usage = metadata.get("usage", {}) or metadata.get("token_usage", {})
         if usage:
-            total_tokens += usage.get('total_tokens', 0)
+            total_tokens += usage.get("total_tokens", 0)
 
     recovered_after_error = last_final_ai_index > last_error_index and _is_substantive_final_response(last_final_ai_text)
     if recovered_after_error:
-        last_error = ''
+        last_error = ""
 
     trace.skills_used = list(skills_used)
     trace.skills_failed = list(skills_failed)
@@ -218,13 +214,13 @@ class SkillEvolutionMiddleware(AgentMiddleware):
     def before_agent(self, state: AgentState, runtime: Runtime) -> dict | None:
         """Record start time and inject planning hints (cached per thread)."""
         self._start_time = time.monotonic()
-        
+
         # Skip planning hints in flash mode - they add tokens without value for quick replies
         if (runtime.context or {}).get("mode") == "flash":
             return None
 
         thread_id = self._get_thread_id(state)
-        
+
         # Check cache first - planning hints are computed once per thread
         if thread_id:
             with _planning_cache_lock:
@@ -247,7 +243,7 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                 task_description=_extract_latest_human_text(state.get("messages", [])),
             )
             rendered = format_skill_evolution_planning_hints(hints)
-            
+
             # Cache the result
             if thread_id:
                 with _planning_cache_lock:
@@ -255,7 +251,7 @@ class SkillEvolutionMiddleware(AgentMiddleware):
 
             if not rendered:
                 return None
-            
+
             messages = list(state.get("messages") or [])
             if not messages:
                 return None
@@ -286,7 +282,7 @@ class SkillEvolutionMiddleware(AgentMiddleware):
         """
         try:
             runtime_context = runtime.context or {}
-            
+
             # Extract identifiers
             cfg_configurable: dict[str, Any] = {}
             if _lg_get_config is not None:
@@ -295,20 +291,11 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                     cfg_configurable = dict((cfg or {}).get("configurable") or {})
                 except Exception:
                     cfg_configurable = {}
-            
-            thread_id_value = (
-                str(runtime_context.get("thread_id") or "")
-                or str(cfg_configurable.get("thread_id") or "")
-            ) or None
-            agent_name_value = (
-                str(runtime_context.get("agent_name") or "")
-                or str(cfg_configurable.get("agent_name") or "")
-            ) or None
-            run_id_value = (
-                str(cfg_configurable.get("run_id") or "")
-                or str(runtime_context.get("run_id") or "")
-            ) or None
-            
+
+            thread_id_value = (str(runtime_context.get("thread_id") or "") or str(cfg_configurable.get("thread_id") or "")) or None
+            agent_name_value = (str(runtime_context.get("agent_name") or "") or str(cfg_configurable.get("agent_name") or "")) or None
+            run_id_value = (str(cfg_configurable.get("run_id") or "") or str(runtime_context.get("run_id") or "")) or None
+
             messages = state.get("messages", [])
             if not messages:
                 return None
@@ -339,7 +326,7 @@ class SkillEvolutionMiddleware(AgentMiddleware):
             runtime_state = dict(state.get("runtime") or {})
             outcome = classify_run_outcome(messages)
             structurally_complete = outcome.status == "completed"
-            
+
             if trace.success and structurally_complete:
                 runtime_state["recoverable_failure"] = None
                 runtime_state["incomplete_state"] = None
@@ -353,7 +340,7 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                 runtime_state["recoverable_failure"] = recoverable_failure
                 runtime_state["incomplete_state"] = recoverable_failure
                 runtime_state["recommended_memory_action"] = "continue"
-            
+
             record_reason = None if trace.success and structurally_complete else trace.error_message or outcome.reason
             run_record = build_execution_run_record(
                 {**state, "runtime": runtime_state},

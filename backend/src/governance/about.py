@@ -49,6 +49,7 @@ If you are an operator and you want to rotate the master key, delete
 All internal databases will need to be wiped (encrypted with old key)
 or re-keyed manually — there is no automatic migration.
 """
+
 # ruff: noqa: E501
 from __future__ import annotations
 
@@ -129,10 +130,7 @@ def _assert_integrity() -> None:
         # First-run: the build step has not yet sealed the fingerprint.
         # Allow startup but log loudly. ``scripts/dev_tools/refresh_about_fingerprint.py``
         # rewrites this constant in-place.
-        logger.warning(
-            "OctoAgent About module fingerprint is unset (placeholder). "
-            "Run `python scripts/dev_tools/refresh_about_fingerprint.py` to seal it."
-        )
+        logger.warning("OctoAgent About module fingerprint is unset (placeholder). Run `python scripts/dev_tools/refresh_about_fingerprint.py` to seal it.")
         return
     if not hmac.compare_digest(actual, _INTEGRITY_FINGERPRINT):
         raise AboutIntegrityError(
@@ -229,16 +227,10 @@ def _master_key() -> bytes:
         assert _config is not None
         path = _config.master_key_path
         if not path.exists():
-            raise AboutIntegrityError(
-                f"Internal master key missing at {path}. Did you delete it? "
-                "Restart will regenerate, but any data encrypted with the "
-                "previous key becomes inaccessible."
-            )
+            raise AboutIntegrityError(f"Internal master key missing at {path}. Did you delete it? Restart will regenerate, but any data encrypted with the previous key becomes inaccessible.")
         data = path.read_bytes()
         if len(data) < 32:
-            raise AboutIntegrityError(
-                f"Internal master key at {path} is shorter than 32 bytes; refusing to use."
-            )
+            raise AboutIntegrityError(f"Internal master key at {path} is shorter than 32 bytes; refusing to use.")
         _master_key_cache = data
         return data
 

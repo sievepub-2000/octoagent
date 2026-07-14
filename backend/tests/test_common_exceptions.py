@@ -1,14 +1,13 @@
 """Tests for common exceptions module - edge cases and error handling."""
 
-import pytest
 from src.common.exceptions import (
     ConfigurationError,
     ExecutionError,
     OctoAgentError,
     ResourceExhaustedError,
     ValidationError,
-    safe_execute,
     retry_with_backoff,
+    safe_execute,
 )
 
 
@@ -73,6 +72,7 @@ class TestSafeExecute:
 
     def test_exception_logged_by_default(self) -> None:
         """Test that errors are logged by default (no assertion, just verify no crash)."""
+
         def failing_func() -> int:
             raise ValueError("fail")
 

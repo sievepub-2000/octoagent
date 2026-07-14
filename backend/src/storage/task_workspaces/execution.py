@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import datetime
-import json
 import logging
 import os
 from collections.abc import Awaitable, Callable
@@ -54,11 +53,17 @@ from .execution_runtime_helpers import (
     run_direct_model_fallback,
 )
 from .research_fallback import (
-    build_integrated_workflow_tool_response as _build_integrated_workflow_tool_response,
-    build_server_side_research_fallback_async,
-    resolve_integrated_workflow_id as _resolve_integrated_workflow_id,
-    server_side_fallback_target as _server_side_fallback_target,
     _prefers_server_side_news_fallback,
+    build_server_side_research_fallback_async,
+)
+from .research_fallback import (
+    build_integrated_workflow_tool_response as _build_integrated_workflow_tool_response,
+)
+from .research_fallback import (
+    resolve_integrated_workflow_id as _resolve_integrated_workflow_id,
+)
+from .research_fallback import (
+    server_side_fallback_target as _server_side_fallback_target,
 )
 
 logger = logging.getLogger(__name__)
@@ -600,7 +605,7 @@ class TaskWorkspaceMessageExecutor:
             # Steer them to host-level shell tools instead and skip web routing.
             try:
                 from src.agents.core.instruction_contracts import detect_instruction_contract
-            
+
                 _sys_contract = detect_instruction_contract(workspace.goal or request.content, metadata=workspace.metadata)
             except Exception:
                 _sys_contract = None
@@ -622,8 +627,8 @@ class TaskWorkspaceMessageExecutor:
         # Fast-route heuristic: short, non-action prompts get tight recursion/timeout caps
         # to prevent stall loops (e.g. weather queries that take 10-30 min due to middleware bloat).
         _FAST_RECURSION_CAP = 20
-        _FAST_TIMEOUT_SIMPLE = 180   # 3 minutes for simple fast-route queries
-        _FAST_TIMEOUT_DEEP = 600     # 10 minutes for deep research routes
+        _FAST_TIMEOUT_SIMPLE = 180  # 3 minutes for simple fast-route queries
+        _FAST_TIMEOUT_DEEP = 600  # 10 minutes for deep research routes
         _is_fast_query = False
         if workspace is not None and isinstance(workspace.metadata, dict):
             _route_hint = workspace.metadata.get("dialogue_route") or workspace.metadata.get("fast_route")
@@ -642,7 +647,9 @@ class TaskWorkspaceMessageExecutor:
                 primary_timeout_candidate = _FAST_TIMEOUT_SIMPLE
             logger.info(
                 "Fast-route heuristic applied: recursion_limit=%d, timeout=%ds (content=%d chars)",
-                ws_recursion, primary_timeout_candidate, len(request.content or ""),
+                ws_recursion,
+                primary_timeout_candidate,
+                len(request.content or ""),
             )
         else:
             primary_timeout_candidate = None
@@ -804,17 +811,11 @@ class TaskWorkspaceMessageExecutor:
         # (what was attempted + why it failed) rather than stopping silently.
         runtime_error_block = f"\n\n失败详情（runtime error）：{runtime_error_detail}" if runtime_error_detail else ""
         if assistant_content is None and requires_tool_research:
-            assistant_content = (
-                "Execution failed: research workflow did not produce a valid tool-backed answer. "
-                "No reliable web/tool evidence was captured, so direct memory-only output was rejected."
-                f"{runtime_error_block}"
-            )
+            assistant_content = f"Execution failed: research workflow did not produce a valid tool-backed answer. No reliable web/tool evidence was captured, so direct memory-only output was rejected.{runtime_error_block}"
             forced_failure_message = True
         if assistant_content is None and subagent_enabled:
             assistant_content = (
-                "Execution failed: multi-agent workflow did not return a valid LangGraph result. "
-                "Direct single-model fallback is disabled for group/branch mode to avoid bypassing tools and coordination."
-                f"{runtime_error_block}"
+                f"Execution failed: multi-agent workflow did not return a valid LangGraph result. Direct single-model fallback is disabled for group/branch mode to avoid bypassing tools and coordination.{runtime_error_block}"
             )
             forced_failure_message = True
         if assistant_content is None and runtime_invocation_failed:
@@ -824,17 +825,10 @@ class TaskWorkspaceMessageExecutor:
             # layer can handle recovery with stage-appropriate prompting.
             detail_block = f"\n\n失败详情（runtime error）：{runtime_error_detail}" if runtime_error_detail else ""
             if workspace is not None:
-                _re_raise_runtime_failure = RuntimeInvocationFailure(
-                    f"Runtime invocation failed for agent {agent_id}: "
-                    f"{runtime_error_detail or '(no error detail captured)'}"
-                )
+                _re_raise_runtime_failure = RuntimeInvocationFailure(f"Runtime invocation failed for agent {agent_id}: {runtime_error_detail or '(no error detail captured)'}")
             assistant_content = (
                 "Execution failed: the agent runtime raised an error and no fallback path produced output. "
-                "已尝试：主运行时调用"
-                + ("、联网检索强制重试" if requires_tool_research else "")
-                + ("、服务器端检索兜底" if requires_tool_research else "")
-                + "。"
-                + detail_block
+                "已尝试：主运行时调用" + ("、联网检索强制重试" if requires_tool_research else "") + ("、服务器端检索兜底" if requires_tool_research else "") + "。" + detail_block
             )
             forced_failure_message = True
         if workspace is not None and requires_tool_research and tool_call_count == 0 and not used_server_side_fallback:

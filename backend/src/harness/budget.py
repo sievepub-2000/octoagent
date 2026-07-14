@@ -89,7 +89,6 @@ def _env_flag(name: str, default: str = "1") -> bool:
     return os.getenv(name, default).strip().lower() not in ("0", "false", "no", "off", "")
 
 
-
 def _already_advised(messages: list[Any]) -> bool:
     for msg in reversed(messages):
         content = getattr(msg, "content", "")

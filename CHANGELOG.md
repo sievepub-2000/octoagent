@@ -1,5 +1,19 @@
 ## [20260714] - 2026-07-14
 
+### Context continuity and WebUI efficiency
+
+- Replaced ambiguous resume summaries with a deterministic continuation contract that preserves the latest objective, phase, next action, constraints, acceptance criteria, evidence, blockers, and permission scope while treating compressed transcript text as history rather than a new instruction.
+- Preserved tool-call identity and message roles through compaction, restored active task state before generic bootstrap text, and removed the duplicate lead-agent summarization path that could produce conflicting handoffs.
+- Reduced the production chat route payload by lazy-loading Settings, editors, and Markdown rendering; removed per-character animation work, bounded active message grouping, cached token counts, and eliminated redundant history and thread-list fetches.
+- Cleared 146 repository-wide Ruff findings across runtime and tests, including undefined variables and loggers, an invalid async parallel-execution path, duplicate response keys, stale imports, and malformed Office-output helpers; source compilation, Ruff, and import-boundary checks are clean.
+- Aligned source development with Python 3.12, Node.js 22, and pnpm 11.12.0, including the supported Windows CPU-wheel installation path for `llama-cpp-python`.
+
+### Five-language translation parity
+
+- Completed deep translation coverage for English, Japanese, Korean, Simplified Chinese, and Traditional Chinese across Settings navigation, model/API-key configuration, Hooks, runtime health, Projects, the project task context, the chat model picker, and the project-aware sidebar.
+- Replaced user-facing English literals in these active system surfaces with typed locale copy while preserving provider names, API identifiers, and other protocol-level terms.
+- Added `pnpm i18n:check`, which verifies that all five primary locale catalogs keep the same 901 leaf keys, nesting, and value shape before release.
+
 ### Capability and model restoration
 
 - Restored the six operator-managed MCP services (filesystem, PostgreSQL, OpenAPI, Docker Compose, Redis, and Docker) with their original permission scopes; all six pass startup, tool discovery, and minimal-call smoke tests.

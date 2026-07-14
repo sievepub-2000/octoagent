@@ -42,8 +42,6 @@ def _load_system_default_model_from_config() -> str | None:
     return _read_system_default_model(str(config_path), stat.st_mtime_ns, stat.st_size)
 
 
-
-
 def get_setup_state_file() -> Path:
     """Return the user-scoped setup state file path."""
     if env_path := os.getenv(SETUP_STATE_ENV_VAR):
@@ -53,12 +51,12 @@ def get_setup_state_file() -> Path:
 
 def load_setup_state() -> dict[str, str]:
     """Read persisted setup state from the user-scoped setup file.
-    
+
     Priority: config.yaml system.default_model > setup_state.json default_model
     """
     # First check config.yaml for system-level default model (single source of truth)
     system_default = _load_system_default_model_from_config()
-    
+
     state_file = get_setup_state_file()
     if not state_file.exists():
         if system_default:
@@ -74,13 +72,13 @@ def load_setup_state() -> dict[str, str]:
         if system_default:
             return {"default_model": system_default}
         return {}
-    
+
     result = {str(key): str(value) for key, value in payload.items() if value is not None}
-    
+
     # Override with config.yaml default_model if present and setup_state doesn't have explicit override
     if system_default and "default_model" not in result:
         result["default_model"] = system_default
-    
+
     return result
 
 

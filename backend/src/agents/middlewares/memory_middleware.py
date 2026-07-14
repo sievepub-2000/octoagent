@@ -56,6 +56,7 @@ def _store_simplemem_conversation_async(
         try:
             with _simplemem_write_lock:
                 from src.agents.memory.simplemem_bridge import get_simplemem_bridge
+
                 bridge = get_simplemem_bridge()
                 bridge.store_conversation(
                     messages_snapshot,
@@ -88,10 +89,10 @@ def _extract_goal_from_context(request: ModelRequest) -> str | None:
     for msg in request.messages:
         if getattr(msg, "type", None) == "system":
             content = str(getattr(msg, "content", "") or "")
-            m = re.search(r'Goal:\s*(.+?)(?:\n|$)', content)
+            m = re.search(r"Goal:\s*(.+?)(?:\n|$)", content)
             if m:
                 return m.group(1).strip()
-            m = re.search(r'Current task:\s*(.+?)(?:\n|$)', content)
+            m = re.search(r"Current task:\s*(.+?)(?:\n|$)", content)
             if m:
                 return m.group(1).strip()
     return None
@@ -106,6 +107,7 @@ def _build_semantic_recall_block(query: str, current_goal: str | None = None) ->
     """
     try:
         from src.agents.memory.system_rag_store import get_system_rag_store
+
         store = get_system_rag_store()
 
         collected: list[tuple[float, str, str]] = []
@@ -155,6 +157,7 @@ def _filter_messages_for_memory(messages: list[Any]) -> list[Any]:
                     skip_next_ai = True
                     continue
                 from copy import copy
+
                 clean_msg = copy(msg)
                 clean_msg.content = stripped
                 filtered.append(clean_msg)
@@ -202,18 +205,29 @@ def _memory_pipeline_metadata(runtime_context: dict[str, Any], runtime_state: di
         "memory_scope": "system_long_term_candidate",
     }
     for key in (
-        "continue_from_thread_id", "continue_from_title", "continue_cycle_id",
-        "continue_cycle_started_at", "continue_cycle_base_tokens", "dialogue_route",
+        "continue_from_thread_id",
+        "continue_from_title",
+        "continue_cycle_id",
+        "continue_cycle_started_at",
+        "continue_cycle_base_tokens",
+        "dialogue_route",
     ):
         value = runtime_context.get(key)
         if value is not None:
             metadata[key] = value
     for key in (
-        "context_cycle_id", "context_cycle_started_at", "context_cycle_base_tokens",
-        "compaction_strategy", "compaction_trigger", "compaction_saved_tokens",
-        "recommended_memory_action", "context_pressure",
-        "task_phase_id", "source_event_id",
-        "completed_item_hashes", "completed_item_hash",
+        "context_cycle_id",
+        "context_cycle_started_at",
+        "context_cycle_base_tokens",
+        "compaction_strategy",
+        "compaction_trigger",
+        "compaction_saved_tokens",
+        "recommended_memory_action",
+        "context_pressure",
+        "task_phase_id",
+        "source_event_id",
+        "completed_item_hashes",
+        "completed_item_hash",
     ):
         value = runtime_state.get(key)
         if value is not None:
@@ -247,6 +261,7 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
                 return request
 
             from langchain_core.messages import SystemMessage as _SystemMessage
+
             messages = list(request.messages)
             insert_at = 0
             for idx, msg in enumerate(messages):
@@ -261,15 +276,11 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
         return request
 
     @override
-    def modify_model_request(
-        self, request: ModelRequest, state: MemoryMiddlewareState, runtime: Runtime
-    ) -> ModelRequest:
+    def modify_model_request(self, request: ModelRequest, state: MemoryMiddlewareState, runtime: Runtime) -> ModelRequest:
         return self._inject_semantic_memory(request)
 
     @override
-    async def amodify_model_request(
-        self, request: ModelRequest, state: MemoryMiddlewareState, runtime: Runtime
-    ) -> ModelRequest:
+    async def amodify_model_request(self, request: ModelRequest, state: MemoryMiddlewareState, runtime: Runtime) -> ModelRequest:
         return self._inject_semantic_memory(request)
 
     @override

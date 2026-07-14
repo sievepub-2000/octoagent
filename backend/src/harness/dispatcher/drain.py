@@ -57,7 +57,7 @@ async def drain_self(timeout_sec: int | None = None) -> dict[str, Any]:
     if not dispatcher_enabled():
         return {"drained": True, "remaining": 0, "elapsed_sec": 0.0, "enabled": False}
     await mark_draining()
-    deadline = (timeout_sec if timeout_sec is not None else drain_timeout_sec())
+    deadline = timeout_sec if timeout_sec is not None else drain_timeout_sec()
     started = time.monotonic()
     poll = 1.0
     while True:

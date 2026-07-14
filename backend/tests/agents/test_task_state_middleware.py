@@ -124,6 +124,33 @@ def test_task_checkpoint_marks_completed_steps_as_non_repeatable() -> None:
     assert "Completed steps are historical evidence only" in str(checkpoint.content)
     assert "Continue only pending steps" in str(checkpoint.content)
 
+
+def test_continuation_contract_restores_goal_before_bootstrap_message() -> None:
+    middleware = StateMiddleware()
+    bootstrap = "继续执行上一段对话中尚未完成的任务。请根据隐藏的接续记忆立即从下一步开始。"
+
+    update = middleware.before_agent(
+        {"messages": [HumanMessage(content=bootstrap)], "runtime": {}},
+        _Runtime(
+            {
+                "continue_trigger": "continue",
+                "continue_contract": {
+                    "version": 2,
+                    "objective": "优化上下文接续并保持原始目标",
+                    "constraints": ["部署前必须等待用户确认"],
+                    "pending_steps": ["完成接续修复"],
+                    "next_action": "完成接续修复",
+                },
+            }
+        ),
+    )
+
+    assert update is not None
+    assert update["task_state"]["goal"] == "优化上下文接续并保持原始目标"
+    assert update["task_state"]["constraints"] == ["部署前必须等待用户确认"]
+    assert update["task_state"]["next_action"] == "完成接续修复"
+
+
 def test_new_complex_user_goal_replaces_stale_task_state() -> None:
     middleware = StateMiddleware()
     new_goal = "如果我有一台服务器4核心24g内存，arm服务器ubuntu系统，可以接cloude flare分发cdn，那么以此服务器为基础，你建议我做什么服务最快赚钱？具体怎样部署？"
@@ -159,12 +186,7 @@ def test_research_goal_replaces_stale_task_state_before_recovery_continue() -> N
             AIMessage(content="系统检查报告已完成。"),
             HumanMessage(content=research_goal),
             AIMessage(content="我已经按用户指定来源优先进行了查询。"),
-            HumanMessage(
-                content=(
-                    "Continue the unfinished work in this conversation. "
-                    "Use the existing runtime state, todos, tool results, and recent context."
-                )
-            ),
+            HumanMessage(content=("Continue the unfinished work in this conversation. Use the existing runtime state, todos, tool results, and recent context.")),
         ],
         "runtime": {},
         "task_state": {
@@ -266,6 +288,7 @@ def test_tool_failure_final_keeps_task_incomplete() -> None:
 
     assert update is not None
     assert update["task_state"]["status"] == "incomplete"
+
 
 def test_substantive_advisory_answer_completes_task_state_without_todos() -> None:
     middleware = StateMiddleware()

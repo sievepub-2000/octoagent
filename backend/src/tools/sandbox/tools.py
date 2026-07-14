@@ -1,5 +1,10 @@
 import hashlib
+import logging
+import os
 import re
+import subprocess
+import tempfile
+from pathlib import Path
 
 from langchain.tools import ToolRuntime, tool
 from langgraph.typing import ContextT
@@ -13,6 +18,9 @@ from src.tools.sandbox.exceptions import (
 )
 from src.tools.sandbox.sandbox import Sandbox
 from src.tools.sandbox.sandbox_provider import get_sandbox_provider
+
+logger = logging.getLogger(__name__)
+REPO_ROOT = Path(__file__).resolve().parents[4]
 
 
 def replace_virtual_path(path: str, thread_data: ThreadDataState | None) -> str:
@@ -401,31 +409,28 @@ async def read_file_tool(
         return f"Error: Unexpected error reading file: {type(e).__name__}: {e}"
 
 
-
 async def _convert_markdown_to_office(content: str, output_path: str, sandbox) -> str:
     """Convert Markdown to office format using Pandoc."""
-    import tempfile
-    import subprocess
-    
-    with tempfile.NamedTemporaryFile(mode='w', suffix='.md', delete=False, encoding='utf-8') as f:
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False, encoding="utf-8") as f:
         f.write(content)
         md_path = f.name
-    
+
     try:
         _, ext = os.path.splitext(output_path.lower())
-        fmt_map = {'.docx': 'docx', '.xlsx': 'xlsx', '.pptx': 'pptx'}
-        pandoc_fmt = fmt_map.get(ext, 'docx')
-        
+        fmt_map = {".docx": "docx", ".xlsx": "xlsx", ".pptx": "pptx"}
+        pandoc_fmt = fmt_map.get(ext, "docx")
+
         proc = subprocess.Popen(
-            ['pandoc', md_path, '-o', output_path, '--from=markdown', '--to=' + pandoc_fmt],
-            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-            cwd=str(REPO_ROOT)
+            ["pandoc", md_path, "-o", output_path, "--from=markdown", "--to=" + pandoc_fmt],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=str(REPO_ROOT),
         )
-        stdout, stderr = proc.communicate(timeout=180)
-        
+        _, stderr = proc.communicate(timeout=180)
+
         if proc.returncode != 0:
             return "Error: Pandoc failed: " + stderr.decode()[:200]
-        
+
         if os.path.exists(output_path):
             size = os.path.getsize(output_path)
             return "OK (converted to " + pandoc_fmt + ", " + str(size) + " bytes)"
@@ -438,9 +443,9 @@ async def _convert_markdown_to_office(content: str, output_path: str, sandbox) -
     except Exception as e:
         return "Error: " + type(e).__name__ + ": " + str(e)
     finally:
-        try: 
+        try:
             os.unlink(md_path)
-        except: 
+        except OSError:
             pass
 
 
@@ -465,11 +470,11 @@ async def write_file_tool(
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
-                # Auto-convert Markdown to office formats (.docx, .xlsx, .pptx)
+        # Auto-convert Markdown to office formats (.docx, .xlsx, .pptx)
         _, ext = os.path.splitext(path.lower())
-        if ext in {'.docx', '.xlsx', '.pptx'}:
+        if ext in {".docx", ".xlsx", ".pptx"}:
             stripped = content.strip()
-            if stripped.startswith('#') or '```' in stripped:
+            if stripped.startswith("#") or "```" in stripped:
                 logger.info("write_file_tool: auto-converting Markdown to %s", ext)
                 return await _convert_markdown_to_office(content, path, sandbox)
 

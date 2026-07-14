@@ -18,5 +18,5 @@ def test_convert_document_converts_markdown_to_html(tmp_path: Path) -> None:
 
     assert "Converted sample.md" in result.update["messages"][0].content
     assert "sample.html" in result.update["messages"][0].content
-    assert "<h1 id=\"title\">Title</h1>" in html
+    assert '<h1 id="title">Title</h1>' in html
     assert "<table>" in html

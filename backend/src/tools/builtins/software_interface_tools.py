@@ -61,15 +61,17 @@ def software_interface_status_tool() -> str:
 
     cfg = gateway_config()
     connections = list_connections() if cfg.base_url and cfg.api_key_configured else {"status": "not_configured"}
-    return _json({
-        "status": "ok",
-        "enabled": cfg.enabled,
-        "mode": cfg.mode,
-        "base_url_configured": bool(cfg.base_url),
-        "api_key_configured": cfg.api_key_configured,
-        "catalog_total": len(list_software_interfaces()),
-        "connections": connections,
-    })
+    return _json(
+        {
+            "status": "ok",
+            "enabled": cfg.enabled,
+            "mode": cfg.mode,
+            "base_url_configured": bool(cfg.base_url),
+            "api_key_configured": cfg.api_key_configured,
+            "catalog_total": len(list_software_interfaces()),
+            "connections": connections,
+        }
+    )
 
 
 @tool("software_interface_list_connections", parse_docstring=True)
@@ -85,11 +87,7 @@ def software_interface_list_connections_tool(toolkit: str | None = None) -> str:
     if normalized and isinstance(result.get("connections"), list):
         result = {
             **result,
-            "connections": [
-                connection
-                for connection in result["connections"]
-                if isinstance(connection, dict) and str(connection.get("toolkit", "")).strip().lower() == normalized
-            ],
+            "connections": [connection for connection in result["connections"] if isinstance(connection, dict) and str(connection.get("toolkit", "")).strip().lower() == normalized],
         }
     return _json(result)
 

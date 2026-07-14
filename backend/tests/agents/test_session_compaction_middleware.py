@@ -101,8 +101,8 @@ def test_compaction_merges_completed_todos_before_generating_summary() -> None:
     assert update["runtime"]["completed_item_hashes"] == [_completed_item_hash("Fix skipped tests")]
     assert update["runtime"]["task_phase_id"].startswith("task-phase-")
     assert update["runtime"]["source_event_id"].startswith("compaction-event-")
-    assert "Completed items are historical evidence" in update["runtime"]["compaction_summary"]
-    assert "Fix skipped tests" in update["runtime"]["compaction_summary"]
+    assert "Persistent task state" not in update["runtime"]["compaction_summary"]
+    assert update["task_state"]["completed_steps"] == ["Fix skipped tests"]
 
 
 def test_persisted_checkpoint_is_injected_before_agent() -> None:
@@ -162,6 +162,46 @@ def test_persisted_task_checkpoint_prevents_repeating_completed_steps() -> None:
     content = update["messages"][0].content
     assert "Completed items are historical evidence" in content
     assert "Resume only pending items" in content
+
+
+def test_active_checkpoint_is_not_marked_as_completed_history() -> None:
+    middleware = SessionCompactionMiddleware(max_context_tokens=200)
+    update = middleware.before_agent(
+        {
+            "messages": [HumanMessage(content="continue")],
+            "runtime": {"compaction_summary": "An older diagnostic step finished."},
+            "task_state": {
+                "goal": "repair continuation",
+                "status": "active",
+                "pending_steps": ["run validation"],
+                "next_action": "run validation",
+            },
+        },
+        None,
+    )
+
+    assert update is not None
+    content = str(update["messages"][0].content)
+    assert "【历史】 An older diagnostic step finished." in content
+    assert "【历史】 - Goal: repair continuation" not in content
+    assert "<active_continuation_contract>" in content
+    assert "- Pending: run validation" in content
+
+
+def test_compaction_preserves_tool_message_role_and_identity() -> None:
+    middleware = SessionCompactionMiddleware(max_context_tokens=500, keep_recent_turns=1)
+    messages = [SystemMessage(content="System prompt")]
+    messages.extend(HumanMessage(content=f"old user {index} " + "x" * 300) for index in range(8))
+    messages.append(ToolMessage(content="trusted tool output", name="bash", tool_call_id="call-preserve"))
+    messages.extend([HumanMessage(content="latest user"), AIMessage(content="latest assistant")])
+
+    update = middleware.before_model({"messages": messages, "runtime": {}}, None)
+
+    assert update is not None
+    tool_messages = [message for message in update["messages"] if isinstance(message, ToolMessage)]
+    assert len(tool_messages) == 1
+    assert tool_messages[0].name == "bash"
+    assert tool_messages[0].tool_call_id == "call-preserve"
 
 
 def test_continuation_cycle_context_is_persisted_to_runtime() -> None:

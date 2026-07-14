@@ -17,7 +17,6 @@ from __future__ import annotations
 import logging
 import pickle
 import re
-import time
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from pathlib import Path

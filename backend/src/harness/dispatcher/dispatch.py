@@ -68,9 +68,7 @@ class DispatchLoop:
         kind = row.get("kind", "")
         handler = _handlers.get(kind)
         if handler is None:
-            await nack_dispatch(
-                row["dispatch_id"], error=f"no handler for kind={kind}"
-            )
+            await nack_dispatch(row["dispatch_id"], error=f"no handler for kind={kind}")
             return True
         try:
             await handler(row)
@@ -103,9 +101,7 @@ class DispatchLoop:
                         try:
                             await reap_stale_workers()
                         except Exception:
-                            logger.exception(
-                                "Dispatcher.dispatch: reap_stale_workers failed"
-                            )
+                            logger.exception("Dispatcher.dispatch: reap_stale_workers failed")
                 try:
                     await asyncio.wait_for(self._stop.wait(), timeout=interval)
                 except TimeoutError:

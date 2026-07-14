@@ -47,12 +47,12 @@ def test_continuation_context_is_injected_without_mutating_user_message() -> Non
     assert patched[0].name == "workflow_continue"
     assert patched[1] is user_message
     assert patched[1].content == "please continue the implementation"
-    assert "<continue_context>" in str(patched[0].content)
-    assert "Extracted continuation memory" in str(patched[0].content)
+    assert '<continuation_handoff version="2">' in str(patched[0].content)
+    assert "<historical_context>" in str(patched[0].content)
     assert "Compacted task memory" in str(patched[0].content)
-    assert "Active task todo state to continue" in str(patched[0].content)
-    assert "Completed steps (do not repeat)" in str(patched[0].content)
-    assert "Pending steps to resume" in str(patched[0].content)
+    assert "Authoritative active contract" in str(patched[0].content)
+    assert "Completed steps — do not repeat" in str(patched[0].content)
+    assert "Pending steps" in str(patched[0].content)
     assert "verify context handoff" in str(patched[0].content)
 
 
@@ -129,3 +129,31 @@ def test_completed_continuation_does_not_stop_when_pending_work_exists() -> None
     )
 
     assert answer is None
+
+
+def test_v2_contract_is_authoritative_and_does_not_force_execution() -> None:
+    message = ContinuationMiddleware()._build_message(
+        {
+            "continue_trigger": "continue",
+            "continue_from_thread_id": "source-thread",
+            "continue_contract": {
+                "version": 2,
+                "objective": "Repair context continuation without goal drift",
+                "constraints": ["Wait for confirmation before deployment"],
+                "acceptance_criteria": ["Preserve the next action across rollover"],
+                "completed_steps": ["Diagnose the failure"],
+                "pending_steps": ["Implement the approved repair"],
+                "next_action": "Implement the approved repair",
+            },
+            "continue_memory_summary": "Historical background only.",
+        }
+    )
+
+    assert message is not None
+    content = str(message.content)
+    assert '<continuation_handoff version="2">' in content
+    assert "Authoritative active contract" in content
+    assert "Wait for confirmation before deployment" in content
+    assert "Historical background only" in content
+    assert "call a tool" not in content
+    assert "The latest explicit user instruction takes precedence" in content

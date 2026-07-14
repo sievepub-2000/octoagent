@@ -48,11 +48,7 @@ def _augment_with_system_memory_facts(data: dict, *, limit: int = 20) -> dict:
     """
     facts = list(data.get("facts") or [])
     seen = {str(item.get("id")) for item in facts if isinstance(item, dict)}
-    seen_content = {
-        _normalize_fact_content(item.get("content"))
-        for item in facts
-        if isinstance(item, dict) and item.get("content")
-    }
+    seen_content = {_normalize_fact_content(item.get("content")) for item in facts if isinstance(item, dict) and item.get("content")}
     try:
         entries = get_system_rag_store().list_entries(limit=limit)
     except Exception:
@@ -428,5 +424,3 @@ async def get_system_memory_stats():
         return store.stats()
     except Exception as e:
         return {"error": str(e), "total_entries": 0}
-
-

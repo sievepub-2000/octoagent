@@ -41,5 +41,5 @@ class BrowserRuntimeProfileCatalog:
                 supports_batch_commands=True,
                 supports_streaming=False,
                 recommended_for_default_use=get_integrations_config().browser.engine == "patchright",
-            )
+            ),
         ]

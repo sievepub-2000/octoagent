@@ -5,8 +5,8 @@ import {
   Loader2Icon,
   XCircleIcon,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
-import { Streamdown } from "streamdown";
 
 import {
   ChainOfThought,
@@ -28,6 +28,11 @@ import { CitationLink } from "../citations/citation-link";
 import { FlipDisplay } from "../flip-display";
 
 import { MarkdownContent } from "./markdown-content";
+
+const Streamdown = dynamic(
+  () => import("streamdown").then((module) => module.Streamdown),
+  { loading: () => null },
+);
 
 export function SubtaskCard({
   className,

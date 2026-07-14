@@ -1,4 +1,5 @@
 """Recover failed tool calls through soft constraints and self-iteration."""
+
 from __future__ import annotations
 
 import hashlib
@@ -34,6 +35,7 @@ _PLANNING_LOOP_FINALIZE_DUP = int(_os.getenv("OCTO_PLANNING_LOOP_FINALIZE_DUP", 
 
 # ── Dataclasses ──
 
+
 @dataclass
 class ToolErrorEntry:
     tool_name: str
@@ -43,6 +45,7 @@ class ToolErrorEntry:
 
 
 # ── Helpers ──
+
 
 def _tool_message_is_error(message: ToolMessage) -> bool:
     if getattr(message, "status", None) == "error":
@@ -85,18 +88,20 @@ def _tool_call_by_id(messages: list[object], tool_call_id: str | None) -> tuple[
 
 def _tool_error_entries(messages: list[object], *, include_recovery_guards: bool = False) -> list[ToolErrorEntry]:
     entries: list[ToolErrorEntry] = []
-    for msg in messages[latest_human_index(messages) + 1:]:
+    for msg in messages[latest_human_index(messages) + 1 :]:
         if not isinstance(msg, ToolMessage):
             continue
         text = _message_text(msg).strip().lower()
         is_error = _tool_message_is_error(msg) or _json_tool_payload_is_error(text)
         if not is_error:
             continue
-        entries.append(ToolErrorEntry(
-            tool_name=str(getattr(msg, "name", None) or "tool"),
-            tool_call_id=getattr(msg, "tool_call_id", None),
-            text_snippet=text[:420],
-        ))
+        entries.append(
+            ToolErrorEntry(
+                tool_name=str(getattr(msg, "name", None) or "tool"),
+                tool_call_id=getattr(msg, "tool_call_id", None),
+                text_snippet=text[:420],
+            )
+        )
     return entries
 
 
@@ -110,7 +115,7 @@ def _recent_consecutive_errors(messages: list[object], *, include_recovery_guard
 
 
 def _consecutive_recent_tool_signatures(messages: list[object], limit: int = 30) -> list[str]:
-    scoped = messages[latest_human_index(messages) + 1:]
+    scoped = messages[latest_human_index(messages) + 1 :]
     calls_by_id: dict[str, str] = {}
     for msg in scoped:
         if not isinstance(msg, AIMessage):
@@ -118,9 +123,7 @@ def _consecutive_recent_tool_signatures(messages: list[object], limit: int = 30)
         for call in getattr(msg, "tool_calls", None) or []:
             call_id = call.get("id")
             if call_id:
-                calls_by_id[str(call_id)] = _tool_call_args_signature(
-                    str(call.get("name") or "tool"), call.get("args")
-                )
+                calls_by_id[str(call_id)] = _tool_call_args_signature(str(call.get("name") or "tool"), call.get("args"))
     sigs: list[str] = []
     for msg in reversed(scoped):
         if isinstance(msg, ToolMessage):
@@ -164,20 +167,10 @@ def _recovery_instruction(entries: list[ToolErrorEntry]) -> str | None:
     last = entries[-1]
     count = len(entries)
     if count <= 1:
-        return (
-            f"The tool `{last.tool_name}` returned an error. "
-            "Inspect its schema and arguments, fix the issue, and retry. "
-            f"Error preview: {_truncate_error(last.text_snippet)}"
-        )
+        return f"The tool `{last.tool_name}` returned an error. Inspect its schema and arguments, fix the issue, and retry. Error preview: {_truncate_error(last.text_snippet)}"
     if count <= 3:
-        return (
-            f"`{last.tool_name}` failed again ({count}x). "
-            "Try a materially different approach: different tool, different arguments, or different strategy."
-        )
-    return (
-        f"`{last.tool_name}` failed {count} consecutive times. "
-        "Skip this step and continue with the next actionable step, or explain the blocker to the user."
-    )
+        return f"`{last.tool_name}` failed again ({count}x). Try a materially different approach: different tool, different arguments, or different strategy."
+    return f"`{last.tool_name}` failed {count} consecutive times. Skip this step and continue with the next actionable step, or explain the blocker to the user."
 
 
 def _tool_texts(messages: list[object]) -> list[str]:
@@ -199,6 +192,7 @@ def _runtime_soft_tool_budget(context: dict[str, Any]) -> int | None:
 def _system_memory_soft_tool_budget() -> int | None:
     try:
         from src.agents.memory.simplemem_bridge import get_simplemem_bridge
+
         bridge = get_simplemem_bridge()
         val = bridge.get_fact(_SOFT_BUDGET_FROM_MEMORY_KEY)
         return _parse_soft_tool_budget(val) if val else None
@@ -222,21 +216,14 @@ def _recovery_guard_message(*, content: str, name: str, tool_call_id: str | None
 
 def _duplicate_step_summary_guard_message(*, tool_name: str, dup_count: int, tool_call_id: str | None) -> ToolMessage:
     return _recovery_guard_message(
-        content=(
-            f"Note: `{tool_name}` has been called with the same arguments {dup_count} times. "
-            "If the previous call already succeeded, proceed with the result. "
-            "If it failed repeatedly, switch strategy."
-        ),
+        content=(f"Note: `{tool_name}` has been called with the same arguments {dup_count} times. If the previous call already succeeded, proceed with the result. If it failed repeatedly, switch strategy."),
         name=tool_name,
         tool_call_id=tool_call_id,
     )
 
 
 def _alternate_tool_guidance(tool_name: str, tool_error_count: int) -> str:
-    return (
-        f"`{tool_name}` has failed {tool_error_count} times in this turn. "
-        "Stop using this tool and try a different approach or tool."
-    )
+    return f"`{tool_name}` has failed {tool_error_count} times in this turn. Stop using this tool and try a different approach or tool."
 
 
 def _is_recovery_guard_message(message: ToolMessage) -> bool:
@@ -245,7 +232,7 @@ def _is_recovery_guard_message(message: ToolMessage) -> bool:
 
 
 def _soft_constraint_reflection_already_injected(messages: list[object], kind: str) -> bool:
-    marker = f"kind=\"{kind}\""
+    marker = f'kind="{kind}"'
     for msg in messages:
         if isinstance(msg, SystemMessage) and marker in _message_text(msg):
             return True
@@ -253,13 +240,7 @@ def _soft_constraint_reflection_already_injected(messages: list[object], kind: s
 
 
 def _self_constraint_memory_guidance(*, kind: str, observation: str, suggested_lesson: str, user_goal: str) -> str:
-    return (
-        f"<self_constraint kind=\"{kind}\">\n"
-        f"Observation: {observation}\n"
-        f"Suggested lesson: {suggested_lesson}\n"
-        f"User goal: {user_goal[:300]}\n"
-        "</self_constraint>"
-    )
+    return f'<self_constraint kind="{kind}">\nObservation: {observation}\nSuggested lesson: {suggested_lesson}\nUser goal: {user_goal[:300]}\n</self_constraint>'
 
 
 def _auto_description(tool_name: str, args: dict[str, Any]) -> str:
@@ -274,6 +255,7 @@ def _latest_human_text(messages: list[object]) -> str:
 
 
 # ── Middleware class ──
+
 
 class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
     """Recover tool failures and provide soft budget guidance."""
@@ -320,12 +302,16 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
                         "hard_stop": False,
                     }
                     return {
-                        "messages": [SystemMessage(content=_self_constraint_memory_guidance(
-                            kind="tool_failure_loop",
-                            observation=f"{len(entries)} consecutive tool failures; latest: {entries[-1].tool_name}.",
-                            suggested_lesson="After repeated tool failures, skip the failing step or explain the blocker.",
-                            user_goal=_latest_human_text(messages),
-                        ))],
+                        "messages": [
+                            SystemMessage(
+                                content=_self_constraint_memory_guidance(
+                                    kind="tool_failure_loop",
+                                    observation=f"{len(entries)} consecutive tool failures; latest: {entries[-1].tool_name}.",
+                                    suggested_lesson="After repeated tool failures, skip the failing step or explain the blocker.",
+                                    user_goal=_latest_human_text(messages),
+                                )
+                            )
+                        ],
                         "runtime": runtime_state,
                     }
 
@@ -342,8 +328,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
         tool_texts = _tool_texts(_messages_since_latest_human(messages))
         soft_budget = self._effective_soft_tool_budget(runtime)
         if soft_budget is not None and len(tool_texts) >= soft_budget:
-            if not any(isinstance(m, SystemMessage) and "<tool_soft_budget_policy>" in _message_text(m)
-                       for m in _messages_since_latest_human(messages)):
+            if not any(isinstance(m, SystemMessage) and "<tool_soft_budget_policy>" in _message_text(m) for m in _messages_since_latest_human(messages)):
                 runtime_state["tool_soft_budget"] = {
                     "status": "advisory",
                     "tool_messages": len(tool_texts),
@@ -366,11 +351,7 @@ class ToolBudgetMiddleware(AgentMiddleware[AgentState]):
         recent_signatures = _consecutive_recent_tool_signatures(messages, limit=60)
         dup_count = _duplicate_signature_recent_count(recent_signatures, current_sig)
 
-        if (
-            _DUPLICATE_TOOL_CALL_HARD_STOP_ENABLED
-            and _DUPLICATE_TOOL_CALL_HARD_LIMIT > 0
-            and dup_count >= _DUPLICATE_TOOL_CALL_HARD_LIMIT
-        ):
+        if _DUPLICATE_TOOL_CALL_HARD_STOP_ENABLED and _DUPLICATE_TOOL_CALL_HARD_LIMIT > 0 and dup_count >= _DUPLICATE_TOOL_CALL_HARD_LIMIT:
             return _recovery_guard_message(
                 content=f"Error: `{tool_name_current}` repeated identical args {dup_count}x. Switch strategy or skip.",
                 name=tool_name_current,

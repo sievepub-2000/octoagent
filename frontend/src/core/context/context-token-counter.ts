@@ -18,6 +18,8 @@ export type ContextTokenUsage = {
   shouldAutoCompact: boolean;
 };
 
+const messageTokenCache = new WeakMap<object, { text: string; tokens: number }>();
+
 function estimateTextTokens(text: string): number {
   const normalized = text.replace(/\s+/g, " ").trim();
   if (!normalized) {
@@ -32,10 +34,13 @@ function estimateTextTokens(text: string): number {
 
 function estimateMessageTokens(message: Message): number {
   const text = textOfMessage(message);
-  if (!text) {
-    return 8;
+  const cached = messageTokenCache.get(message);
+  if (cached?.text === text) {
+    return cached.tokens;
   }
-  return 8 + estimateTextTokens(text);
+  const tokens = text ? 8 + estimateTextTokens(text) : 8;
+  messageTokenCache.set(message, { text: text ?? "", tokens });
+  return tokens;
 }
 
 export function estimateContextTokens(state: AgentThreadState | undefined, draftText: string): number {

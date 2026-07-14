@@ -37,10 +37,5 @@ def test_tool_exposes_async_coroutine(tool) -> None:
     and ToolNode.ainvoke falls back to running the sync `_run` in a worker
     thread — which is exactly where the unawaited-coroutine bug came from.
     """
-    assert tool.coroutine is not None, (
-        f"tool {tool.name!r} must be async to safely call "
-        "LocalSandbox.execute_command (which is a coroutine)"
-    )
-    assert inspect.iscoroutinefunction(tool.coroutine), (
-        f"tool {tool.name!r} coroutine slot is not a coroutine function"
-    )
+    assert tool.coroutine is not None, f"tool {tool.name!r} must be async to safely call LocalSandbox.execute_command (which is a coroutine)"
+    assert inspect.iscoroutinefunction(tool.coroutine), f"tool {tool.name!r} coroutine slot is not a coroutine function"

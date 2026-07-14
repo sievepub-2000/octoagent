@@ -411,13 +411,7 @@ def _delete_model_from_config(model_name: str) -> bool:
             system.pop("default_model", None)
     _write_config_data(config_data)
     if isinstance(removed, dict):
-        managed_env_names = {
-            str(value)[1:]
-            for key, value in removed.items()
-            if key in _SENSITIVE_MODEL_KEYS
-            and isinstance(value, str)
-            and value.startswith("$" + _MANAGED_SECRET_PREFIX)
-        }
+        managed_env_names = {str(value)[1:] for key, value in removed.items() if key in _SENSITIVE_MODEL_KEYS and isinstance(value, str) and value.startswith("$" + _MANAGED_SECRET_PREFIX)}
         _remove_managed_dotenv_secrets(managed_env_names)
     _repair_setup_default_model(model_name, filtered)
     return True

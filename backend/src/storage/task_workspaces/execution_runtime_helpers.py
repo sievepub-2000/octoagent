@@ -61,9 +61,7 @@ async def execute_worker_with_timeout_recovery(
             worker_agent.name,
             workspace.task_id,
         )
-        new_transcripts.append(
-            f"**[软交接] {worker_agent.name}** 底层 provider 返回 timeout 信号；系统不把该段标记为硬失败，改由主代理基于现有上下文继续汇总。"
-        )
+        new_transcripts.append(f"**[软交接] {worker_agent.name}** 底层 provider 返回 timeout 信号；系统不把该段标记为硬失败，改由主代理基于现有上下文继续汇总。")
         analysis_prompt = build_worker_timeout_analysis_prompt(
             goal=goal,
             agent_name=worker_agent.name,
@@ -94,10 +92,7 @@ async def execute_worker_with_timeout_recovery(
             new_transcripts.append(f"**[软交接完成] {lead_agent.name} 已接管 {worker_agent.name} 的任务段。")
             return takeover_output, new_transcripts
         except TimeoutError:
-            advisory = (
-                f"{worker_agent.name} 的任务段暂未返回完整结果。请在最终汇总中明确列出该段的已知上下文、"
-                f"缺口和下一步验证方式；这不是系统硬失败。"
-            )
+            advisory = f"{worker_agent.name} 的任务段暂未返回完整结果。请在最终汇总中明确列出该段的已知上下文、缺口和下一步验证方式；这不是系统硬失败。"
             new_transcripts.append("**[软交接保留]** 主代理接管也收到 timeout 信号，保留为可见诊断。")
             return advisory, new_transcripts
 

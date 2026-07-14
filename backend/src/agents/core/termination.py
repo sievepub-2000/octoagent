@@ -172,10 +172,10 @@ _STRONG_CONTINUATION_PHRASES = (
     "next i will",
     "next, i",
     "still need to",
-    "\u63a5\u4e0b\u6765",      # \u63a5\u4e0b\u6765
+    "\u63a5\u4e0b\u6765",  # \u63a5\u4e0b\u6765
     "\u8ba9\u6211\u7ee7\u7eed",  # \u8ba9\u6211\u7ee7\u7eed
     "\u6211\u4f1a\u7ee7\u7eed",  # \u6211\u4f1a\u7ee7\u7eed
-    "\u4e0b\u4e00\u6b65",      # \u4e0b\u4e00\u6b65
+    "\u4e0b\u4e00\u6b65",  # \u4e0b\u4e00\u6b65
 )
 
 

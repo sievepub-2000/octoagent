@@ -30,7 +30,6 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
-
 def _slug(value: str, fallback: str = "item") -> str:
     text = re.sub(r"[^A-Za-z0-9._-]+", "-", (value or fallback).strip()).strip(".-_")
     return (text or fallback)[:100]
@@ -128,10 +127,7 @@ def writing_toolchain_status_tool() -> str:
             "wp_cli": str(_RUNTIME_BIN / "wp"),
             "writing_root": str(_WRITING_ROOT),
         },
-        "binaries": {
-            name: _binary(name)
-            for name in ("pandoc", "php", "node", "npm")
-        },
+        "binaries": {name: _binary(name) for name in ("pandoc", "php", "node", "npm")},
     }
     if _WRITING_PYTHON.exists():
         script = """

@@ -66,9 +66,7 @@ def test_append_workplan_node_preserves_parent_snapshot() -> None:
 
 
 def test_extract_workplan_context_from_spawn_prompt() -> None:
-    workplan_id, node_id = _extract_workplan_context(
-        "WorkPlan: workplan-1\nNode: subagent-1\n\nDo the work"
-    )
+    workplan_id, node_id = _extract_workplan_context("WorkPlan: workplan-1\nNode: subagent-1\n\nDo the work")
 
     assert workplan_id == "workplan-1"
     assert node_id == "subagent-1"

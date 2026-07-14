@@ -16,6 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useI18n } from "@/core/i18n/hooks";
+import { getSurfaceCopy } from "@/core/i18n/surface-copy";
 import {
   useRunRuntimeMaintenance,
   useRuntimeLongRunningHealth,
@@ -43,6 +45,8 @@ function alertVariant(severity: string) {
 }
 
 export function RuntimeHealthSettingsPage() {
+  const { locale, t } = useI18n();
+  const copy = getSurfaceCopy(locale).runtime;
   const { health, isLoading, error, refetch } = useRuntimeLongRunningHealth();
   const { maintenance, refetch: refetchMaintenance } = useRuntimeMaintenanceStatus();
   const { runRecords, refetch: refetchRunRecords } = useRuntimeRunRecords({ limit: 5 });
@@ -57,7 +61,7 @@ export function RuntimeHealthSettingsPage() {
       await runMaintenance.mutateAsync({});
       await refetch();
       await refetchMaintenance();
-      toast.success("Runtime maintenance completed.");
+      toast.success(copy.maintenanceCompleted);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : String(err));
     }
@@ -65,8 +69,8 @@ export function RuntimeHealthSettingsPage() {
 
   return (
     <SettingsSection
-      title="Runtime Health"
-      description="Long-running task pressure, checkpoint retention, worker queues, and maintenance status."
+      title={copy.title}
+      description={copy.description}
     >
       {isLoading ? (
         <div className="space-y-3">
@@ -78,7 +82,7 @@ export function RuntimeHealthSettingsPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-destructive">
               <AlertTriangleIcon className="size-4" />
-              Runtime health unavailable
+              {copy.unavailable}
             </CardTitle>
           </CardHeader>
         </Card>
@@ -87,10 +91,10 @@ export function RuntimeHealthSettingsPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex flex-wrap gap-2">
               <Badge variant={alerts.length ? "outline" : "secondary"}>
-                {alerts.length ? `${alerts.length} alert(s)` : "steady"}
+                {alerts.length ? `${alerts.length} ${copy.alerts}` : copy.steady}
               </Badge>
               <Badge variant="outline">
-                maintenance {maintenance?.running ? "running" : "stopped"}
+                {copy.maintenance} {maintenance?.running ? copy.running : copy.stopped}
               </Badge>
             </div>
             <div className="flex gap-2">
@@ -104,11 +108,11 @@ export function RuntimeHealthSettingsPage() {
                 }}
               >
                 <RefreshCcwIcon className="size-4" />
-                Refresh
+                {t.settings.system.refresh}
               </Button>
               <Button size="sm" disabled={runMaintenance.isPending} onClick={handleRunMaintenance}>
                 <PlayIcon className="size-4" />
-                {runMaintenance.isPending ? "Running" : "Run maintenance"}
+                {runMaintenance.isPending ? copy.running : copy.runMaintenance}
               </Button>
             </div>
           </div>
@@ -118,7 +122,7 @@ export function RuntimeHealthSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <MemoryStickIcon className="size-4 text-primary" />
-                  Memory
+                  {copy.memory}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
@@ -129,7 +133,7 @@ export function RuntimeHealthSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <HardDriveIcon className="size-4 text-primary" />
-                  Disk Free
+                  {copy.diskFree}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
@@ -140,7 +144,7 @@ export function RuntimeHealthSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <WorkflowIcon className="size-4 text-primary" />
-                  Checkpoints
+                  {copy.checkpoints}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
@@ -151,7 +155,7 @@ export function RuntimeHealthSettingsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-sm">
                   <ActivityIcon className="size-4 text-primary" />
-                  Loop Latency
+                  {copy.loopLatency}
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
@@ -163,7 +167,7 @@ export function RuntimeHealthSettingsPage() {
           {alerts.length ? (
             <Card variant="compact">
               <CardHeader>
-                <CardTitle>Alerts</CardTitle>
+                <CardTitle>{copy.alerts}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
                 {alerts.map((alert) => (
@@ -182,10 +186,10 @@ export function RuntimeHealthSettingsPage() {
           <div className="grid gap-3 md:grid-cols-3">
           <Card variant="compact">
             <CardHeader>
-              <CardTitle>Worker Isolation</CardTitle>
+              <CardTitle>{copy.workerIsolation}</CardTitle>
               <CardAction>
                 <Badge variant="outline">
-                  queued {snapshot.worker_isolation?.total_queued ?? 0}
+                  {copy.queued} {snapshot.worker_isolation?.total_queued ?? 0}
                 </Badge>
               </CardAction>
             </CardHeader>
@@ -194,12 +198,12 @@ export function RuntimeHealthSettingsPage() {
                 <div key={name} className="rounded-xl border border-border/50 bg-background/60 p-3 text-xs text-muted-foreground">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-foreground">{name}</span>
-                    <Badge variant="secondary">limit {pool.limit}</Badge>
+                    <Badge variant="secondary">{copy.limit} {pool.limit}</Badge>
                   </div>
                   <div className="mt-2 grid grid-cols-3 gap-2">
-                    <span>active {pool.active}</span>
-                    <span>queued {pool.queued}</span>
-                    <span>done {pool.completed}</span>
+                    <span>{copy.active} {pool.active}</span>
+                    <span>{copy.queued} {pool.queued}</span>
+                    <span>{copy.done} {pool.completed}</span>
                   </div>
                 </div>
               ))}
@@ -210,14 +214,14 @@ export function RuntimeHealthSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <DatabaseIcon className="size-4 text-primary" />
-                Maintenance
+                {copy.maintenance}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-muted-foreground">
-              <p>Interval: {maintenance?.interval_seconds ?? "-"}s</p>
-              <p>Checkpoint cap: {maintenance?.max_checkpoints_per_thread ?? "-"}</p>
-              <p>Run cap: {maintenance?.max_runs_per_thread ?? "-"}</p>
-              <p className="break-all">Last run: {maintenance?.last_run ? JSON.stringify(maintenance.last_run) : "none"}</p>
+              <p>{copy.interval}: {maintenance?.interval_seconds ?? "-"}s</p>
+              <p>{copy.checkpointCap}: {maintenance?.max_checkpoints_per_thread ?? "-"}</p>
+              <p>{copy.runCap}: {maintenance?.max_runs_per_thread ?? "-"}</p>
+              <p className="break-all">{copy.lastRun}: {maintenance?.last_run ? JSON.stringify(maintenance.last_run) : copy.none}</p>
             </CardContent>
           </Card>
 
@@ -225,20 +229,20 @@ export function RuntimeHealthSettingsPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ActivityIcon className="size-4 text-primary" />
-                Run Records
+                {copy.runRecords}
               </CardTitle>
               <CardAction>
                 <Badge variant="outline">
-                  {Number(runRecords?.summary?.total ?? 0).toLocaleString()} recent
+                  {Number(runRecords?.summary?.total ?? 0).toLocaleString()} {copy.recent}
                 </Badge>
               </CardAction>
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-muted-foreground">
               <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-                <span>failed {formatScalar(runRecordSummary.failed, "0")}</span>
-                <span>fallback {formatScalar(runRecordSummary.fallback_used, "0")}</span>
-                <span>tool errors {formatScalar(runRecordSummary.tool_failures, "0")}</span>
-                <span>approval {formatScalar(runRecordSummary.approval_blocked, "0")}</span>
+                <span>{copy.failed} {formatScalar(runRecordSummary.failed, "0")}</span>
+                <span>{copy.fallback} {formatScalar(runRecordSummary.fallback_used, "0")}</span>
+                <span>{copy.toolErrors} {formatScalar(runRecordSummary.tool_failures, "0")}</span>
+                <span>{copy.approval} {formatScalar(runRecordSummary.approval_blocked, "0")}</span>
               </div>
               {(runRecords?.records ?? []).length > 0 ? (
                 <div className="space-y-2">
@@ -249,22 +253,22 @@ export function RuntimeHealthSettingsPage() {
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="font-medium text-foreground">
-                          {formatScalar(record.thread_id, "unknown thread")}
+                          {formatScalar(record.thread_id, copy.unknownThread)}
                         </span>
                         <Badge variant="secondary">
-                          {formatScalar((record.final_evaluation as Record<string, unknown> | undefined)?.status, "unknown")}
+                          {formatScalar((record.final_evaluation as Record<string, unknown> | undefined)?.status, copy.unknown)}
                         </Badge>
                       </div>
                       <p className="mt-1 truncate">
-                        {formatScalar((record.instruction_contract as Record<string, unknown> | undefined)?.intent, "general")}
+                        {formatScalar((record.instruction_contract as Record<string, unknown> | undefined)?.intent, copy.general)}
                         {" · "}
-                        {formatScalar((record.model as Record<string, unknown> | undefined)?.active_model, "model unknown")}
+                        {formatScalar((record.model as Record<string, unknown> | undefined)?.active_model, copy.modelUnknown)}
                       </p>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p>No run records captured yet.</p>
+                <p>{copy.noRecords}</p>
               )}
             </CardContent>
           </Card>

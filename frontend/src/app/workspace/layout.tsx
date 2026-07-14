@@ -1,14 +1,19 @@
 "use client";
 
 import { MutationCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { toast, Toaster } from "sonner";
 
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { SettingsPanel } from "@/components/workspace/settings";
 import { WorkspaceSidebar } from "@/components/workspace/workspace-sidebar";
 import { getLocalSettings, useLocalSettings } from "@/core/settings";
+
+const SettingsPanel = dynamic(
+  () => import("@/components/workspace/settings/settings-dialog").then((module) => module.SettingsPanel),
+  { ssr: false },
+);
 
 type SettingsSectionId =
   | "general"

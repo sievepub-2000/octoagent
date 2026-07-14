@@ -30,13 +30,8 @@ def test_lumibot_workflow_is_paper_trading_only() -> None:
     assert payload["project"]["tier"] == "B"
 
 
-
 def test_integrated_workflow_run_includes_dispatch_payload() -> None:
-    payload = json.loads(
-        integrated_workflow_run_tool.invoke(
-            {"workflow_id": "ian-handdrawn-ppt", "prompt": "Visualize the OctoAgent runtime."}
-        )
-    )
+    payload = json.loads(integrated_workflow_run_tool.invoke({"workflow_id": "ian-handdrawn-ppt", "prompt": "Visualize the OctoAgent runtime."}))
 
     dispatch = payload["dispatch"]
     assert set(dispatch.keys()) == {"description", "prompt", "subagent_type"}
@@ -48,17 +43,13 @@ def test_integrated_workflow_run_includes_dispatch_payload() -> None:
 
 
 def test_integrated_workflow_run_dispatch_unknown_workflow_omits_dispatch() -> None:
-    payload = json.loads(
-        integrated_workflow_run_tool.invoke({"workflow_id": "no-such-workflow", "prompt": "x"})
-    )
+    payload = json.loads(integrated_workflow_run_tool.invoke({"workflow_id": "no-such-workflow", "prompt": "x"}))
     assert "error" in payload
     assert "dispatch" not in payload
 
 
 def test_integrated_workflow_run_dispatch_is_self_contained() -> None:
-    payload = json.loads(
-        integrated_workflow_run_tool.invoke({"workflow_id": "witr-runtime-diagnosis", "prompt": "Probe runtime."})
-    )
+    payload = json.loads(integrated_workflow_run_tool.invoke({"workflow_id": "witr-runtime-diagnosis", "prompt": "Probe runtime."}))
 
     dispatch_prompt = payload["dispatch"]["prompt"]
     for step in payload["tool_call_sequence"]:
@@ -68,13 +59,8 @@ def test_integrated_workflow_run_dispatch_is_self_contained() -> None:
         assert artifact["name"] in dispatch_prompt
 
 
-
 def test_smb_hr_onboarding_workflow_returns_phases_and_safety() -> None:
-    payload = json.loads(
-        integrated_workflow_run_tool.invoke(
-            {"workflow_id": "smb-hr-onboarding-plan", "prompt": "Plan onboarding for a remote engineer joining next Monday in Shenzhen."}
-        )
-    )
+    payload = json.loads(integrated_workflow_run_tool.invoke({"workflow_id": "smb-hr-onboarding-plan", "prompt": "Plan onboarding for a remote engineer joining next Monday in Shenzhen."}))
 
     assert payload["status"] == "ready"
     assert payload["project"]["project_id"] == "smb-hr-onboarding"
@@ -89,11 +75,7 @@ def test_smb_hr_onboarding_workflow_returns_phases_and_safety() -> None:
 
 
 def test_smb_hr_onboarding_dispatch_carries_compliance_steps() -> None:
-    payload = json.loads(
-        integrated_workflow_run_tool.invoke(
-            {"workflow_id": "smb-hr-onboarding-plan", "prompt": "Onboarding for a customer success manager in Berlin."}
-        )
-    )
+    payload = json.loads(integrated_workflow_run_tool.invoke({"workflow_id": "smb-hr-onboarding-plan", "prompt": "Onboarding for a customer success manager in Berlin."}))
 
     dispatch_prompt = payload["dispatch"]["prompt"]
     assert "compliance_gate" in dispatch_prompt
@@ -104,12 +86,9 @@ def test_smb_hr_onboarding_dispatch_carries_compliance_steps() -> None:
 
 
 def test_smb_hr_onboarding_is_listed_in_catalog() -> None:
-    payload = json.loads(
-        integrated_project_catalog_tool.invoke({"tier": "A", "integration_mode": "workflow", "max_items": 50})
-    )
+    payload = json.loads(integrated_project_catalog_tool.invoke({"tier": "A", "integration_mode": "workflow", "max_items": 50}))
     ids = {item["project_id"] for item in payload["projects"]}
     assert "smb-hr-onboarding" in ids
-
 
 
 # ---------------------------------------------------------------
@@ -231,10 +210,17 @@ def test_phase8_catalog_lists_all_new_verticals_under_tier_a() -> None:
     payload = json.loads(integrated_project_catalog_tool.invoke({"tier": "A", "max_items": 100}))
     ids = {item["project_id"] for item in payload["projects"]}
     for new_id in [
-        "bamboohr-broker", "workday-broker", "gusto-broker",
-        "azure-ad-broker", "okta-broker", "google-workspace-broker",
+        "bamboohr-broker",
+        "workday-broker",
+        "gusto-broker",
+        "azure-ad-broker",
+        "okta-broker",
+        "google-workspace-broker",
         "employment-contract-blueprint",
-        "smb-cs-playbook", "smb-finance-close", "smb-sales-motion", "smb-it-helpdesk-runbook",
+        "smb-cs-playbook",
+        "smb-finance-close",
+        "smb-sales-motion",
+        "smb-it-helpdesk-runbook",
     ]:
         assert new_id in ids, f"{new_id} missing from tier-A catalog"
 
@@ -243,8 +229,12 @@ def test_phase8_external_broker_filter_lists_brokers_only() -> None:
     payload = json.loads(integrated_project_catalog_tool.invoke({"integration_mode": "external-broker", "max_items": 100}))
     ids = {item["project_id"] for item in payload["projects"]}
     expected = {
-        "bamboohr-broker", "workday-broker", "gusto-broker",
-        "azure-ad-broker", "okta-broker", "google-workspace-broker",
+        "bamboohr-broker",
+        "workday-broker",
+        "gusto-broker",
+        "azure-ad-broker",
+        "okta-broker",
+        "google-workspace-broker",
     }
     assert expected.issubset(ids)
     # SMB plan-only verticals must NOT appear in external-broker mode

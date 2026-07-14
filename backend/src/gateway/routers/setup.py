@@ -188,6 +188,7 @@ def _setup_state_file() -> Path:
 def _load_setup_state() -> dict[str, str]:
     """Load setup state using the unified entry point (config.yaml > setup_state.json)."""
     from src.runtime.config.paths import load_setup_state as unified_load_setup_state
+
     return unified_load_setup_state()
 
 

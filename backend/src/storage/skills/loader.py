@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import threading
 import time
@@ -6,6 +7,8 @@ from pathlib import Path
 
 from .parser import parse_skill_file
 from .types import Skill
+
+logger = logging.getLogger(__name__)
 
 # In-memory cache so that the hot path (called from the async LangGraph event
 # loop via the synchronous graph factory) never performs blocking filesystem IO
@@ -140,9 +143,9 @@ def load_skills(skills_path: Path | None = None, use_config: bool = True, enable
         extensions_config = ExtensionsConfig.from_file()
         for skill in skills:
             skill.enabled = extensions_config.is_skill_enabled(skill.name, skill.category)
-    except Exception as e:
+    except Exception as exc:
         # If config loading fails, default to all enabled
-        logger.debug("Warning: Failed to load extensions config: {e}")
+        logger.debug("Failed to load extensions config: %s", exc)
 
     # ── Extra skill roots (e.g. ``.agents/skills/`` shipped with the repo) ──
     # Loaded only if not already present (skills/public/ takes priority).

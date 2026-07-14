@@ -5,7 +5,8 @@ to reduce code duplication across the codebase.
 """
 
 import logging
-from typing import Any, Callable, Optional, TypeVar
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +16,7 @@ T = TypeVar("T")
 class OctoAgentError(Exception):
     """Base exception for all octoagent errors."""
 
-    def __init__(self, message: str, details: Optional[dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         super().__init__(message)
         self.message = message
         self.details = details or {}
@@ -48,10 +49,10 @@ class ResourceExhaustedError(OctoAgentError):
 def safe_execute(
     func: Callable[..., T],
     *args: Any,
-    default: Optional[T] = None,
+    default: T | None = None,
     log_errors: bool = True,
     **kwargs: Any,
-) -> Optional[T]:
+) -> T | None:
     """Execute a function safely with error handling.
 
     Args:
@@ -72,13 +73,13 @@ def safe_execute(
         return default
 
 
-def retry_with_backoff(
+def retry_with_backoff(  # noqa: UP047 - shared TypeVar keeps Python 3.11 compatibility
     func: Callable[..., T],
     max_retries: int = 3,
     base_delay: float = 1.0,
     *args: Any,
     **kwargs: Any,
-) -> Optional[T]:
+) -> T | None:
     """Execute a function with retry logic and exponential backoff.
 
     Args:
@@ -93,7 +94,7 @@ def retry_with_backoff(
     """
     import time
 
-    last_exception: Optional[Exception] = None
+    last_exception: Exception | None = None
 
     for attempt in range(max_retries + 1):
         try:

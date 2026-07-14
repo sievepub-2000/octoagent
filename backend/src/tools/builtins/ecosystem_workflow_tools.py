@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import json
-import yaml
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import psutil
+import yaml
 from langchain_core.tools import tool
 
 from src.utils.datetime import utc_now_iso_seconds as _utc_now
@@ -118,186 +118,68 @@ def _command_for_project(project: IntegratedProject) -> str:
     return mapping.get(project.project_id, f"{project.project_id}:run")
 
 
-
 # Phase 8 expansion: vertical step/artifact/safety registries (plan-only / signed-intent-only).
 _VERTICAL_STEP_PACKS: dict[str, list[dict[str, Any]]] = {
     "bamboohr-broker": [
-        {
-            "step": "intake",
-            "action": "collect employee identity fields, role, start_date, region, manager, salary_band; refuse if PII inlined without explicit consent"
-        },
-        {
-            "step": "map_to_bamboohr_schema",
-            "action": "transform intake into bamboohr API schema fields; mark required vs optional and surface validation errors before envelope emission"
-        },
-        {
-            "step": "emit_employee_create_envelope",
-            "action": "render the bamboohr employee-create HTTP request envelope (method, path, headers placeholders, JSON/XML body) as a draft artifact — no network call is made"
-        },
-        {
-            "step": "emit_onboarding_assignment_envelope",
-            "action": "render the bamboohr onboarding/checklist assignment request envelope as a draft artifact"
-        },
-        {
-            "step": "tenant_admin_signoff_gate",
-            "action": "surface explicit checkboxes for tenant admin: credential rotation status, scope of API token, dry-run target, rollback procedure; block dispatch until checked"
-        },
-        {
-            "step": "signed_intent_safety",
-            "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope an authorized operator runs out-of-band; payload contains placeholder secrets only"
-        }
+        {"step": "intake", "action": "collect employee identity fields, role, start_date, region, manager, salary_band; refuse if PII inlined without explicit consent"},
+        {"step": "map_to_bamboohr_schema", "action": "transform intake into bamboohr API schema fields; mark required vs optional and surface validation errors before envelope emission"},
+        {"step": "emit_employee_create_envelope", "action": "render the bamboohr employee-create HTTP request envelope (method, path, headers placeholders, JSON/XML body) as a draft artifact — no network call is made"},
+        {"step": "emit_onboarding_assignment_envelope", "action": "render the bamboohr onboarding/checklist assignment request envelope as a draft artifact"},
+        {"step": "tenant_admin_signoff_gate", "action": "surface explicit checkboxes for tenant admin: credential rotation status, scope of API token, dry-run target, rollback procedure; block dispatch until checked"},
+        {"step": "signed_intent_safety", "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope an authorized operator runs out-of-band; payload contains placeholder secrets only"},
     ],
     "workday-broker": [
-        {
-            "step": "intake",
-            "action": "collect employee identity fields, role, start_date, region, manager, salary_band; refuse if PII inlined without explicit consent"
-        },
-        {
-            "step": "map_to_workday_schema",
-            "action": "transform intake into workday API schema fields; mark required vs optional and surface validation errors before envelope emission"
-        },
-        {
-            "step": "emit_employee_create_envelope",
-            "action": "render the workday employee-create HTTP request envelope (method, path, headers placeholders, JSON/XML body) as a draft artifact — no network call is made"
-        },
-        {
-            "step": "emit_onboarding_assignment_envelope",
-            "action": "render the workday onboarding/business_process assignment request envelope as a draft artifact"
-        },
-        {
-            "step": "tenant_admin_signoff_gate",
-            "action": "surface explicit checkboxes for tenant admin: credential rotation status, scope of API token, dry-run target, rollback procedure; block dispatch until checked"
-        },
-        {
-            "step": "signed_intent_safety",
-            "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope an authorized operator runs out-of-band; payload contains placeholder secrets only"
-        }
+        {"step": "intake", "action": "collect employee identity fields, role, start_date, region, manager, salary_band; refuse if PII inlined without explicit consent"},
+        {"step": "map_to_workday_schema", "action": "transform intake into workday API schema fields; mark required vs optional and surface validation errors before envelope emission"},
+        {"step": "emit_employee_create_envelope", "action": "render the workday employee-create HTTP request envelope (method, path, headers placeholders, JSON/XML body) as a draft artifact — no network call is made"},
+        {"step": "emit_onboarding_assignment_envelope", "action": "render the workday onboarding/business_process assignment request envelope as a draft artifact"},
+        {"step": "tenant_admin_signoff_gate", "action": "surface explicit checkboxes for tenant admin: credential rotation status, scope of API token, dry-run target, rollback procedure; block dispatch until checked"},
+        {"step": "signed_intent_safety", "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope an authorized operator runs out-of-band; payload contains placeholder secrets only"},
     ],
     "gusto-broker": [
-        {
-            "step": "intake",
-            "action": "collect employee identity fields, role, start_date, region, manager, salary_band; refuse if PII inlined without explicit consent"
-        },
-        {
-            "step": "map_to_gusto_schema",
-            "action": "transform intake into gusto API schema fields; mark required vs optional and surface validation errors before envelope emission"
-        },
-        {
-            "step": "emit_employee_create_envelope",
-            "action": "render the gusto employee-create HTTP request envelope (method, path, headers placeholders, JSON/XML body) as a draft artifact — no network call is made"
-        },
-        {
-            "step": "emit_onboarding_assignment_envelope",
-            "action": "render the gusto onboarding/checklist assignment request envelope as a draft artifact"
-        },
-        {
-            "step": "tenant_admin_signoff_gate",
-            "action": "surface explicit checkboxes for tenant admin: credential rotation status, scope of API token, dry-run target, rollback procedure; block dispatch until checked"
-        },
-        {
-            "step": "signed_intent_safety",
-            "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope an authorized operator runs out-of-band; payload contains placeholder secrets only"
-        }
+        {"step": "intake", "action": "collect employee identity fields, role, start_date, region, manager, salary_band; refuse if PII inlined without explicit consent"},
+        {"step": "map_to_gusto_schema", "action": "transform intake into gusto API schema fields; mark required vs optional and surface validation errors before envelope emission"},
+        {"step": "emit_employee_create_envelope", "action": "render the gusto employee-create HTTP request envelope (method, path, headers placeholders, JSON/XML body) as a draft artifact — no network call is made"},
+        {"step": "emit_onboarding_assignment_envelope", "action": "render the gusto onboarding/checklist assignment request envelope as a draft artifact"},
+        {"step": "tenant_admin_signoff_gate", "action": "surface explicit checkboxes for tenant admin: credential rotation status, scope of API token, dry-run target, rollback procedure; block dispatch until checked"},
+        {"step": "signed_intent_safety", "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope an authorized operator runs out-of-band; payload contains placeholder secrets only"},
     ],
     "azure-ad-broker": [
-        {
-            "step": "intake",
-            "action": "collect user identity (email, given_name, family_name), required role-groups, MFA policy, license SKU; refuse if tenant_id is missing"
-        },
-        {
-            "step": "map_to_azure_ad_schema",
-            "action": "transform intake into azure_ad POST /users schema; validate required attributes (e.g. SCIM userName, displayName) and emit validation errors before envelope emission"
-        },
-        {
-            "step": "emit_user_create_envelope",
-            "action": "render the azure_ad POST /users HTTP request envelope (auth header placeholder, body, expected response shape) — no network call is made"
-        },
-        {
-            "step": "emit_group_assignment_envelope",
-            "action": "render the azure_ad POST /groups/{id}/members/$ref request envelope for each required role-group; one envelope per group"
-        },
-        {
-            "step": "mfa_enforcement_check",
-            "action": "emit explicit MFA-required claim in the envelope payload; if MFA cannot be enforced for the target user, refuse and report"
-        },
-        {
-            "step": "tenant_admin_signoff_gate",
-            "action": "surface tenant-admin checkboxes: scope of admin token, target tenant, dry-run mode, rollback (deletion) playbook reference; block dispatch until checked"
-        },
-        {
-            "step": "signed_intent_safety",
-            "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope that a tenant admin runs out-of-band; tokens are placeholders"
-        }
+        {"step": "intake", "action": "collect user identity (email, given_name, family_name), required role-groups, MFA policy, license SKU; refuse if tenant_id is missing"},
+        {"step": "map_to_azure_ad_schema", "action": "transform intake into azure_ad POST /users schema; validate required attributes (e.g. SCIM userName, displayName) and emit validation errors before envelope emission"},
+        {"step": "emit_user_create_envelope", "action": "render the azure_ad POST /users HTTP request envelope (auth header placeholder, body, expected response shape) — no network call is made"},
+        {"step": "emit_group_assignment_envelope", "action": "render the azure_ad POST /groups/{id}/members/$ref request envelope for each required role-group; one envelope per group"},
+        {"step": "mfa_enforcement_check", "action": "emit explicit MFA-required claim in the envelope payload; if MFA cannot be enforced for the target user, refuse and report"},
+        {"step": "tenant_admin_signoff_gate", "action": "surface tenant-admin checkboxes: scope of admin token, target tenant, dry-run mode, rollback (deletion) playbook reference; block dispatch until checked"},
+        {"step": "signed_intent_safety", "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope that a tenant admin runs out-of-band; tokens are placeholders"},
     ],
     "okta-broker": [
-        {
-            "step": "intake",
-            "action": "collect user identity (email, given_name, family_name), required role-groups, MFA policy, license SKU; refuse if tenant_id is missing"
-        },
-        {
-            "step": "map_to_okta_schema",
-            "action": "transform intake into okta POST /api/v1/users schema; validate required attributes (e.g. SCIM userName, displayName) and emit validation errors before envelope emission"
-        },
-        {
-            "step": "emit_user_create_envelope",
-            "action": "render the okta POST /api/v1/users HTTP request envelope (auth header placeholder, body, expected response shape) — no network call is made"
-        },
-        {
-            "step": "emit_group_assignment_envelope",
-            "action": "render the okta POST /api/v1/groups/{id}/users/{user_id} request envelope for each required role-group; one envelope per group"
-        },
-        {
-            "step": "mfa_enforcement_check",
-            "action": "emit explicit MFA-required claim in the envelope payload; if MFA cannot be enforced for the target user, refuse and report"
-        },
-        {
-            "step": "tenant_admin_signoff_gate",
-            "action": "surface tenant-admin checkboxes: scope of admin token, target tenant, dry-run mode, rollback (deletion) playbook reference; block dispatch until checked"
-        },
-        {
-            "step": "signed_intent_safety",
-            "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope that a tenant admin runs out-of-band; tokens are placeholders"
-        }
+        {"step": "intake", "action": "collect user identity (email, given_name, family_name), required role-groups, MFA policy, license SKU; refuse if tenant_id is missing"},
+        {"step": "map_to_okta_schema", "action": "transform intake into okta POST /api/v1/users schema; validate required attributes (e.g. SCIM userName, displayName) and emit validation errors before envelope emission"},
+        {"step": "emit_user_create_envelope", "action": "render the okta POST /api/v1/users HTTP request envelope (auth header placeholder, body, expected response shape) — no network call is made"},
+        {"step": "emit_group_assignment_envelope", "action": "render the okta POST /api/v1/groups/{id}/users/{user_id} request envelope for each required role-group; one envelope per group"},
+        {"step": "mfa_enforcement_check", "action": "emit explicit MFA-required claim in the envelope payload; if MFA cannot be enforced for the target user, refuse and report"},
+        {"step": "tenant_admin_signoff_gate", "action": "surface tenant-admin checkboxes: scope of admin token, target tenant, dry-run mode, rollback (deletion) playbook reference; block dispatch until checked"},
+        {"step": "signed_intent_safety", "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope that a tenant admin runs out-of-band; tokens are placeholders"},
     ],
     "google-workspace-broker": [
-        {
-            "step": "intake",
-            "action": "collect user identity (email, given_name, family_name), required role-groups, MFA policy, license SKU; refuse if tenant_id is missing"
-        },
+        {"step": "intake", "action": "collect user identity (email, given_name, family_name), required role-groups, MFA policy, license SKU; refuse if tenant_id is missing"},
         {
             "step": "map_to_google_workspace_schema",
-            "action": "transform intake into google_workspace POST /admin/directory/v1/users schema; validate required attributes (e.g. SCIM userName, displayName) and emit validation errors before envelope emission"
+            "action": "transform intake into google_workspace POST /admin/directory/v1/users schema; validate required attributes (e.g. SCIM userName, displayName) and emit validation errors before envelope emission",
         },
-        {
-            "step": "emit_user_create_envelope",
-            "action": "render the google_workspace POST /admin/directory/v1/users HTTP request envelope (auth header placeholder, body, expected response shape) — no network call is made"
-        },
-        {
-            "step": "emit_group_assignment_envelope",
-            "action": "render the google_workspace POST /admin/directory/v1/groups/{key}/members request envelope for each required role-group; one envelope per group"
-        },
-        {
-            "step": "mfa_enforcement_check",
-            "action": "emit explicit MFA-required claim in the envelope payload; if MFA cannot be enforced for the target user, refuse and report"
-        },
-        {
-            "step": "tenant_admin_signoff_gate",
-            "action": "surface tenant-admin checkboxes: scope of admin token, target tenant, dry-run mode, rollback (deletion) playbook reference; block dispatch until checked"
-        },
-        {
-            "step": "signed_intent_safety",
-            "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope that a tenant admin runs out-of-band; tokens are placeholders"
-        }
+        {"step": "emit_user_create_envelope", "action": "render the google_workspace POST /admin/directory/v1/users HTTP request envelope (auth header placeholder, body, expected response shape) — no network call is made"},
+        {"step": "emit_group_assignment_envelope", "action": "render the google_workspace POST /admin/directory/v1/groups/{key}/members request envelope for each required role-group; one envelope per group"},
+        {"step": "mfa_enforcement_check", "action": "emit explicit MFA-required claim in the envelope payload; if MFA cannot be enforced for the target user, refuse and report"},
+        {"step": "tenant_admin_signoff_gate", "action": "surface tenant-admin checkboxes: scope of admin token, target tenant, dry-run mode, rollback (deletion) playbook reference; block dispatch until checked"},
+        {"step": "signed_intent_safety", "action": "confirm OctoAgent never executes the request — output is a signed-intent envelope that a tenant admin runs out-of-band; tokens are placeholders"},
     ],
     "employment-contract-blueprint": [
         {
             "step": "intake",
-            "action": "collect jurisdiction, role, employment_type (full_time/part_time/contract/intern), term (indefinite/fixed N months), industry, special concerns (remote, multi-jurisdiction). Refuse if jurisdiction is missing."
+            "action": "collect jurisdiction, role, employment_type (full_time/part_time/contract/intern), term (indefinite/fixed N months), industry, special concerns (remote, multi-jurisdiction). Refuse if jurisdiction is missing.",
         },
-        {
-            "step": "jurisdiction_lock",
-            "action": "lock the target jurisdiction; refuse to mix clauses across jurisdictions unless user explicitly opts in for a multi-jurisdiction summary"
-        },
+        {"step": "jurisdiction_lock", "action": "lock the target jurisdiction; refuse to mix clauses across jurisdictions unless user explicitly opts in for a multi-jurisdiction summary"},
         {
             "step": "clause_taxonomy",
             "action": (
@@ -308,409 +190,116 @@ _VERTICAL_STEP_PACKS: dict[str, list[dict[str, Any]]] = {
                 "for each emit applicability + region-specific note "
                 "(e.g. CA non-compete generally unenforceable; "
                 "CN probation cap by contract term; EU GDPR data clauses)"
-            )
+            ),
         },
-        {
-            "step": "blueprint_render",
-            "action": "render the clause blueprint as headings + bullet-point intents (NOT contract text); each clause carries a `requires_attorney_drafting: true` flag"
-        },
-        {
-            "step": "attorney_review_gate",
-            "action": "emit an explicit attorney-review checklist artifact listing each clause, jurisdiction note, and required external review item before any text is finalized"
-        },
-        {
-            "step": "legal_safety",
-            "action": "confirm output is a blueprint, not a contract; refuse if user asks to produce finalized binding contract text"
-        }
+        {"step": "blueprint_render", "action": "render the clause blueprint as headings + bullet-point intents (NOT contract text); each clause carries a `requires_attorney_drafting: true` flag"},
+        {"step": "attorney_review_gate", "action": "emit an explicit attorney-review checklist artifact listing each clause, jurisdiction note, and required external review item before any text is finalized"},
+        {"step": "legal_safety", "action": "confirm output is a blueprint, not a contract; refuse if user asks to produce finalized binding contract text"},
     ],
     "smb-cs-playbook": [
-        {
-            "step": "intake",
-            "action": "collect required customer success inputs and refuse to proceed when scope is undefined"
-        },
-        {
-            "step": "kickoff_plan",
-            "action": "produce the kickoff section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "d30_health_check_plan",
-            "action": "produce the d30 health check section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "d60_health_check_plan",
-            "action": "produce the d60 health check section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "d90_health_check_plan",
-            "action": "produce the d90 health check section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "escalation_paths_plan",
-            "action": "produce the escalation paths section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "qbr_template_plan",
-            "action": "produce the qbr template section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "churn_save_runbook_plan",
-            "action": "produce the churn save runbook section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "quality_gate",
-            "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"
-        },
-        {
-            "step": "draft_only_safety",
-            "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"
-        }
+        {"step": "intake", "action": "collect required customer success inputs and refuse to proceed when scope is undefined"},
+        {"step": "kickoff_plan", "action": "produce the kickoff section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "d30_health_check_plan", "action": "produce the d30 health check section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "d60_health_check_plan", "action": "produce the d60 health check section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "d90_health_check_plan", "action": "produce the d90 health check section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "escalation_paths_plan", "action": "produce the escalation paths section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "qbr_template_plan", "action": "produce the qbr template section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "churn_save_runbook_plan", "action": "produce the churn save runbook section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "quality_gate", "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"},
+        {"step": "draft_only_safety", "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"},
     ],
     "smb-finance-close": [
-        {
-            "step": "intake",
-            "action": "collect required month-end close inputs and refuse to proceed when scope is undefined"
-        },
-        {
-            "step": "bank_recon_plan",
-            "action": "produce the bank recon section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "accruals_plan",
-            "action": "produce the accruals section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "revenue_recognition_cutoff_plan",
-            "action": "produce the revenue recognition cutoff section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "expense_classification_plan",
-            "action": "produce the expense classification section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "tax_provision_check_plan",
-            "action": "produce the tax provision check section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "close_packet_plan",
-            "action": "produce the close packet section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "audit_trail_review_plan",
-            "action": "produce the audit trail review section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "quality_gate",
-            "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"
-        },
-        {
-            "step": "draft_only_safety",
-            "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"
-        }
+        {"step": "intake", "action": "collect required month-end close inputs and refuse to proceed when scope is undefined"},
+        {"step": "bank_recon_plan", "action": "produce the bank recon section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "accruals_plan", "action": "produce the accruals section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "revenue_recognition_cutoff_plan", "action": "produce the revenue recognition cutoff section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "expense_classification_plan", "action": "produce the expense classification section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "tax_provision_check_plan", "action": "produce the tax provision check section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "close_packet_plan", "action": "produce the close packet section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "audit_trail_review_plan", "action": "produce the audit trail review section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "quality_gate", "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"},
+        {"step": "draft_only_safety", "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"},
     ],
     "smb-sales-motion": [
-        {
-            "step": "intake",
-            "action": "collect required sales motion inputs and refuse to proceed when scope is undefined"
-        },
-        {
-            "step": "icp_definition_plan",
-            "action": "produce the icp definition section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "outbound_cadence_plan",
-            "action": "produce the outbound cadence section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "discovery_script_plan",
-            "action": "produce the discovery script section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "demo_template_plan",
-            "action": "produce the demo template section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "proposal_template_plan",
-            "action": "produce the proposal template section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "negotiation_guardrails_plan",
-            "action": "produce the negotiation guardrails section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "handoff_to_cs_plan",
-            "action": "produce the handoff to cs section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "quality_gate",
-            "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"
-        },
-        {
-            "step": "draft_only_safety",
-            "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"
-        }
+        {"step": "intake", "action": "collect required sales motion inputs and refuse to proceed when scope is undefined"},
+        {"step": "icp_definition_plan", "action": "produce the icp definition section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "outbound_cadence_plan", "action": "produce the outbound cadence section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "discovery_script_plan", "action": "produce the discovery script section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "demo_template_plan", "action": "produce the demo template section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "proposal_template_plan", "action": "produce the proposal template section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "negotiation_guardrails_plan", "action": "produce the negotiation guardrails section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "handoff_to_cs_plan", "action": "produce the handoff to cs section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "quality_gate", "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"},
+        {"step": "draft_only_safety", "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"},
     ],
     "smb-it-helpdesk-runbook": [
-        {
-            "step": "intake",
-            "action": "collect required IT helpdesk inputs and refuse to proceed when scope is undefined"
-        },
-        {
-            "step": "ticket_triage_plan",
-            "action": "produce the ticket triage section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "priority_matrix_plan",
-            "action": "produce the priority matrix section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "password_reset_sop_plan",
-            "action": "produce the password reset sop section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "equipment_request_sop_plan",
-            "action": "produce the equipment request sop section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "access_request_sop_plan",
-            "action": "produce the access request sop section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "escalation_paths_plan",
-            "action": "produce the escalation paths section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "sla_definitions_plan",
-            "action": "produce the sla definitions section with explicit owners, due dates, and acceptance criteria"
-        },
-        {
-            "step": "quality_gate",
-            "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"
-        },
-        {
-            "step": "draft_only_safety",
-            "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"
-        }
-    ]
+        {"step": "intake", "action": "collect required IT helpdesk inputs and refuse to proceed when scope is undefined"},
+        {"step": "ticket_triage_plan", "action": "produce the ticket triage section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "priority_matrix_plan", "action": "produce the priority matrix section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "password_reset_sop_plan", "action": "produce the password reset sop section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "equipment_request_sop_plan", "action": "produce the equipment request sop section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "access_request_sop_plan", "action": "produce the access request sop section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "escalation_paths_plan", "action": "produce the escalation paths section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "sla_definitions_plan", "action": "produce the sla definitions section with explicit owners, due dates, and acceptance criteria"},
+        {"step": "quality_gate", "action": "validate completeness, owner coverage, and acceptance criteria; refuse to finalize until gaps are addressed"},
+        {"step": "draft_only_safety", "action": "confirm no external systems are mutated; all outputs are reviewable Markdown/JSON drafts for the responsible team"},
+    ],
 }
 
 _VERTICAL_ARTIFACT_PACKS: dict[str, list[dict[str, Any]]] = {
     "bamboohr-broker": [
-        {
-            "name": "bamboohr_employee_create.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "bamboohr_onboarding_assignment.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "signed_intent_envelope.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "tenant_admin_checklist.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "bamboohr_employee_create.json", "kind": "json", "required": True},
+        {"name": "bamboohr_onboarding_assignment.json", "kind": "json", "required": True},
+        {"name": "signed_intent_envelope.md", "kind": "markdown", "required": True},
+        {"name": "tenant_admin_checklist.md", "kind": "markdown", "required": True},
     ],
     "workday-broker": [
-        {
-            "name": "workday_hire_request.xml",
-            "kind": "xml",
-            "required": True
-        },
-        {
-            "name": "workday_security_role_assignment.xml",
-            "kind": "xml",
-            "required": True
-        },
-        {
-            "name": "signed_intent_envelope.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "tenant_admin_checklist.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "workday_hire_request.xml", "kind": "xml", "required": True},
+        {"name": "workday_security_role_assignment.xml", "kind": "xml", "required": True},
+        {"name": "signed_intent_envelope.md", "kind": "markdown", "required": True},
+        {"name": "tenant_admin_checklist.md", "kind": "markdown", "required": True},
     ],
     "gusto-broker": [
-        {
-            "name": "gusto_employee_create.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "gusto_payroll_setup.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "signed_intent_envelope.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "tenant_admin_checklist.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "gusto_employee_create.json", "kind": "json", "required": True},
+        {"name": "gusto_payroll_setup.json", "kind": "json", "required": True},
+        {"name": "signed_intent_envelope.md", "kind": "markdown", "required": True},
+        {"name": "tenant_admin_checklist.md", "kind": "markdown", "required": True},
     ],
     "azure-ad-broker": [
-        {
-            "name": "azure_ad_user_create.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "azure_ad_group_assignments.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "mfa_enforcement_report.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "signed_intent_envelope.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "azure_ad_user_create.json", "kind": "json", "required": True},
+        {"name": "azure_ad_group_assignments.json", "kind": "json", "required": True},
+        {"name": "mfa_enforcement_report.json", "kind": "json", "required": True},
+        {"name": "signed_intent_envelope.md", "kind": "markdown", "required": True},
     ],
     "okta-broker": [
-        {
-            "name": "okta_user_create.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "okta_group_assignments.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "mfa_enforcement_report.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "signed_intent_envelope.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "okta_user_create.json", "kind": "json", "required": True},
+        {"name": "okta_group_assignments.json", "kind": "json", "required": True},
+        {"name": "mfa_enforcement_report.json", "kind": "json", "required": True},
+        {"name": "signed_intent_envelope.md", "kind": "markdown", "required": True},
     ],
     "google-workspace-broker": [
-        {
-            "name": "google_workspace_user_create.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "google_workspace_group_assignments.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "mfa_enforcement_report.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "signed_intent_envelope.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "google_workspace_user_create.json", "kind": "json", "required": True},
+        {"name": "google_workspace_group_assignments.json", "kind": "json", "required": True},
+        {"name": "mfa_enforcement_report.json", "kind": "json", "required": True},
+        {"name": "signed_intent_envelope.md", "kind": "markdown", "required": True},
     ],
     "employment-contract-blueprint": [
-        {
-            "name": "contract_clause_blueprint.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "jurisdiction_compliance_matrix.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "attorney_review_checklist.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "contract_clause_blueprint.md", "kind": "markdown", "required": True},
+        {"name": "jurisdiction_compliance_matrix.json", "kind": "json", "required": True},
+        {"name": "attorney_review_checklist.md", "kind": "markdown", "required": True},
     ],
-    "smb-cs-playbook": [
-        {
-            "name": "cs_playbook.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "health_score_matrix.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "escalation_runbook.md",
-            "kind": "markdown",
-            "required": True
-        }
-    ],
-    "smb-finance-close": [
-        {
-            "name": "close_checklist.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "reconciliation_matrix.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "audit_trail.json",
-            "kind": "json",
-            "required": True
-        }
-    ],
+    "smb-cs-playbook": [{"name": "cs_playbook.md", "kind": "markdown", "required": True}, {"name": "health_score_matrix.json", "kind": "json", "required": True}, {"name": "escalation_runbook.md", "kind": "markdown", "required": True}],
+    "smb-finance-close": [{"name": "close_checklist.md", "kind": "markdown", "required": True}, {"name": "reconciliation_matrix.json", "kind": "json", "required": True}, {"name": "audit_trail.json", "kind": "json", "required": True}],
     "smb-sales-motion": [
-        {
-            "name": "sales_motion_playbook.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "deal_stage_definitions.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "handoff_packet.md",
-            "kind": "markdown",
-            "required": True
-        }
+        {"name": "sales_motion_playbook.md", "kind": "markdown", "required": True},
+        {"name": "deal_stage_definitions.json", "kind": "json", "required": True},
+        {"name": "handoff_packet.md", "kind": "markdown", "required": True},
     ],
     "smb-it-helpdesk-runbook": [
-        {
-            "name": "helpdesk_runbook.md",
-            "kind": "markdown",
-            "required": True
-        },
-        {
-            "name": "sla_matrix.json",
-            "kind": "json",
-            "required": True
-        },
-        {
-            "name": "triage_decision_tree.md",
-            "kind": "markdown",
-            "required": True
-        }
-    ]
+        {"name": "helpdesk_runbook.md", "kind": "markdown", "required": True},
+        {"name": "sla_matrix.json", "kind": "json", "required": True},
+        {"name": "triage_decision_tree.md", "kind": "markdown", "required": True},
+    ],
 }
 
 _VERTICAL_EXTRA_RESULT_PACKS: dict[str, dict[str, Any]] = {
@@ -718,69 +307,48 @@ _VERTICAL_EXTRA_RESULT_PACKS: dict[str, dict[str, Any]] = {
         "api_target": {
             "vendor": "BambooHR",
             "base_url_template": "https://api.bamboohr.com/api/gateway.php/{subdomain}/v1",
-            "endpoints": [
-                "POST /employees",
-                "POST /employees/{id}/onboarding/items"
-            ],
-            "auth": "Basic <api_key>:x (placeholder; rotate before dispatch)"
+            "endpoints": ["POST /employees", "POST /employees/{id}/onboarding/items"],
+            "auth": "Basic <api_key>:x (placeholder; rotate before dispatch)",
         }
     },
     "workday-broker": {
         "api_target": {
             "vendor": "Workday",
             "base_url_template": "https://wd2-impl-services1.workday.com/ccx/service/{tenant}",
-            "endpoints": [
-                "Hire (Staffing v40.x SOAP)",
-                "Assign_Roles (HR v40.x SOAP)"
-            ],
-            "auth": "WS-Security UsernameToken (placeholder; rotate before dispatch)"
+            "endpoints": ["Hire (Staffing v40.x SOAP)", "Assign_Roles (HR v40.x SOAP)"],
+            "auth": "WS-Security UsernameToken (placeholder; rotate before dispatch)",
         }
     },
     "gusto-broker": {
         "api_target": {
             "vendor": "Gusto",
             "base_url_template": "https://api.gusto.com/v1",
-            "endpoints": [
-                "POST /companies/{company_id}/employees",
-                "POST /employees/{employee_id}/onboarding_status"
-            ],
-            "auth": "Bearer <oauth2_token> (placeholder; rotate before dispatch)"
+            "endpoints": ["POST /companies/{company_id}/employees", "POST /employees/{employee_id}/onboarding_status"],
+            "auth": "Bearer <oauth2_token> (placeholder; rotate before dispatch)",
         }
     },
     "azure-ad-broker": {
         "api_target": {
             "vendor": "Microsoft Graph",
             "base_url_template": "https://graph.microsoft.com/v1.0",
-            "endpoints": [
-                "POST /users",
-                "POST /groups/{group_id}/members/$ref",
-                "PATCH /users/{user_id}/authentication/methods"
-            ],
-            "auth": "Bearer <ms_graph_token> (placeholder; least-privilege Directory.ReadWrite.All only)"
+            "endpoints": ["POST /users", "POST /groups/{group_id}/members/$ref", "PATCH /users/{user_id}/authentication/methods"],
+            "auth": "Bearer <ms_graph_token> (placeholder; least-privilege Directory.ReadWrite.All only)",
         }
     },
     "okta-broker": {
         "api_target": {
             "vendor": "Okta",
             "base_url_template": "https://{tenant}.okta.com",
-            "endpoints": [
-                "POST /api/v1/users?activate=true",
-                "PUT /api/v1/groups/{group_id}/users/{user_id}",
-                "POST /api/v1/users/{user_id}/factors"
-            ],
-            "auth": "SSWS <okta_api_token> (placeholder; rotate before dispatch)"
+            "endpoints": ["POST /api/v1/users?activate=true", "PUT /api/v1/groups/{group_id}/users/{user_id}", "POST /api/v1/users/{user_id}/factors"],
+            "auth": "SSWS <okta_api_token> (placeholder; rotate before dispatch)",
         }
     },
     "google-workspace-broker": {
         "api_target": {
             "vendor": "Google Workspace",
             "base_url_template": "https://admin.googleapis.com",
-            "endpoints": [
-                "POST /admin/directory/v1/users",
-                "POST /admin/directory/v1/groups/{group_key}/members",
-                "POST /admin/directory/v1/users/{user_key}/twoStepVerification"
-            ],
-            "auth": "Bearer <oauth2_admin_token> (placeholder; least-privilege admin.directory.user scope only)"
+            "endpoints": ["POST /admin/directory/v1/users", "POST /admin/directory/v1/groups/{group_key}/members", "POST /admin/directory/v1/users/{user_key}/twoStepVerification"],
+            "auth": "Bearer <oauth2_admin_token> (placeholder; least-privilege admin.directory.user scope only)",
         }
     },
     "employment-contract-blueprint": {
@@ -797,79 +365,28 @@ _VERTICAL_EXTRA_RESULT_PACKS: dict[str, dict[str, Any]] = {
             "data_protection",
             "dispute_resolution",
             "termination_for_cause",
-            "termination_without_cause"
+            "termination_without_cause",
         ]
     },
     "smb-cs-playbook": {
         "cs_phases": [
-            {
-                "phase": "kickoff",
-                "day_range": "D0..D7",
-                "owner": "CSM"
-            },
-            {
-                "phase": "d30_health_check",
-                "day_range": "D30",
-                "owner": "CSM"
-            },
-            {
-                "phase": "d60_health_check",
-                "day_range": "D60",
-                "owner": "CSM + Lead"
-            },
-            {
-                "phase": "d90_health_check",
-                "day_range": "D90",
-                "owner": "CSM + Lead"
-            },
-            {
-                "phase": "qbr",
-                "day_range": "Quarterly",
-                "owner": "CSM + AE"
-            }
+            {"phase": "kickoff", "day_range": "D0..D7", "owner": "CSM"},
+            {"phase": "d30_health_check", "day_range": "D30", "owner": "CSM"},
+            {"phase": "d60_health_check", "day_range": "D60", "owner": "CSM + Lead"},
+            {"phase": "d90_health_check", "day_range": "D90", "owner": "CSM + Lead"},
+            {"phase": "qbr", "day_range": "Quarterly", "owner": "CSM + AE"},
         ]
     },
-    "smb-finance-close": {
-        "close_steps_summary": [
-            "bank_recon → accruals → revenue_recognition_cutoff → expense_classification → tax_provision_check → close_packet → audit_trail_review"
-        ]
-    },
-    "smb-sales-motion": {
-        "stage_summary": [
-            "icp",
-            "outbound",
-            "discovery",
-            "demo",
-            "proposal",
-            "negotiation",
-            "closed_won",
-            "handoff_to_cs"
-        ]
-    },
+    "smb-finance-close": {"close_steps_summary": ["bank_recon → accruals → revenue_recognition_cutoff → expense_classification → tax_provision_check → close_packet → audit_trail_review"]},
+    "smb-sales-motion": {"stage_summary": ["icp", "outbound", "discovery", "demo", "proposal", "negotiation", "closed_won", "handoff_to_cs"]},
     "smb-it-helpdesk-runbook": {
         "priority_matrix": [
-            {
-                "priority": "P1",
-                "definition": "production outage / blocking access for >1 user",
-                "first_response": "15m"
-            },
-            {
-                "priority": "P2",
-                "definition": "blocking access for 1 user",
-                "first_response": "1h"
-            },
-            {
-                "priority": "P3",
-                "definition": "non-blocking",
-                "first_response": "1bd"
-            },
-            {
-                "priority": "P4",
-                "definition": "request / informational",
-                "first_response": "3bd"
-            }
+            {"priority": "P1", "definition": "production outage / blocking access for >1 user", "first_response": "15m"},
+            {"priority": "P2", "definition": "blocking access for 1 user", "first_response": "1h"},
+            {"priority": "P3", "definition": "non-blocking", "first_response": "1bd"},
+            {"priority": "P4", "definition": "request / informational", "first_response": "3bd"},
         ]
-    }
+    },
 }
 
 _VERTICAL_KINDS: dict[str, str] = {
@@ -883,7 +400,7 @@ _VERTICAL_KINDS: dict[str, str] = {
     "smb-cs-playbook": "smb",
     "smb-finance-close": "smb",
     "smb-sales-motion": "smb",
-    "smb-it-helpdesk-runbook": "smb"
+    "smb-it-helpdesk-runbook": "smb",
 }
 
 _SAFETY_PACKS: dict[str, dict[str, Any]] = {
@@ -893,7 +410,7 @@ _SAFETY_PACKS: dict[str, dict[str, Any]] = {
         "network_calls_blocked": True,
         "requires_tenant_admin_signoff": True,
         "secrets_in_payload": "placeholders_only",
-        "operator_path": "credentialed_cli_or_curl_out_of_band"
+        "operator_path": "credentialed_cli_or_curl_out_of_band",
     },
     "idp": {
         "mode": "signed_intent_only",
@@ -902,7 +419,7 @@ _SAFETY_PACKS: dict[str, dict[str, Any]] = {
         "requires_tenant_admin_signoff": True,
         "secrets_in_payload": "placeholders_only",
         "mfa_enforcement_required": True,
-        "operator_path": "credentialed_cli_or_curl_out_of_band"
+        "operator_path": "credentialed_cli_or_curl_out_of_band",
     },
     "legal": {
         "mode": "blueprint_only",
@@ -910,15 +427,11 @@ _SAFETY_PACKS: dict[str, dict[str, Any]] = {
         "attorney_review_required": True,
         "jurisdiction_locked": True,
         "must_not_finalize_without_counsel": True,
-        "disclaimer": "OctoAgent outputs are NOT legal advice; a licensed attorney in the target jurisdiction must review and finalize before any party signs"
+        "disclaimer": "OctoAgent outputs are NOT legal advice; a licensed attorney in the target jurisdiction must review and finalize before any party signs",
     },
-    "smb": {
-        "mode": "plan_only",
-        "auto_side_effects_enabled": False,
-        "requires_owner_signoff": True,
-        "external_systems_mutated": False
-    }
+    "smb": {"mode": "plan_only", "auto_side_effects_enabled": False, "requires_owner_signoff": True, "external_systems_mutated": False},
 }
+
 
 def _workflow_steps(project: IntegratedProject) -> list[dict[str, Any]]:
     base = [
@@ -994,10 +507,7 @@ def _format_dispatch_prompt(
         else:
             action = step.get("action", "")
             step_lines.append(f"{index}. {name} — {action}")
-    artifact_lines = [
-        f"- {item['name']} ({item['kind']}{', required' if item.get('required') else ''})"
-        for item in artifacts
-    ]
+    artifact_lines = [f"- {item['name']} ({item['kind']}{', required' if item.get('required') else ''})" for item in artifacts]
     gate_lines = [f"- {gate}" for gate in quality_gates]
     return (
         f"You are executing the OctoAgent integrated workflow "

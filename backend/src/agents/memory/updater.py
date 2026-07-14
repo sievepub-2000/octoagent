@@ -250,8 +250,6 @@ def _strip_upload_mentions_from_memory(memory_data: dict[str, Any]) -> dict[str,
     return memory_data
 
 
-
-
 def _normalise_completed_item(value: Any) -> str:
     """Return stable text for a completed task item."""
     return re.sub(r"\s+", " ", str(value or "")).strip().lower()
@@ -319,6 +317,7 @@ def _known_completed_hashes(memory_data: dict[str, Any], task_phase_id: str) -> 
         if isinstance(fact, dict) and fact.get("taskPhaseId") == task_phase_id and fact.get("completedItemHash"):
             hashes.add(str(fact["completedItemHash"]))
     return hashes
+
 
 def _save_memory_to_file(memory_data: dict[str, Any], agent_name: str | None = None) -> bool:
     """Save memory data to file and update cache.

@@ -29,6 +29,7 @@ def message_text(message: Any) -> str:
         return " ".join(parts)
     return str(content or "")
 
+
 def latest_human_index(messages: list) -> int:
     """Return the index of the most-recent ``HumanMessage`` in ``messages``.
 

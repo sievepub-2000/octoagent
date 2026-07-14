@@ -61,6 +61,7 @@ class QueryTurnExecutor:
         if client_command is not None:
             return client_command.execution_target
         return "repo_read"
+
     def resolve_client_command(
         self,
         message: str,
@@ -122,7 +123,6 @@ class QueryTurnExecutor:
         if permission_mode in {"system", "directory"}:
             return False
         return target != "repo_read"
-
 
     def execute_browser_target(self, session, message: str, *, created_at: str, client_command: QueryClientCommand | None = None):
         target = client_command.requested_url if client_command is not None and client_command.requested_url else self.browser_query_url(message)

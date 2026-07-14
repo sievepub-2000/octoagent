@@ -81,9 +81,7 @@ class WorkBusRedis:
 
     def __init__(self, *, max_memory_events: int = 500) -> None:
         self._max_memory_events = max_memory_events
-        self._events: dict[str, deque[dict[str, Any]]] = defaultdict(
-            lambda: deque(maxlen=self._max_memory_events)
-        )
+        self._events: dict[str, deque[dict[str, Any]]] = defaultdict(lambda: deque(maxlen=self._max_memory_events))
         self._subscribers: dict[str, set[asyncio.Queue[dict[str, Any]]]] = defaultdict(set)
         self._lock = asyncio.Lock()
         self._sequence = 0

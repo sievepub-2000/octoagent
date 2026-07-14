@@ -9,10 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useI18n } from "@/core/i18n/hooks";
+import { getSurfaceCopy } from "@/core/i18n/surface-copy";
 import { useRepoHooks, useUpdateRepoHook } from "@/core/repo-hooks/hooks";
 
 export function HooksSettingsPage() {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const copy = getSurfaceCopy(locale).hooks;
   const { hooks, isLoading, error, refetch } = useRepoHooks();
   const updateHook = useUpdateRepoHook();
   const [operatorToken, setOperatorToken] = useState("");
@@ -25,14 +27,14 @@ export function HooksSettingsPage() {
     const value = operatorToken.trim();
     if (value) sessionStorage.setItem("octoagent_operator_token", value);
     else sessionStorage.removeItem("octoagent_operator_token");
-    toast.success(value ? "Operator authorization saved for this browser session." : "Operator authorization cleared.");
+    toast.success(value ? copy.authorizationSaved : copy.authorizationCleared);
   }
 
   async function handleToggle(hookName: string, enabled: boolean) {
     try {
       await updateHook.mutateAsync({ hookName, enabled });
     } catch (toggleError) {
-      toast.error(toggleError instanceof Error ? toggleError.message : "Failed to update hook.");
+      toast.error(toggleError instanceof Error ? toggleError.message : copy.updateFailed);
     }
   }
 
@@ -56,12 +58,12 @@ export function HooksSettingsPage() {
 
       <div className="mb-5 flex flex-wrap items-end gap-2 border-b border-border/60 pb-5">
         <label className="min-w-64 flex-1 space-y-1">
-          <span className="text-xs font-medium text-muted-foreground">Operator token</span>
-          <Input type="password" autoComplete="off" value={operatorToken} onChange={(event) => setOperatorToken(event.target.value)} placeholder="Required to enable or disable hooks" />
+          <span className="text-xs font-medium text-muted-foreground">{copy.operatorToken}</span>
+          <Input type="password" autoComplete="off" value={operatorToken} onChange={(event) => setOperatorToken(event.target.value)} placeholder={copy.tokenPlaceholder} />
         </label>
         <Button size="sm" variant="outline" onClick={saveOperatorToken}>
           <KeyRoundIcon className="size-4" />
-          Authorize
+          {copy.authorize}
         </Button>
       </div>
 
@@ -69,7 +71,7 @@ export function HooksSettingsPage() {
         <div className="text-sm text-muted-foreground">{t.common.loading}</div>
       ) : error ? (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
-          {error instanceof Error ? error.message : "Failed to load hooks."}
+          {error instanceof Error ? error.message : copy.loadFailed}
         </div>
       ) : hooks.length === 0 ? (
         <div className="octo-panel rounded-[1.5rem] p-6 text-sm text-muted-foreground">
@@ -87,7 +89,7 @@ export function HooksSettingsPage() {
                     <p className="mt-1 text-xs text-muted-foreground">{hook.description || hook.files.join(", ")}</p>
                   </div>
                   <Badge variant="outline" className="text-[10px]">
-                    {hook.triggers.length} trigger{hook.triggers.length === 1 ? "" : "s"}
+                    {hook.triggers.length} {copy.triggers}
                   </Badge>
                 </div>
                 <div className="mt-3 flex flex-wrap gap-1.5">
@@ -99,7 +101,7 @@ export function HooksSettingsPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground">{hook.files.length} file{hook.files.length === 1 ? "" : "s"}</span>
+                <span className="text-xs text-muted-foreground">{hook.files.length} {copy.files}</span>
                 <Switch checked={hook.enabled} onCheckedChange={(checked) => void handleToggle(hook.name, checked)} />
               </div>
             </div>

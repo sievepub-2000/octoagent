@@ -6,10 +6,8 @@ Monitors memory usage trends and triggers recycling when thresholds are exceeded
 from __future__ import annotations
 
 import logging
-import os
 import time
-from dataclasses import dataclass, field
-from pathlib import Path
+from dataclasses import dataclass
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -56,11 +54,6 @@ class MemoryMonitor:
     def get_snapshot(self) -> MemorySnapshot:
         """Get current memory usage snapshot."""
         try:
-            import resource
-            # Get process memory usage
-            usage = resource.getrusage(resource.RUSAGE_SELF)
-            process_memory_mb = usage.ru_maxrss / 1024  # Convert KB to MB
-
             # Get system memory info from /proc/meminfo
             total_mb = 0
             free_mb = 0
@@ -68,7 +61,7 @@ class MemoryMonitor:
             swap_total_mb = 0
             swap_used_mb = 0
 
-            with open("/proc/meminfo", "r") as f:
+            with open("/proc/meminfo") as f:
                 for line in f:
                     if line.startswith("MemTotal:"):
                         total_mb = int(line.split()[1]) / 1024
@@ -99,7 +92,7 @@ class MemoryMonitor:
 
             self._snapshots.append(snapshot)
             if len(self._snapshots) > self._max_snapshots:
-                self._snapshots = self._snapshots[-self._max_snapshots:]
+                self._snapshots = self._snapshots[-self._max_snapshots :]
 
             return snapshot
 

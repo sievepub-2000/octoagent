@@ -17,11 +17,9 @@ from __future__ import annotations
 
 import importlib
 import pkgutil
-from pathlib import Path
 from typing import Any
 
 from . import __path__ as _pkg_path
-
 
 MIGRATIONS_TABLE = "_applied_migrations"
 
@@ -37,11 +35,13 @@ def _discover_migrations() -> list[dict[str, Any]]:
             migration_id = getattr(mod, "MIGRATION_ID", None)
             if not migration_id:
                 continue
-            migrations.append({
-                "id": migration_id,
-                "module": mod,
-                "description": getattr(mod, "DESCRIPTION", ""),
-            })
+            migrations.append(
+                {
+                    "id": migration_id,
+                    "module": mod,
+                    "description": getattr(mod, "DESCRIPTION", ""),
+                }
+            )
         except Exception as exc:
             print(f"WARNING: failed to load migration {modname}: {exc}")
     migrations.sort(key=lambda m: m["id"])
@@ -50,10 +50,7 @@ def _discover_migrations() -> list[dict[str, Any]]:
 
 def run_migrations(cursor: Any, dry_run: bool = False) -> list[str]:
     """Apply all pending migrations. Returns list of applied migration IDs."""
-    cursor.execute(
-        f"CREATE TABLE IF NOT EXISTS {MIGRATIONS_TABLE} "
-        f"(migration_id TEXT PRIMARY KEY, applied_at INTEGER)"
-    )
+    cursor.execute(f"CREATE TABLE IF NOT EXISTS {MIGRATIONS_TABLE} (migration_id TEXT PRIMARY KEY, applied_at INTEGER)")
     cursor.execute(f"SELECT migration_id FROM {MIGRATIONS_TABLE}")
     applied = {row[0] for row in cursor.fetchall()}
 
@@ -68,8 +65,7 @@ def run_migrations(cursor: Any, dry_run: bool = False) -> list[str]:
         print(f"Applying migration: {mig['id']} - {mig['description']}")
         mig["module"].UP(cursor)
         cursor.execute(
-            f"INSERT INTO {MIGRATIONS_TABLE} (migration_id, applied_at) "
-            f"VALUES (?, ?)",
+            f"INSERT INTO {MIGRATIONS_TABLE} (migration_id, applied_at) VALUES (?, ?)",
             (mig["id"], 0),  # timestamp handled by caller if needed
         )
         applied_ids.append(mig["id"])

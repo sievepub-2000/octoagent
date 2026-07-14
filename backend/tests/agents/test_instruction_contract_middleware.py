@@ -17,15 +17,7 @@ def test_current_research_replaces_local_exploration_with_source_first_web_searc
         structured_response=None,
     )
     messages = [
-        SystemMessage(
-            content=(
-                "<instruction_contract>\n"
-                "- Intent: current_research\n"
-                "- Required tool categories: web\n"
-                "- User-named source domains to try first: bloomberg.com\n"
-                "</instruction_contract>"
-            )
-        ),
+        SystemMessage(content=("<instruction_contract>\n- Intent: current_research\n- Required tool categories: web\n- User-named source domains to try first: bloomberg.com\n</instruction_contract>")),
         HumanMessage(content="Find Bloomberg's top ten news stories today and summarize details."),
     ]
 
@@ -43,14 +35,7 @@ def test_current_research_explicit_url_uses_fetch_before_generic_search() -> Non
         structured_response=None,
     )
     messages = [
-        SystemMessage(
-            content=(
-                "<instruction_contract>\n"
-                "- Intent: current_research\n"
-                "- Required tool categories: web\n"
-                "</instruction_contract>"
-            )
-        ),
+        SystemMessage(content=("<instruction_contract>\n- Intent: current_research\n- Required tool categories: web\n</instruction_contract>")),
         HumanMessage(content="Read https://example.com/report and tell me what changed."),
     ]
 
@@ -67,15 +52,7 @@ def test_current_research_keeps_valid_web_tool_call() -> None:
         structured_response=None,
     )
     messages = [
-        SystemMessage(
-            content=(
-                "<instruction_contract>\n"
-                "- Intent: current_research\n"
-                "- Required tool categories: web\n"
-                "- User-named source domains to try first: bloomberg.com\n"
-                "</instruction_contract>"
-            )
-        ),
+        SystemMessage(content=("<instruction_contract>\n- Intent: current_research\n- Required tool categories: web\n- User-named source domains to try first: bloomberg.com\n</instruction_contract>")),
         HumanMessage(content="Find current Bloomberg market news."),
     ]
 
@@ -89,22 +66,13 @@ def test_current_research_replaces_weather_pseudo_tool_with_web_search() -> None
         result=[
             AIMessage(
                 content="",
-                tool_calls=[
-                    {"id": "pseudo-weather", "name": "print", "args": {"arg1": "weather(city='济南', date='2026-07-04')"}}
-                ],
+                tool_calls=[{"id": "pseudo-weather", "name": "print", "args": {"arg1": "weather(city='济南', date='2026-07-04')"}}],
             )
         ],
         structured_response=None,
     )
     messages = [
-        SystemMessage(
-            content=(
-                "<instruction_contract>\n"
-                "- Intent: current_research\n"
-                "- Required tool categories: web\n"
-                "</instruction_contract>"
-            )
-        ),
+        SystemMessage(content=("<instruction_contract>\n- Intent: current_research\n- Required tool categories: web\n</instruction_contract>")),
         HumanMessage(content="查一下济南、纽约明天的天气预报，汇总报告"),
     ]
 

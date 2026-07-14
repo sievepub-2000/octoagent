@@ -20,57 +20,65 @@ class ToolCategory(str, Enum):
     QUERY = "query"
 
 
-_WRITE_TOOL_NAMES: frozenset[str] = frozenset({
-    "file_write",
-    "code_edit",
-    "create_file",
-    "update_file",
-    "write_code",
-    "edit_code",
-    "save_file",
-    "patch_file",
-    "apply_patch",
-    "mkdir",
-    "rmdir",
-    "rm",
-    "delete_file",
-    "rename_file",
-})
+_WRITE_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "file_write",
+        "code_edit",
+        "create_file",
+        "update_file",
+        "write_code",
+        "edit_code",
+        "save_file",
+        "patch_file",
+        "apply_patch",
+        "mkdir",
+        "rmdir",
+        "rm",
+        "delete_file",
+        "rename_file",
+    }
+)
 
-_EXEC_TOOL_NAMES: frozenset[str] = frozenset({
-    "shell_exec",
-    "run_command",
-    "execute_command",
-    "bash",
-    "system_execute",
-    "run_shell",
-    "subprocess_run",
-})
+_EXEC_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "shell_exec",
+        "run_command",
+        "execute_command",
+        "bash",
+        "system_execute",
+        "run_shell",
+        "subprocess_run",
+    }
+)
 
-_READ_TOOL_NAMES: frozenset[str] = frozenset({
-    "file_read",
-    "read_file",
-    "grep",
-    "search_files",
-    "list_directory",
-    "ls",
-    "cat",
-    "head",
-    "tail",
-    "find_files",
-})
+_READ_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "file_read",
+        "read_file",
+        "grep",
+        "search_files",
+        "list_directory",
+        "ls",
+        "cat",
+        "head",
+        "tail",
+        "find_files",
+    }
+)
 
-_QUERY_TOOL_NAMES: frozenset[str] = frozenset({
-    "database_query",
-    "db_query",
-    "sql_query",
-    "web_search",
-    "url_fetch",
-    "web_fetch",
-    "http_get",
-    "search",
-    "query_database",
-})
+_QUERY_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "database_query",
+        "db_query",
+        "sql_query",
+        "web_search",
+        "url_fetch",
+        "web_fetch",
+        "http_get",
+        "search",
+        "query_database",
+    }
+)
 
 
 def classify_tool(tool_name: str) -> ToolCategory:
@@ -99,7 +107,7 @@ def _extract_paths(args: dict[str, Any]) -> list[str]:
             paths.extend(found)
             # Also match direct path values (e.g. {"path": "/tmp/file.txt"})
             stripped = value.strip().strip('"').strip("'")
-            if stripped and not any(c in stripped for c in ' ,;|&$`') and (stripped.startswith("/") or ":" in stripped[:3]):
+            if stripped and not any(c in stripped for c in " ,;|&$`") and (stripped.startswith("/") or ":" in stripped[:3]):
                 if stripped not in paths:
                     paths.append(stripped)
         elif isinstance(value, (list, tuple)):
@@ -108,7 +116,6 @@ def _extract_paths(args: dict[str, Any]) -> list[str]:
                     found = _PATH_PATTERN.findall(item)
                     paths.extend(found)
     return [p.replace(chr(92), "/") for p in paths]
-
 
 
 def _extract_tables(args: dict[str, Any]) -> list[str]:
@@ -163,15 +170,17 @@ def analyze_tool_calls(tool_calls: list[dict[str, Any]]) -> list[ExecutionLayer]
         paths = _extract_paths(args)
         tables = _extract_tables(args)
         urls = _extract_urls(args)
-        refs.append(ToolCallRef(
-            index=idx,
-            tool_name=tool_name,
-            args=args,
-            category=category,
-            paths=paths,
-            tables=tables,
-            urls=urls,
-        ))
+        refs.append(
+            ToolCallRef(
+                index=idx,
+                tool_name=tool_name,
+                args=args,
+                category=category,
+                paths=paths,
+                tables=tables,
+                urls=urls,
+            )
+        )
 
     n = len(refs)
     deps: list[set[int]] = [set() for _ in range(n)]

@@ -9,7 +9,6 @@ from __future__ import annotations
 import json
 import logging
 import math
-import time
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -75,7 +74,7 @@ class RetrievalQualityMonitor:
         """
         self._results.append(result)
         if len(self._results) > self._max_results:
-            self._results = self._results[-self._max_results:]
+            self._results = self._results[-self._max_results :]
 
         self._metrics["total_queries"] += 1
         self._metrics["total_results"] += result.results_count
@@ -83,13 +82,10 @@ class RetrievalQualityMonitor:
         self._metrics["table_distribution"][result.table] += result.results_count
 
         # Update latency
-        self._metrics["avg_latency_ms"] = (
-            self._metrics["avg_latency_ms"] * 0.9 + result.latency_ms * 0.1
-        )
+        self._metrics["avg_latency_ms"] = self._metrics["avg_latency_ms"] * 0.9 + result.latency_ms * 0.1
 
         # Update score statistics
         if result.results_count > 0:
-            scores = [result.top_score]
             # Estimate score distribution from top_score and count
             self._update_score_stats(result.top_score, result.results_count)
 

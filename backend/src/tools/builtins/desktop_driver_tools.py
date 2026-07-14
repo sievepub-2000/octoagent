@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import importlib.util
-import json
 import os
 import shutil
 import subprocess
@@ -31,12 +30,7 @@ def _driver() -> str | None:
 
 
 def _configured_display() -> str | None:
-    return (
-        os.environ.get("OCTOAGENT_DESKTOP_DISPLAY")
-        or os.environ.get("DISPLAY")
-        or os.environ.get("WAYLAND_DISPLAY")
-        or None
-    )
+    return os.environ.get("OCTOAGENT_DESKTOP_DISPLAY") or os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY") or None
 
 
 def _configured_xauthority() -> str | None:

@@ -90,9 +90,8 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
       activeThreadIdRef.current = nextThreadId;
       setCreatedThreadId(nextThreadId);
       onStart?.(nextThreadId);
-      invalidateThreadSearchQueries(queryClient);
     },
-    [onStart, queryClient],
+    [onStart],
   );
 
   const stream = useStream<AgentThreadState>({
@@ -104,7 +103,7 @@ export function useThreadStream(options: UseThreadStreamOptions): [any, SendThre
       onFinish?.((state.values ?? {}) as AgentThreadState);
       invalidateThreadSearchQueries(queryClient);
     },
-    fetchStateHistory: true,
+    fetchStateHistory: false,
     initialValues: loadInitialState ? undefined : null,
   });
 

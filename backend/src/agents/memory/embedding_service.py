@@ -16,7 +16,7 @@ import math
 import re
 import threading
 from collections import Counter
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -25,11 +25,11 @@ logger = logging.getLogger(__name__)
 # Singleton guard
 # ---------------------------------------------------------------------------
 
-_instance: Optional["TextEmbeddingService"] = None
+_instance: TextEmbeddingService | None = None
 _instance_lock = threading.Lock()
 
 
-def get_text_embedding_service() -> "TextEmbeddingService":
+def get_text_embedding_service() -> TextEmbeddingService:
     """Return the singleton TextEmbeddingService (lazy-created)."""
     global _instance
     if _instance is None:
@@ -43,6 +43,7 @@ def get_text_embedding_service() -> "TextEmbeddingService":
 # TF-IDF fallback
 # ---------------------------------------------------------------------------
 
+
 class _TfidfVectorizer:
     """Minimal TF-IDF implementation for when sentence-transformers is absent."""
 
@@ -54,17 +55,14 @@ class _TfidfVectorizer:
     def _tokenize(self, text: str) -> list[str]:
         return [t.lower() for t in self._token_pattern.findall(text)]
 
-    def fit(self, texts: list[str]) -> "_TfidfVectorizer":
+    def fit(self, texts: list[str]) -> _TfidfVectorizer:
         doc_freq: Counter = Counter()
         for text in texts:
             tokens = set(self._tokenize(text))
             for token in tokens:
                 doc_freq[token] += 1
         n_docs = len(texts)
-        self._idf = {
-            token: math.log((n_docs + 1) / (freq + 1)) + 1
-            for token, freq in doc_freq.items()
-        }
+        self._idf = {token: math.log((n_docs + 1) / (freq + 1)) + 1 for token, freq in doc_freq.items()}
         self._doc_count = n_docs
         return self
 
@@ -91,6 +89,7 @@ class _TfidfVectorizer:
 # ---------------------------------------------------------------------------
 # EmbeddingService
 # ---------------------------------------------------------------------------
+
 
 class TextEmbeddingService:
     """Lazy-loaded text embedding service.
@@ -124,7 +123,6 @@ class TextEmbeddingService:
                 return True
             try:
                 import torch  # noqa: F401
-
                 from sentence_transformers import SentenceTransformer
 
                 self._model = SentenceTransformer(self._model_name)
@@ -133,9 +131,7 @@ class TextEmbeddingService:
                 logger.info("EmbeddingService loaded model '%s'", self._model_name)
                 return True
             except ImportError:
-                logger.debug(
-                    "sentence-transformers not available; using TF-IDF fallback"
-                )
+                logger.debug("sentence-transformers not available; using TF-IDF fallback")
                 self._tfidf = _TfidfVectorizer()
                 self._loaded = True
                 return False
@@ -158,9 +154,7 @@ class TextEmbeddingService:
                 import torch
 
                 with torch.no_grad():
-                    embedding = self._model.encode(
-                        text, convert_to_numpy=True
-                    ).tolist()
+                    embedding = self._model.encode(text, convert_to_numpy=True).tolist()
                 return embedding
             except Exception as exc:
                 logger.warning("Model encode failed: %s — falling back to TF-IDF", exc)
@@ -187,9 +181,7 @@ class TextEmbeddingService:
                 import torch
 
                 with torch.no_grad():
-                    embeddings = self._model.encode(
-                        texts, convert_to_numpy=True
-                    ).tolist()
+                    embeddings = self._model.encode(texts, convert_to_numpy=True).tolist()
                 return embeddings
             except Exception as exc:
                 logger.warning("Model batch encode failed: %s — falling back", exc)
@@ -216,9 +208,7 @@ class TextEmbeddingService:
         norm_b = math.sqrt(sum(y * y for y in b)) or 1.0
         return dot / (norm_a * norm_b)
 
-    def find_best_match(
-        self, query: str, candidates: list[str], threshold: float | None = None
-    ) -> tuple[str, float] | tuple[None, float]:
+    def find_best_match(self, query: str, candidates: list[str], threshold: float | None = None) -> tuple[str, float] | tuple[None, float]:
         """Find the best-matching candidate for a query string.
 
         Returns (best_candidate, similarity) or (None, worst_score).

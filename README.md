@@ -129,6 +129,31 @@ cd octoagent
 ./scripts/install-octoagent.sh
 ```
 
+### Source development stack
+
+The supported source-development baseline is Python 3.12, Node.js 22, and
+pnpm 11.12.0. Keep the repository-pinned versions aligned instead of using an
+older system interpreter or package manager:
+
+```bash
+cd backend
+uv sync --python 3.12 --frozen --group dev
+
+cd ../frontend
+corepack prepare pnpm@11.12.0 --activate
+pnpm install --frozen-lockfile
+```
+
+On Windows, `llama-cpp-python` 0.3.23 should be installed from its published
+CPU wheel before the frozen sync so Visual C++ does not rebuild it from source:
+
+```powershell
+cd backend
+uv python install 3.12
+uv pip install --python .\.venv\Scripts\python.exe --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu llama-cpp-python==0.3.23
+uv sync --python 3.12 --frozen --group dev --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+```
+
 ### First-run configuration (default models)
 
 OctoAgent ships preconfigured for **OpenRouter free tier**:
@@ -269,7 +294,7 @@ OctoAgent は **タスク中心のマルチエージェントプラットフォ�
 
 - **OS:** Linux (Ubuntu 22.04+ / Debian 12 / RHEL 9) または WSL2 上の
   Windows 11。
-- **Python 3.12+**、**Node.js 22+**、**pnpm 9+**。
+- **Python 3.12+**、**Node.js 22+**、**pnpm 11.12.0**。
 - **2 GB の空きディスク**、**8 GB RAM（推奨 16 GB）**。
 - 任意で **PostgreSQL 15+**、**CUDA 12** + NVIDIA ドライバ。
 

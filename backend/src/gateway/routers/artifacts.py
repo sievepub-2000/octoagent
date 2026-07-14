@@ -217,6 +217,7 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
         from langgraph_sdk import get_client
 
         from src.agents.thread_state import ARTIFACTS_REPLACE_SENTINEL
+
         _base_url = os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://localhost:19804")
         _client = get_client(url=_base_url)
         _state = await _client.threads.get_state(thread_id)
@@ -235,7 +236,8 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
             )
             logger.info(
                 "delete_artifact: removed %s from thread state artifacts (thread=%s)",
-                _normalized, thread_id,
+                _normalized,
+                thread_id,
             )
     except Exception as _exc:
         # Non-fatal: the file is already deleted; state cleanup is best-effort.
@@ -250,8 +252,8 @@ async def delete_artifact(thread_id: str, path: str) -> dict:
         else:
             logger.warning(
                 "delete_artifact: could not update thread state artifacts for thread=%s: %s",
-                thread_id, _exc,
+                thread_id,
+                _exc,
             )
 
     return {"success": True, "path": path}
-

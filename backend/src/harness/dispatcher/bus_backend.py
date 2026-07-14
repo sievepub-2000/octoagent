@@ -46,10 +46,7 @@ _INBOUND_KIND = "channel_inbound"
 
 
 def bus_backend_is_postgres() -> bool:
-    return (
-        dispatcher_enabled()
-        and os.getenv("OCTO_DISPATCH_BACKEND", "inmemory").strip().lower() == "postgres"
-    )
+    return dispatcher_enabled() and os.getenv("OCTO_DISPATCH_BACKEND", "inmemory").strip().lower() == "postgres"
 
 
 def _to_payload(msg: InboundMessage) -> dict[str, Any]:
@@ -131,9 +128,7 @@ class PostgresInboundBus(MessageBus):
             if not self._inbound_queue.empty():
                 return await self._inbound_queue.get()
             try:
-                await asyncio.wait_for(
-                    self._inbound_queue.get(), timeout=poll_interval
-                )
+                await asyncio.wait_for(self._inbound_queue.get(), timeout=poll_interval)
             except TimeoutError:
                 continue
 

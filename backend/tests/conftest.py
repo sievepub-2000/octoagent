@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import tempfile
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -84,7 +82,7 @@ def any_loop(request: pytest.FixtureRequest) -> asyncio.AbstractEventLoop:
 @pytest.fixture
 def sample_messages():
     """Return a list of simple message dicts for compressor tests."""
-    from langchain_core.messages import HumanMessage, SystemMessage, AIMessage
+    from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
     return [
         SystemMessage(content="You are a helpful assistant."),

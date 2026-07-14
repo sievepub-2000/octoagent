@@ -119,16 +119,12 @@ def connect_duckdb_with_retry(
     to a plain (retrying) connect so it can never hang the agent loop.
     """
     if not _duckdb_serialize_enabled():
-        return _open_duckdb_with_retry(
-            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
-        )
+        return _open_duckdb_with_retry(db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay)
 
     try:
         import fcntl
     except ImportError:  # non-POSIX: fall back to retry-only
-        return _open_duckdb_with_retry(
-            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
-        )
+        return _open_duckdb_with_retry(db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay)
 
     import time as _time
 
@@ -136,9 +132,7 @@ def connect_duckdb_with_retry(
     try:
         fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
     except OSError:
-        return _open_duckdb_with_retry(
-            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
-        )
+        return _open_duckdb_with_retry(db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay)
 
     lock_type = fcntl.LOCK_SH if read_only else fcntl.LOCK_EX
     acquired = False
@@ -153,9 +147,7 @@ def connect_duckdb_with_retry(
         logger.warning("duckdb serialize: could not acquire %s lock, proceeding with retry-only", "read" if read_only else "write")
 
     try:
-        conn = _open_duckdb_with_retry(
-            db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay
-        )
+        conn = _open_duckdb_with_retry(db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay)
     except Exception:
         with contextlib.suppress(Exception):
             if acquired:

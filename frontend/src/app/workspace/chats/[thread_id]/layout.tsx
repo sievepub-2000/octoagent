@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
-import { ArtifactsProvider } from "@/components/workspace/artifacts";
+import { ArtifactsProvider } from "@/components/workspace/artifacts/context";
 import { SubtasksProvider } from "@/core/tasks/context";
 import { WorkflowsProvider } from "@/core/workflows";
 

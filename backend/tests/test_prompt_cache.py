@@ -9,6 +9,7 @@ import pytest
 
 def _make_cache(config_version: str = "1"):
     from src.agents.core.prompt_cache import PromptCache
+
     return PromptCache(config_version=config_version)
 
 

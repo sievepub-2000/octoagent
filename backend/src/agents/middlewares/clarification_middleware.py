@@ -1,5 +1,6 @@
 """Middleware for intercepting clarification requests and presenting them to the user."""
 
+import logging
 from collections.abc import Callable
 from typing import override
 
@@ -9,6 +10,8 @@ from langchain_core.messages import ToolMessage
 from langgraph.graph import END
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langgraph.types import Command
+
+logger = logging.getLogger(__name__)
 
 
 class ClarificationMiddlewareState(AgentState):
@@ -131,8 +134,8 @@ class ClarificationMiddleware(AgentMiddleware[ClarificationMiddlewareState]):
         args = _normalize_clarification_args(tool_name, request.tool_call.get("args", {}) or {})
         question = args.get("question", "")
 
-        logger.debug("[ClarificationMiddleware] Intercepted clarification request via {tool_name!r}")
-        logger.debug("[ClarificationMiddleware] Question: {question}")
+        logger.debug("[ClarificationMiddleware] Intercepted clarification request via %r", tool_name)
+        logger.debug("[ClarificationMiddleware] Question: %s", question)
 
         # Format the clarification message
         formatted_message = self._format_clarification_message(args)

@@ -96,61 +96,6 @@ function getVisibleMessageText(message: Message): string {
   return extractReasoningContentFromMessage(message) ?? "";
 }
 
-function SmoothStreamingText({ text }: { text: string }) {
-  const [displayed, setDisplayed] = useState(text);
-  const targetRef = useRef(text);
-  const displayedRef = useRef(text);
-  const frameRef = useRef<number | null>(null);
-  const lastFrameRef = useRef<number | null>(null);
-
-  useEffect(() => {
-    targetRef.current = text;
-
-    if (text.length < displayedRef.current.length || !text.startsWith(displayedRef.current)) {
-      displayedRef.current = text;
-      setDisplayed(text);
-      return;
-    }
-
-    if (frameRef.current !== null) {
-      return;
-    }
-
-    const tick = (now: number) => {
-      const current = displayedRef.current;
-      const target = targetRef.current;
-      const backlog = target.length - current.length;
-      if (backlog <= 0) {
-        frameRef.current = null;
-        lastFrameRef.current = null;
-        return;
-      }
-
-      const elapsedMs = lastFrameRef.current === null ? 16 : Math.max(8, now - lastFrameRef.current);
-      lastFrameRef.current = now;
-      const charsPerSecond = backlog > 120 ? 260 : backlog > 40 ? 180 : 95;
-      const step = Math.max(1, Math.min(backlog, Math.ceil((charsPerSecond * elapsedMs) / 1000)));
-      const next = target.slice(0, current.length + step);
-      displayedRef.current = next;
-      setDisplayed(next);
-      frameRef.current = window.requestAnimationFrame(tick);
-    };
-
-    frameRef.current = window.requestAnimationFrame(tick);
-  }, [text]);
-
-  useEffect(
-    () => () => {
-      if (frameRef.current !== null) {
-        window.cancelAnimationFrame(frameRef.current);
-      }
-    },
-    [],
-  );
-
-  return <div className="my-3 whitespace-pre-wrap break-words">{displayed}</div>;
-}
-
 /**
  * Custom image component that handles artifact URLs
  */
@@ -287,7 +232,7 @@ function MessageContent_({
       <AIElementMessageContent className="octo-panel min-w-0 flex-1 rounded-[1.5rem] px-4 py-1 text-sm">
         {filesList}
         {isLiveStreaming ? (
-          <SmoothStreamingText text={contentToDisplay} />
+          <div className="my-3 whitespace-pre-wrap break-words">{contentToDisplay}</div>
         ) : (
           <MarkdownContent
             content={contentToDisplay}

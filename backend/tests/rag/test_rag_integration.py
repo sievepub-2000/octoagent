@@ -103,11 +103,20 @@ class TestQualityMonitor:
     def test_monitor_records_query_stats(self) -> None:
         """Basic recording of query stats."""
         monitor = RetrievalQualityMonitor()
-        monitor.record_result(RetrievalResult(
-            query="test", table="system_memories", mode="hybrid",
-            results_count=3, top_score=0.9, avg_score=0.7,
-            latency_ms=10.0, has_vector=True, has_bm25=True, has_reranker=False,
-        ))
+        monitor.record_result(
+            RetrievalResult(
+                query="test",
+                table="system_memories",
+                mode="hybrid",
+                results_count=3,
+                top_score=0.9,
+                avg_score=0.7,
+                latency_ms=10.0,
+                has_vector=True,
+                has_bm25=True,
+                has_reranker=False,
+            )
+        )
         metrics = monitor.get_metrics()
         assert metrics["total_queries"] == 1
         assert metrics["total_results"] == 3
@@ -115,11 +124,20 @@ class TestQualityMonitor:
     def test_monitor_feedback_loop(self) -> None:
         """Test that feedback updates precision/recall."""
         monitor = RetrievalQualityMonitor()
-        monitor.record_result(RetrievalResult(
-            query="test", table="system_memories", mode="hybrid",
-            results_count=3, top_score=0.9, avg_score=0.7,
-            latency_ms=10.0, has_vector=True, has_bm25=True, has_reranker=False,
-        ))
+        monitor.record_result(
+            RetrievalResult(
+                query="test",
+                table="system_memories",
+                mode="hybrid",
+                results_count=3,
+                top_score=0.9,
+                avg_score=0.7,
+                latency_ms=10.0,
+                has_vector=True,
+                has_bm25=True,
+                has_reranker=False,
+            )
+        )
         monitor.record_feedback("q1", [3, 2, 0])
         metrics = monitor.get_metrics()
         assert metrics["feedback_count"] == 1
@@ -137,11 +155,20 @@ class TestQualityMonitor:
     def test_monitor_export_import(self, tmp_path: Path) -> None:
         """Test exporting metrics to JSON."""
         monitor = RetrievalQualityMonitor()
-        monitor.record_result(RetrievalResult(
-            query="test", table="system_memories", mode="hybrid",
-            results_count=3, top_score=0.9, avg_score=0.7,
-            latency_ms=10.0, has_vector=True, has_bm25=True, has_reranker=False,
-        ))
+        monitor.record_result(
+            RetrievalResult(
+                query="test",
+                table="system_memories",
+                mode="hybrid",
+                results_count=3,
+                top_score=0.9,
+                avg_score=0.7,
+                latency_ms=10.0,
+                has_vector=True,
+                has_bm25=True,
+                has_reranker=False,
+            )
+        )
         path = tmp_path / "metrics.json"
         monitor.export_metrics(path)
         assert path.exists()
@@ -152,11 +179,20 @@ class TestQualityMonitor:
     def test_monitor_report_generation(self) -> None:
         """Test human-readable report generation."""
         monitor = RetrievalQualityMonitor()
-        monitor.record_result(RetrievalResult(
-            query="test", table="system_memories", mode="hybrid",
-            results_count=5, top_score=0.95, avg_score=0.8,
-            latency_ms=15.0, has_vector=True, has_bm25=True, has_reranker=True,
-        ))
+        monitor.record_result(
+            RetrievalResult(
+                query="test",
+                table="system_memories",
+                mode="hybrid",
+                results_count=5,
+                top_score=0.95,
+                avg_score=0.8,
+                latency_ms=15.0,
+                has_vector=True,
+                has_bm25=True,
+                has_reranker=True,
+            )
+        )
         report = monitor.get_report()
         assert "RAG Retrieval Quality Report" in report
         assert "Total Queries: 1" in report
@@ -171,14 +207,12 @@ class TestFAISSPersistence:
     def test_search_with_persistence(self, tmp_path: Path) -> None:
         """Search → save index → search again with cached index."""
         import numpy  # noqa: F401 - ensures numpy is available
+
         pytest.importorskip("faiss")
 
         cache_dir = tmp_path / "faiss"
         mgr = FAISSIndexManager(cache_dir=cache_dir)
-        rows = [
-            (f"r{i}", "ns", f"content {i}", "{}", [0.1 * (i + 1)] * 10)
-            for i in range(20)
-        ]
+        rows = [(f"r{i}", "ns", f"content {i}", "{}", [0.1 * (i + 1)] * 10) for i in range(20)]
         query = [0.5] * 10
         results1 = mgr.search_with_persistence("test", rows, query, top_k=5)
         assert results1 is not None
@@ -191,6 +225,7 @@ class TestFAISSPersistence:
     def test_incremental_vector_add(self, tmp_path: Path) -> None:
         """Add vectors to existing persisted FAISS index."""
         import numpy  # noqa: F401
+
         pytest.importorskip("faiss")
 
         cache_dir = tmp_path / "faiss"
@@ -206,15 +241,22 @@ class TestFAISSPersistence:
         mgr = FAISSIndexManager(cache_dir=tmp_path / "faiss")
         stats = mgr.get_stats()
         required = {
-            "total_loads", "total_saves", "total_searches", "total_adds",
-            "cache_hit_count", "cache_miss_count", "avg_search_time_ms",
-            "current_index_size", "cache_dir",
+            "total_loads",
+            "total_saves",
+            "total_searches",
+            "total_adds",
+            "cache_hit_count",
+            "cache_miss_count",
+            "avg_search_time_ms",
+            "current_index_size",
+            "cache_dir",
         }
         assert required.issubset(set(stats.keys()))
 
     def test_faiss_clear_cache(self, tmp_path: Path) -> None:
         """Test clearing FAISS cache."""
         import numpy  # noqa: F401
+
         pytest.importorskip("faiss")
 
         mgr = FAISSIndexManager(cache_dir=tmp_path / "faiss")
@@ -284,12 +326,20 @@ class TestEndToEnd:
         """Record multiple queries → feedback → metrics → report → export."""
         monitor = RetrievalQualityMonitor()
         for i in range(3):
-            monitor.record_result(RetrievalResult(
-                query=f"q{i}", table="system_memories", mode="hybrid",
-                results_count=3, top_score=0.9 - i * 0.1,
-                avg_score=0.7 - i * 0.1, latency_ms=10.0,
-                has_vector=True, has_bm25=True, has_reranker=False,
-            ))
+            monitor.record_result(
+                RetrievalResult(
+                    query=f"q{i}",
+                    table="system_memories",
+                    mode="hybrid",
+                    results_count=3,
+                    top_score=0.9 - i * 0.1,
+                    avg_score=0.7 - i * 0.1,
+                    latency_ms=10.0,
+                    has_vector=True,
+                    has_bm25=True,
+                    has_reranker=False,
+                )
+            )
         monitor.record_feedback("q1", [4, 2, 0])
         monitor.record_feedback("q2", [3, 1, 0])
         report = monitor.get_report()
@@ -298,6 +348,7 @@ class TestEndToEnd:
     def test_faiss_full_pipeline(self, tmp_path: Path) -> None:
         """Create → persist → add → reload → search."""
         import numpy  # noqa: F401
+
         pytest.importorskip("faiss")
 
         mgr = FAISSIndexManager(cache_dir=tmp_path / "faiss")
@@ -341,6 +392,7 @@ class TestErrorHandling:
 
     def test_faiss_add_vectors_large(self, tmp_path: Path) -> None:
         import numpy  # noqa: F401
+
         pytest.importorskip("faiss")
         mgr = FAISSIndexManager(cache_dir=tmp_path / "faiss")
         rows = [("r0", "ns", "c0", "{}", [0.1] * 10)]

@@ -31,6 +31,7 @@ def test_run_record_marks_visible_completed_answer_completed() -> None:
     assert record["final_evaluation"]["status"] == "completed"
     assert "轻量 API 网关" in record["final_evaluation"]["final_message_preview"]
 
+
 def test_run_record_aligns_active_task_state_when_explicitly_completed() -> None:
     record = build_execution_run_record(
         {
@@ -44,6 +45,7 @@ def test_run_record_aligns_active_task_state_when_explicitly_completed() -> None
     assert record["final_evaluation"]["status"] == "completed"
     assert record["task_state"]["status"] == "completed"
     assert record["task_state"]["pending_steps"] == []
+
 
 def test_run_record_marks_completed_tool_batch_without_final_answer_incomplete() -> None:
     record = build_execution_run_record(
@@ -62,4 +64,3 @@ def test_run_record_marks_completed_tool_batch_without_final_answer_incomplete()
     assert record["final_evaluation"]["status"] == "incomplete"
     assert record["final_evaluation"]["reason"] == "assistant ended after tool results without final answer"
     assert record["final_evaluation"]["final_message_preview"] == ""
-

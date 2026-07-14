@@ -14,7 +14,7 @@ import threading
 import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Optional, Protocol
+from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Data model
 # ---------------------------------------------------------------------------
+
 
 @dataclass(frozen=True)
 class MemoryEntry:
@@ -31,7 +32,7 @@ class MemoryEntry:
     content: str
     category: str  # task_result | user_preference | system_state | skill_learned
     timestamp: datetime
-    embedding: Optional[list[float]] = field(default=None, repr=False)
+    embedding: list[float] | None = field(default=None, repr=False)
     metadata: dict[str, Any] = field(default_factory=dict)
 
     @classmethod
@@ -41,7 +42,7 @@ class MemoryEntry:
         category: str,
         *,
         entry_id: str | None = None,
-        embedding: Optional[list[float]] = None,
+        embedding: list[float] | None = None,
         metadata: dict[str, Any] | None = None,
         timestamp: datetime | None = None,
     ) -> "MemoryEntry":
@@ -59,6 +60,7 @@ class MemoryEntry:
 # Protocol (structural typing — no explicit inheritance required)
 # ---------------------------------------------------------------------------
 
+
 class MemoryProvider(Protocol):
     """Interface for memory storage backends."""
 
@@ -70,14 +72,13 @@ class MemoryProvider(Protocol):
 
     async def delete(self, entry_id: str) -> None: ...
 
-    async def search_similar(
-        self, embedding: list[float], top_k: int = 5
-    ) -> list[MemoryEntry]: ...
+    async def search_similar(self, embedding: list[float], top_k: int = 5) -> list[MemoryEntry]: ...
 
 
 # ---------------------------------------------------------------------------
 # In-memory provider (testing / dev fallback — no persistence)
 # ---------------------------------------------------------------------------
+
 
 class InMemoryMemoryProvider:
     """Non-persistent in-memory store. Useful for tests and development."""
@@ -116,9 +117,7 @@ class InMemoryMemoryProvider:
     async def delete(self, entry_id: str) -> None:
         self._store.pop(entry_id, None)
 
-    async def search_similar(
-        self, embedding: list[float], top_k: int = 5
-    ) -> list[MemoryEntry]:
+    async def search_similar(self, embedding: list[float], top_k: int = 5) -> list[MemoryEntry]:
         # Without a real vector index we fall back to keyword overlap.
         return await self.retrieve(" ".join(str(t) for t in embedding[:10]), top_k)
 
@@ -129,6 +128,7 @@ class InMemoryMemoryProvider:
 # ---------------------------------------------------------------------------
 # SQLite provider (production — FTS5 + optional vector column)
 # ---------------------------------------------------------------------------
+
 
 class SQLiteMemoryProvider:
     """SQLite-backed memory provider with FTS5 full-text search.
@@ -194,7 +194,7 @@ class SQLiteMemoryProvider:
 
     def _entry_from_row(self, row: tuple) -> MemoryEntry:
         rid, content, category, ts_str, emb_blob, meta_str = row
-        embedding: Optional[list[float]] = None
+        embedding: list[float] | None = None
         if emb_blob is not None:
             try:
                 embedding = list(struct.unpack(f"<{len(emb_blob) // 4}f", emb_blob))
@@ -287,9 +287,7 @@ class SQLiteMemoryProvider:
         conn.execute("DELETE FROM memory_entries WHERE id = ?", (entry_id,))
         conn.commit()
 
-    async def search_similar(
-        self, embedding: list[float], top_k: int = 5
-    ) -> list[MemoryEntry]:
+    async def search_similar(self, embedding: list[float], top_k: int = 5) -> list[MemoryEntry]:
         conn = self._get_conn()
         cursor = conn.execute(
             """
@@ -322,9 +320,7 @@ class SQLiteMemoryProvider:
 
     async def all(self) -> list[MemoryEntry]:
         conn = self._get_conn()
-        cursor = conn.execute(
-            "SELECT id, content, category, timestamp, embedding, metadata FROM memory_entries"
-        )
+        cursor = conn.execute("SELECT id, content, category, timestamp, embedding, metadata FROM memory_entries")
         return [self._entry_from_row(r) for r in cursor.fetchall()]
 
     def close(self) -> None:
@@ -336,6 +332,7 @@ class SQLiteMemoryProvider:
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _normalize(vec: list[float]) -> list[float]:
     """L2-normalise a vector for cosine similarity."""
@@ -354,7 +351,7 @@ def _as_mutable(entry: MemoryEntry):
         content: str = ""
         category: str = ""
         timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
-        embedding: Optional[list[float]] = None
+        embedding: list[float] | None = None
         metadata: dict[str, Any] = field(default_factory=dict)
 
     return MutableMemoryEntry(

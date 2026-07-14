@@ -14,6 +14,7 @@ from .config import SubagentConfig
 
 logger = logging.getLogger(__name__)
 
+
 def _resolve_default_model_name() -> str | None:
     app_config = get_app_config()
     return resolve_configured_default_model_name(model.name for model in app_config.models)

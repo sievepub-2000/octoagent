@@ -56,7 +56,6 @@ def _get_default_prompt_standard_section() -> str:
 </prompt_standard>"""
 
 
-
 def _get_default_design_standard_section() -> str:
     """Return the default design-governance rules applied to design tasks."""
 
@@ -77,7 +76,6 @@ def _get_human_collaboration_section() -> str:
 - Report progress briefly on long tasks. No play-by-play of every tool call.
 - For complex changes, propose a plan first and ask for confirmation.
 </collaboration>"""
-
 
 
 def _format_system_memory_context(max_items: int = 8) -> str:

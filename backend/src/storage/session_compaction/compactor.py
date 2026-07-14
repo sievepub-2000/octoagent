@@ -47,6 +47,10 @@ class Message:
     is_system: bool = False
     is_tool_boundary: bool = False
     is_anchor: bool = False
+    name: str | None = None
+    tool_call_id: str | None = None
+    status: str | None = None
+    tool_calls: list[dict] = field(default_factory=list)
 
 
 @dataclass
@@ -175,9 +179,13 @@ class SessionCompactor:
         Uses the LLM callback when available; falls back to extractive
         snippets otherwise.
         """
+        # Preserve the start of the phase and its latest corrections. Sampling
+        # only the oldest messages loses the decisions closest to rollover.
+        sample = messages if len(messages) <= 20 else [*messages[:4], *messages[-16:]]
+
         # Build raw transcript for LLM
         transcript_lines: list[str] = []
-        for msg in messages[:40]:  # cap input to LLM
+        for msg in sample:
             role = msg.role.capitalize()
             snippet = msg.content[:300].replace("\n", " ")
             transcript_lines.append(f"{role}: {snippet}")
@@ -192,12 +200,12 @@ class SessionCompactor:
 
         # Extractive fallback
         lines: list[str] = []
-        for msg in messages[:20]:
+        for msg in sample:
             role = msg.role.capitalize()
             snippet = msg.content[:120].replace("\n", " ")
             lines.append(f"- {role}: {snippet}")
-        if len(messages) > 20:
-            lines.append(f"- ... and {len(messages) - 20} more messages")
+        if len(messages) > len(sample):
+            lines.append(f"- ... and {len(messages) - len(sample)} middle messages omitted")
         return "\n".join(lines)
 
     def ensure_token_counts(self, messages: list[Message]) -> list[Message]:

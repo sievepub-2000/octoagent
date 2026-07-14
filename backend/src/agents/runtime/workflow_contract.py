@@ -20,8 +20,6 @@ RunStatus = Literal["running", "completed", "failed", "timeout", "cancelled"]
 WorkflowLifecycleAction = Literal["pause", "resume", "cancel", "replay", "terminate"]
 
 
-
-
 def _contract_path() -> Path:
     return get_paths().runtime_root / "langgraph_workflow_contracts.json"
 

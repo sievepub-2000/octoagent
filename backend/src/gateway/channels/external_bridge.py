@@ -88,9 +88,7 @@ class ExternalBridgeChannel(Channel):
         candidates = [Path(configured).expanduser()] if configured else []
         if self.name == "qq":
             repo_root = Path(__file__).resolve().parents[3]
-            candidates.append(
-                repo_root / "runtime/tools/napcat/opt/QQ/resources/app/app_launcher/napcat/cache/qrcode.png"
-            )
+            candidates.append(repo_root / "runtime/tools/napcat/opt/QQ/resources/app/app_launcher/napcat/cache/qrcode.png")
         return list(dict.fromkeys(candidates))
 
     def _status_url_candidates(self) -> list[str]:

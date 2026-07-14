@@ -97,14 +97,8 @@ def run_artifact_lifecycle() -> dict[str, Any]:
         paths.runtime_root / "cache",
     ]
 
-    artifact_results = [
-        _prune_old_files(root, older_than_seconds=artifact_retention_days * 86400)
-        for root in artifact_roots
-    ]
-    transient_results = [
-        _prune_old_files(root, older_than_seconds=transient_retention_days * 86400)
-        for root in transient_roots
-    ]
+    artifact_results = [_prune_old_files(root, older_than_seconds=artifact_retention_days * 86400) for root in artifact_roots]
+    transient_results = [_prune_old_files(root, older_than_seconds=transient_retention_days * 86400) for root in transient_roots]
     trace_rotation = _cap_trace_file(paths.runtime_root / "observability" / "tool-trace.jsonl", max_bytes=trace_max_bytes)
     collected = gc.collect()
     result = {

@@ -82,9 +82,7 @@ def resolve_app_config_path(config_path: str | None = None) -> Path:
     if parent_path.exists():
         return parent_path
 
-    raise FileNotFoundError(
-        "`config.yaml` file not found at runtime/config/config.yaml, the current directory, nor its parent directory"
-    )
+    raise FileNotFoundError("`config.yaml` file not found at runtime/config/config.yaml, the current directory, nor its parent directory")
 
 
 load_project_dotenv()

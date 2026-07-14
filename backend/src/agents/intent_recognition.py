@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 # Configuration
 # ---------------------------------------------------------------------------
 
+
 def _intent_recognition_enabled() -> bool:
     return os.environ.get("OCTOAGENT_INTENT_RECOGNITION", "0") == "1"
 
@@ -25,6 +26,7 @@ def _intent_recognition_enabled() -> bool:
 # ---------------------------------------------------------------------------
 # Data model
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class IntentTemplate:
@@ -45,65 +47,153 @@ _DEFAULT_INTENTS: dict[str, IntentTemplate] = {
         name="code_development",
         description="Writing or modifying code — implementing features, refactoring, adding functions, editing files.",
         keywords=[
-            "write code", "modify code", "implement", "refactor", "add function",
-            "edit file", "create class", "update module", "code change", "programming",
-            "develop feature", "fix syntax", "debug code", "source code",
+            "write code",
+            "modify code",
+            "implement",
+            "refactor",
+            "add function",
+            "edit file",
+            "create class",
+            "update module",
+            "code change",
+            "programming",
+            "develop feature",
+            "fix syntax",
+            "debug code",
+            "source code",
         ],
     ),
     "debugging": IntentTemplate(
         name="debugging",
         description="Finding and fixing bugs — error investigation, stack trace analysis, issue diagnosis.",
         keywords=[
-            "bug", "error", "fix bug", "debug", "stack trace", "exception",
-            "crash", "fail", "issue", "problem", "diagnose", "trace",
-            "broken", "not working", "throwing error", "runtime error",
-            "why does", "what is wrong", "fix this", "help debug",
-            "debug this", "error message", "exception trace",
+            "bug",
+            "error",
+            "fix bug",
+            "debug",
+            "stack trace",
+            "exception",
+            "crash",
+            "fail",
+            "issue",
+            "problem",
+            "diagnose",
+            "trace",
+            "broken",
+            "not working",
+            "throwing error",
+            "runtime error",
+            "why does",
+            "what is wrong",
+            "fix this",
+            "help debug",
+            "debug this",
+            "error message",
+            "exception trace",
         ],
     ),
     "deployment": IntentTemplate(
         name="deployment",
         description="Deploying applications — CI/CD, container orchestration, server configuration, releases.",
         keywords=[
-            "deploy", "release", "push to production", "docker", "container",
-            "kubernetes", "ci/cd", "pipeline", "build and deploy", "staging",
-            "production", "server", "hosting", "infrastructure", "terraform",
+            "deploy",
+            "release",
+            "push to production",
+            "docker",
+            "container",
+            "kubernetes",
+            "ci/cd",
+            "pipeline",
+            "build and deploy",
+            "staging",
+            "production",
+            "server",
+            "hosting",
+            "infrastructure",
+            "terraform",
         ],
     ),
     "documentation": IntentTemplate(
         name="documentation",
         description="Writing documentation — README, API docs, comments, guides, changelogs.",
         keywords=[
-            "document", "readme", "api doc", "guide", "tutorial", "comment",
-            "changelog", "writeup", "specification", "manual", "how-to",
-            "documentation", "docs", "documentation update",
+            "document",
+            "readme",
+            "api doc",
+            "guide",
+            "tutorial",
+            "comment",
+            "changelog",
+            "writeup",
+            "specification",
+            "manual",
+            "how-to",
+            "documentation",
+            "docs",
+            "documentation update",
         ],
     ),
     "testing": IntentTemplate(
         name="testing",
         description="Writing or running tests — unit tests, integration tests, test execution, coverage.",
         keywords=[
-            "test", "unit test", "integration test", "run tests", "coverage",
-            "pytest", "jest", "spec", "assert", "mock", "fixture",
-            "testing framework", "test suite", "e2e test", "smoke test",
+            "test",
+            "unit test",
+            "integration test",
+            "run tests",
+            "coverage",
+            "pytest",
+            "jest",
+            "spec",
+            "assert",
+            "mock",
+            "fixture",
+            "testing framework",
+            "test suite",
+            "e2e test",
+            "smoke test",
         ],
     ),
     "research": IntentTemplate(
         name="research",
         description="Gathering information — web searches, documentation lookup, comparing options, learning.",
         keywords=[
-            "search", "look up", "find out", "research", "explore", "compare",
-            "documentation search", "web search", "investigate", "learn about",
-            "what is", "how does", "alternative to", "best practice",
+            "search",
+            "look up",
+            "find out",
+            "research",
+            "explore",
+            "compare",
+            "documentation search",
+            "web search",
+            "investigate",
+            "learn about",
+            "what is",
+            "how does",
+            "alternative to",
+            "best practice",
         ],
     ),
     "system_admin": IntentTemplate(
         name="system_admin",
         description="System configuration and maintenance — OS tasks, package management, user accounts, services.",
         keywords=[
-            "install package", "configure", "service", "user account", "permission",
-            "firewall", "network config", "disk space", "process", "cron job",
-            "system update", "apt", "yum", "brew", "systemd", "environment variable",
+            "install package",
+            "configure",
+            "service",
+            "user account",
+            "permission",
+            "firewall",
+            "network config",
+            "disk space",
+            "process",
+            "cron job",
+            "system update",
+            "apt",
+            "yum",
+            "brew",
+            "systemd",
+            "environment variable",
         ],
     ),
 }
@@ -112,6 +202,7 @@ _DEFAULT_INTENTS: dict[str, IntentTemplate] = {
 # ---------------------------------------------------------------------------
 # IntentRecognizer
 # ---------------------------------------------------------------------------
+
 
 class IntentRecognizer:
     """Embedding-based intent recognition with keyword fallback.
@@ -146,13 +237,9 @@ class IntentRecognizer:
             self.register_intent(name, template.description, template.template)
 
         self._initialized = True
-        logger.info(
-            "IntentRecognizer initialized with %d intents", len(self._intents)
-        )
+        logger.info("IntentRecognizer initialized with %d intents", len(self._intents))
 
-    def register_intent(
-        self, name: str, description: str, template: str = ""
-    ) -> None:
+    def register_intent(self, name: str, description: str, template: str = "") -> None:
         """Register a new intent with its embedding."""
         if not self._embedding_service:
             from src.agents.memory.embedding_service import get_text_embedding_service
@@ -160,9 +247,7 @@ class IntentRecognizer:
             self._embedding_service = get_text_embedding_service()
 
         keywords = _extract_keywords(description)
-        template_obj = IntentTemplate(
-            name=name, description=description, template=template, keywords=keywords
-        )
+        template_obj = IntentTemplate(name=name, description=description, template=template, keywords=keywords)
         self._intents[name] = template_obj
 
         # Build embedding from description + keywords
@@ -265,6 +350,7 @@ class IntentRecognizer:
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _extract_keywords(description: str) -> list[str]:
     """Extract potential keyword phrases from an intent description."""
     # Split on common delimiters and keep tokens/phrases of reasonable length.
@@ -298,9 +384,7 @@ def get_intent_recognizer(**overrides: Any) -> IntentRecognizer:
     """Return the singleton IntentRecognizer (lazy-created, opt-in)."""
     global _default_recognizer
     if not _intent_recognition_enabled():
-        logger.debug(
-            "Intent recognition disabled — set OCTOAGENT_INTENT_RECOGNITION=1 to enable"
-        )
+        logger.debug("Intent recognition disabled — set OCTOAGENT_INTENT_RECOGNITION=1 to enable")
         return None  # type: ignore[return-value]
 
     if _default_recognizer is None or overrides:

@@ -38,10 +38,7 @@ def test_public_continuation_detector_is_re_exported():
 def test_central_detector_matches_legacy(text: str, expected: bool):
     assert termination_module.is_continuation_announcement(text) is expected
     # Skill-evolution module-local wrapper must agree.
-    assert (
-        skill_evolution_middleware._looks_like_unfinished_action_announcement(text)
-        is expected
-    )
+    assert skill_evolution_middleware._looks_like_unfinished_action_announcement(text) is expected
 
 
 def test_append_run_record_persists_run_id(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

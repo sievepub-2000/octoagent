@@ -484,9 +484,7 @@ function ChatThreadView({
         createRunEvent("done", "Run finished", undefined, "success"),
       ], previous, 120));
       // Context handoff: navigate to new thread with continuation
-      const handoff = (state as Record<string, unknown>)?._context_handoff as
-        | { required: boolean; source_thread_id: string; reason: string }
-        | undefined;
+      const handoff = state.runtime?.context_handoff;
       if (handoff?.required && handoff.source_thread_id) {
         router.push(
           `/workspace/chats/new?continue_from=${encodeURIComponent(handoff.source_thread_id)}&fresh=1`,
@@ -543,7 +541,7 @@ function ChatThreadView({
     void sendMessage(
       threadId,
       {
-        text: "继续执行上一段对话中尚未完成的任务。请根据隐藏的接续记忆、todo 状态和最近三轮双方对话，立即从下一步开始工作，不要要求用户重复说明。",
+        text: "继续执行上一段对话中尚未完成的任务。以隐藏接续契约为准，从 next_action 恢复；不要重复已完成工作，也不要越过待确认或权限约束。",
         files: [],
       },
       continuationContext,

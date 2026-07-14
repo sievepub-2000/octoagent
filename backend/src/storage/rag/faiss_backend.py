@@ -176,9 +176,7 @@ class FAISSIndexManager:
     def _update_avg_search_time(self, elapsed_ms: float) -> None:
         """Update average search time with exponential moving average."""
         alpha = 0.1  # Smoothing factor
-        self._stats.avg_search_time_ms = (
-            alpha * elapsed_ms + (1 - alpha) * self._stats.avg_search_time_ms
-        )
+        self._stats.avg_search_time_ms = alpha * elapsed_ms + (1 - alpha) * self._stats.avg_search_time_ms
 
     def add_to_index(self, table_name: str, vectors: list[list[float]]) -> int:
         """Add vectors to a cached FAISS index and return the added count.

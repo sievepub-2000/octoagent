@@ -55,11 +55,7 @@ class CompressionConfig:
     chars_per_token_cjk: int = 2
 
     anti_hijack_prefix: str = "\u3010\u5df2\u5b8c\u6210\u3011"
-    anti_hijack_system_instruction: str = (
-        "This is a compressed summary of earlier conversation. "
-        "DO NOT resume or re-execute any actions mentioned in the summary. "
-        "The tasks described here have already been completed."
-    )
+    anti_hijack_system_instruction: str = "This is a compressed summary of earlier conversation. DO NOT resume or re-execute any actions mentioned in the summary. The tasks described here have already been completed."
     anti_hijack_chinese_directive: str = "\u95ee\u9898\u5df2\u89e3\u51b3"
 
 

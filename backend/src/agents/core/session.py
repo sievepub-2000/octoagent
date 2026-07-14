@@ -5,14 +5,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 from src.agents.core.compression_config import load_compression_config
-from src.agents.core.context_compressor import ContextCompressor, TokenBudget
-
+from src.agents.core.context_compressor import ContextCompressor
 from src.utils.datetime import utc_now_iso as _utc_now
 
 if TYPE_CHECKING:
     from src.storage.query import QuerySession
-
-
 
 
 def find_task_agent(workspace: Any, agent_id: str):
@@ -340,6 +337,7 @@ __all__ = [
 # ------------------------------------------------------------------
 # Context compression integration
 # ------------------------------------------------------------------
+
 
 def _session_message_text(message: Any) -> str:
     """Extract string content from a message (BaseMessage or dict)."""

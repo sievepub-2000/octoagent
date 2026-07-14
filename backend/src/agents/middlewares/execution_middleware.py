@@ -73,28 +73,32 @@ def build_execution_mode_contract(mode: str, route: str) -> SystemMessage:
         "",
     ]
     if mode == "goal_autopilot":
-        lines.extend([
-            "Mode: goal_autopilot.",
-            "Work like an autonomous execution agent:",
-            "1. Frame the current objective and success condition before choosing tools.",
-            "2. After each tool result, classify the outcome as success, partial, or failed.",
-            "3. When an approach fails or stalls, form a root-cause hypothesis and try a materially different strategy.",
-            "4. Try at least two different strategies before declaring failure, unless a hard external blocker is proven.",
-            "5. Do not keep retrying the same tool, URL, command, or arguments without a new reason.",
-            "6. Ask the user only when progress requires credentials, approval, a business choice, or unavailable external access.",
-            "7. Finish with a verified summary once the success condition is met.",
-        ])
+        lines.extend(
+            [
+                "Mode: goal_autopilot.",
+                "Work like an autonomous execution agent:",
+                "1. Frame the current objective and success condition before choosing tools.",
+                "2. After each tool result, classify the outcome as success, partial, or failed.",
+                "3. When an approach fails or stalls, form a root-cause hypothesis and try a materially different strategy.",
+                "4. Try at least two different strategies before declaring failure, unless a hard external blocker is proven.",
+                "5. Do not keep retrying the same tool, URL, command, or arguments without a new reason.",
+                "6. Ask the user only when progress requires credentials, approval, a business choice, or unavailable external access.",
+                "7. Finish with a verified summary once the success condition is met.",
+            ]
+        )
     else:
-        lines.extend([
-            "Mode: assisted.",
-            "Work like a collaborative operator:",
-            "1. Keep the user in the loop when the path becomes uncertain, risky, or blocked.",
-            "2. Ask exactly one clear question when missing user intent, credentials, approval, or a business choice blocks correctness.",
-            "3. Do not silently grind through repeated attempts in assisted mode; after two failed strategies, summarize the evidence and ask how to proceed.",
-            "4. For low-risk read-only checks, proceed and report concise progress.",
-            "5. For destructive, costly, privacy-sensitive, or approval-sensitive actions, pause for confirmation.",
-            "6. If you can answer from verified evidence, answer directly and stop.",
-        ])
+        lines.extend(
+            [
+                "Mode: assisted.",
+                "Work like a collaborative operator:",
+                "1. Keep the user in the loop when the path becomes uncertain, risky, or blocked.",
+                "2. Ask exactly one clear question when missing user intent, credentials, approval, or a business choice blocks correctness.",
+                "3. Do not silently grind through repeated attempts in assisted mode; after two failed strategies, summarize the evidence and ask how to proceed.",
+                "4. For low-risk read-only checks, proceed and report concise progress.",
+                "5. For destructive, costly, privacy-sensitive, or approval-sensitive actions, pause for confirmation.",
+                "6. If you can answer from verified evidence, answer directly and stop.",
+            ]
+        )
     lines.append("</execution_mode_contract>")
     return SystemMessage(content="\n".join(lines))
 
@@ -178,7 +182,10 @@ def _elapsed_review_due(runtime_state: dict[str, Any], state: ExecutionMiddlewar
 def _context_review_due(runtime_state: dict[str, Any]) -> bool:
     guard_state = str(runtime_state.get("context_guard_state") or "")
     return bool(runtime_state.get("task_review_required")) or guard_state in {
-        "compacted", "trimmed", "truncated", "emergency_trimmed",
+        "compacted",
+        "trimmed",
+        "truncated",
+        "emergency_trimmed",
     }
 
 
@@ -204,13 +211,15 @@ def _build_review_message(reasons: list[str], task_state: dict[str, Any] | None,
         "7. 如果发现之前的回复中存在事实性错误，在接下来的行动中优先修正，不等待用户指出。",
     ]
     if task_state:
-        lines.extend([
-            "",
-            "当前任务状态：",
-            f"- status: {task_state.get('status') or 'active'}",
-            f"- current_step: {str(task_state.get('current_step') or '')[:500]}",
-            f"- next_action: {str(task_state.get('next_action') or '')[:500]}",
-        ])
+        lines.extend(
+            [
+                "",
+                "当前任务状态：",
+                f"- status: {task_state.get('status') or 'active'}",
+                f"- current_step: {str(task_state.get('current_step') or '')[:500]}",
+                f"- next_action: {str(task_state.get('next_action') or '')[:500]}",
+            ]
+        )
     if tool_errors:
         lines.extend(["", "最近工具错误：", *(f"- {error}" for error in tool_errors)])
     lines.append("</execution_review>")

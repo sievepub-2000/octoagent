@@ -16,6 +16,7 @@ from langchain_core.messages import SystemMessage, ToolMessage
 from langgraph.config import get_config
 from langgraph.runtime import Runtime
 
+from src.agents.core.continuation_contract import contract_to_task_state, normalize_continuation_contract
 from src.agents.core.termination import classify_run_outcome
 from src.agents.thread_state import ThreadDataState, merge_runtime_state
 from src.runtime.config.paths import Paths, get_paths
@@ -179,7 +180,7 @@ def _normalize_task_state(value: Any) -> dict[str, Any] | None:
         list(value.get("completed_steps") or [])[:16],
         list(value.get("pending_steps") or [])[:16],
     )
-    return {
+    normalized = {
         "version": int(value.get("version") or _TASK_STATE_VERSION),
         "goal": goal,
         "status": str(value.get("status") or "active"),
@@ -191,6 +192,18 @@ def _normalize_task_state(value: Any) -> dict[str, Any] | None:
         "next_action": _truncate(value.get("next_action")),
         "updated_at": str(value.get("updated_at") or _utc_now()),
     }
+    for key in (
+        "constraints",
+        "forbidden_actions",
+        "acceptance_criteria",
+        "confirmed_decisions",
+        "blockers",
+        "artifacts",
+    ):
+        normalized[key] = [_truncate(item, 600) for item in list(value.get(key) or [])[:16] if _truncate(item, 600)]
+    normalized["permission_scope"] = _truncate(value.get("permission_scope"), 500)
+    normalized["continuation_contract_hash"] = _truncate(value.get("continuation_contract_hash"), 80)
+    return normalized
 
 
 def _new_task_state(goal: str) -> dict[str, Any]:
@@ -205,6 +218,14 @@ def _new_task_state(goal: str) -> dict[str, Any]:
         "evidence": [],
         "failed_attempts": [],
         "next_action": "continue executing the user's task",
+        "constraints": [],
+        "forbidden_actions": [],
+        "acceptance_criteria": [],
+        "confirmed_decisions": [],
+        "blockers": [],
+        "artifacts": [],
+        "permission_scope": "",
+        "continuation_contract_hash": "",
         "updated_at": _utc_now(),
     }
 
@@ -225,12 +246,19 @@ def _format_task_state(task_state: dict[str, Any]) -> str:
         ("Pending steps", "pending_steps"),
         ("Evidence", "evidence"),
         ("Failed attempts", "failed_attempts"),
+        ("Constraints", "constraints"),
+        ("Forbidden actions", "forbidden_actions"),
+        ("Acceptance criteria", "acceptance_criteria"),
+        ("Confirmed decisions", "confirmed_decisions"),
+        ("Blockers", "blockers"),
     ):
         values = [str(item).strip() for item in task_state.get(key, []) if str(item).strip()]
         if not values:
             continue
         lines.append(f"{label}:")
         lines.extend(f"- {_truncate(item, 500)}" for item in values[:8])
+    if task_state.get("permission_scope"):
+        lines.append(f"Permission scope: {_truncate(task_state['permission_scope'], 500)}")
     lines.append("Completed steps are historical evidence only; do not repeat them after context compaction or continuation.")
     lines.append("Continue only pending steps and the explicit next action. Do not ask the user to repeat prior context.")
     rendered = "\n".join(lines)
@@ -340,6 +368,9 @@ class StateMiddleware(AgentMiddleware[StateMiddlewareState]):
         if existing is not None:
             return existing
         context = runtime.context if runtime is not None and runtime.context else {}
+        contract = normalize_continuation_contract(context) if isinstance(context, dict) else None
+        if contract is not None:
+            return _normalize_task_state(contract_to_task_state(contract))
         return _normalize_task_state(context.get("continue_task_state"))
 
     @override

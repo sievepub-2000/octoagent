@@ -67,12 +67,7 @@ def test_normalize_messages_repairs_consecutive_assistant_tail() -> None:
 
 
 def test_normalize_ai_message_parses_trailing_json_tool_request() -> None:
-    message = AIMessage(
-        content=(
-            "我将先测试 bash 工具。\n\n"
-            '{"tool":"bash","arguments":{"command":"echo ok","description":"smoke test"}}'
-        )
-    )
+    message = AIMessage(content=('我将先测试 bash 工具。\n\n{"tool":"bash","arguments":{"command":"echo ok","description":"smoke test"}}'))
 
     normalized = _normalize_ai_message_tool_calls(message, allowed_tool_names={"bash"})
 

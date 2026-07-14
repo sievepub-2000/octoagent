@@ -69,8 +69,6 @@ class BuilderHistoryResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-
-
 def _metadata_string(metadata: dict[str, object], key: str) -> str | None:
     value = metadata.get(key)
     if isinstance(value, str):

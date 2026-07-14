@@ -40,21 +40,12 @@ from src.tools.builtins import (
     SYSTEM_EXTRA_TOOLS,
     SYSTEM_OPS_TOOLS,
     WORKFLOW_RUNTIME_TOOLS,
-    archival_memory_insert_tool,
-    archival_memory_search_tool,
     ask_clarification_tool,
     codex_cli_tool,
     convert_document_tool,
-    get_plugin_command_tool,
-    list_capabilities_tool,
-    load_skill_tool,
-    memory_block_list_tool,
-    memory_block_upsert_tool,
     present_file_tool,
     process_image_tool,
-    propose_self_evolution_tool,
     read_webpage_tool,
-    search_memory_tool,
     setup_agent,
     task_tool,
     view_image_tool,
@@ -307,6 +298,7 @@ def _builtin_requires_confirmation(tool_name: str) -> bool:
 # ---------------------------------------------------------------------------
 # ToolCatalog (unchanged behaviour — loads core + vision + bytebot compat)
 # ---------------------------------------------------------------------------
+
 
 class ToolCatalog:
     def __init__(self, *, app_config_getter=get_app_config, resolver=resolve_variable):

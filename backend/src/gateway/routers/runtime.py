@@ -863,6 +863,7 @@ async def get_runtime_provider_contracts() -> RuntimeProviderContractsResponse:
         )
     return RuntimeProviderContractsResponse(default_provider=default_name, providers=providers)
 
+
 # =====================================================================
 # Phase 1 (2026-05-26): runtime effective-config snapshot
 # Single JSON exit for all OCTO_* env + key config.yaml values.
@@ -900,6 +901,7 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
     # Mask anything that smells like a credential. False-positives are fine —
     # operators who need the value can read the file directly.
     _SECRET_FRAGMENTS = ("TOKEN", "SECRET", "PASSWORD", "PASSWD", "API_KEY", "APIKEY", "AUTH", "PRIVATE", "COOKIE")
+
     def _mask(key: str, value: str) -> str:
         if not value:
             return value
@@ -909,12 +911,14 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
                 return "***"
             return f"{value[:3]}***{value[-2:]} (len={len(value)})"
         return value
+
     env_snapshot = {k: _mask(k, os.environ[k]) for k in env_keys}
 
     # default_model is best-effort: read setup.json directly
     default_model: str | None = None
     try:
         import json as _j
+
         sf = get_setup_state_file()
         if Path(sf).is_file():
             raw = _j.loads(Path(sf).read_text(encoding="utf-8"))
@@ -930,6 +934,7 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
     }
     try:
         from src.runtime.permissions import get_runtime_writable_paths
+
         for label, p in get_runtime_writable_paths().items():
             paths_snapshot[label] = str(p)
     except Exception:
@@ -1057,6 +1062,7 @@ async def get_runtime_tool_trace(limit: int = 200) -> ToolTraceResponse:
         events=events,
     )
 
+
 # ---------------------------------------------------------------------------
 # Phase 6: distributed dispatcher introspection (no-ops when disabled)
 # ---------------------------------------------------------------------------
@@ -1085,4 +1091,3 @@ async def get_dispatch_queue():
 @router.get("/leader")
 async def get_leader():
     return _leader_status()
-

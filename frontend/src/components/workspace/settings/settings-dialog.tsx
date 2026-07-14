@@ -1,25 +1,27 @@
 "use client";
 
 import { ActivityIcon, BellIcon, BlocksIcon, BrainIcon, DownloadCloudIcon, InfoIcon, LaptopIcon, PaletteIcon, PlugZapIcon, SparklesIcon, WebhookIcon, WrenchIcon } from "lucide-react";
+import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
-import MCPConfigPage from "@/app/workspace/config/mcp/page";
-import ModelsConfigPage from "@/app/workspace/config/models/page";
-import PluginsConfigPage from "@/app/workspace/config/plugins/page";
-import SkillsConfigPage from "@/app/workspace/config/skills/page";
-import ToolsHubPage from "@/app/workspace/config/tools/page";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { AboutSettingsPage } from "@/components/workspace/settings/about-settings-page";
-import { AppearanceSettingsPage } from "@/components/workspace/settings/appearance-settings-page";
-import { HooksSettingsPage } from "@/components/workspace/settings/hooks-settings-page";
-import { MemorySettingsPage } from "@/components/workspace/settings/memory-settings-page";
-import { NotificationSettingsPage } from "@/components/workspace/settings/notification-settings-page";
-import { RuntimeHealthSettingsPage } from "@/components/workspace/settings/runtime-health-settings-page";
-import { SystemExecutionSettingsPage } from "@/components/workspace/settings/system-execution-settings-page";
-import { UpdateSettingsPage } from "@/components/workspace/settings/update-settings-page";
 import { useI18n } from "@/core/i18n/hooks";
 import { cn } from "@/lib/utils";
+
+const RuntimeHealthSettingsPage = dynamic(() => import("./runtime-health-settings-page").then((module) => module.RuntimeHealthSettingsPage));
+const AppearanceSettingsPage = dynamic(() => import("./appearance-settings-page").then((module) => module.AppearanceSettingsPage));
+const ModelsConfigPage = dynamic(() => import("@/app/workspace/config/models/page"));
+const SkillsConfigPage = dynamic(() => import("@/app/workspace/config/skills/page"));
+const MCPConfigPage = dynamic(() => import("@/app/workspace/config/mcp/page"));
+const PluginsConfigPage = dynamic(() => import("@/app/workspace/config/plugins/page"));
+const HooksSettingsPage = dynamic(() => import("./hooks-settings-page").then((module) => module.HooksSettingsPage));
+const ToolsHubPage = dynamic(() => import("@/app/workspace/config/tools/page"));
+const MemorySettingsPage = dynamic(() => import("./memory-settings-page").then((module) => module.MemorySettingsPage));
+const SystemExecutionSettingsPage = dynamic(() => import("./system-execution-settings-page").then((module) => module.SystemExecutionSettingsPage));
+const NotificationSettingsPage = dynamic(() => import("./notification-settings-page").then((module) => module.NotificationSettingsPage));
+const UpdateSettingsPage = dynamic(() => import("./update-settings-page").then((module) => module.UpdateSettingsPage));
+const AboutSettingsPage = dynamic(() => import("./about-settings-page").then((module) => module.AboutSettingsPage));
 
 export type SettingsSectionId =
   | "general"
@@ -63,19 +65,19 @@ export function SettingsPanel({ defaultSection = "general", open, onOpenChange }
   }, [defaultSection, open]);
 
   const sections = useMemo(() => [
-    { group: "General", id: "general", label: "General", icon: ActivityIcon },
-    { group: "General", id: "appearance", label: t.settings.sections.appearance, icon: PaletteIcon },
-    { group: "AI & capabilities", id: "models", label: "Models", icon: SparklesIcon },
-    { group: "AI & capabilities", id: "skills", label: "Skills", icon: BrainIcon },
-    { group: "AI & capabilities", id: "mcp", label: "MCP servers", icon: PlugZapIcon },
-    { group: "AI & capabilities", id: "plugins", label: "Plugins", icon: BlocksIcon },
-    { group: "AI & capabilities", id: "hooks", label: "Hooks", icon: WebhookIcon },
-    { group: "AI & capabilities", id: "tools", label: "Tools Hub", icon: WrenchIcon },
-    { group: "System", id: "memory", label: t.settings.sections.memory, icon: BrainIcon },
-    { group: "System", id: "permissions", label: "Permissions", icon: LaptopIcon },
-    { group: "System", id: "notifications", label: t.settings.sections.notification, icon: BellIcon },
-    { group: "System", id: "update", label: t.settings.sections.update ?? "Update", icon: DownloadCloudIcon },
-    { group: "System", id: "about", label: t.settings.sections.about, icon: InfoIcon },
+    { group: t.settings.sections.overview, id: "general", label: t.settings.sections.overview, icon: ActivityIcon },
+    { group: t.settings.sections.overview, id: "appearance", label: t.settings.sections.appearance, icon: PaletteIcon },
+    { group: t.sidebar.configuration, id: "models", label: t.settings.sections.models, icon: SparklesIcon },
+    { group: t.sidebar.configuration, id: "skills", label: t.settings.sections.skills, icon: BrainIcon },
+    { group: t.sidebar.configuration, id: "mcp", label: t.settings.sections.mcp, icon: PlugZapIcon },
+    { group: t.sidebar.configuration, id: "plugins", label: t.settings.sections.plugins, icon: BlocksIcon },
+    { group: t.sidebar.configuration, id: "hooks", label: t.settings.sections.hooks, icon: WebhookIcon },
+    { group: t.sidebar.configuration, id: "tools", label: t.settings.sections.tools, icon: WrenchIcon },
+    { group: t.settings.system.title, id: "memory", label: t.settings.sections.memory, icon: BrainIcon },
+    { group: t.settings.system.title, id: "permissions", label: t.settings.sections.systemExecution, icon: LaptopIcon },
+    { group: t.settings.system.title, id: "notifications", label: t.settings.sections.notification, icon: BellIcon },
+    { group: t.settings.system.title, id: "update", label: t.settings.sections.update, icon: DownloadCloudIcon },
+    { group: t.settings.system.title, id: "about", label: t.settings.sections.about, icon: InfoIcon },
   ] as const, [t]);
 
   if (!open) return null;
@@ -92,8 +94,8 @@ export function SettingsPanel({ defaultSection = "general", open, onOpenChange }
     <aside className="octo-panel flex h-full min-h-0 w-[min(960px,78vw)] min-w-0 max-w-[960px] flex-col rounded-none border-l border-border/40 max-lg:w-[min(760px,86vw)] max-sm:w-full">
       <div className="flex items-start justify-between gap-4 border-b border-border/60 px-5 py-4">
         <div>
-          <h2 className="text-lg font-semibold tracking-[-0.03em]">Settings</h2>
-          <p className="text-sm text-muted-foreground">Configure models, capabilities, integrations and system behavior.</p>
+          <h2 className="text-lg font-semibold tracking-[-0.03em]">{t.settings.title}</h2>
+          <p className="text-sm text-muted-foreground">{t.settings.description}</p>
         </div>
         <button type="button" className="rounded-full border px-3 py-1 text-xs text-muted-foreground hover:text-foreground" onClick={() => onOpenChange?.(false)}>{t.common.close}</button>
       </div>
@@ -108,7 +110,7 @@ export function SettingsPanel({ defaultSection = "general", open, onOpenChange }
                   {showGroup ? <div className="px-3 pb-1 pt-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground first:pt-1">{group}</div> : null}
                   <button type="button" onClick={() => changeSection(id)} className={cn("flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors", activeSection === id ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground")}>
                     <Icon className="size-4 shrink-0" /><span className="truncate">{label}</span>
-                    {id === "update" && hasUpdate ? <span className="ml-auto size-2 rounded-full bg-red-500" aria-label="Update available" /> : null}
+                    {id === "update" && hasUpdate ? <span className="ml-auto size-2 rounded-full bg-red-500" aria-label={t.settings.sections.update} /> : null}
                   </button>
                 </li>
               );

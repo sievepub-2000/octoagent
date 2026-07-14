@@ -97,9 +97,7 @@ def test_pending_confirmation_blocks_other_tool_execution() -> None:
 def test_system_permission_mode_does_not_prompt_for_system_tool() -> None:
     middleware = DangerousToolConfirmationMiddleware()
 
-    blocked = middleware._maybe_block(
-        _request(metadata={"permission_scope": "system", "requires_confirmation": False, "active_permission_mode": "system"})
-    )
+    blocked = middleware._maybe_block(_request(metadata={"permission_scope": "system", "requires_confirmation": False, "active_permission_mode": "system"}))
 
     assert blocked is None
 
@@ -116,9 +114,7 @@ def test_duplicate_confirmation_not_reemitted_when_already_visible() -> None:
         content=f'{_MARKER} tool="host_shell" signature="{sig}">\n请只回复 1/2\n</dangerous_tool_confirmation>',
     )
 
-    blocked = middleware._maybe_block(
-        _request(messages=[initial_human, prior], runtime=_pending_runtime())
-    )
+    blocked = middleware._maybe_block(_request(messages=[initial_human, prior], runtime=_pending_runtime()))
 
     assert isinstance(blocked, Command)
     # No duplicate confirmation message is emitted while the same prompt is visible.
@@ -137,9 +133,7 @@ def test_new_confirmation_still_emitted_after_human_reply() -> None:
     )
     later_human = SimpleNamespace(type="human", content="再说一次")
 
-    blocked = middleware._maybe_block(
-        _request(messages=[prior, later_human])
-    )
+    blocked = middleware._maybe_block(_request(messages=[prior, later_human]))
 
     # A human spoke after the prior prompt -> fail-open: a fresh prompt is emitted.
     assert isinstance(blocked, Command)

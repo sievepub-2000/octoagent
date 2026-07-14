@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import gc
 import logging
-import os
-import shutil
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -146,6 +144,7 @@ class MemoryRecycler:
         """Get current process memory usage in MB."""
         try:
             import resource
+
             usage = resource.getrusage(resource.RUSAGE_SELF)
             return usage.ru_maxrss / 1024  # Convert KB to MB
         except Exception:

@@ -42,12 +42,12 @@ class TestFAISSSearch:
             emb = emb[:10]  # Ensure exactly 10 dimensions
             row = (f"row{i}", "namespace", f"content {i}", "{}", emb)
             rows.append(row)
-        
+
         # Query embedding similar to row 5
         query_embedding = [j * 0.1 for j in range(6)] + [0.0] * 4
-        
+
         results = search_rows(rows, query_embedding=query_embedding, top_k=3)
-        
+
         assert results is not None
         assert len(results) > 0
         assert len(results) <= 3
@@ -58,28 +58,24 @@ class TestFAISSSearch:
             ("row1", "namespace", "content1", "{}", None),
             ("row2", "namespace", "content2", "{}", [0.1, 0.2]),  # Wrong dimension
         ]
-        
+
         query_embedding = [0.1, 0.2, 0.3]
         results = search_rows(rows, query_embedding=query_embedding, top_k=5)
-        
+
         assert results is not None
         assert len(results) == 0
 
     def test_search_with_empty_query(self):
         """Test FAISS search with empty query embedding."""
-        rows = [
-            ("row1", "namespace", "content1", "{}", [0.1, 0.2, 0.3])
-        ]
-        
+        rows = [("row1", "namespace", "content1", "{}", [0.1, 0.2, 0.3])]
+
         results = search_rows(rows, query_embedding=[], top_k=5)
         assert results == []
 
     def test_search_with_top_k_zero(self):
         """Test FAISS search with top_k=0."""
-        rows = [
-            ("row1", "namespace", "content1", "{}", [0.1, 0.2, 0.3])
-        ]
-        
+        rows = [("row1", "namespace", "content1", "{}", [0.1, 0.2, 0.3])]
+
         query_embedding = [0.1, 0.2, 0.3]
         results = search_rows(rows, query_embedding=query_embedding, top_k=0)
         assert results == []
@@ -92,7 +88,7 @@ class TestFAISSIndexManager:
         """Test FAISS search with persistence support."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = FAISSIndexManager(cache_dir=Path(tmpdir))
-            
+
             # Create sample rows
             rows = []
             for i in range(10):
@@ -102,9 +98,9 @@ class TestFAISSIndexManager:
                 emb = emb[:10]
                 row = (f"row{i}", "namespace", f"content {i}", "{}", emb)
                 rows.append(row)
-            
+
             query_embedding = [0.1, 0.2, 0.3, 0.4, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0]
-            
+
             # First search
             results1 = manager.search_with_persistence("test_table", rows, query_embedding, top_k=3)
             assert results1 is not None
@@ -114,21 +110,21 @@ class TestFAISSIndexManager:
         """Test adding vectors to a cached FAISS index."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = FAISSIndexManager(cache_dir=Path(tmpdir))
-            
+
             # First search to create index
             rows = []
             for i in range(5):
                 embedding = [0.1] * 10
                 row = (f"row{i}", "namespace", f"content {i}", "{}", embedding)
                 rows.append(row)
-            
+
             query_embedding = [0.1] * 10
             manager.search_with_persistence("test_table", rows, query_embedding, top_k=2)
-            
+
             # Add more vectors
             new_vectors = [[0.2] * 10 for _ in range(5)]
             manager.add_to_index("test_table", new_vectors)
-            
+
             # Verify stats
             stats = manager.get_stats()
             assert "total_adds" in stats
@@ -137,9 +133,9 @@ class TestFAISSIndexManager:
         """Test getting FAISS index manager statistics."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = FAISSIndexManager(cache_dir=Path(tmpdir))
-            
+
             stats = manager.get_stats()
-            
+
             assert "total_loads" in stats
             assert "total_saves" in stats
             assert "total_searches" in stats
@@ -149,17 +145,15 @@ class TestFAISSIndexManager:
         """Test clearing all cached FAISS indexes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = FAISSIndexManager(cache_dir=Path(tmpdir))
-            
+
             # Create some indexes
-            rows = [
-                ("row1", "namespace", "content1", "{}", [0.1] * 10)
-            ]
+            rows = [("row1", "namespace", "content1", "{}", [0.1] * 10)]
             query_embedding = [0.1] * 10
             manager.search_with_persistence("test_table", rows, query_embedding, top_k=1)
-            
+
             # Clear cache
             count = manager.clear_cache()
-            
+
             # Verify cache was cleared
             assert count >= 0
 
@@ -170,7 +164,7 @@ class TestRetrievalQualityMonitor:
     def test_record_result(self):
         """Test recording a retrieval result."""
         monitor = RetrievalQualityMonitor()
-        
+
         result = RetrievalResult(
             query="test query",
             table="system_memories",
@@ -183,9 +177,9 @@ class TestRetrievalQualityMonitor:
             has_bm25=True,
             has_reranker=False,
         )
-        
+
         monitor.record_result(result)
-        
+
         metrics = monitor.get_metrics()
         assert metrics["total_queries"] == 1
         assert metrics["total_results"] == 5
@@ -193,7 +187,7 @@ class TestRetrievalQualityMonitor:
     def test_record_feedback(self):
         """Test recording user feedback."""
         monitor = RetrievalQualityMonitor()
-        
+
         result = RetrievalResult(
             query="test query",
             table="system_memories",
@@ -206,17 +200,17 @@ class TestRetrievalQualityMonitor:
             has_bm25=True,
             has_reranker=False,
         )
-        
+
         monitor.record_result(result)
         monitor.record_feedback("query_hash_1", [5, 4, 3, 2, 1])
-        
+
         metrics = monitor.get_metrics()
         assert metrics["feedback_count"] == 1
 
     def test_get_report(self):
         """Test generating a quality report."""
         monitor = RetrievalQualityMonitor()
-        
+
         result = RetrievalResult(
             query="test query",
             table="system_memories",
@@ -229,10 +223,10 @@ class TestRetrievalQualityMonitor:
             has_bm25=True,
             has_reranker=False,
         )
-        
+
         monitor.record_result(result)
         report = monitor.get_report()
-        
+
         assert "RAG Retrieval Quality Report" in report
         assert "Total Queries: 1" in report
 
@@ -240,7 +234,7 @@ class TestRetrievalQualityMonitor:
         """Test exporting metrics to JSON file."""
         with tempfile.TemporaryDirectory() as tmpdir:
             monitor = RetrievalQualityMonitor()
-            
+
             result = RetrievalResult(
                 query="test query",
                 table="system_memories",
@@ -253,12 +247,12 @@ class TestRetrievalQualityMonitor:
                 has_bm25=True,
                 has_reranker=False,
             )
-            
+
             monitor.record_result(result)
-            
+
             export_path = Path(tmpdir) / "test_metrics.json"
             monitor.export_metrics(export_path)
-            
+
             assert export_path.exists()
 
 
@@ -268,7 +262,7 @@ class TestRetrievalQualityEdgeCases:
     def test_empty_feedback(self):
         """Test metrics with no feedback."""
         monitor = RetrievalQualityMonitor()
-        
+
         metrics = monitor.get_metrics()
         assert metrics["precision_at_1"] == 0.0
         assert metrics["recall_at_10"] == 0.0
@@ -276,7 +270,7 @@ class TestRetrievalQualityEdgeCases:
     def test_large_results_count(self):
         """Test recording result with large results count."""
         monitor = RetrievalQualityMonitor()
-        
+
         result = RetrievalResult(
             query="test query",
             table="system_memories",
@@ -289,9 +283,9 @@ class TestRetrievalQualityEdgeCases:
             has_bm25=True,
             has_reranker=False,
         )
-        
+
         monitor.record_result(result)
-        
+
         metrics = monitor.get_metrics()
         assert metrics["total_results"] == 1000
 
@@ -302,21 +296,21 @@ class TestFAISSPerformance:
     def test_search_speed(self):
         """Test that FAISS search operations complete in reasonable time."""
         import time
-        
+
         # Create sample rows
         rows = []
         for i in range(100):
             embedding = [0.1] * 10
             row = (f"row{i}", "namespace", f"content {i}", "{}", embedding)
             rows.append(row)
-        
+
         query_embedding = [0.1] * 10
-        
+
         start_time = time.time()
         for _ in range(10):
             search_rows(rows, query_embedding=query_embedding, top_k=5)
         elapsed = time.time() - start_time
-        
+
         # Should complete 10 searches in less than 1 second
         assert elapsed < 1.0, f"Search took too long: {elapsed}s"
 
@@ -336,9 +330,7 @@ class TestFAISSErrorHandling:
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = FAISSIndexManager(cache_dir=Path(tmpdir))
             # First search to create the index
-            rows = [
-                ("row0", "ns", "content0", "{}", [0.1] * 10)
-            ]
+            rows = [("row0", "ns", "content0", "{}", [0.1] * 10)]
             manager.search_with_persistence("test", rows, [0.1] * 10, top_k=1)
             # Add 50 vectors
             vectors = [[0.2] * 10 for _ in range(50)]

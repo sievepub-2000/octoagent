@@ -263,7 +263,6 @@ class WorkflowCoreService:
     # Public runtime projection (Slice E)
     # ------------------------------------------------------------------
 
-
     def get_public_bindings(self, task_id: str) -> dict[str, object] | None:
         """Return the current workflow bindings for external consumption."""
         contract = self.get_studio_runtime_contract(task_id)
@@ -305,7 +304,6 @@ class WorkflowCoreService:
         if self._delegate.merge_workspace_metadata(task_id, **metadata) is None:
             return None
         return self.get_public_bindings(task_id)
-
 
     # ------------------------------------------------------------------
     # Builder transaction delegation (Slice D)

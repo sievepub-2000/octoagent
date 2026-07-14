@@ -5,11 +5,11 @@ automatic instrumentation for FastAPI requests and LangGraph calls.
 """
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
-_tracer: Optional[Any] = None
+_tracer: Any | None = None
 
 
 def initialize_tracer(service_name: str = "octoagent") -> None:
@@ -19,35 +19,34 @@ def initialize_tracer(service_name: str = "octoagent") -> None:
         service_name: The name of the service for trace context.
     """
     global _tracer
-    
+
     try:
         from opentelemetry import trace
         from opentelemetry.sdk.resources import Resource
         from opentelemetry.sdk.trace import TracerProvider
-        
+
         # Configure resource
-        resource = Resource.create({
-            "service.name": service_name,
-            "service.version": "2026.7.1",
-        })
-        
+        resource = Resource.create(
+            {
+                "service.name": service_name,
+                "service.version": "2026.7.1",
+            }
+        )
+
         # Create tracer provider
         provider = TracerProvider(resource=resource)
         trace.set_tracer_provider(provider)
-        
+
         _tracer = trace.get_tracer(__name__)
         logger.info("OpenTelemetry tracer initialized for %s", service_name)
-        
+
     except ImportError:
-        logger.warning(
-            "OpenTelemetry packages not installed, tracing disabled. "
-            "Install with: pip install opentelemetry-api opentelemetry-sdk"
-        )
+        logger.warning("OpenTelemetry packages not installed, tracing disabled. Install with: pip install opentelemetry-api opentelemetry-sdk")
     except Exception as e:  # noqa: BLE001
         logger.error("Failed to initialize OpenTelemetry tracer: %s", str(e))
 
 
-def get_tracer() -> Optional[Any]:
+def get_tracer() -> Any | None:
     """Get the current OpenTelemetry tracer.
 
     Returns:
@@ -69,7 +68,7 @@ def create_span(name: str, **kwargs: Any):
     if _tracer is None:
         yield None
         return
-    
+
     try:
         with _tracer.start_as_current_span(name) as span:
             for key, value in kwargs.items():

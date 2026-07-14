@@ -48,8 +48,6 @@ def _resolve_ledger_path(path: Path | str | None = None) -> Path:
     return Paths().base_dir / "skill_evolution" / _DEFAULT_LEDGER_NAME
 
 
-
-
 def record_invocation(
     skill_name: str,
     *,

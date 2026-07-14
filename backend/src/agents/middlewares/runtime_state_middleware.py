@@ -53,8 +53,6 @@ class RuntimeStateMiddlewareState(AgentState):
     workflow_events: NotRequired[list[dict[str, Any]] | None]
 
 
-
-
 def _dedupe(items: list[str]) -> list[str]:
     return list(dict.fromkeys(items))
 

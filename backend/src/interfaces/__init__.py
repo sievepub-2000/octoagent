@@ -12,4 +12,5 @@ APIs — direct imports continue to work via these stable paths:
 * :mod:`src.interfaces.research` — research runtime service (former ``src.interfaces.research``)
 * :mod:`src.interfaces.distributed` — multi-host execution proxy (former ``src.interfaces.distributed``)
 """
+
 __all__: list[str] = []

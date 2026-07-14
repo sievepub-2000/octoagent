@@ -20,20 +20,18 @@ class LazyImport:
     def _load(self) -> None:
         if not self._loaded:
             import importlib
+
             try:
                 self._module = importlib.import_module(self._module_path)
             except ImportError as exc:
                 self._module = None
-                object.__setattr__(self, '_import_error', exc)
+                object.__setattr__(self, "_import_error", exc)
             self._loaded = True
 
     def __getattr__(self, name: str) -> object:
         self._load()
         if self._module is None:
-            raise RuntimeError(
-                f"LazyImport '{self._module_path}' failed to load: "
-                f"'{getattr(self, '_import_error', 'unknown error')}'"
-            )
+            raise RuntimeError(f"LazyImport '{self._module_path}' failed to load: '{getattr(self, '_import_error', 'unknown error')}'")
         if self._attr_name and name == "__wrapped__":
             return self._module
         if self._attr_name:

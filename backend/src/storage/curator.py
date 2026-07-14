@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Configuration helpers
 # ---------------------------------------------------------------------------
 
+
 def _curator_enabled() -> bool:
     return os.environ.get("OCTOAGENT_CURATOR_ENABLED", "0") == "1"
 
@@ -39,6 +40,7 @@ def _curator_interval() -> int:
 # ---------------------------------------------------------------------------
 # Curator
 # ---------------------------------------------------------------------------
+
 
 class Curator:
     """Background process that analyses task results and evolves skills.
@@ -92,7 +94,7 @@ class Curator:
         self._stop_event.set()
         try:
             await asyncio.wait_for(asyncio.shield(self._task), timeout=10.0)
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning("Curator shutdown timed out — cancelling task")
             self._task.cancel()
         except Exception:
@@ -105,10 +107,8 @@ class Curator:
     async def _run_loop(self) -> None:
         while not self._stop_event.is_set():
             try:
-                await asyncio.wait_for(
-                    self._evolution_cycle(), timeout=self._interval
-                )
-            except asyncio.TimeoutError:
+                await asyncio.wait_for(self._evolution_cycle(), timeout=self._interval)
+            except TimeoutError:
                 pass  # interval elapsed, loop again
             except Exception:
                 logger.exception("Curator cycle failed", exc_info=True)
@@ -160,13 +160,9 @@ class Curator:
             return []
         try:
             if hasattr(self._task_result_store, "list_recent"):
-                return await self._task_result_store.list_recent(
-                    since=since, limit=100
-                )
+                return await self._task_result_store.list_recent(since=since, limit=100)
             elif callable(getattr(self._task_result_store, "query", None)):
-                return await self._task_result_store.query(
-                    {"created_after": since.isoformat()}, limit=100
-                )
+                return await self._task_result_store.query({"created_after": since.isoformat()}, limit=100)
         except Exception:
             logger.warning("Failed to scan recent task results", exc_info=True)
         return []
@@ -229,14 +225,12 @@ class Curator:
                     skill_name,
                     EvolutionMode.CAPTURED,
                     diff_summary=f"Curator promoted: {outcome[:120]}",
-                    reason=f"Successful pattern detected in task result",
+                    reason="Successful pattern detected in task result",
                 )
                 logger.info("Curator promoted '%s' to skill (captured)", skill_name)
                 return skill_name
         except Exception:
-            logger.warning(
-                "Failed to register promoted skill '%s'", skill_name, exc_info=True
-            )
+            logger.warning("Failed to register promoted skill '%s'", skill_name, exc_info=True)
 
         return None
 
@@ -264,9 +258,7 @@ class Curator:
                 )
                 logger.info("Curator created avoidance rule '%s'", rule_name)
         except Exception:
-            logger.warning(
-                "Failed to create avoidance rule", exc_info=True
-            )
+            logger.warning("Failed to create avoidance rule", exc_info=True)
 
     # ------------------------------------------------------------------ pruning
 

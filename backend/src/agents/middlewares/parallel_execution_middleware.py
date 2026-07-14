@@ -14,7 +14,7 @@ from typing import Annotated, Any, NotRequired, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage
+from langchain_core.messages import ToolMessage
 from langgraph.runtime import Runtime
 
 from src.agents.thread_state import merge_runtime_state
@@ -51,20 +51,14 @@ def _tool_calls_from_messages(messages: list[Any]) -> list[dict[str, Any]]:
         if content is None or not name:
             continue
         try:
-            parsed = (
-                json.loads(content)
-                if isinstance(content, str) and content.strip().startswith("{")
-                else {"tool": name, "args": {"result": str(content)}}
-            )
+            parsed = json.loads(content) if isinstance(content, str) and content.strip().startswith("{") else {"tool": name, "args": {"result": str(content)}}
         except (json.JSONDecodeError, TypeError):
             parsed = {"tool": name, "args": {"result": str(content)}}
         tool_calls.append(parsed)
     return tool_calls
 
 
-def _results_to_tool_messages(
-    results: list[CallResult], original_messages: list[Any]
-) -> list[ToolMessage]:
+def _results_to_tool_messages(results: list[CallResult], original_messages: list[Any]) -> list[ToolMessage]:
     messages: list[ToolMessage] = []
     for result in results:
         if result.error is not None and result.result is None:
@@ -114,9 +108,7 @@ class ParallelExecutionMiddleware(AgentMiddleware[ParallelExecutionMiddlewareSta
         return self._executor
 
     @override
-    async def abefore_model(
-        self, state: ParallelExecutionMiddlewareState, runtime: Runtime
-    ) -> dict[str, Any] | None:
+    async def abefore_model(self, state: ParallelExecutionMiddlewareState, runtime: Runtime) -> dict[str, Any] | None:
         if not self.enabled:
             return None
 
@@ -134,9 +126,7 @@ class ParallelExecutionMiddleware(AgentMiddleware[ParallelExecutionMiddlewareSta
         runtime_state.setdefault("parallel_execution_stats", {})
 
         try:
-            results = await asyncio.run(
-                executor.execute_batch(tool_calls, _fallback_sync_executor)
-            )
+            results = await executor.execute_batch(tool_calls, _fallback_sync_executor)
         except Exception as exc:
             logger.warning(f"Parallel execution failed, falling back to sequential: {exc}")
             runtime_state["parallel_execution_fallback"] = True
@@ -164,9 +154,7 @@ class ParallelExecutionMiddleware(AgentMiddleware[ParallelExecutionMiddlewareSta
         }
 
     @override
-    def before_model(
-        self, state: ParallelExecutionMiddlewareState, runtime: Runtime
-    ) -> dict[str, Any] | None:
+    def before_model(self, state: ParallelExecutionMiddlewareState, runtime: Runtime) -> dict[str, Any] | None:
         import asyncio as _asyncio
 
         if not self.enabled:
@@ -186,9 +174,7 @@ class ParallelExecutionMiddleware(AgentMiddleware[ParallelExecutionMiddlewareSta
         runtime_state.setdefault("parallel_execution_stats", {})
 
         try:
-            results = _asyncio.run(
-                executor.execute_batch(tool_calls, _fallback_sync_executor)
-            )
+            results = _asyncio.run(executor.execute_batch(tool_calls, _fallback_sync_executor))
         except Exception as exc:
             logger.warning(f"Parallel execution failed, falling back to sequential: {exc}")
             runtime_state["parallel_execution_fallback"] = True

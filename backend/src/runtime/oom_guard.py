@@ -255,8 +255,7 @@ class OOMGuard:
                 "message": f"Memory at {snapshot.used_percent:.1f}% (warning threshold {self.warn_threshold_percent:.0f}%)",
                 "snapshot": snapshot.to_dict(),
             }
-            logger.info("OOMGuard warning: memory at %.1f%% (>= %.0f%% warn threshold)",
-                        snapshot.used_percent, self.warn_threshold_percent)
+            logger.info("OOMGuard warning: memory at %.1f%% (>= %.0f%% warn threshold)", snapshot.used_percent, self.warn_threshold_percent)
         return report
 
     async def run_forever(self) -> None:

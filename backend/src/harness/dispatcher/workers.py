@@ -113,10 +113,7 @@ async def list_workers() -> list[dict[str, Any]]:
                 )
                 rows = await cur.fetchall()
                 cols = [d.name for d in cur.description]
-        return [
-            {k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in zip(cols, row)}
-            for row in rows
-        ]
+        return [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in zip(cols, row)} for row in rows]
     except Exception:
         logger.exception("Dispatcher: list_workers failed")
         return []

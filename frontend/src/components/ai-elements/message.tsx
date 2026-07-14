@@ -10,9 +10,14 @@ import {
   PaperclipIcon,
   XIcon,
 } from "lucide-react";
+import dynamic from "next/dynamic";
 import type { ComponentProps, HTMLAttributes, ReactElement } from "react";
 import { createContext, memo, useContext, useEffect, useState } from "react";
-import { Streamdown } from "streamdown";
+
+const Streamdown = dynamic(
+  () => import("streamdown").then((module) => module.Streamdown),
+  { loading: () => null },
+);
 
 export type MessageProps = HTMLAttributes<HTMLDivElement> & {
   from: UIMessage["role"];

@@ -10,7 +10,6 @@ Tests cover:
 
 from __future__ import annotations
 
-import os
 import tempfile
 from pathlib import Path
 
@@ -20,7 +19,6 @@ from src.storage.rag.bm25_backend import (
     BM25Index,
     BM25IndexManager,
     bm25_search,
-    get_bm25_index_manager,
 )
 
 
@@ -30,14 +28,10 @@ class TestBM25Search:
     def test_basic_search(self):
         """Test basic BM25 search returns results."""
         doc_ids = ["doc1", "doc2", "doc3"]
-        documents = [
-            "The quick brown fox jumps over the lazy dog",
-            "A fast brown fox leaps over a sleeping dog",
-            "The lazy dog sleeps all day long"
-        ]
-        
+        documents = ["The quick brown fox jumps over the lazy dog", "A fast brown fox leaps over a sleeping dog", "The lazy dog sleeps all day long"]
+
         results = bm25_search(doc_ids, documents, "quick brown fox", top_k=2)
-        
+
         assert len(results) > 0
         assert len(results) <= 2
         # First result should be most relevant
@@ -54,14 +48,10 @@ class TestBM25Search:
         """Test BM25 search with a single document."""
         # Use multiple documents to ensure BM25 scores are positive
         doc_ids = ["doc1", "doc2", "doc3"]
-        documents = [
-            "This is a test document with many words",
-            "Another document for testing",
-            "Third document here"
-        ]
-        
+        documents = ["This is a test document with many words", "Another document for testing", "Third document here"]
+
         results = bm25_search(doc_ids, documents, "test document", top_k=1)
-        
+
         assert len(results) == 1
         assert results[0][0] == "doc1"
         assert results[0][1] > 0.0
@@ -70,15 +60,11 @@ class TestBM25Search:
         """Test BM25 search with Chinese text."""
         # Use mixed Chinese-English documents for better BM25 matching
         doc_ids = ["doc1", "doc2", "doc3"]
-        documents = [
-            "这是一个测试文档 with many words",
-            "这是另一个测试文档 for testing",
-            "Third document here"
-        ]
-        
+        documents = ["这是一个测试文档 with many words", "这是另一个测试文档 for testing", "Third document here"]
+
         # Use English query that matches the English words in the documents
         results = bm25_search(doc_ids, documents, "document", top_k=1)
-        
+
         assert len(results) > 0
         assert results[0][1] > 0.0
 
@@ -90,28 +76,24 @@ class TestBM25IndexPersistence:
         """Test saving and loading BM25 index to/from disk."""
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "test_index.pkl"
-            
+
             # Create and save index
             doc_ids = ["doc1", "doc2", "doc3"]
-            documents = [
-                "The quick brown fox",
-                "A fast brown fox",
-                "The lazy dog"
-            ]
-            
+            documents = ["The quick brown fox", "A fast brown fox", "The lazy dog"]
+
             idx = BM25Index(doc_ids=doc_ids, documents=documents)
             idx.save(cache_path)
-            
+
             # Verify file was created
             assert cache_path.exists()
-            
+
             # Load index
             loaded_idx = BM25Index(doc_ids=[], documents=[])
             result = loaded_idx.load(cache_path)
-            
+
             assert result is True
             assert len(loaded_idx.doc_ids) == len(doc_ids)
-            
+
             # Test search on loaded index
             results = loaded_idx.query("quick brown fox", top_k=1)
             assert len(results) > 0
@@ -126,7 +108,7 @@ class TestBM25IndexPersistence:
         """Test that index dirty flag is properly tracked."""
         idx = BM25Index(doc_ids=["doc1"], documents=["test"])
         assert idx.is_dirty() is False
-        
+
         # Adding documents should mark as dirty
         idx.add_documents(["doc2"], ["test2"])
         assert idx.is_dirty() is True
@@ -135,16 +117,16 @@ class TestBM25IndexPersistence:
         """Test adding documents incrementally."""
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "test_index.pkl"
-            
+
             # Create initial index
             idx = BM25Index(doc_ids=["doc1"], documents=["test1"])
             idx.save(cache_path)
-            
+
             # Load and add more documents
             loaded_idx = BM25Index(doc_ids=[], documents=[])
             loaded_idx.load(cache_path)
             loaded_idx.add_documents(["doc2", "doc3"], ["test2", "test3"])
-            
+
             # Verify documents were added
             assert len(loaded_idx.doc_ids) == 3
             assert "doc1" in loaded_idx.doc_ids
@@ -155,19 +137,16 @@ class TestBM25IndexPersistence:
         """Test removing documents incrementally."""
         with tempfile.TemporaryDirectory() as tmpdir:
             cache_path = Path(tmpdir) / "test_index.pkl"
-            
+
             # Create initial index
-            idx = BM25Index(
-                doc_ids=["doc1", "doc2", "doc3"],
-                documents=["test1", "test2", "test3"]
-            )
+            idx = BM25Index(doc_ids=["doc1", "doc2", "doc3"], documents=["test1", "test2", "test3"])
             idx.save(cache_path)
-            
+
             # Load and remove documents
             loaded_idx = BM25Index(doc_ids=[], documents=[])
             loaded_idx.load(cache_path)
             loaded_idx.remove_documents({"doc2"})
-            
+
             # Verify document was removed
             assert len(loaded_idx.doc_ids) == 2
             assert "doc1" in loaded_idx.doc_ids
@@ -182,15 +161,15 @@ class TestBM25IndexManager:
         """Test getting or creating an index."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = BM25IndexManager(cache_dir=Path(tmpdir))
-            
+
             doc_ids = ["doc1", "doc2"]
             documents = ["test1", "test2"]
-            
+
             # First call should create new index
             idx1 = manager.get_or_create_index("test_table", doc_ids, documents)
             assert idx1 is not None
             assert len(idx1.doc_ids) == 2
-            
+
             # Second call with same data should return cached index
             idx2 = manager.get_or_create_index("test_table", doc_ids, documents)
             assert idx1 is idx2  # Same object
@@ -199,15 +178,15 @@ class TestBM25IndexManager:
         """Test incremental index updates."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = BM25IndexManager(cache_dir=Path(tmpdir))
-            
+
             # Create initial index
             doc_ids = ["doc1"]
             documents = ["test1"]
             manager.get_or_create_index("test_table", doc_ids, documents)
-            
+
             # Update index with new documents
             manager.update_index("test_table", ["doc2"], ["test2"])
-            
+
             # Verify update
             idx = manager._indexes["test_table"]
             assert len(idx.doc_ids) == 2
@@ -218,15 +197,15 @@ class TestBM25IndexManager:
         """Test removing documents from index."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = BM25IndexManager(cache_dir=Path(tmpdir))
-            
+
             # Create initial index
             doc_ids = ["doc1", "doc2", "doc3"]
             documents = ["test1", "test2", "test3"]
             manager.get_or_create_index("test_table", doc_ids, documents)
-            
+
             # Remove document
             manager.remove_from_index("test_table", {"doc2"})
-            
+
             # Verify removal
             idx = manager._indexes["test_table"]
             assert len(idx.doc_ids) == 2
@@ -236,14 +215,14 @@ class TestBM25IndexManager:
         """Test clearing all cached indexes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = BM25IndexManager(cache_dir=Path(tmpdir))
-            
+
             # Create some indexes
             manager.get_or_create_index("table1", ["doc1"], ["test1"])
             manager.get_or_create_index("table2", ["doc2"], ["test2"])
-            
+
             # Clear cache
             count = manager.clear_cache()
-            
+
             # Verify cache was cleared
             assert count >= 0
             assert len(manager._indexes) == 0
@@ -252,13 +231,13 @@ class TestBM25IndexManager:
         """Test getting index manager statistics."""
         with tempfile.TemporaryDirectory() as tmpdir:
             manager = BM25IndexManager(cache_dir=Path(tmpdir))
-            
+
             # Perform some operations
             manager.get_or_create_index("table1", ["doc1"], ["test1"])
             manager.update_index("table1", ["doc2"], ["test2"])
-            
+
             stats = manager.get_stats()
-            
+
             assert "total_loads" in stats
             assert "total_saves" in stats
             assert "total_adds" in stats
@@ -283,9 +262,9 @@ class TestBM25EdgeCases:
         """Test search with top_k larger than document count."""
         doc_ids = ["doc1", "doc2", "doc3"]
         documents = ["test1", "test2", "test3"]
-        
+
         results = bm25_search(doc_ids, documents, "test", top_k=100)
-        
+
         # Should return at most 3 results
         assert len(results) <= 3
 
@@ -296,16 +275,16 @@ class TestBM25Performance:
     def test_search_speed(self):
         """Test that search operations complete in reasonable time."""
         import time
-        
+
         # Create a moderate-sized index
         doc_ids = [f"doc{i}" for i in range(100)]
         documents = [f"This is document number {i} with some text" for i in range(100)]
-        
+
         start_time = time.time()
         for _ in range(10):
             bm25_search(doc_ids, documents, "document text", top_k=5)
         elapsed = time.time() - start_time
-        
+
         # Should complete 10 searches in less than 1 second
         assert elapsed < 1.0, f"Search took too long: {elapsed}s"
 
@@ -379,9 +358,14 @@ class TestBM25ErrorHandling:
             manager.get_or_create_index("tbl", ["d1"], ["doc1"])
             stats = manager.get_stats()
             required_keys = {
-                "total_loads", "total_saves", "total_adds",
-                "total_removes", "cache_hit_count", "cache_miss_count",
-                "active_indexes", "cache_dir",
+                "total_loads",
+                "total_saves",
+                "total_adds",
+                "total_removes",
+                "cache_hit_count",
+                "cache_miss_count",
+                "active_indexes",
+                "cache_dir",
             }
             assert required_keys.issubset(set(stats.keys()))
 

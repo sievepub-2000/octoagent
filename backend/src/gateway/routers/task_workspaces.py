@@ -126,8 +126,6 @@ def _metadata_string(metadata: dict[str, object], key: str) -> str | None:
     return None
 
 
-
-
 _SCHEDULER_TASK: asyncio.Task[None] | None = None
 _SCHEDULER_INTERVAL_SECONDS = 2
 _RUNNABLE_STATUSES = {"created", "planned", "paused", "waiting_review"}

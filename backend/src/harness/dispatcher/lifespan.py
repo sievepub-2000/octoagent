@@ -35,9 +35,7 @@ async def init_dispatcher(*, capabilities: dict[str, Any] | None = None) -> bool
     return await register_worker(capabilities=capabilities)
 
 
-async def start_dispatcher_task(
-    app: FastAPI, *, capabilities: dict[str, Any] | None = None
-) -> None:
+async def start_dispatcher_task(app: FastAPI, *, capabilities: dict[str, Any] | None = None) -> None:
     """Start heartbeat + leader + dispatch loops on the given FastAPI app."""
     if not dispatcher_enabled():
         return

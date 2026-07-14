@@ -29,7 +29,7 @@ _ORPHAN_RECOVERY_RUNNER = None
 
 def _initialize_configuration():
     try:
-        _init_internal_secrets(__import__('pathlib').Path(__file__).resolve().parents[3])
+        _init_internal_secrets(__import__("pathlib").Path(__file__).resolve().parents[3])
         get_app_config()
         logger.info("Configuration loaded successfully")
     except Exception as exc:
@@ -297,7 +297,6 @@ async def _shutdown_orphan_run_sweeper(app: FastAPI) -> None:
         logger.exception("Harness run journal shutdown failed")
 
 
-
 async def _warm_embedding_service_async() -> None:
     """Pre-warm the sentence-transformers model at startup to avoid first-call latency."""
     import asyncio
@@ -309,6 +308,7 @@ async def _warm_embedding_service_async() -> None:
         logger.info("EmbeddingService warm-up complete (model loaded into memory)")
     except Exception:
         logger.warning("EmbeddingService warm-up failed; model will load on first use", exc_info=True)
+
 
 @asynccontextmanager
 async def gateway_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:

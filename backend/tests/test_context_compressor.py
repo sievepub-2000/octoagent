@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
-
 _COMPRESSOR_DEFAULTS = {
     "max_context_size": 4096,
     "keep_recent_messages": 2,
@@ -57,10 +54,7 @@ def test_anti_hijack_directive_present_in_compressed_output() -> None:
     messages = _make_messages(20)
     result, _ = compressor.compress(messages, system_prompt_tokens=500, tool_description_tokens=500)
 
-    content_str = " ".join(
-        m.get("content", "") if isinstance(m, dict) else getattr(m, "content", "")
-        for m in result
-    )
+    content_str = " ".join(m.get("content", "") if isinstance(m, dict) else getattr(m, "content", "") for m in result)
     assert "DO NOT resume" in content_str
 
 

@@ -33,7 +33,7 @@ __all__ = [
     "brain",
     "channels",
     "mcp",
-        "memory",
+    "memory",
     "models",
     "optimization_program",
     "observation",

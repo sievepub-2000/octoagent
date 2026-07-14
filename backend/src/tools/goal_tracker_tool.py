@@ -74,7 +74,7 @@ def get_current_goal(task_id: str | None = None) -> dict[str, Any]:
                     "task_id": ws.task_id,
                     "name": ws.name,
                     "goal": ws.goal or ws.name,
-                    "status": ws.status,
+                    "task_status": ws.status,
                     "progress": {
                         "completed": ws.progress.completed_cards,
                         "total": ws.progress.total_cards,
@@ -91,7 +91,7 @@ def get_current_goal(task_id: str | None = None) -> dict[str, Any]:
                 "task_id": ws.task_id,
                 "name": ws.name,
                 "goal": ws.goal or ws.name,
-                "status": ws.status,
+                "task_status": ws.status,
                 "progress": {
                     "completed": ws.progress.completed_cards,
                     "total": ws.progress.total_cards,
@@ -106,7 +106,6 @@ def get_current_goal(task_id: str | None = None) -> dict[str, Any]:
 def set_subgoal(subgoal: str, task_id: str) -> dict[str, Any]:
     """Tool: record a sub-goal to track progress."""
     try:
-        from src.storage.task_workspaces.contracts import UpdateTaskWorkspaceRequest
         svc = get_task_workspace_service()
         ws = svc.get_workspace(task_id)
         if ws is None:
@@ -116,11 +115,14 @@ def set_subgoal(subgoal: str, task_id: str) -> dict[str, Any]:
         if not isinstance(subgoals, list):
             subgoals = []
         from datetime import UTC, datetime
-        subgoals.append({
-            "goal": subgoal,
-            "timestamp": datetime.now(UTC).isoformat(),
-            "completed": False,
-        })
+
+        subgoals.append(
+            {
+                "goal": subgoal,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "completed": False,
+            }
+        )
         metadata["subgoals"] = subgoals
         svc.merge_workspace_metadata(task_id, **metadata)
         return {"status": "ok", "subgoal_index": len(subgoals) - 1}

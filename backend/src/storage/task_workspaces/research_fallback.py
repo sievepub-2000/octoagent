@@ -893,9 +893,7 @@ _INTEGRATED_WORKFLOW_ALIASES: dict[str, str] = {
 
 def _prefers_server_side_ai_news_fallback(query: str | None) -> bool:
     normalized = (query or "").strip().lower()
-    return _looks_like_ai_model_news_query(normalized) and any(
-        marker in normalized for marker in _X_DOMAIN_MARKERS
-    )
+    return _looks_like_ai_model_news_query(normalized) and any(marker in normalized for marker in _X_DOMAIN_MARKERS)
 
 
 def _prefers_server_side_news_fallback(query: str | None) -> bool:

@@ -4,10 +4,8 @@ from __future__ import annotations
 
 import ast
 import textwrap
-from typing import Any
 
 import pytest
-
 
 _TOOL_DECORATOR_SOURCE = textwrap.dedent('''\
     from langchain.tools import tool
@@ -43,7 +41,7 @@ def test_ast_discovers_tools_with_string_name() -> None:
 
 
 def test_ast_discovers_multiple_tools_in_one_file() -> None:
-    extra = textwrap.dedent('''\
+    extra = textwrap.dedent("""\
         from langchain.tools import tool
 
         @tool("tool_alpha")
@@ -57,13 +55,13 @@ def test_ast_discovers_multiple_tools_in_one_file() -> None:
         @tool("tool_gamma")
         def gamma() -> str:
             return "c"
-    ''')
+    """)
     names = _parse_tools(extra)
     assert sorted(names) == ["tool_alpha", "tool_beta", "tool_gamma"]
 
 
 def test_ast_skips_non_tool_decorators() -> None:
-    source = textwrap.dedent('''\
+    source = textwrap.dedent("""\
         def not_a_decorator(name):
             return name
 
@@ -76,19 +74,19 @@ def test_ast_skips_non_tool_decorators() -> None:
         @tool("real_tool")
         def real() -> str:
             return "yes"
-    ''')
+    """)
     names = _parse_tools(source)
     assert names == ["real_tool"]
 
 
 def test_ast_handles_async_tool_definitions() -> None:
-    source = textwrap.dedent('''\
+    source = textwrap.dedent("""\
         from langchain.tools import tool
 
         @tool("async_discovered")
         async def do_something(data: str) -> str:
             return data
-    ''')
+    """)
     names = _parse_tools(source)
     assert "async_discovered" in names
 

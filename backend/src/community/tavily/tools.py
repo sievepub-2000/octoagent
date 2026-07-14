@@ -17,9 +17,9 @@ import os
 from typing import Any
 
 from langchain.tools import tool
-from src.utils.lazy_import import lazy_tavily
 
 from src.runtime.config import get_app_config
+from src.utils.lazy_import import lazy_tavily
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _resolve_api_key() -> str | None:
     return None
 
 
-def _client() -> TavilyClient:
+def _client() -> Any:
     key = _resolve_api_key()
     if not key:
         raise RuntimeError("TAVILY_API_KEY not set (env or tool_config.api_key)")

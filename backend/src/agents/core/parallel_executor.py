@@ -9,21 +9,20 @@ injection before retries.
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import os
 import re
 import time
-from dataclasses import dataclass, field
-from typing import Any, Callable
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from .tool_dependency import (
-    ToolCategory,
     ExecutionLayer,
     ToolCallRef,
+    ToolCategory,
     analyze_tool_calls,
     classify_tool,
-    group_calls_by_category,
 )
 
 logger = logging.getLogger(__name__)
@@ -68,7 +67,6 @@ def _get_file_lock(path: str) -> asyncio.Lock:
         _LOCKS_MUTEX = asyncio.Lock()
     normalized = path.replace("\\", "/").rstrip("/")
     if normalized not in _FILE_PATH_LOCKS:
-        loop = asyncio.get_event_loop()
         lock = getattr(asyncio, "Lock", None)
         if lock is not None:
             _FILE_PATH_LOCKS[normalized] = lock()
@@ -149,7 +147,7 @@ def _build_recovery_call(tool_name: str, args: dict[str, Any]) -> dict[str, Any]
     if tool_name in ("file_write", "code_edit", "create_file"):
         for key, value in list(recovery_args.items()):
             if isinstance(value, str) and ("/" in value or "\\" in value):
-                dirname_match = re.search(r'(.*/)[^/]+$', value)
+                dirname_match = re.search(r"(.*/)[^/]+$", value)
                 if dirname_match:
                     recovery_args["diagnostic_path"] = f"{dirname_match.group(1)}"
     return {
@@ -175,9 +173,7 @@ class ParallelExecutor:
             self._semaphore = asyncio.Semaphore(self._config.max_workers)
         return self._semaphore
 
-    def analyze_dependencies(
-        self, tool_calls: list[dict[str, Any]]
-    ) -> list[ExecutionLayer]:
+    def analyze_dependencies(self, tool_calls: list[dict[str, Any]]) -> list[ExecutionLayer]:
         return analyze_tool_calls(tool_calls)
 
     async def execute_batch(
@@ -211,15 +207,11 @@ class ParallelExecutor:
 
             if serial_calls:
                 for call_ref in serial_calls:
-                    result = await self._execute_with_retry(
-                        call_ref, executor_fn, start_time
-                    )
+                    result = await self._execute_with_retry(call_ref, executor_fn, start_time)
                     results[call_ref.index] = result
 
             if parallel_candidates:
-                layer_results = await self._execute_parallel_group(
-                    parallel_candidates, executor_fn, start_time
-                )
+                layer_results = await self._execute_parallel_group(parallel_candidates, executor_fn, start_time)
                 for i, result in enumerate(layer_results):
                     if result is not None:
                         results[parallel_candidates[i].index] = result
@@ -267,7 +259,7 @@ class ParallelExecutor:
                     attempts=attempts,
                     duration_ms=duration_ms,
                 )
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 last_error = f"Tool '{call_ref.tool_name}' timed out after {self._config.per_tool_timeout}s"
                 logger.warning(last_error)
             except Exception as exc:
@@ -279,14 +271,9 @@ class ParallelExecutor:
                 await asyncio.sleep(min(backoff, 5.0))
 
             if last_error and "timed out" not in last_error.lower():
-                current_args, was_repaired = _fuzzy_repair_args(
-                    call_ref.tool_name, current_args, last_error
-                )
+                current_args, was_repaired = _fuzzy_repair_args(call_ref.tool_name, current_args, last_error)
                 if was_repaired:
-                    logger.info(
-                        f"Fuzzy repair applied to '{call_ref.tool_name}': "
-                        f"adjusted args based on error: {last_error[:200]}"
-                    )
+                    logger.info(f"Fuzzy repair applied to '{call_ref.tool_name}': adjusted args based on error: {last_error[:200]}")
 
             if last_error and attempt < self._config.max_retries - 1:
                 recovery_call = _build_recovery_call(call_ref.tool_name, current_args)

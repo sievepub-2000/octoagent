@@ -42,6 +42,7 @@ import { collectSubtaskUpdates, getTaskToolCallIds } from "./subtask-sync";
 /** Keep live text smooth without re-rendering more often than a 30fps frame budget. */
 const STREAM_THROTTLE_MS = 33;
 const ACTIVE_GROUP_WINDOW = 40;
+const ACTIVE_MESSAGE_WINDOW = 240;
 const HISTORY_GROUP_WINDOW = 90;
 
 /**
@@ -154,6 +155,12 @@ export function MessageList({
 
   // Throttle streaming re-renders to STREAM_THROTTLE_MS
   const messages = useThrottledMessages(thread.messages, thread.isLoading);
+  const activeMessages = useMemo(
+    () => thread.isLoading && messages.length > ACTIVE_MESSAGE_WINDOW
+      ? messages.slice(-ACTIVE_MESSAGE_WINDOW)
+      : messages,
+    [messages, thread.isLoading],
+  );
   const liveAssistantMessageId = useMemo(() => {
     if (!thread.isLoading) return undefined;
     for (let index = messages.length - 1; index >= 0; index -= 1) {
@@ -169,8 +176,8 @@ export function MessageList({
 
   // Compute groups once per messages change (not per streaming token re-render)
   const groups = useMemo(
-    () => groupMessages(messages, (g) => g),
-    [messages],
+    () => groupMessages(activeMessages, (g) => g),
+    [activeMessages],
   );
   const renderWindowSize = thread.isLoading
     ? ACTIVE_GROUP_WINDOW
@@ -198,22 +205,16 @@ export function MessageList({
 
   // Keep subtask store in sync based on message stream, but do it in an
   // effect to avoid triggering state updates during render.
-  const subtaskSignature = useMemo(() => {
-    const ids: string[] = [];
-    for (const message of messages) {
-      if (message.type !== "ai") continue;
-      for (const toolCall of message.tool_calls ?? []) {
-        if (toolCall.name === "task" && toolCall.id) ids.push(toolCall.id);
-      }
-    }
-    return ids.join("|");
-  }, [messages]);
+  const subtaskUpdates = useMemo(
+    () => collectSubtaskUpdates(activeMessages),
+    [activeMessages],
+  );
 
   useEffect(() => {
-    for (const update of collectSubtaskUpdates(messages)) {
+    for (const update of subtaskUpdates) {
       updateSubtask(update);
     }
-  }, [messages, subtaskSignature, updateSubtask]);
+  }, [subtaskUpdates, updateSubtask]);
 
   const renderGroup = useCallback(
     (_index: number, group: MessageGroup): React.ReactNode => {

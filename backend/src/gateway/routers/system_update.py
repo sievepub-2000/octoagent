@@ -85,6 +85,7 @@ def _run_blocking_process(
         record_exception_trace("gateway.system_update.process", exc, command=args[:3])
         raise
 
+
 # ---------- models ------------------------------------------------------
 
 
@@ -616,6 +617,7 @@ async def apply_update(
         if saved_head_sha:
             await asyncio.to_thread(_rollback_to_commit, saved_head_sha)
         return UpdateResult(success=False, message=f"Update failed (rolled back to {saved_head_sha or 'unknown'}): {exc}")
+
 
 def _schedule_restart() -> None:
     """Restart OctoAgent services after update."""

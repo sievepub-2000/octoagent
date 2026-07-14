@@ -97,62 +97,62 @@ def test_runtime_model_error_marks_trace_failed() -> None:
 def test_tool_failure_recovered_by_final_answer_marks_trace_completed() -> None:
     trace = _extract_execution_trace(
         [
-            HumanMessage(content='检查系统'),
-            AIMessage(content='', tool_calls=[{'name': 'bash', 'args': {}, 'id': 'call-1'}]),
-            ToolMessage(content='Error: command timed out', name='bash', tool_call_id='call-1', status='error'),
-            AIMessage(content='已根据已有日志完成系统检查，结论是服务已恢复，后续无需继续调用失败命令。'),
+            HumanMessage(content="检查系统"),
+            AIMessage(content="", tool_calls=[{"name": "bash", "args": {}, "id": "call-1"}]),
+            ToolMessage(content="Error: command timed out", name="bash", tool_call_id="call-1", status="error"),
+            AIMessage(content="已根据已有日志完成系统检查，结论是服务已恢复，后续无需继续调用失败命令。"),
         ]
     )
 
     assert trace.success is True
-    assert trace.tools_failed == ['bash']
-    assert trace.error_message == ''
+    assert trace.tools_failed == ["bash"]
+    assert trace.error_message == ""
 
 
 def test_recovery_policy_stop_after_tool_failure_remains_recoverable() -> None:
     legacy_stop_text = "".join(
         chr(code)
         for code in (
-            0x5de5,
+            0x5DE5,
             0x5177,
-            0x8c03,
+            0x8C03,
             0x7528,
-            0x8fde,
-            0x7eed,
+            0x8FDE,
+            0x7EED,
             0x5931,
-            0x8d25,
-            0xff0c,
-            0x5df2,
+            0x8D25,
+            0xFF0C,
+            0x5DF2,
             0x6309,
             0x6062,
-            0x590d,
-            0x7b56,
+            0x590D,
+            0x7B56,
             0x7565,
-            0x505c,
-            0x6b62,
-            0x7ee7,
-            0x7eed,
-            0x6d88,
+            0x505C,
+            0x6B62,
+            0x7EE7,
+            0x7EED,
+            0x6D88,
             0x8017,
-            0x5de5,
+            0x5DE5,
             0x5177,
-            0x8c03,
+            0x8C03,
             0x7528,
             0x3002,
         )
     )
     trace = _extract_execution_trace(
         [
-            HumanMessage(content='检查系统'),
-            AIMessage(content='', tool_calls=[{'name': 'host_shell', 'args': {}, 'id': 'call-1'}]),
-            ToolMessage(content='Error: permission denied', name='host_shell', tool_call_id='call-1', status='error'),
+            HumanMessage(content="检查系统"),
+            AIMessage(content="", tool_calls=[{"name": "host_shell", "args": {}, "id": "call-1"}]),
+            ToolMessage(content="Error: permission denied", name="host_shell", tool_call_id="call-1", status="error"),
             AIMessage(content=legacy_stop_text),
         ]
     )
 
     assert trace.success is False
-    assert trace.tools_failed == ['host_shell']
-    assert trace.error_message == 'Tool recovery policy stopped before completing the user task.'
+    assert trace.tools_failed == ["host_shell"]
+    assert trace.error_message == "Tool recovery policy stopped before completing the user task."
 
 
 def test_generic_recovery_policy_wording_can_be_substantive_final_answer() -> None:
@@ -163,8 +163,7 @@ def test_generic_recovery_policy_wording_can_be_substantive_final_answer() -> No
             ToolMessage(content="Error: command timed out", name="bash", tool_call_id="call-1", status="error"),
             AIMessage(
                 content=(
-                    "Recovery policy requires switching to a different implementation path. "
-                    "I switched to the service logs, found the blocked startup step, and the safe next action is to restart only the gateway after fixing configuration."
+                    "Recovery policy requires switching to a different implementation path. I switched to the service logs, found the blocked startup step, and the safe next action is to restart only the gateway after fixing configuration."
                 )
             ),
         ]
@@ -198,6 +197,7 @@ def test_after_agent_records_recoverable_tool_failures_as_incomplete(monkeypatch
     assert record["recoverable_failure"]["status"] == "recoverable"
     assert record["final_evaluation"]["status"] == "incomplete"
     assert record["final_evaluation"]["reason"] == "Error: command timed out"
+
 
 def test_after_agent_records_completed_tool_batch_without_final_answer_as_incomplete(monkeypatch, tmp_path) -> None:
     captured: dict[str, object] = {}

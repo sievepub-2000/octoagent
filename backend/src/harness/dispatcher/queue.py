@@ -177,9 +177,7 @@ async def ack_dispatch(dispatch_id: str, *, state: str = "ok") -> bool:
         return False
 
 
-async def nack_dispatch(
-    dispatch_id: str, *, error: str | None = None
-) -> dict[str, Any] | None:
+async def nack_dispatch(dispatch_id: str, *, error: str | None = None) -> dict[str, Any] | None:
     """Re-queue a failed job with exponential backoff, or mark failed
     if ``attempts >= max_attempts``.
 
@@ -266,9 +264,7 @@ async def dispatch_queue_stats() -> dict[str, Any]:
                     """
                 )
                 out["by_kind"] = {row[0]: int(row[1]) for row in await cur.fetchall()}
-                await cur.execute(
-                    "SELECT count(*) FROM octo_dispatch_queue WHERE claimed_by IS NOT NULL AND finished_at IS NULL"
-                )
+                await cur.execute("SELECT count(*) FROM octo_dispatch_queue WHERE claimed_by IS NOT NULL AND finished_at IS NULL")
                 row = await cur.fetchone()
                 out["in_flight"] = int(row[0]) if row else 0
         return out

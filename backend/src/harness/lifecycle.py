@@ -69,7 +69,6 @@ def _activity_window_minutes() -> int:
         return 8
 
 
-
 def _parse_ts(value: Any) -> datetime | None:
     if not value or not isinstance(value, str):
         return None
@@ -176,10 +175,7 @@ class OrphanRunSweeper:
                     logger.exception("OrphanRunSweeper: journal update failed for %s", rid)
         return out
 
-
-    async def _get_thread_last_message_time(
-        self, client: httpx.AsyncClient, thread_id: str
-    ) -> "datetime | None":
+    async def _get_thread_last_message_time(self, client: httpx.AsyncClient, thread_id: str) -> datetime | None:
         """Return the timestamp of the most-recent message in the thread,
         or None if the state cannot be fetched."""
         try:
@@ -247,8 +243,7 @@ class OrphanRunSweeper:
                         _last_msg = await self._get_thread_last_message_time(client, tid)
                         if _last_msg is not None and (now - _last_msg) < _activity_win:
                             logger.debug(
-                                "OrphanRunSweeper: skipping active run thread=%s "
-                                "age=%.0fs last_msg_age=%.0fs",
+                                "OrphanRunSweeper: skipping active run thread=%s age=%.0fs last_msg_age=%.0fs",
                                 tid,
                                 age.total_seconds(),
                                 (now - _last_msg).total_seconds(),

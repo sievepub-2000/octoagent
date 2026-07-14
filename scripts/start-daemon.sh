@@ -448,7 +448,7 @@ else
     FRONTEND_CMD=(
         env
         "BETTER_AUTH_SECRET=$("$OCTOAGENT_PYTHON_BIN" -c 'import secrets; print(secrets.token_hex(16))')"
-        pnpm exec next start --hostname 127.0.0.1 --port "$FRONTEND_PORT"
+        node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port "$FRONTEND_PORT"
     )
     LANGGRAPH_EXTRA_FLAGS=(--no-reload)
     # Frontend incremental build (octoagent B4): skip pnpm build when source
@@ -658,7 +658,7 @@ PY
         (
             clean_frontend_build_dir
             cd frontend
-            pnpm exec next build
+            node node_modules/next/dist/bin/next build
         )
         printf '%s\n' "$NEW_FRONTEND_HASH" > "$FRONTEND_HASH_FILE"
         printf '%s\n' "$NEW_FRONTEND_RUNTIME_HASH" > "$FRONTEND_RUNTIME_HASH_FILE"

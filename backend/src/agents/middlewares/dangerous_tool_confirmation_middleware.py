@@ -57,8 +57,6 @@ def _signature(tool_name: str, args: Any) -> str:
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
 
-
-
 def _latest_human_text(messages: list[Any]) -> str:
     for message in reversed(messages):
         if getattr(message, "type", "") == "human":

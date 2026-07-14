@@ -209,13 +209,7 @@ def _scrapling_fallback_markdown(url: str, *, reason: str, stealth: bool = False
     title = str(payload.get("title") or url).strip()
     mode = str(payload.get("mode") or "http")
     tls = str(payload.get("tls_verification") or "verified")
-    return (
-        f"# {title}\n\n"
-        f"Source: {url}\n"
-        f"Engine: scrapling ({mode}, tls={tls})\n"
-        f"Fallback reason: {reason}\n\n"
-        f"{content[:6000]}"
-    )
+    return f"# {title}\n\nSource: {url}\nEngine: scrapling ({mode}, tls={tls})\nFallback reason: {reason}\n\n{content[:6000]}"
 
 
 def _anti_bot_reason(status: int, content: str) -> str | None:
@@ -278,10 +272,7 @@ def web_fetch_tool(url: str) -> str:
             logger.warning("web_fetch TLS verification failed for %s; retrying without verification: %s", url, exc)
             try:
                 status, ctype, body = _fetch_raw_without_verification(url, timeout=timeout)
-                tls_warning = (
-                    "[Warning: TLS certificate verification failed for this public URL; "
-                    "retried with certificate verification disabled. Verify the source URL before relying on the content.]\n\n"
-                )
+                tls_warning = "[Warning: TLS certificate verification failed for this public URL; retried with certificate verification disabled. Verify the source URL before relying on the content.]\n\n"
             except Exception as retry_exc:
                 logger.warning("web_fetch insecure TLS retry failed for %s: %s", url, retry_exc)
                 fetch_error = f"{type(retry_exc).__name__}: {retry_exc}"

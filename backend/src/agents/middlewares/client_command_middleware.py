@@ -162,10 +162,7 @@ def _build_instant_client_answer(messages: list[Any], runtime_context: dict[str,
 
 def _build_control_route_guard(route_kind: str) -> SystemMessage:
     if route_kind == "control_command":
-        guidance = (
-            "The latest user turn is a conversation control command. "
-            "Acknowledge the control intent briefly. Do not run tools or claim external actions unless an explicit runtime control API is invoked outside the model."
-        )
+        guidance = "The latest user turn is a conversation control command. Acknowledge the control intent briefly. Do not run tools or claim external actions unless an explicit runtime control API is invoked outside the model."
     else:
         guidance = (
             "The latest user turn is planning-only or confirmation-gated. "
@@ -328,10 +325,7 @@ def _maybe_build_system_tools_snapshot(user_text: str) -> SystemMessage | None:
 
 def _is_system_tools_inventory_request(user_text: str) -> bool:
     lower = user_text.lower()
-    has_inventory_trigger = bool(
-        re.search(r"\b(available tools?|tool inventory|tool status|system tools?)\b", lower)
-        or any(token in user_text for token in ("系统工具", "工具情况", "可用工具", "工具列表", "工具清单", "工具状态"))
-    )
+    has_inventory_trigger = bool(re.search(r"\b(available tools?|tool inventory|tool status|system tools?)\b", lower) or any(token in user_text for token in ("系统工具", "工具情况", "可用工具", "工具列表", "工具清单", "工具状态")))
     if not has_inventory_trigger:
         return False
 
@@ -554,6 +548,7 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
     unresolved: list[str] = []
     try:
         import logging
+
         _weather_logger = logging.getLogger(__name__)
 
         import time
@@ -747,7 +742,7 @@ def _maybe_build_weather_snapshot(user_text: str) -> SystemMessage | None:
             "source": "Open-Meteo (primary), wttr.in (fallback)",
             "source_detail": "Uses Open-Meteo with 3 retries; falls back to wttr.in if Open-Meteo fails",
             "requested_cities": requested_names,
-            "unresolved_cities": unresolved_local if 'unresolved_local' in dir() else unresolved,
+            "unresolved_cities": unresolved,
             "forecasts": forecasts,
         }
     except Exception as exc:

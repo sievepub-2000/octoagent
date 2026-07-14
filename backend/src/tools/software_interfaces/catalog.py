@@ -258,8 +258,4 @@ def summarize_categories() -> list[dict[str, object]]:
     counts = {category: 0 for category in _CATEGORY_ORDER}
     for item in list_software_interfaces():
         counts[item.category] = counts.get(item.category, 0) + 1
-    return [
-        {"id": category, "label": category_label(category), "count": counts.get(category, 0)}
-        for category in _CATEGORY_ORDER
-        if counts.get(category, 0) > 0
-    ]
+    return [{"id": category, "label": category_label(category), "count": counts.get(category, 0)} for category in _CATEGORY_ORDER if counts.get(category, 0) > 0]

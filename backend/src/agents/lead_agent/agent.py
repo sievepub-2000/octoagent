@@ -1,7 +1,6 @@
 import logging
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import SummarizationMiddleware
 from langchain_core.runnables import RunnableConfig
 
 from src.agents.middlewares.title_middleware import TitleMiddleware
@@ -18,7 +17,6 @@ from src.harness import (
 from src.models import create_chat_model
 from src.runtime.config.app_config import get_app_config
 from src.runtime.config.paths import resolve_configured_default_model_name
-from src.runtime.config.summarization_config import get_summarization_config
 from src.tools.sandbox.middleware import SandboxMiddleware
 
 from ..middlewares.clarification_middleware import ClarificationMiddleware
@@ -73,48 +71,6 @@ def _resolve_model_name(requested_model_name: str | None = None) -> str:
     if requested_model_name and requested_model_name != default_model_name:
         logger.warning(f"Model '{requested_model_name}' not found in config; fallback to default model '{default_model_name}'.")
     return default_model_name
-
-
-def _create_summarization_middleware() -> SummarizationMiddleware | None:
-    """Create and configure the summarization middleware from config."""
-    config = get_summarization_config()
-
-    if not config.enabled:
-        return None
-
-    # Prepare trigger parameter
-    trigger = None
-    if config.trigger is not None:
-        if isinstance(config.trigger, list):
-            trigger = [t.to_tuple() for t in config.trigger]
-        else:
-            trigger = config.trigger.to_tuple()
-
-    # Prepare keep parameter
-    keep = config.keep.to_tuple()
-
-    # Prepare model parameter
-    if config.model_name:
-        model = config.model_name
-    else:
-        # Use a lightweight model for summarization to save costs
-        # Falls back to default model if not explicitly specified
-        model = create_chat_model(thinking_enabled=False)
-
-    # Prepare kwargs
-    kwargs = {
-        "model": model,
-        "trigger": trigger,
-        "keep": keep,
-    }
-
-    if config.trim_tokens_to_summarize is not None:
-        kwargs["trim_tokens_to_summarize"] = config.trim_tokens_to_summarize
-
-    if config.summary_prompt is not None:
-        kwargs["summary_prompt"] = config.summary_prompt
-
-    return SummarizationMiddleware(**kwargs)
 
 
 def _create_todo_list_middleware(is_plan_mode: bool) -> TodoMiddleware | None:
@@ -235,7 +191,6 @@ Being proactive with task management demonstrates thoroughness and ensures all r
 # ThreadDataMiddleware must be before SandboxMiddleware to ensure thread_id is available
 # UploadsMiddleware should be after ThreadDataMiddleware to access thread_id
 # DanglingToolCallMiddleware patches missing ToolMessages before model sees the history
-# SummarizationMiddleware should be early to reduce context before other processing
 # TodoListMiddleware should be before ClarificationMiddleware to allow todo management
 # TitleMiddleware generates title after first exchange
 # MemoryMiddleware queues conversation for memory update (after TitleMiddleware)
@@ -275,11 +230,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
         SandboxMiddleware(),
         DanglingToolCallMiddleware(),
     ]
-
-    # Add summarization middleware if enabled
-    summarization_middleware = _create_summarization_middleware()
-    if summarization_middleware is not None:
-        middlewares.append(summarization_middleware)
 
     # Add TodoList middleware if plan mode is enabled
     is_plan_mode = runtime_config_value(config, "is_plan_mode", False)

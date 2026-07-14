@@ -12,6 +12,27 @@ export interface ThreadContinuation {
   continued_at?: string | null;
 }
 
+export interface ContinuationContract {
+  version: 2;
+  objective: string;
+  status?: string;
+  current_phase?: string;
+  next_action?: string;
+  constraints?: string[];
+  forbidden_actions?: string[];
+  acceptance_criteria?: string[];
+  confirmed_decisions?: string[];
+  completed_steps?: string[];
+  pending_steps?: string[];
+  blockers?: string[];
+  evidence?: string[];
+  artifacts?: string[];
+  permission_scope?: string;
+  source_thread_id: string;
+  source_title?: string;
+  source_message_ids?: string[];
+}
+
 export interface ThreadRuntimeState {
   primary_model?: string | null;
   active_model?: string | null;
@@ -66,6 +87,13 @@ export interface ThreadRuntimeState {
   context_cycle_id?: string | null;
   context_cycle_started_at?: string | null;
   context_cycle_base_tokens?: number | null;
+  context_handoff?: {
+    required: boolean;
+    source_thread_id: string;
+    reason: string;
+    pre_tokens?: number;
+    post_tokens?: number;
+  } | null;
   task_review_required?: boolean | null;
   execution_review_started_at?: string | null;
   execution_review_last_at?: string | null;
@@ -119,6 +147,7 @@ export interface AgentThreadContext extends Record<string, unknown> {
   continue_memory_summary?: string;
   continue_todos?: Todo[];
   continue_task_state?: Record<string, unknown> | null;
+  continue_contract?: ContinuationContract;
   continue_workflows?: Workflow[];
   continue_cycle_id?: string;
   continue_cycle_started_at?: string;

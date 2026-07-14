@@ -179,5 +179,3 @@ async def get_active_triggers(toolkit: str, connection_id: str | None = None) ->
     if get_software_interface(toolkit) is None:
         raise HTTPException(status_code=404, detail="Unknown software interface toolkit")
     return list_active_triggers(toolkit, connection_id)
-
-

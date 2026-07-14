@@ -15,7 +15,6 @@ from __future__ import annotations
 import hashlib
 from typing import Any
 
-
 # ---------------------------------------------------------------------------
 # Static base prompt template (narrow waist: 5 core tools only)
 # ---------------------------------------------------------------------------
@@ -47,7 +46,10 @@ When your task requires capabilities beyond the core set, additional tool catego
 - **Publishing**: browser-based publishing, WordPress CLI, publication auditing
 - **Ecosystem workflows**: project cataloging, novel writing pipelines, selfhosted references
 
-You do NOT need to explicitly request these tools. If your task clearly requires them (e.g. "deploy via Docker", "take a screenshot", "convert this PDF"), they will be loaded automatically. For simple dialogue or reasoning tasks that need no tools, answer directly.
+You do NOT need to explicitly request these tools. If your task clearly requires
+them (e.g. "deploy via Docker", "take a screenshot", "convert this PDF"), they
+will be loaded automatically. For simple dialogue or reasoning tasks that need
+no tools, answer directly.
 
 ## Tool Usage Guidelines
 - Prefer real evidence over speculation: run commands, fetch pages, read files before drawing conclusions.

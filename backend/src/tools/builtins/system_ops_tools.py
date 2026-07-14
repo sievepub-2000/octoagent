@@ -95,16 +95,10 @@ def _ensure_artifact_tool_root(tool_name: str) -> Path:
         root.mkdir(parents=True, exist_ok=True)
     except PermissionError as exc:
         user = os.environ.get("USER") or str(os.geteuid())
-        raise PermissionError(
-            f"system tool artifact root is not writable by {user}: {root}; "
-            "run scripts/repair-runtime-permissions.sh as root or restart octoagent-local.service"
-        ) from exc
+        raise PermissionError(f"system tool artifact root is not writable by {user}: {root}; run scripts/repair-runtime-permissions.sh as root or restart octoagent-local.service") from exc
     if not os.access(root, os.W_OK | os.X_OK):
         user = os.environ.get("USER") or str(os.geteuid())
-        raise PermissionError(
-            f"system tool artifact root is not writable by {user}: {root}; "
-            "run scripts/repair-runtime-permissions.sh as root or restart octoagent-local.service"
-        )
+        raise PermissionError(f"system tool artifact root is not writable by {user}: {root}; run scripts/repair-runtime-permissions.sh as root or restart octoagent-local.service")
     return root
 
 

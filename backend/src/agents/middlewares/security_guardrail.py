@@ -9,7 +9,6 @@ Provides four layers of protection:
 
 from __future__ import annotations
 
-import base64
 import ipaddress
 import logging
 import re
@@ -53,6 +52,7 @@ _SYSTEM_WRITE_DIRS: tuple[str, ...] = ("/etc", "/usr", "/var", "/bin", "/sbin", 
 # Data classes
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class GuardrailViolation:
     category: str
@@ -70,6 +70,7 @@ class SessionRateState:
 # ---------------------------------------------------------------------------
 # SecurityGuardrail middleware
 # ---------------------------------------------------------------------------
+
 
 class SecurityGuardrail:
     """Four-layer security guardrail for tool execution."""

@@ -82,10 +82,6 @@ def _execution_mode(state: AgentState) -> str:
     return "assisted"
 
 
-
-
-
-
 def _tool_call_signature(name: str, args: object) -> str:
     try:
         payload = json.dumps(args, ensure_ascii=False, sort_keys=True, default=str)
@@ -272,6 +268,7 @@ def _build_user_handoff_message(per_call_sigs: list[str], dup_count: int) -> Sys
     )
     return SystemMessage(content=body)
 
+
 def _user_handoff_visible(messages: list[Any]) -> bool:
     start = _latest_human_index(messages) + 1
     return any(isinstance(message, SystemMessage) and _USER_HANDOFF_MARKER in _message_text(message) for message in messages[start:])
@@ -298,6 +295,7 @@ def _build_ignored_handoff_answer(per_call_sigs: list[str], dup_count: int) -> s
         ]
     )
 
+
 def _build_soft_escalation_message(per_call_sigs: list[str], dup_count: int, stall_signature: str = "", execution_mode: str = "assisted") -> SystemMessage:
     top = Counter(per_call_sigs).most_common(1)
     top_sig = top[0][0] if top else "(unknown)"
@@ -307,19 +305,9 @@ def _build_soft_escalation_message(per_call_sigs: list[str], dup_count: int, sta
         name, payload = top_sig, ""
     payload = payload[:240] + ("…" if len(payload) > 240 else "")
     if execution_mode == "goal_autopilot":
-        next_actions = (
-            "1) 用事实清单总结已经确认的信息。\n"
-            "2) 明确写出这条路径为何没有新增信息。\n"
-            "3) 选择一个不同工具、不同参数或不同证据来源的下一步并继续执行。\n"
-            "4) 除非出现系统级错误，继续推进用户任务；不要再次调用上述重复工具参数。\n"
-        )
+        next_actions = "1) 用事实清单总结已经确认的信息。\n2) 明确写出这条路径为何没有新增信息。\n3) 选择一个不同工具、不同参数或不同证据来源的下一步并继续执行。\n4) 除非出现系统级错误，继续推进用户任务；不要再次调用上述重复工具参数。\n"
     else:
-        next_actions = (
-            "1) 用事实清单总结已经确认的信息。\n"
-            "2) 明确写出这条路径为何没有新增信息。\n"
-            "3) 如果还没有尝试过不同策略，换一种策略再试一次。\n"
-            "4) 如果已经尝试过不同策略仍失败，向用户说明卡点并问一个清晰问题。\n"
-        )
+        next_actions = "1) 用事实清单总结已经确认的信息。\n2) 明确写出这条路径为何没有新增信息。\n3) 如果还没有尝试过不同策略，换一种策略再试一次。\n4) 如果已经尝试过不同策略仍失败，向用户说明卡点并问一个清晰问题。\n"
     body = (
         f'{_SOFT_ESCALATION_MARKER} signature="{stall_signature or f"dup={dup_count}"}" dup="{dup_count}" execution_mode="{execution_mode}">\n'
         f"同一工具调用已重复 {dup_count} 次（阈值 {_SOFT_ESCALATION_DUP}），且常规 self-reflection 未打破循环。\n"
@@ -460,10 +448,7 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
         # Deep soft escalation: if repeated self-reflection did not help, ask
         # the model to change strategy. No graph jump is returned here; OOM guard
         # remains the only automatic hard stop.
-        safety_net_triggered = (
-            dup_count >= _SAFETY_NET_DUP
-            or soft_for_signature >= _MAX_SOFT_ESCALATIONS_PER_SIGNATURE
-        )
+        safety_net_triggered = dup_count >= _SAFETY_NET_DUP or soft_for_signature >= _MAX_SOFT_ESCALATIONS_PER_SIGNATURE
 
         # Hard circuit-breaker: the soft path (self-reflection + soft
         # escalation) deliberately never terminates the run, which means a
@@ -474,11 +459,7 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
         # back instead of spinning forever.
         reflections_exhausted = prior_reflections >= _MAX_REFLECTIONS_PER_TURN
         soft_exhausted = soft_for_signature >= _MAX_SOFT_ESCALATIONS_PER_SIGNATURE
-        hard_end = _HARD_END_ENABLED and (
-            dup_count >= _HARD_END_DUP
-            or (reflections_exhausted and soft_exhausted)
-            or (reflections_exhausted and dup_count >= _SAFETY_NET_DUP)
-        )
+        hard_end = _HARD_END_ENABLED and (dup_count >= _HARD_END_DUP or (reflections_exhausted and soft_exhausted) or (reflections_exhausted and dup_count >= _SAFETY_NET_DUP))
         if hard_end:
             logger.warning(
                 "ProgressStall: HARD-STOP signature=%s dup=%d prior_reflections=%d soft_for_sig=%d mode=%s",
@@ -489,9 +470,7 @@ class ProgressStallMiddleware(AgentMiddleware[AgentState]):
                 execution_mode,
             )
             return {
-                "messages": [
-                    _build_hard_stop_finalization(per_call_sigs, output_sigs, dup_count, execution_mode)
-                ],
+                "messages": [_build_hard_stop_finalization(per_call_sigs, output_sigs, dup_count, execution_mode)],
                 # Consumed by the hook bridge (_progress_stall_hook), which
                 # translates it into the sanctioned block=True → jump_to END
                 # termination path.

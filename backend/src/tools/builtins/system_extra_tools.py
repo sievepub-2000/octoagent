@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from langchain_core.tools import tool
+
 from src.utils.serialization import fmt_json as _json
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -102,6 +103,7 @@ def _mcp_command_missing(cfg: dict) -> bool:
     if os.path.isabs(resolved):
         return not (os.path.exists(resolved) and os.access(resolved, os.X_OK))
     return not bool(shutil.which(resolved))
+
 
 os.environ.setdefault("NPM_CONFIG_CACHE", str(_MANAGED_TOOLS_DIR / "npm-cache"))
 os.environ.setdefault("npm_config_cache", os.environ["NPM_CONFIG_CACHE"])

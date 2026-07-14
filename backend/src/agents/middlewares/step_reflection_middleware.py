@@ -71,8 +71,6 @@ def _content_text(message: Any) -> str:
     return str(content or "")
 
 
-
-
 def _research_closure_active(state: AgentState) -> bool:
     runtime_state = state.get("runtime") or {}
     closure = runtime_state.get("research_closure") if isinstance(runtime_state, dict) else None

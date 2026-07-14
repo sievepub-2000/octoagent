@@ -22,6 +22,7 @@ def test_ddg_web_fetch_supports_sync_invoke(monkeypatch) -> None:
 
 def test_ddg_web_fetch_retries_public_cert_chain_failures(monkeypatch) -> None:
     monkeypatch.setenv("OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY", "1")
+
     def fake_fetch_raw(url: str, timeout: float) -> tuple[int, str, str]:
         raise httpx.ConnectError("[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate")
 

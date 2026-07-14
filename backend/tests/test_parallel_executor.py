@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
-
 
 def _make_executor(**overrides):
     from src.agents.core.parallel_executor import ParallelExecutor, ParallelExecutorConfig
@@ -120,55 +118,71 @@ def test_execute_batch_empty_input_returns_empty() -> None:
 
 
 def test_handle_failure_returns_correct_action_for_timeout() -> None:
-    from src.agents.core.parallel_executor import CallResult, ParallelExecutor
+    from src.agents.core.parallel_executor import CallResult
 
     executor = _make_executor()
     result = CallResult(
-        index=0, tool_name="shell_exec", args={"command": "sleep 100"},
-        result=None, error="Tool timed out after 10s", attempts=1,
+        index=0,
+        tool_name="shell_exec",
+        args={"command": "sleep 100"},
+        result=None,
+        error="Tool timed out after 10s",
+        attempts=1,
     )
     action = executor.handle_failure(result)
     assert action["action"] == "retry_with_timeout_increase"
 
 
 def test_handle_failure_returns_correct_action_for_not_found() -> None:
-    from src.agents.core.parallel_executor import CallResult, ParallelExecutor
+    from src.agents.core.parallel_executor import CallResult
 
     executor = _make_executor()
     result = CallResult(
-        index=0, tool_name="file_read", args={"path": "/nonexistent"},
-        result=None, error="No such file or directory", attempts=1,
+        index=0,
+        tool_name="file_read",
+        args={"path": "/nonexistent"},
+        result=None,
+        error="No such file or directory",
+        attempts=1,
     )
     action = executor.handle_failure(result)
     assert action["action"] == "retry_with_path_check"
 
 
 def test_handle_failure_returns_correct_action_for_permission() -> None:
-    from src.agents.core.parallel_executor import CallResult, ParallelExecutor
+    from src.agents.core.parallel_executor import CallResult
 
     executor = _make_executor()
     result = CallResult(
-        index=0, tool_name="shell_exec", args={"command": "cat /etc/shadow"},
-        result=None, error="Permission denied", attempts=1,
+        index=0,
+        tool_name="shell_exec",
+        args={"command": "cat /etc/shadow"},
+        result=None,
+        error="Permission denied",
+        attempts=1,
     )
     action = executor.handle_failure(result)
     assert action["action"] == "retry_with_sudo"
 
 
 def test_handle_failure_no_error_returns_none() -> None:
-    from src.agents.core.parallel_executor import CallResult, ParallelExecutor
+    from src.agents.core.parallel_executor import CallResult
 
     executor = _make_executor()
     result = CallResult(
-        index=0, tool_name="file_read", args={"path": "/tmp/x"},
-        result="content", error=None, attempts=1,
+        index=0,
+        tool_name="file_read",
+        args={"path": "/tmp/x"},
+        result="content",
+        error=None,
+        attempts=1,
     )
     action = executor.handle_failure(result)
     assert action["action"] == "none"
 
 
 def test_classify_tool_returns_expected_categories() -> None:
-    from src.agents.core.tool_dependency import classify_tool, ToolCategory
+    from src.agents.core.tool_dependency import ToolCategory, classify_tool
 
     assert classify_tool("file_write") == ToolCategory.WRITE
     assert classify_tool("file_read") == ToolCategory.READ
@@ -178,7 +192,7 @@ def test_classify_tool_returns_expected_categories() -> None:
 
 
 def test_group_calls_by_category_separates_writes_from_reads() -> None:
-    from src.agents.core.tool_dependency import group_calls_by_category, analyze_tool_calls
+    from src.agents.core.tool_dependency import analyze_tool_calls, group_calls_by_category
 
     tool_calls = [
         {"tool": "file_write", "args": {"path": "/tmp/a.txt"}},

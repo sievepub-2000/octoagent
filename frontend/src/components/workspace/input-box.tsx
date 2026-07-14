@@ -62,6 +62,7 @@ import {
   type ContextTokenUsage,
 } from "@/core/context/context-token-counter";
 import { useI18n } from "@/core/i18n/hooks";
+import { getWorkspaceLocaleCopy } from "@/core/i18n/workspace-copy";
 import { useModels } from "@/core/models/hooks";
 import { useLocalSettings } from "@/core/settings/hooks";
 import { useApplySetup, useSetupStatus } from "@/core/setup/hooks";
@@ -219,7 +220,8 @@ export function InputBox({
   onSubmit?: (message: PromptInputMessage) => void;
   onStop?: () => void;
 }) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
+  const modelCopy = getWorkspaceLocaleCopy(locale).modelsPage;
   const permissionModeOptions = useMemo(() => getPermissionModeOptions(t), [t]);
   const queryClient = useQueryClient();
   const searchParams = useSearchParams();
@@ -1069,10 +1071,10 @@ export function InputBox({
             <ModelSelectorContent>
               <ModelSelectorInput placeholder={t.inputBox.searchModels} />
               <ModelSelectorList>
-                {models.length === 0 ? <ModelSelectorEmpty>No models available.</ModelSelectorEmpty> : null}
+                {models.length === 0 ? <ModelSelectorEmpty>{modelCopy.noModels}</ModelSelectorEmpty> : null}
                 {models.length > 0 ? (
                   <>
-                    <ModelSelectorGroup heading="This Chat">
+                    <ModelSelectorGroup heading={t.sidebar.chats}>
                       <ModelSelectorItem
                         value={`chat system default ${systemDefaultModel?.display_name ?? systemDefaultModel?.name ?? ""}`}
                         onSelect={handleUseSystemDefault}
@@ -1080,7 +1082,7 @@ export function InputBox({
                         <div className="flex min-w-0 flex-1 flex-col">
                           <ModelSelectorName>{t.workflows.systemDefault}</ModelSelectorName>
                           <span className="text-muted-foreground text-[10px]">
-                            {systemDefaultModel?.display_name ?? systemDefaultModel?.name ?? "No system default configured"}
+                            {systemDefaultModel?.display_name ?? systemDefaultModel?.name ?? modelCopy.noModels}
                           </span>
                         </div>
                         {usingSystemDefault ? (

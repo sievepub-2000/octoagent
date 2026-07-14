@@ -1,5 +1,6 @@
 """Middleware for injecting image details into conversation before LLM call."""
 
+import logging
 from typing import NotRequired, override
 
 from langchain.agents import AgentState
@@ -8,6 +9,8 @@ from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.runtime import Runtime
 
 from src.agents.thread_state import ViewedImageData
+
+logger = logging.getLogger(__name__)
 
 
 class ViewImageMiddlewareState(AgentState):

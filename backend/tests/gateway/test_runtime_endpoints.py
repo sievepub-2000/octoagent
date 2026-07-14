@@ -7,6 +7,7 @@ Targets ``backend/src/gateway/routers/runtime.py``:
 The tests use FastAPI's ``TestClient`` against a minimal app that only mounts
 the runtime router so we don't need to spin up the whole gateway.
 """
+
 from __future__ import annotations
 
 from pathlib import Path
@@ -64,9 +65,7 @@ def test_effective_config_resolves_repo_root_to_real_repo(runtime_client: TestCl
     assert (repo_root / "frontend").is_dir(), f"repo_root missing frontend: {repo_root}"
 
 
-def test_effective_config_masks_secret_like_env_vars(
-    runtime_client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_effective_config_masks_secret_like_env_vars(runtime_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OCTOAGENT_FAKE_API_KEY", "abcdef1234567890XYZ")
     monkeypatch.setenv("OCTOAGENT_FAKE_TOKEN", "supersecrettokenvalue")
     monkeypatch.setenv("OCTOAGENT_FAKE_PASSWORD", "p@ssword!!")
@@ -91,9 +90,7 @@ def test_effective_config_masks_secret_like_env_vars(
     assert env.get("OCTOAGENT_FAKE_PLAINTEXT") == "plain-value-do-not-mask"
 
 
-def test_effective_config_secret_masking_pattern_is_well_formed(
-    runtime_client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_effective_config_secret_masking_pattern_is_well_formed(runtime_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OCTOAGENT_FAKE_SECRET", "1234567890")  # 10 chars
     resp = runtime_client.get("/api/runtime/effective-config")
     masked = resp.json()["env"]["OCTOAGENT_FAKE_SECRET"]
@@ -101,9 +98,7 @@ def test_effective_config_secret_masking_pattern_is_well_formed(
     assert masked == "123***90 (len=10)", masked
 
 
-def test_effective_config_short_secret_is_fully_redacted(
-    runtime_client: TestClient, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_effective_config_short_secret_is_fully_redacted(runtime_client: TestClient, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("OCTOAGENT_FAKE_TOKEN", "abc")  # <=6 chars
     resp = runtime_client.get("/api/runtime/effective-config")
     assert resp.json()["env"]["OCTOAGENT_FAKE_TOKEN"] == "***"
@@ -146,9 +141,7 @@ def test_tool_trace_limit_param_bounded(runtime_client: TestClient) -> None:
     assert resp.status_code == 200
 
 
-def test_tool_trace_reads_existing_jsonl(
-    runtime_client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_tool_trace_reads_existing_jsonl(runtime_client: TestClient, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """If the JSONL file is missing the endpoint returns an empty event list."""
     resp = runtime_client.get("/api/runtime/tool-trace?limit=5")
     body = resp.json()

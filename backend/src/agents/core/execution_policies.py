@@ -350,11 +350,7 @@ def _looks_like_substantive_status_report(output: str) -> bool:
     report_markers = ("报告", "汇总", "summary", "status", "状态", "检查", "测试", "结果")
     ecosystem_markers = ("skill", "skills", "mcp", "hook", "hooks", "插件", "plugin", "plugins")
     evidence_markers = ("通过", "正常", "失败", "错误", "异常", "degraded", "failed", "passed", "ok", "可用", "不可用")
-    return (
-        any(marker in normalized_output for marker in report_markers)
-        and any(marker in normalized_output for marker in ecosystem_markers)
-        and any(marker in normalized_output for marker in evidence_markers)
-    )
+    return any(marker in normalized_output for marker in report_markers) and any(marker in normalized_output for marker in ecosystem_markers) and any(marker in normalized_output for marker in evidence_markers)
 
 
 _GENERIC_FALLBACK_BANNERS = (

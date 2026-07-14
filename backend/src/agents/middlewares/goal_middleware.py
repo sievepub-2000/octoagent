@@ -60,6 +60,7 @@ _produce_contract = _produce_contract_heuristic
 def _produce_contract_llm(text: str) -> GoalContract | None:
     try:
         from langchain_core.messages import HumanMessage, SystemMessage
+
         from src.models import create_chat_model
 
         model_name = os.getenv("OCTOAGENT_GOAL_CONTRACT_MODEL") or None
@@ -74,18 +75,20 @@ def _produce_contract_llm(text: str) -> GoalContract | None:
             "If the user did not specify any forbidden_actions or must_use_tools, "
             "return empty lists for those fields. "
             "Reply in the same natural language as the user message.\n\n"
-            "User first message:\n```\n{text}\n```"
-        ).format(text=text[:4000])
+            f"User first message:\n```\n{text[:4000]}\n```"
+        )
         resp = model.invoke(
             [
-                SystemMessage(content=(
-                    "Output ONLY a single JSON object, no prose, no markdown fences. Schema: "
-                    '{"goal_summary": string, "success_criteria": string[], '
-                    '"forbidden_actions": string[], "must_use_tools": string[]}. '
-                    "Each list capped at 6 items (8 for tools), each item <= 160 chars. "
-                    "Use empty arrays when nothing is explicit in the user message. "
-                    "Reply in the same natural language as the user message."
-                )),
+                SystemMessage(
+                    content=(
+                        "Output ONLY a single JSON object, no prose, no markdown fences. Schema: "
+                        '{"goal_summary": string, "success_criteria": string[], '
+                        '"forbidden_actions": string[], "must_use_tools": string[]}. '
+                        "Each list capped at 6 items (8 for tools), each item <= 160 chars. "
+                        "Use empty arrays when nothing is explicit in the user message. "
+                        "Reply in the same natural language as the user message."
+                    )
+                ),
                 HumanMessage(content=prompt),
             ]
         )
@@ -347,17 +350,13 @@ class GoalMiddleware(AgentMiddleware[AgentState]):
         if score >= self.drift_threshold:
             return None
         alert = SystemMessage(
-            content=(
-                f"<drift_alert>\n"
-                f"  Recent actions diverged from the user goal (cosine={score:.3f} < {self.drift_threshold:.2f}).\n"
-                f"  Re-anchor: '{goal_summary[:160]}'\n"
-                f"  Re-check success_criteria before continuing.\n"
-                f"</drift_alert>"
-            )
+            content=(f"<drift_alert>\n  Recent actions diverged from the user goal (cosine={score:.3f} < {self.drift_threshold:.2f}).\n  Re-anchor: '{goal_summary[:160]}'\n  Re-check success_criteria before continuing.\n</drift_alert>")
         )
         logger.warning(
             "GoalMiddleware: drift detected at turn=%d (score=%.3f, threshold=%.2f)",
-            self._turn_counter, score, self.drift_threshold,
+            self._turn_counter,
+            score,
+            self.drift_threshold,
         )
         return {"messages": [alert]}
 

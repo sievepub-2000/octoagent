@@ -51,7 +51,7 @@ class LocalSandbox(Sandbox):
     @staticmethod
     def _validate_path_safe(resolved_path: str) -> str:
         """Resolve symlinks/.. and reject path traversal outside allowed areas.
-        
+
         Returns the real path if safe, raises PermissionError otherwise.
         """
         real = os.path.realpath(resolved_path)
@@ -182,7 +182,7 @@ class LocalSandbox(Sandbox):
 
             try:
                 stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=600.0)
-            except (asyncio.TimeoutError, TimeoutError) as exc:
+            except TimeoutError as exc:
                 process.kill()
                 await process.wait()
                 record_exception_trace("local_sandbox.execute_command", exc, command=resolved_command, sandbox_id=self.id)
@@ -296,23 +296,26 @@ class LocalSandbox(Sandbox):
             # Re-raise with the original path for clearer error messages, hiding internal resolved paths
             raise type(e)(e.errno, e.strerror, path) from None
 
-
     async def list_dir_async(self, path: str, max_depth=2) -> list[str]:
         """Async version of list_dir that doesn't block the event loop."""
         import asyncio
+
         return await asyncio.to_thread(self.list_dir, path, max_depth)
 
     async def read_file_async(self, path: str) -> str:
         """Async version of read_file that doesn't block the event loop."""
         import asyncio
+
         return await asyncio.to_thread(self.read_file, path)
 
     async def write_file_async(self, path: str, content: str, append: bool = False) -> None:
         """Async version of write_file that doesn't block the event loop."""
         import asyncio
+
         return await asyncio.to_thread(self.write_file, path, content, append)
 
     async def update_file_async(self, path: str, content: bytes) -> None:
         """Async version of update_file that doesn't block the event loop."""
         import asyncio
+
         return await asyncio.to_thread(self.update_file, path, content)
