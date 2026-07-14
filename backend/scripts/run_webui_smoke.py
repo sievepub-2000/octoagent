@@ -507,7 +507,7 @@ def main() -> None:
 
         if not settings_dialog_visible:
             result.notes.append("settings_menu_fallback_to_query")
-            deep_link_url = f"{args.frontend_url}/workspace/chats/{current_thread_id}?settings=bootstrap"
+            deep_link_url = f"{args.frontend_url}/workspace/chats/{current_thread_id}?settings=models"
             _goto_with_recovery(page, deep_link_url, wait_until="domcontentloaded")
             try:
                 _wait_for_any_text(
@@ -537,8 +537,8 @@ def main() -> None:
             )
         result.settings_opened = True
 
-        _note("opening bootstrap settings section")
-        bootstrap_settings_url = f"{args.frontend_url}/workspace/chats/{current_thread_id}?settings=bootstrap"
+        _note("opening models settings section")
+        bootstrap_settings_url = f"{args.frontend_url}/workspace/chats/{current_thread_id}?settings=models"
         if page.url != bootstrap_settings_url:
             _goto_with_recovery(
                 page,
@@ -550,29 +550,29 @@ def main() -> None:
             bootstrap_probe_text = page.locator("body").inner_text(timeout=5000)
         except PlaywrightTimeoutError:
             bootstrap_probe_text = ""
-        if ("/workspace/chats/new" in page.url and "settings=bootstrap" not in page.url) or "Chat session is no longer available" in bootstrap_probe_text or "会话不再可用" in bootstrap_probe_text:
+        if ("/workspace/chats/new" in page.url and "settings=models" not in page.url) or "Chat session is no longer available" in bootstrap_probe_text or "会话不再可用" in bootstrap_probe_text:
             _goto_with_recovery(
                 page,
-                f"{args.frontend_url}/workspace/chats/new?settings=bootstrap",
+                f"{args.frontend_url}/workspace/chats/new?settings=models",
                 wait_until="domcontentloaded",
             )
         _complete_setup_wizard_if_present(page)
-        if "settings=bootstrap" not in page.url:
+        if "settings=models" not in page.url:
             _goto_with_recovery(
                 page,
-                f"{args.frontend_url}/workspace/chats/new?settings=bootstrap",
+                f"{args.frontend_url}/workspace/chats/new?settings=models",
                 wait_until="domcontentloaded",
             )
 
-        _note("waiting for bootstrap settings content")
+        _note("waiting for models settings content")
         _wait_for_any_text(
             page,
             [
-                "Embedded Bootstrap Model",
+                "Models",
                 "内嵌引导模型",
-                "Recommended embedded runtime",
+                "Add model",
                 "推荐的内嵌运行时",
-                "Model status",
+                "Models",
                 "模型状态",
             ],
             timeout=10000,

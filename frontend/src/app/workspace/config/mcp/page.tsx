@@ -33,6 +33,7 @@ interface MCPFormState {
   args: string;
   url: string;
   env: string;
+  headers: string;
 }
 
 const EMPTY_FORM: MCPFormState = {
@@ -43,16 +44,7 @@ const EMPTY_FORM: MCPFormState = {
   args: "",
   url: "",
   env: "",
-};
-
-const MARKITDOWN_PRESET: MCPFormState = {
-  name: "markitdown",
-  description: "Convert documents to Markdown through the repository-owned MarkItDown command.",
-  type: "stdio",
-  command: "/home/sieve-pub/public-workspace/octoagent/backend/.venv/bin/markitdown",
-  args: "",
-  url: "",
-  env: "",
+  headers: "",
 };
 
 function serializeEnv(env: Record<string, unknown> | undefined): string {
@@ -62,12 +54,12 @@ function serializeEnv(env: Record<string, unknown> | undefined): string {
   return Object.entries(env)
     .filter(([, value]) => typeof value === "string")
     .map(([key, value]) => `${key}=${value as string}`)
-    .join("");
+    .join("\n");
 }
 
 function parseEnv(value: string): Record<string, string> {
   return value
-    .split(/\r?/)
+    .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .reduce<Record<string, string>>((acc, line) => {
@@ -114,6 +106,7 @@ export default function MCPConfigPage() {
       args: Array.isArray(srvAny.args) ? (srvAny.args as string[]).join(" ") : "",
       url: (srvAny.url as string) ?? "",
       env: serializeEnv((srvAny.env as Record<string, unknown> | undefined) ?? undefined),
+      headers: serializeEnv((srvAny.headers as Record<string, unknown> | undefined) ?? undefined),
     });
     setIsFormOpen(true);
   }
@@ -122,12 +115,6 @@ export default function MCPConfigPage() {
     setEditingServer(null);
     setForm(EMPTY_FORM);
     setIsFormOpen(false);
-  }
-
-  function applyMarkItDownPreset() {
-    setEditingServer(null);
-    setForm(MARKITDOWN_PRESET);
-    setIsFormOpen(true);
   }
 
   function handleSave() {
@@ -153,7 +140,7 @@ export default function MCPConfigPage() {
                 args: form.args.split(/\s+/).filter(Boolean),
                 env: parseEnv(form.env),
               }
-            : { type: form.type, url: form.url.trim(), env: parseEnv(form.env) }),
+            : { type: form.type, url: form.url.trim(), env: parseEnv(form.env), headers: parseEnv(form.headers) }),
         },
       },
       {
@@ -182,26 +169,6 @@ export default function MCPConfigPage() {
           Add server
         </Button>
       </header>
-
-      <div className="octo-panel mb-6 rounded-[1.5rem] p-5">
-        <div className="grid gap-3 lg:grid-cols-2">
-          <div className="rounded-[1.25rem] border border-border/60 bg-background/40 p-4">
-            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-              <ServerIcon className="size-4 text-muted-foreground" />
-              Recommended preset: MarkItDown
-            </div>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Adds the local document-to-Markdown entry backed by the OctoAgent main virtual environment.
-            </p>
-            <p className="mt-1 text-[11px] font-mono text-muted-foreground">
-              /home/sieve-pub/public-workspace/octoagent/backend/.venv/bin/markitdown
-            </p>
-            <Button size="sm" className="mt-3" variant="outline" disabled={isStatic} onClick={applyMarkItDownPreset}>
-              Use preset
-            </Button>
-          </div>
-        </div>
-      </div>
 
       {isFormOpen ? (
       <div className="octo-panel mb-6 rounded-[1.5rem] p-5">
@@ -258,6 +225,20 @@ export default function MCPConfigPage() {
               className="font-mono text-xs"
             />
           </label>
+          {form.type !== "stdio" ? (
+            <label className="space-y-1 md:col-span-2">
+              <span className="text-xs font-medium text-muted-foreground">HTTP headers</span>
+              <Textarea
+                value={form.headers}
+                disabled={isStatic}
+                onChange={(e) => updateField("headers", e.target.value)}
+                placeholder={"Authorization=Bearer $MCP_TOKEN\nX-Workspace=my-project"}
+                rows={3}
+                className="font-mono text-xs"
+              />
+              <span className="block text-[11px] text-muted-foreground">One KEY=value entry per line. Prefer environment-variable references for credentials.</span>
+            </label>
+          ) : null}
         </div>
         <div className="mt-4 flex gap-2">
           <Button size="sm" disabled={isStatic || addServer.isPending} onClick={handleSave}>

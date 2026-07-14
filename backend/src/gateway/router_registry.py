@@ -7,7 +7,6 @@ from fastapi import FastAPI
 
 from src.gateway.router_contract import build_router_tag_report, validate_router_contract, validate_router_tags
 from src.gateway.routers import (
-    projects,
     agents,
     artifacts,
     auth,
@@ -21,7 +20,6 @@ from src.gateway.routers import (
     mcp,
     memory,
     metrics,
-    model_auth,
     models,
     module_status,
     multi_tenant,
@@ -29,6 +27,7 @@ from src.gateway.routers import (
     optimization_program,
     orchestration,
     plugins,
+    projects,
     query_engine,
     rag_config,
     reflection,
@@ -55,7 +54,6 @@ ROUTERS = [
     projects.router,
     auth.router,
     models.router,
-    model_auth.router,
     runtime.router,
     runtime_profile.router,
     bootstrap.router,

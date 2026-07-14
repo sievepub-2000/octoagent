@@ -45,7 +45,7 @@ OctoAgent includes an optional managed writing and publishing suite for articles
 
 ### What OctoAgent does
 
-OctoAgent is a **task-centric multi-agent platform** that runs locally
+OctoAgent is a **task-centric agent platform** that runs locally
 (or on your own server) and turns a single English / Chinese / Japanese
 instruction into:
 

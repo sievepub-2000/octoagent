@@ -16,83 +16,6 @@ models:
   supports_reasoning_effort: false
   supports_vision: true
   max_context_tokens: 262144
-  fallback_models:
-  - google-gemini-3.5-pro
-  - nvidia-nemotron-3-super
-- name: google-gemini-3.1-pro
-  priority: 90
-  display_name: Google Gemini 3.1 Pro
-  description: Google Gemini 3.1 Pro via Google GenAI API, 1M context, multimodal.
-  provider_name: google
-  model: gemini-3.1-pro-preview
-  interface_type: google_genai
-  api_key: $GOOGLE_API_KEY
-  temperature: 0.85
-  request_timeout: 30
-  max_context_tokens: 1048576
-  supports_thinking: true
-  supports_reasoning_effort: false
-  supports_vision: true
-  fallback_models:
-  - google-gemini-3.5-pro
-  - nvidia-nemotron-3-super
-- name: google-gemini-3.5-pro
-  priority: 85
-  display_name: Google Gemini 3.5 Pro
-  description: Google Gemini 3.5 Pro via Google GenAI API, latest flagship model with
-    extended thinking.
-  provider_name: google
-  model: gemini-3.5-pro-preview
-  interface_type: google_genai
-  api_key: $GOOGLE_API_KEY
-  temperature: 0.85
-  request_timeout: 60
-  max_context_tokens: 1048576
-  supports_thinking: true
-  supports_reasoning_effort: true
-  supports_vision: true
-  fallback_models:
-  - nvidia-nemotron-3-super
-- name: lyria-3-pro-free
-  priority: 65
-  display_name: Google Lyria 3 Pro Preview (Free)
-  description: Google Lyria 3 Pro Preview via OpenRouter free tier, 1M context.
-  provider_name: openrouter
-  model: google/lyria-3-pro-preview
-  interface_type: openai_compatible
-  api_key: $OPENROUTER_API_KEY
-  base_url: https://openrouter.ai/api/v1
-  max_tokens: 4096
-  temperature: 0.7
-  request_timeout: 120
-  max_context_tokens: 1048576
-  supports_thinking: false
-  supports_reasoning_effort: false
-  supports_vision: true
-  pricing_free: true
-  fallback_models:
-  - nvidia-nemotron-3-super
-- name: nvidia-nemotron-3-super
-  priority: 8
-  display_name: NVIDIA · Nemotron 3 Super
-  description: NVIDIA Nemotron 3 Super 120B A12B via NVIDIA NIM OpenAI-compatible
-    endpoint.
-  provider_name: nvidia
-  model: nvidia/nemotron-3-super-120b-a12b
-  api_key: $NVIDIA_API_KEY
-  base_url: https://integrate.api.nvidia.com/v1
-  interface_type: openai_compatible
-  max_tokens: 4096
-  temperature: 0.85
-  request_timeout: 120
-  supports_thinking: true
-  supports_reasoning_effort: true
-  supports_vision: false
-  max_context_tokens: 262144
-  profile_tags:
-  - reasoning
-  - fallback
-  source: operator_nvidia_api_key
   fallback_models: []
 tool_groups:
 - name: web
@@ -154,7 +77,7 @@ memory:
   enabled: true
 channels:
   qq:
-    enabled: true
+    enabled: false
     login_status_url: http://127.0.0.1:19814/identity
     shared_secret: change-me
     outbound_url: http://127.0.0.1:19814/outbound
@@ -180,7 +103,7 @@ integrations:
     engine: sandbox_exec
 embedded_model:
   project_managed: true
-  enabled: true
+  enabled: false
   framework: llama_cpp
   repo_id: local/gemma-4-e2b-it-GGUF
   filename: gemma-4-e2b-it-Q8_0.gguf

@@ -28,7 +28,12 @@ The primary hierarchy is `Project -> Task -> Run`.
 - Left: projects and their recent tasks.
 - Center: chat, execution controls, messages, and prompt.
 - Right: Activity, Files, and System tabs.
-- Advanced administration: Settings panel.
+- Settings is the single configuration center for models, Skills, MCP servers,
+  plugins, hooks, memory, permissions, notifications, updates, and appearance.
+- Model credentials are environment-variable references. The API never writes
+  raw provider secrets to `config.yaml`.
+- Workflow and subagent orchestration remain internal runtime mechanisms rather
+  than user-facing builders or top-level navigation.
 
 The frontend uses flat shadcn-style surfaces. Legacy workflow inspector, task-workspace canvas, and global status strip are removed from the public workspace.
 
@@ -38,6 +43,11 @@ The frontend uses flat shadcn-style surfaces. Legacy workflow inspector, task-wo
 - `GET/PUT/DELETE /api/projects/{project_id}`
 - `GET/PUT /api/projects/{project_id}/memory`
 - `GET /api/system/overview`
+- `GET/POST/PUT/DELETE /api/models`
+- `PUT /api/models/{model_name}/default`
+- `POST /api/models/{model_name}/test`
+- `GET/POST/DELETE /api/mcp/*`
+- `GET/POST/PUT/DELETE /api/skills/*`
 - LangGraph thread and run APIs under the runtime gateway.
 
 ## Release gates

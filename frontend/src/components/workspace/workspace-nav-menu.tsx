@@ -20,7 +20,7 @@ export function WorkspaceNavMenu() {
 
   // Build the URL for the settings panel
   const next = new URLSearchParams(searchParams.toString());
-  next.set("settings", "appearance");
+  next.set("settings", "general");
   const settingsHref = `${pathname}?${next.toString()}`;
 
   const isActive = searchParams.has("settings");

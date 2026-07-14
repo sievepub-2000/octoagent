@@ -1,5 +1,24 @@
 ## [20260714] - 2026-07-14
 
+### Settings and configuration consolidation
+
+- Rebuilt Settings as the single user-facing configuration center with General, Appearance, Models, Skills, MCP servers, Plugins, Hooks, Memory, Permissions, Notifications, Update, and About sections.
+- Restored universal local and commercial API model configuration with provider presets, environment-variable credential references, default-model selection, edit/delete controls, and a real connection/latency test.
+- Added remote MCP HTTP-header configuration, fixed multi-line environment parsing, and removed the host-specific MarkItDown command preset.
+- Removed the retired Evolution and Tools Hub pages; skills, plugins, hooks, and MCP now represent repeatable capabilities without a separate workflow-builder surface.
+
+### Runtime and repository cleanup
+
+- Reduced built-in delegation roles to `general-purpose` and `bash`; removed six overlapping built-in roles, 57 repository-shipped system-agent profiles, and implicit Agency Agents injection.
+- Removed automatic NVIDIA/OpenRouter fallback-model injection, the obsolete model-auth/OAuth provider-import subsystem, four unavailable sample cloud models, and the embedded emergency model from the default runtime.
+- Cleared six default high-privilege MCP connections and disabled the unused QQ placeholder channel. Users can add only the integrations they actually need from Settings.
+- Preserved LangGraph workflow execution internals because they are runtime infrastructure, while removing their obsolete product configuration surfaces.
+
+### Configuration verification
+
+- Verified the production runtime resolves exactly one configured/default model (`ornith-1.0-35b-nvfp4`) and zero default MCP servers.
+- Verified 623 backend tests, focused Ruff checks, frontend ESLint and TypeScript, two production builds, gateway/PostgreSQL health, browser navigation across Models/Skills/MCP, a clean browser console, and a real Ornith connection response (`OK`).
+
 ### Legacy test debt cleanup
 
 - Resolved all 53 inherited policy, RAG, prompt-cache, artifact-tool, and tool-catalog test failures; the backend suite now passes 628 tests with no failures.

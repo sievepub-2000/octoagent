@@ -1,7 +1,9 @@
+import asyncio
 import json
 import os
 import re
 import tempfile
+import time
 from pathlib import Path
 
 import yaml
@@ -35,6 +37,7 @@ class ModelResponse(BaseModel):
     name: str = Field(..., description="Unique identifier for the model")
     display_name: str | None = Field(None, description="Human-readable name")
     description: str | None = Field(None, description="Model description")
+    model: str | None = Field(None, description="Provider model identifier")
     use: str | None = Field(None, description="Raw provider class path, if configured")
     interface_type: str | None = Field(None, description="Configured normalized model interface type")
     provider_name: str | None = Field(None, description="Configured provider/vendor label")
@@ -64,6 +67,7 @@ class ModelResponse(BaseModel):
         default=False,
         description="Whether this model is the built-in embedded emergency backup.",
     )
+    is_default: bool = Field(default=False, description="Whether this is the default model")
 
 
 class ModelsListResponse(BaseModel):
@@ -75,6 +79,13 @@ class ModelsListResponse(BaseModel):
 class DeleteModelResponse(BaseModel):
     deleted: bool = True
     model_name: str
+
+
+class ModelConnectionTestResponse(BaseModel):
+    ok: bool
+    model_name: str
+    latency_ms: int
+    response_preview: str
 
 
 class ModelCreateRequest(BaseModel):
@@ -112,17 +123,6 @@ class ModelUpdateRequest(BaseModel):
     max_context_tokens: int | None = None
 
     model_config = ConfigDict(extra="allow")
-
-
-class FallbackPoolStatusResponse(BaseModel):
-    """Read-only status for the free-tier fallback model pool."""
-
-    enabled: bool = Field(..., description="Whether the NVIDIA free-tier fallback pool is active for the running process")
-    reason: str = Field(..., description="Human-readable explanation of the current state")
-    api_key_present: bool = Field(..., description="Whether NVIDIA_API_KEY / FREE_CLAUDE_CODE_API_KEY is resolvable")
-    base_url: str = Field(..., description="Resolved base URL for NVIDIA NIM")
-    pool_models: list[str] = Field(default_factory=list, description="Model names currently injected into the pool")
-    operator_override: bool = Field(..., description="True when the operator already configured an nvidia-* entry so injection is skipped")
 
 
 def _config_path() -> Path:
@@ -247,7 +247,7 @@ def _repair_setup_default_model(deleted_model_name: str, remaining_models: list[
     setup_state_file.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
-def _serialize_model(model) -> ModelResponse:
+def _serialize_model(model, *, default_model_name: str | None = None) -> ModelResponse:
     resolved_interface_type = None
     adapter_profile = None
     interface_profile = None
@@ -279,6 +279,7 @@ def _serialize_model(model) -> ModelResponse:
         name=model.name,
         display_name=model.display_name,
         description=model.description,
+        model=getattr(model, "model", None),
         use=getattr(model, "use", None),
         interface_type=getattr(model, "interface_type", None),
         provider_name=getattr(model, "provider_name", None),
@@ -299,7 +300,25 @@ def _serialize_model(model) -> ModelResponse:
         fallback_models=model.fallback_models,
         max_context_tokens=model.max_context_tokens,
         is_embedded_backup=False,
+        is_default=model.name == default_model_name,
     )
+
+
+def _set_default_model_in_config(model_name: str) -> ModelResponse:
+    config_data = _load_config_data()
+    models = list(config_data.get("models") or [])
+    if not any(str(model.get("name")) == model_name for model in models if isinstance(model, dict)):
+        raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
+    system = config_data.setdefault("system", {})
+    if not isinstance(system, dict):
+        system = {}
+        config_data["system"] = system
+    system["default_model"] = model_name
+    _write_config_data(config_data)
+    model_config = get_app_config().get_model_config(model_name)
+    if model_config is None:
+        raise HTTPException(status_code=500, detail=f"Model '{model_name}' was not available after reload")
+    return _serialize_model(model_config, default_model_name=model_name)
 
 
 def _delete_model_from_config(model_name: str) -> bool:
@@ -310,6 +329,13 @@ def _delete_model_from_config(model_name: str) -> bool:
         return False
     config_data["models"] = filtered
     _clean_deleted_model_references(config_data, model_name)
+    system = config_data.get("system")
+    if isinstance(system, dict) and system.get("default_model") == model_name:
+        replacement = next((str(model.get("name")) for model in filtered if isinstance(model, dict) and model.get("name")), "")
+        if replacement:
+            system["default_model"] = replacement
+        else:
+            system.pop("default_model", None)
     _write_config_data(config_data)
     _repair_setup_default_model(model_name, filtered)
     return True
@@ -402,7 +428,10 @@ async def list_models() -> ModelsListResponse:
         ```
     """
     config = get_app_config()
-    models = [_serialize_model(model) for model in config.models]
+    from src.runtime.config.paths import resolve_configured_default_model_name
+
+    default_model_name = resolve_configured_default_model_name(model.name for model in config.models)
+    models = [_serialize_model(model, default_model_name=default_model_name) for model in config.models]
     embedded_config = get_embedded_model_config()
     if embedded_config.enabled:
         models.append(
@@ -490,6 +519,49 @@ async def get_model(model_name: str) -> ModelResponse:
     return _serialize_model(model)
 
 
+@router.put(
+    "/models/{model_name}/default",
+    response_model=ModelResponse,
+    summary="Set Default Model",
+    description="Set an existing configured model as the system default.",
+)
+async def set_default_model(model_name: str) -> ModelResponse:
+    if model_name == EMBEDDED_BACKUP_MODEL_NAME:
+        raise HTTPException(status_code=400, detail="Embedded backup model cannot be the configured default")
+    return _set_default_model_in_config(model_name)
+
+
+@router.post(
+    "/models/{model_name}/test",
+    response_model=ModelConnectionTestResponse,
+    summary="Test Model Connection",
+    description="Send a short prompt through the configured model adapter and report real latency.",
+)
+async def test_model_connection(model_name: str) -> ModelConnectionTestResponse:
+    from src.models import create_chat_model
+
+    if get_app_config().get_model_config(model_name) is None:
+        raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
+    started = time.perf_counter()
+    try:
+        response = await asyncio.wait_for(
+            create_chat_model(name=model_name, thinking_enabled=False).ainvoke("Reply with exactly: OK"),
+            timeout=60,
+        )
+    except TimeoutError as exc:
+        raise HTTPException(status_code=504, detail="Model connection test timed out after 60 seconds") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Model connection test failed: {exc}") from exc
+    content = getattr(response, "content", response)
+    preview = content if isinstance(content, str) else str(content)
+    return ModelConnectionTestResponse(
+        ok=True,
+        model_name=model_name,
+        latency_ms=round((time.perf_counter() - started) * 1000),
+        response_preview=preview[:240],
+    )
+
+
 @router.post(
     "/models",
     response_model=ModelResponse,
@@ -523,73 +595,3 @@ async def delete_model(model_name: str) -> DeleteModelResponse:
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
     return DeleteModelResponse(model_name=model_name)
-
-
-@router.get(
-    "/fallback-pool/status",
-    response_model=FallbackPoolStatusResponse,
-    summary="Free fallback model pool status",
-    description="Observation-only status for the NVIDIA NIM free-tier fallback pool injected by free_claude_code_fallback.",
-)
-async def get_fallback_pool_status() -> FallbackPoolStatusResponse:
-    import os as _os
-
-    from src.runtime.config.free_claude_code_fallback import (
-        _DEFAULT_BASE_URL,
-        _FREE_POOL,
-        _resolve_api_key,
-    )
-
-    api_key = _resolve_api_key()
-    base_url = _os.environ.get("NVIDIA_BASE_URL", _DEFAULT_BASE_URL)
-    pool_names = [str(t.get("name")) for t in _FREE_POOL if t.get("name")]
-
-    # Determine operator_override from the raw config file (pre-injection).
-    # config.models may contain auto-injected entries, so we must not use it
-    # as the source of truth here.
-    operator_has_nvidia = False
-    try:
-        raw_config_data = _load_config_data()
-        for entry in raw_config_data.get("models") or []:
-            if not isinstance(entry, dict):
-                continue
-            name = str(entry.get("name") or "").lower()
-            provider = str(entry.get("provider_name") or "").lower()
-            if name.startswith("nvidia-") or provider == "nvidia":
-                operator_has_nvidia = True
-                break
-    except Exception:
-        operator_has_nvidia = False
-
-    config = get_app_config()
-
-    if not api_key:
-        return FallbackPoolStatusResponse(
-            enabled=False,
-            reason="NVIDIA_API_KEY / FREE_CLAUDE_CODE_API_KEY not set; pool disabled.",
-            api_key_present=False,
-            base_url=base_url,
-            pool_models=pool_names,
-            operator_override=operator_has_nvidia,
-        )
-
-    if operator_has_nvidia:
-        return FallbackPoolStatusResponse(
-            enabled=False,
-            reason="Operator configured nvidia-* model(s) in config.yaml; automatic injection skipped.",
-            api_key_present=True,
-            base_url=base_url,
-            pool_models=pool_names,
-            operator_override=True,
-        )
-
-    # API key present and no operator override → pool is active.
-    injected = [m.name for m in config.models if (getattr(m, "name", "") or "").startswith("nvidia-")]
-    return FallbackPoolStatusResponse(
-        enabled=True,
-        reason=f"{len(injected or pool_names)} NVIDIA NIM free-tier model(s) reachable.",
-        api_key_present=True,
-        base_url=base_url,
-        pool_models=injected or pool_names,
-        operator_override=False,
-    )

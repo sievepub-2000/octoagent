@@ -18,3 +18,14 @@ export async function createModel(payload: ModelCreateRequest) {
 export async function updateModel(modelName: string, payload: ModelUpdateRequest) {
   return putJSON<Model>(`/api/models/${encodeURIComponent(modelName)}`, payload);
 }
+
+export async function setDefaultModel(modelName: string) {
+  return putJSON<Model>(`/api/models/${encodeURIComponent(modelName)}/default`, {});
+}
+
+export async function testModelConnection(modelName: string) {
+  return postJSON<{ ok: boolean; model_name: string; latency_ms: number; response_preview: string }>(
+    `/api/models/${encodeURIComponent(modelName)}/test`,
+    {},
+  );
+}

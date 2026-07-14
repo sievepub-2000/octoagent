@@ -29,9 +29,6 @@ _ORPHAN_RECOVERY_RUNNER = None
 
 def _initialize_configuration():
     try:
-        from src.governance.model_auth import initialize_model_auth_env
-
-        initialize_model_auth_env()
         _init_internal_secrets(__import__('pathlib').Path(__file__).resolve().parents[3])
         get_app_config()
         logger.info("Configuration loaded successfully")

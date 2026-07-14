@@ -6,6 +6,7 @@ export interface MCPServerConfig extends Record<string, unknown> {
   args?: string[];
   url?: string;
   env?: Record<string, string>;
+  headers?: Record<string, string>;
   status?: "ready" | "disabled" | "configuration_error";
   status_reason?: string;
   missing_env?: string[];

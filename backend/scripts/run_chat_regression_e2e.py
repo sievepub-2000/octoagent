@@ -572,7 +572,7 @@ def main() -> None:
         if recent_thread_ids:
             for recent_thread_id in recent_thread_ids[:1]:
                 before_error_count = len(result.critical_browser_errors)
-                for suffix in ("", "?settings=bootstrap"):
+                for suffix in ("", "?settings=models"):
                     page.goto(
                         f"{args.frontend_url}/workspace/chats/{recent_thread_id}{suffix}",
                         wait_until="domcontentloaded",

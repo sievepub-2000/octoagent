@@ -130,13 +130,9 @@ class AppConfigLoader:
         return config
 
     def resolve_config_data(self, raw_config: dict[str, Any]) -> dict[str, Any]:
-        from src.runtime.config.free_claude_code_fallback import auto_inject_free_fallback_models
         from src.runtime.config.model_auto_inference import auto_infer_model_fields
-        from src.runtime.config.openrouter_free_models import auto_inject_openrouter_free_models
 
         raw_models = list(raw_config.get("models") or [])
-        raw_models = auto_inject_free_fallback_models(raw_models)
-        raw_models = auto_inject_openrouter_free_models(raw_models)
         config_without_models = {key: value for key, value in raw_config.items() if key != "models"}
         config_data = self.resolve_env_variables(config_without_models)
 

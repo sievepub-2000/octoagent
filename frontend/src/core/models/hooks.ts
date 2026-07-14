@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { createModel, deleteModel, loadModels, updateModel } from "./api";
+import { createModel, deleteModel, loadModels, setDefaultModel, testModelConnection, updateModel } from "./api";
 import type { ModelCreateRequest, ModelUpdateRequest } from "./types";
 
 const MODELS_STALE_MS = 5 * 60_000;
@@ -48,4 +48,16 @@ export function useUpdateModel() {
       void queryClient.invalidateQueries({ queryKey: ["models"] });
     },
   });
+}
+
+export function useSetDefaultModel() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (modelName: string) => setDefaultModel(modelName),
+    onSuccess: () => void queryClient.invalidateQueries({ queryKey: ["models"] }),
+  });
+}
+
+export function useTestModelConnection() {
+  return useMutation({ mutationFn: (modelName: string) => testModelConnection(modelName) });
 }

@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from src.runtime.config.agents_config import AgentConfig, list_custom_agents, list_system_agents, load_agent_config, load_agent_soul, load_system_agent
+from src.runtime.config.agents_config import AgentConfig, list_custom_agents, load_agent_config, load_agent_soul, load_system_agent
 from src.runtime.config.paths import get_paths
 from src.storage.skills import load_skills
 from src.storage.skills.agent_templates import list_agent_template_summaries, load_agent_template_detail
@@ -279,11 +279,9 @@ async def list_agents() -> AgentsListResponse:
     """
     try:
         custom_agents = await asyncio.to_thread(list_custom_agents)
-        system_agents = await asyncio.to_thread(list_system_agents)
         skills = await asyncio.to_thread(load_skills, None, True, False)
         templates = await asyncio.to_thread(list_agent_template_summaries, skills)
         entries = [_agent_config_to_response(agent) for agent in custom_agents]
-        entries.extend(_agent_config_to_response(agent, source="system", editable=False, deletable=False, chat_enabled=True) for agent in system_agents)
         entries.extend(_template_summary_to_agent_response(template) for template in templates)
         return AgentsListResponse(agents=entries)
     except Exception as e:

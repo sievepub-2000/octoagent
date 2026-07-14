@@ -1,10 +1,29 @@
 # OctoAgent Project Status
 
-**Last Updated**: 2026-05-29
+**Last Updated**: 2026-07-14
 
 ## What The Project Is
 
-OctoAgent is a task-centric multi-agent platform built around the active topology below:
+OctoAgent is a task-centric agent platform built around the active topology below:
+
+## 2026-07-14 verified configuration truth
+
+- Settings is the only public configuration center. It exposes General,
+  Appearance, Models, Skills, MCP, Plugins, Hooks, Memory, Permissions,
+  Notifications, Update, and About.
+- The default deployment resolves one model: `ornith-1.0-35b-nvfp4`. Additional
+  local, open-source, or commercial API models are configured by users through
+  a provider-neutral model form and environment-variable secret references.
+- Default MCP configuration is empty. Local stdio and remote HTTP/SSE servers
+  can be added explicitly; remote headers and environment placeholders are
+  supported.
+- Built-in delegation is limited to `general-purpose` and `bash`. Repository
+  system-agent packs and implicit Agency Agents templates are not shipped.
+- Evolution, Tools Hub, model-provider OAuth imports, automatic free fallback
+  pools, and public workflow-builder configuration have been removed.
+- Production verification: 623 backend tests, focused Ruff, frontend ESLint +
+  TypeScript, production build, browser interaction, gateway/PostgreSQL health,
+  and live Ornith connection test.
 
 - Next.js workspace UI
 - FastAPI gateway and projection layer
@@ -85,7 +104,8 @@ The repository still contains transitional and operator-oriented surfaces, but t
 
 - Workflow overview and workflow detail pages are live and use task-workspace APIs.
 - Workflow result cards support markdown, attachments, and failure analysis.
-- Setup, models, MCP, plugins, channels, memory, and evolution configuration surfaces are present in the workspace UI.
+- Models, Skills, MCP, Plugins, Hooks, Memory, Permissions, Notifications,
+  Update, Appearance, and runtime health are available in Settings.
 - The chat shell keeps the right-side inspector visible while preserving the main conversation path; mobile inspector sizing is adjusted so Artifact preview remains readable.
 - Context guard truncation is visible in runtime telemetry rather than being a silent backend-only action.
 

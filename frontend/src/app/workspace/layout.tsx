@@ -11,32 +11,30 @@ import { WorkspaceSidebar } from "@/components/workspace/workspace-sidebar";
 import { getLocalSettings, useLocalSettings } from "@/core/settings";
 
 type SettingsSectionId =
-  | "overview"
+  | "general"
   | "appearance"
-  | "bootstrap"
-  | "evolution"
-  | "system-guard"
-  | "runtime-health"
-  | "rag"
-  | "system-execution"
+  | "models"
+  | "skills"
+  | "mcp"
+  | "plugins"
+  | "hooks"
   | "memory"
-  | "notification"
-  | "tools"
+  | "permissions"
+  | "notifications"
   | "update"
   | "about";
 
 const SETTINGS_SECTIONS: SettingsSectionId[] = [
-  "overview",
+  "general",
   "appearance",
-  "bootstrap",
-  "evolution",
-  "system-guard",
-  "runtime-health",
-  "rag",
-  "system-execution",
+  "models",
+  "skills",
+  "mcp",
+  "plugins",
+  "hooks",
   "memory",
-  "notification",
-  "tools",
+  "permissions",
+  "notifications",
   "update",
   "about",
 ];

@@ -87,22 +87,11 @@ def test_subagent_config_overrides_runtime_fields() -> None:
         load_subagents_config_from_dict({})
 
 
-def test_subagent_names_include_dynamic_catalog_entries() -> None:
+def test_subagent_catalog_only_contains_minimal_builtin_roles() -> None:
     names = get_subagent_names()
 
-    assert "general-purpose" in names
-    assert "bash" in names
-    assert names == sorted(names)
+    assert names == ["bash", "general-purpose"]
 
 
-def test_agency_subagents_resolve_to_system_models_with_default_fallback() -> None:
-    config = get_subagent_config("agency-ui-designer")
-    builtin_config = get_subagent_config("general-purpose")
-
-    assert config is not None
-    assert builtin_config is not None
-    assert config.model != "inherit"
-    assert config.model != "auto"
-    assert config.fallback_models == builtin_config.fallback_models
-    assert config.fallback_models is not None
-    assert len(config.fallback_models) == 1
+def test_removed_agency_role_is_not_implicitly_injected() -> None:
+    assert get_subagent_config("agency-ui-designer") is None
