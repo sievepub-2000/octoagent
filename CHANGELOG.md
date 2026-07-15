@@ -49,9 +49,13 @@
 - Closed the Projects CRUD lifecycle with archive-first, explicitly confirmed
   metadata deletion while leaving workspace files and conversations untouched.
 - Aligned the production frontend image with the repository's pnpm 11.12.0
-  toolchain and fixed PowerShell 5.1 release-bundle secret generation.
+  toolchain, removed its runtime dependency on Corepack's external download,
+  and fixed PowerShell 5.1 release-bundle secret generation.
 - Included `pnpm-workspace.yaml` in the dependency layer so frozen production
   installs validate the same security overrides as local builds.
+- Documented the two persistence surfaces used by self-hosted LangGraph so a
+  native-to-Docker migration preserves both PostgreSQL checkpoints and the
+  `.langgraph_api` thread/run index.
 - Made FAISS persistence safe for non-ASCII Windows paths and aligned the
   Next.js 16 ESLint configuration with the installed frontend stack.
 

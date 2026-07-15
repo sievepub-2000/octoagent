@@ -3,6 +3,7 @@ FROM ${NODE_FRONTEND_IMAGE} AS frontend
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
+    NPM_CONFIG_UPDATE_NOTIFIER=false \
     BETTER_AUTH_SECRET=docker-build-placeholder-change-at-runtime \
     BETTER_AUTH_BASE_URL=http://localhost:19800 \
     NEXT_PUBLIC_BACKEND_BASE_URL= \
@@ -12,11 +13,11 @@ ENV NODE_ENV=production \
     NEXT_PUBLIC_LOCAL_LANGGRAPH_PORT=19804 \
     NEXT_PUBLIC_LOCAL_INGRESS_PORT=19800
 
-RUN corepack enable && corepack install -g pnpm@11.12.0
+RUN npm install -g pnpm@11.12.0 --no-audit --no-fund --loglevel=error
 WORKDIR /app/frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm install --frozen-lockfile
+    pnpm install --frozen-lockfile --reporter=silent
 COPY frontend ./
 RUN pnpm exec next build
 

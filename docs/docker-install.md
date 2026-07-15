@@ -168,6 +168,24 @@ preserved host configuration from accidentally using a container-local SQLite
 file or a host-only `127.0.0.1` PostgreSQL address; it does not rewrite the
 operator's YAML file.
 
+### Migrating An Existing Native Installation
+
+Stop the native gateway and LangGraph processes before taking the final backup.
+An existing self-hosted LangGraph installation has two persistence surfaces:
+
+- PostgreSQL stores checkpoints, writes, and channel blobs.
+- `backend/.langgraph_api/` stores the local development runtime's thread and
+  run index.
+
+Restore the PostgreSQL dump into the Compose PostgreSQL volume and copy the
+contents of `backend/.langgraph_api/` into `runtime/langgraph/` before starting
+the Docker `langgraph` service. Back up both locations first. Copying only the
+database preserves checkpoint rows but leaves the thread search/history API
+without its index, so old conversations appear missing even though their data
+still exists. After migration, verify an old thread through `/threads/search`
+and `/threads/{thread_id}/history`, then perform a full Compose restart and
+verify it again.
+
 Backend containers run as the invoking user's UID/GID on Linux/macOS. The
 install script records these values in `.env.docker`, preventing root-owned
 files in bind-mounted configuration and workspace directories. When invoked
