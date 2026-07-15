@@ -41,6 +41,9 @@
 - Moved mutable model/MCP configuration, managed model secrets, generated tool
   guidance, and runtime state out of the immutable image source tree so atomic
   CRUD writes and restart persistence work under the non-root container user.
+- Stopped tracking the generated `runtime/config/config.yaml`; installers still
+  seed it from the versioned template, while production model configuration is
+  now operator-owned and no longer causes upgrade conflicts.
 - Fixed Docker workspace identity and project-root validation, OpenAPI MCP
   startup arguments, Docker Compose plugin packaging, and semantic MCP smoke
   validation; all six retained MCP services now pass a real minimal call.
