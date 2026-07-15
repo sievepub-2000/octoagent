@@ -214,11 +214,62 @@ class ExtensionsConfig(BaseModel):
             with open(resolved_path, encoding="utf-8") as f:
                 config_data = json.load(f)
             cls.resolve_env_variables(config_data)
-            return cls.model_validate(config_data)
+            parsed = cls.model_validate(config_data)
+            parsed.apply_runtime_overrides()
+            return parsed
         except json.JSONDecodeError as e:
             raise ValueError(f"Extensions config file at {resolved_path} is not valid JSON: {e}") from e
         except Exception as e:
             raise RuntimeError(f"Failed to load extensions config from {resolved_path}: {e}") from e
+
+    def apply_runtime_overrides(self) -> None:
+        """Map packaged local MCP services onto the active runtime paths.
+
+        Operator configuration remains the single persisted source. Docker can
+        therefore preserve an existing host configuration without copying or
+        destructively rewriting credentials and permission scopes.
+        """
+
+        command_overrides = {
+            "filesystem": "OCTOAGENT_MCP_FILESYSTEM_BIN",
+            "postgres": "OCTOAGENT_MCP_POSTGRES_BIN",
+            "openapi": "OCTOAGENT_MCP_OPENAPI_BIN",
+            "redis": "OCTOAGENT_MCP_REDIS_BIN",
+            "docker": "OCTOAGENT_MCP_DOCKER_BIN",
+        }
+        for server_name, env_name in command_overrides.items():
+            server = self.mcp_servers.get(server_name)
+            override = os.getenv(env_name, "").strip()
+            if server is not None and override:
+                server.command = override
+
+        compose = self.mcp_servers.get("docker-compose")
+        python_bin = os.getenv("OCTOAGENT_PYTHON_BIN", "").strip()
+        if compose is not None and python_bin:
+            compose.command = python_bin
+
+        argument_overrides = {
+            "filesystem": os.getenv("OCTOAGENT_FILESYSTEM_ROOT", "").strip(),
+            "postgres": os.getenv("OCTOAGENT_POSTGRES_SUPERUSER_DSN", "").strip(),
+            "redis": os.getenv("OCTOAGENT_REDIS_URL", "").strip(),
+        }
+        for server_name, argument in argument_overrides.items():
+            server = self.mcp_servers.get(server_name)
+            if server is not None and argument:
+                server.args = [argument]
+
+        openapi = self.mcp_servers.get("openapi")
+        if openapi is not None and os.getenv("OCTOAGENT_MCP_OPENAPI_BIN", "").strip():
+            api_base = os.getenv("OCTOAGENT_GATEWAY_INTERNAL_URL", "http://gateway:19802").strip()
+            spec_url = os.getenv("OCTOAGENT_OPENAPI_SPEC_URL", f"{api_base.rstrip('/')}/openapi.json").strip()
+            openapi.args = [
+                "--transport",
+                "stdio",
+                "--api-base-url",
+                api_base,
+                "--openapi-spec",
+                spec_url,
+            ]
 
     @classmethod
     def resolve_env_variables(cls, config: dict[str, Any]) -> dict[str, Any]:

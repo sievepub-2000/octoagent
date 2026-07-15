@@ -36,12 +36,15 @@ logger = logging.getLogger(__name__)
 
 def load_project_dotenv() -> None:
     module_path = Path(__file__).resolve()
-    search_paths = [
+    search_paths: list[Path] = []
+    if managed_path := os.getenv("OCTOAGENT_MANAGED_SECRETS_FILE", "").strip():
+        search_paths.append(Path(managed_path).expanduser())
+    search_paths.extend([
         module_path.parents[3] / ".env",
         Path.cwd() / ".env",
         Path.cwd().parent / ".env",
         module_path.parents[4] / ".env",
-    ]
+    ])
     loaded: set[Path] = set()
     for dotenv_path in search_paths:
         resolved_path = dotenv_path.resolve()
@@ -151,6 +154,17 @@ class AppConfigLoader:
                     exc,
                 )
         config_data["models"] = resolved_models
+
+        # A container must not inherit a host-only SQLite path or localhost
+        # PostgreSQL DSN from a preserved operator config.  The Docker profile
+        # supplies this explicit override so clean installs and migrations use
+        # the bundled PostgreSQL service without rewriting user configuration.
+        checkpointer_dsn = os.getenv("OCTOAGENT_CHECKPOINTER_DSN", "").strip()
+        if checkpointer_dsn:
+            config_data["checkpointer"] = {
+                "type": "postgres",
+                "connection_string": checkpointer_dsn,
+            }
         return config_data
 
     def load_subconfigs(self, config_data: dict[str, Any]) -> None:

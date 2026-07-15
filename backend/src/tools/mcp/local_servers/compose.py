@@ -26,7 +26,9 @@ def _run(args: list[str], timeout_seconds: int = 20) -> dict[str, Any]:
 @mcp.tool()
 def compose_version() -> str:
     """Return the installed Docker Compose plugin version."""
-    result = _run(["docker", "compose", "version", "--short"], timeout_seconds=10)
+    # Some distro-packaged Docker CLI builds route ``--short`` to the top-level
+    # client and fail with exit 125. The regular version output is portable.
+    result = _run(["docker", "compose", "version"], timeout_seconds=10)
     result["ok"] = result["exit_code"] == 0
     return _response(result)
 

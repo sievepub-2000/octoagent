@@ -1,3 +1,70 @@
+## [Unreleased] - 2026-07-15
+
+### Docker deployment and full-lifecycle verification
+
+- Added strict repository audit acceptance criteria covering live runtime
+  sources, duplicate data roots, production ownership, CRUD closure, clean
+  installation, restart persistence, and cross-platform Docker verification.
+- Fixed the production image so packaged skills are present, model/MCP settings
+  remain writable from the WebUI, and backend/frontend containers no longer run
+  as root by default.
+- Persisted the runtime internal-secret store as a writable protected bind mount
+  so a non-root gateway can generate and retain its master key on first start.
+- Persisted the LangGraph development runtime's writable state directory while
+  keeping source and dependency layers read-only.
+- Added the slim-image account-management runtime required to create that
+  non-root user during a clean Docker build and exposed its system binary path.
+- Removed development dependency installation and startup-time `uv` resync from
+  production backend containers.
+- Bound production commands to the venv's absolute executables so login-shell
+  PATH normalization cannot break cold startup.
+- Kept production MCP installation quiet and deterministic after independently
+  verifying its lock file reports zero npm vulnerabilities.
+- Removed recursive image ownership rewrites entirely; Compose bind mounts now
+  provide every mutable runtime directory, including `/app/tmp`, under the
+  invoking user's UID/GID.
+- Removed the deprecated `COMPOSE_BAKE=false` workaround and validated the
+  supported Docker Compose/Buildx build path on the Linux deployment host.
+- Added runtime MCP path and sidecar-address mapping so preserved host
+  configuration remains the single source of truth inside Docker without
+  losing enabled state, permission scopes, smoke tests, or credentials.
+- Removed the unconfigured Kubernetes MCP package and its vulnerable telemetry
+  dependency tree, and constrained legacy PostgreSQL/Docker MCP transitive
+  dependencies to patched SDK/UUID releases while preserving the six active
+  operator-managed services.
+- Added Linux/macOS UID/GID and Docker-socket group detection plus an explicit
+  PostgreSQL checkpointer override for preserved host configurations.
+- Added a repeatable live lifecycle verifier for models, skills, MCP servers,
+  global memory, agents, projects, tenants, plugins, and optional channels.
+- Upgraded the EOL LangGraph API/runtime pair to 0.11/0.31, removed the unsafe
+  blocking-I/O escape hatch, and made cold-start service ordering non-noisy.
+- Moved mutable model/MCP configuration, managed model secrets, generated tool
+  guidance, and runtime state out of the immutable image source tree so atomic
+  CRUD writes and restart persistence work under the non-root container user.
+- Fixed Docker workspace identity and project-root validation, OpenAPI MCP
+  startup arguments, Docker Compose plugin packaging, and semantic MCP smoke
+  validation; all six retained MCP services now pass a real minimal call.
+- Split Python, npm MCP, and application source image layers so ordinary source
+  changes reuse the multi-gigabyte dependency cache.
+- Closed the Projects CRUD lifecycle with archive-first, explicitly confirmed
+  metadata deletion while leaving workspace files and conversations untouched.
+- Aligned the production frontend image with the repository's pnpm 11.12.0
+  toolchain and fixed PowerShell 5.1 release-bundle secret generation.
+- Included `pnpm-workspace.yaml` in the dependency layer so frozen production
+  installs validate the same security overrides as local builds.
+- Made FAISS persistence safe for non-ASCII Windows paths and aligned the
+  Next.js 16 ESLint configuration with the installed frontend stack.
+
+### Long-term personalization
+
+- Made durable corrections and preferences bypass the short direct-answer
+  memory skip, including equivalent English and Chinese instruction signals.
+- Prioritized bounded user preferences in prompt injection, rejected normalized
+  duplicate facts, retained durable user signals under the profile budget, and
+  strengthened replacement of contradicted memory.
+- Documented the official Hermes Agent memory design comparison and the privacy
+  boundary for future exact cross-session conversation search.
+
 ## [20260714] - 2026-07-14
 
 ### Context continuity and WebUI efficiency

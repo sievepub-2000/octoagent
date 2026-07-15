@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from collections import defaultdict
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -13,7 +14,9 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[3]
 
 
-def _guide_path() -> Path:
+def get_agent_tool_guide_path() -> Path:
+    if configured := os.getenv("OCTOAGENT_TOOL_GUIDE_PATH", "").strip():
+        return Path(configured).expanduser().resolve()
     return _repo_root() / ".github" / "copilot-instructions.md"
 
 
@@ -124,7 +127,7 @@ def _format_capability_item(item: UnifiedCapabilityItem) -> list[str]:
 def generate_agent_tool_guide() -> Path:
     from src.tools.capability.registry import build_capability_registry_snapshot
 
-    guide_path = _guide_path()
+    guide_path = get_agent_tool_guide_path()
     guide_path.parent.mkdir(parents=True, exist_ok=True)
 
     snapshot = build_capability_registry_snapshot()

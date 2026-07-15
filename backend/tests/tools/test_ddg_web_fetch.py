@@ -1,8 +1,19 @@
 from __future__ import annotations
 
 import httpx
+import pytest
 
 from src.community.ddg import tools as ddg_tools
+
+
+@pytest.fixture(autouse=True)
+def allow_example_urls(monkeypatch) -> None:
+    original = ddg_tools.is_url_safe
+    monkeypatch.setattr(
+        ddg_tools,
+        "is_url_safe",
+        lambda url: (True, "") if "example.com" in url else original(url),
+    )
 
 
 def test_ddg_web_fetch_supports_sync_invoke(monkeypatch) -> None:

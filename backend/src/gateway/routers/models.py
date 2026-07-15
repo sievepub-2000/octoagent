@@ -154,8 +154,14 @@ def _write_config_data(config_data: dict) -> None:
 
 
 def _project_dotenv_path() -> Path:
+    if managed_path := os.getenv("OCTOAGENT_MANAGED_SECRETS_FILE", "").strip():
+        return Path(managed_path).expanduser().resolve()
     config_path = _config_path().resolve()
-    return config_path.parents[2] / ".env"
+    # Standard layout: <repo>/runtime/config/config.yaml. Root-level packaged
+    # configs (for example /app/config.yaml in Docker) use their own directory.
+    if config_path.parent.name == "config" and config_path.parent.parent.name == "runtime":
+        return config_path.parents[2] / ".env"
+    return config_path.parent / ".env"
 
 
 def _managed_secret_name(model_name: str, key: str) -> str:

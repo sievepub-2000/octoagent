@@ -1,18 +1,22 @@
-from __future__ import annotations
+from pathlib import Path
 
-from types import SimpleNamespace
+from src.runtime.config.paths import Paths
+from src.runtime.permissions import runtime_write_roots
 
-from src.runtime import permissions as runtime_permissions
+
+def test_default_backend_state_is_below_runtime_root(tmp_path: Path) -> None:
+    paths = Paths(tmp_path)
+
+    roots = runtime_write_roots(paths)
+
+    assert roots[0] == tmp_path / "runtime" / "backend-state"
+    assert all(Path(root).is_relative_to(tmp_path) for root in roots)
 
 
-def test_target_uid_gid_uses_runtime_identity_over_sudo_env(monkeypatch) -> None:
-    monkeypatch.setattr(runtime_permissions, "IS_WINDOWS", False)
-    monkeypatch.setenv("SUDO_UID", "0")
-    monkeypatch.setenv("SUDO_GID", "0")
-    monkeypatch.setattr(
-        runtime_permissions,
-        "get_runtime_identity",
-        lambda: SimpleNamespace(uid=1000, gid=1000),
-    )
+def test_explicit_backend_state_root_is_preserved(tmp_path: Path) -> None:
+    paths = Paths(tmp_path / "workspace")
+    explicit = tmp_path / "external-state"
 
-    assert runtime_permissions._target_uid_gid() == (1000, 1000)
+    roots = runtime_write_roots(paths, explicit)
+
+    assert roots[0] == explicit

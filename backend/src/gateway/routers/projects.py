@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from src.runtime.config.app_config import get_app_config
@@ -74,6 +74,22 @@ async def update_project(project_id: str, body: ProjectUpdateRequest) -> dict:
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+@router.delete("/{project_id}", status_code=204)
+async def delete_project(
+    project_id: str,
+    x_octoagent_confirmation: str | None = Header(default=None, alias="X-OctoAgent-Confirmation"),
+) -> Response:
+    if x_octoagent_confirmation != "CONFIRM DELETE PROJECT":
+        raise HTTPException(status_code=409, detail="Archive the project and confirm permanent deletion")
+    try:
+        deleted = get_project_service().delete_project(project_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return Response(status_code=204)
 
 
 @router.get("/{project_id}/context")

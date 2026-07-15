@@ -837,8 +837,8 @@ export default function ChannelsConfigPage() {
               <div className="text-sm text-muted-foreground">{manageTools.detail ?? labels.notConfiguredDescription}</div>
             ) : manageTools?.tools?.length ? (
               <div className="grid gap-2 md:grid-cols-2">
-                {manageTools.tools.slice(0, 12).map((tool) => (
-                  <div className="rounded-xl border border-border/70 bg-background/60 p-3" key={tool.function?.name ?? Math.random()}>
+                {manageTools.tools.slice(0, 12).map((tool, index) => (
+                  <div className="rounded-xl border border-border/70 bg-background/60 p-3" key={tool.function?.name ?? `tool-${index}`}>
                     <div className="font-mono text-[11px] font-semibold text-foreground">{tool.function?.name}</div>
                     <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{tool.function?.description ?? labels.noDescription}</p>
                   </div>

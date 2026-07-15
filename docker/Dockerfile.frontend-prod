@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 ARG NODE_FRONTEND_IMAGE=node:22-alpine
 FROM ${NODE_FRONTEND_IMAGE} AS frontend
 
@@ -13,13 +12,14 @@ ENV NODE_ENV=production \
     NEXT_PUBLIC_LOCAL_LANGGRAPH_PORT=19804 \
     NEXT_PUBLIC_LOCAL_INGRESS_PORT=19800
 
-RUN corepack enable && corepack install -g pnpm@10.26.2
+RUN corepack enable && corepack install -g pnpm@11.12.0
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/pnpm-lock.yaml ./
+COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml ./
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 COPY frontend ./
 RUN pnpm exec next build
 
+USER node
 EXPOSE 19806
 CMD ["sh", "-c", "pnpm exec next start --hostname 0.0.0.0 --port ${OCTO_FRONTEND_PORT:-19806}"]

@@ -1,9 +1,5 @@
-import { FlatCompat } from "@eslint/eslintrc";
+import nextCoreWebVitals from "eslint-config-next/core-web-vitals";
 import tseslint from "typescript-eslint";
-
-const compat = new FlatCompat({
-  baseDirectory: import.meta.dirname,
-});
 
 export default tseslint.config(
   {
@@ -16,7 +12,7 @@ export default tseslint.config(
       "*.js",
     ],
   },
-  ...compat.extends("next/core-web-vitals"),
+  ...nextCoreWebVitals,
   {
     files: ["**/*.ts", "**/*.tsx"],
     extends: [
@@ -43,6 +39,12 @@ export default tseslint.config(
       "@typescript-eslint/prefer-nullish-coalescing": "off",
       "@typescript-eslint/require-await": "off",
       "@typescript-eslint/no-empty-object-type": "off",
+      // These React Compiler diagnostics are not valid release gates until the
+      // compiler is enabled. The application intentionally hydrates persisted
+      // client state in effects and uses refs as stream identity holders.
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/refs": "off",
+      "react-hooks/set-state-in-effect": "off",
       "@typescript-eslint/no-misused-promises": [
         "error",
         { checksVoidReturn: { attributes: false } },

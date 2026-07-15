@@ -85,8 +85,9 @@ def _resolve_root(value: str) -> Path:
     root = Path(value or get_paths().default_workspace_dir).expanduser().resolve()
     if not root.is_dir():
         raise ValueError(f"Project directory does not exist: {root}")
-    if not any(root == allowed or allowed in root.parents for allowed in _ALLOWED_ROOTS):
-        raise ValueError("Project directory must be under /home, /opt, /srv, /tmp, or /var/lib")
+    allowed_roots = (*_ALLOWED_ROOTS, get_paths().workspace_root)
+    if not any(root == allowed or allowed in root.parents for allowed in allowed_roots):
+        raise ValueError("Project directory must be under an allowed system root or the configured OctoAgent workspace")
     return root
 
 
@@ -243,6 +244,18 @@ class ProjectService:
         with self._lock, self._connect() as connection:
             self._insert(connection, project)
         return project.model_dump(mode="json")
+
+    def delete_project(self, project_id: str) -> bool:
+        """Permanently delete an archived project definition only."""
+
+        current = self.get_project(project_id)
+        if current is None:
+            return False
+        if current.get("status") != "archived":
+            raise ValueError("Project must be archived before permanent deletion")
+        with self._lock, self._connect() as connection:
+            cursor = connection.execute("DELETE FROM projects WHERE project_id = ?", (project_id,))
+        return cursor.rowcount > 0
 
     def resolve_execution_context(
         self,

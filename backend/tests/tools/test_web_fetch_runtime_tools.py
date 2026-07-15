@@ -3,6 +3,26 @@ from __future__ import annotations
 import asyncio
 
 import httpx
+import pytest
+
+from src.community.ddg import tools as ddg_tools
+from src.community.scrapling import tools as scrapling_tools
+
+
+@pytest.fixture(autouse=True)
+def allow_example_urls(monkeypatch) -> None:
+    ddg_original = ddg_tools.is_url_safe
+    scrapling_original = scrapling_tools.is_url_safe
+    monkeypatch.setattr(
+        ddg_tools,
+        "is_url_safe",
+        lambda url: (True, "") if "example.com" in url else ddg_original(url),
+    )
+    monkeypatch.setattr(
+        scrapling_tools,
+        "is_url_safe",
+        lambda url: (True, "") if "example.com" in url else scrapling_original(url),
+    )
 
 
 def _available_tool(name: str):

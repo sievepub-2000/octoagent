@@ -11,8 +11,8 @@ def test_project_root_replaces_only_thread_workspace(tmp_path: Path) -> None:
     thread_data = middleware._thread_data_update("thread-1")["thread_data"]
 
     assert thread_data["workspace_path"] == str(project_root.resolve())
-    assert thread_data["uploads_path"].endswith("threads/thread-1/uploads")
-    assert thread_data["outputs_path"].endswith("threads/thread-1/outputs")
+    assert Path(thread_data["uploads_path"]).parts[-3:] == ("threads", "thread-1", "uploads")
+    assert Path(thread_data["outputs_path"]).parts[-3:] == ("threads", "thread-1", "outputs")
 
 
 def test_thread_id_falls_back_to_run_config(monkeypatch) -> None:

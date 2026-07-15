@@ -3,9 +3,11 @@ name: octoagent
 x-backend-env: &backend-env
   CI: "true"
   PYTHONDONTWRITEBYTECODE: "1"
-  OCTO_AGENT_CONFIG_PATH: /app/config.yaml
-  OCTO_AGENT_EXTENSIONS_CONFIG_PATH: /app/extensions_config.json
+  OCTO_AGENT_CONFIG_PATH: /app/runtime/config/config.yaml
+  OCTO_AGENT_EXTENSIONS_CONFIG_PATH: /app/runtime/config/extensions_config.json
   OCTO_AGENT_SETUP_STATE_FILE: /app/workspace/env/setup.json
+  OCTO_AGENT_HOME: /app/workspace
+  OCTOAGENT_MANAGED_SECRETS_FILE: /app/runtime/secrets/models.env
   OCTOAGENT_RUNTIME_CONFIG_DIR: /app/backend/runtime
   OCTOAGENT_APP_ROOT: /app
   OCTOAGENT_BACKEND_PATH: /app/backend
@@ -16,17 +18,18 @@ x-backend-env: &backend-env
   OCTOAGENT_MCP_POSTGRES_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres
   OCTOAGENT_MCP_OPENAPI_BIN: /app/runtime/tools/mcp/node_modules/.bin/openapi-mcp-server
   OCTOAGENT_MCP_REDIS_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-redis
-  OCTOAGENT_MCP_KUBERNETES_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-kubernetes
   OCTOAGENT_MCP_DOCKER_BIN: /app/runtime/tools/mcp/node_modules/.bin/docker-mcp
+  OCTOAGENT_TOOL_GUIDE_PATH: /app/runtime/system_tools/copilot-instructions.md
   OCTOAGENT_REDIS_URL: redis://redis:6379
   OCTOAGENT_POSTGRES_SUPERUSER_DSN: postgresql://octoagent:${POSTGRES_PASSWORD:-octoagent}@postgres:5432/${POSTGRES_DB:-octoagent}
+  OCTOAGENT_CHECKPOINTER_DSN: postgresql://octoagent:${POSTGRES_PASSWORD:-octoagent}@postgres:5432/${POSTGRES_DB:-octoagent}?sslmode=disable
   OCTOAGENT_GATEWAY_INTERNAL_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}
   OCTOAGENT_GATEWAY_HEALTH_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/health
   OCTOAGENT_OPENAPI_SPEC_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/openapi.json
+  OCTO_LANGGRAPH_BASE_URL: http://langgraph:${OCTO_LANGGRAPH_PORT:-19804}
   OCTOAGENT_OPENROUTER_APP_URL: ${OCTOAGENT_OPENROUTER_APP_URL:-https://github.com/sievepub-2000/octoagent}
   OCTOAGENT_OPENROUTER_APP_TITLE: ${OCTOAGENT_OPENROUTER_APP_TITLE:-OctoAgent}
   OCTOAGENT_OPENROUTER_USAGE_INCLUDE: ${OCTOAGENT_OPENROUTER_USAGE_INCLUDE:-true}
-  OCTOAGENT_KUBECONFIG_SMOKE: /app/runtime/tools/kubernetes/kubeconfig-smoke.yaml
   XDG_CACHE_HOME: /app/runtime/cache/xdg
   UV_CACHE_DIR: /app/runtime/cache/uv
   PIP_CACHE_DIR: /app/runtime/cache/pip
@@ -37,13 +40,16 @@ x-backend-env: &backend-env
   TRANSFORMERS_OFFLINE: "1"
 
 x-backend-volumes: &backend-volumes
-  - ./config.yaml:/app/config.yaml:ro
-  - ./extensions_config.json:/app/extensions_config.json:ro
+  - ./runtime/config:/app/runtime/config
   - ./workspace:/app/workspace
   - ./logs:/app/logs
+  - ./tmp:/app/tmp
   - ./runtime/cache:/app/runtime/cache
   - ./runtime/logs:/app/runtime/logs
+  - ./runtime/langgraph:/app/backend/.langgraph_api
+  - ./runtime/secrets:/app/runtime/secrets
   - ./runtime/system_tools:/app/runtime/system_tools
+  - ./skills/custom:/app/skills/custom
   - /var/run/docker.sock:/var/run/docker.sock
 
 services:
@@ -83,16 +89,20 @@ services:
       args:
         PYTHON_BASE_IMAGE: ${OCTOAGENT_PYTHON_BASE_IMAGE:-python:3.12-slim}
         NODE_RUNTIME_IMAGE: ${OCTOAGENT_NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+        OCTOAGENT_UID: ${OCTOAGENT_UID:-1000}
+        OCTOAGENT_GID: ${OCTOAGENT_GID:-1000}
     image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
     restart: unless-stopped
     command: >-
-      bash -lc "cd /app/backend && uv run uvicorn src.gateway.app:app --host 0.0.0.0 --port ${OCTO_GATEWAY_PORT:-19802}"
+      bash -lc "cd /app/backend && /app/backend/.venv/bin/uvicorn src.gateway.app:app --host 0.0.0.0 --port ${OCTO_GATEWAY_PORT:-19802}"
     env_file:
       - .env.docker
     environment:
       <<: *backend-env
       OCTO_GATEWAY_PORT: ${OCTO_GATEWAY_PORT:-19802}
     volumes: *backend-volumes
+    group_add:
+      - ${OCTOAGENT_DOCKER_GID:-0}
     depends_on:
       postgres:
         condition: service_healthy
@@ -116,16 +126,20 @@ services:
       args:
         PYTHON_BASE_IMAGE: ${OCTOAGENT_PYTHON_BASE_IMAGE:-python:3.12-slim}
         NODE_RUNTIME_IMAGE: ${OCTOAGENT_NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
+        OCTOAGENT_UID: ${OCTOAGENT_UID:-1000}
+        OCTOAGENT_GID: ${OCTOAGENT_GID:-1000}
     image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
     restart: unless-stopped
     command: >-
-      bash -lc "cd /app/backend && uv run langgraph dev --no-browser --allow-blocking --n-jobs-per-worker ${OCTO_LANGGRAPH_JOBS:-4} --host 0.0.0.0 --port ${OCTO_LANGGRAPH_PORT:-19804} --no-reload"
+      bash -lc "cd /app/backend && /app/backend/.venv/bin/langgraph dev --no-browser --n-jobs-per-worker ${OCTO_LANGGRAPH_JOBS:-4} --host 0.0.0.0 --port ${OCTO_LANGGRAPH_PORT:-19804} --no-reload"
     env_file:
       - .env.docker
     environment:
       <<: *backend-env
       OCTO_LANGGRAPH_PORT: ${OCTO_LANGGRAPH_PORT:-19804}
     volumes: *backend-volumes
+    group_add:
+      - ${OCTOAGENT_DOCKER_GID:-0}
     depends_on:
       gateway:
         condition: service_healthy

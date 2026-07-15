@@ -95,9 +95,10 @@ def _xdg_root(env_key: str, home: Path) -> Path | None:
         resolved = candidate.resolve()
     except Exception:
         resolved = candidate.absolute()
-    if not IS_WINDOWS and home != Path("/root") and resolved == Path("/root"):
+    root_home = Path("/root").resolve()
+    if not IS_WINDOWS and home != root_home and resolved == root_home:
         return None
-    if not IS_WINDOWS and home != Path("/root") and Path("/root") in resolved.parents:
+    if not IS_WINDOWS and home != root_home and root_home in resolved.parents:
         return None
     return resolved
 

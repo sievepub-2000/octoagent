@@ -49,6 +49,18 @@ def _optional_modules() -> tuple[Any | None, Any | None]:
     return numpy, faiss
 
 
+def _read_index_file(path: Path, numpy: Any, faiss: Any) -> Any:
+    """Read an index without passing a Unicode path into native FAISS code."""
+    payload = numpy.frombuffer(path.read_bytes(), dtype="uint8")
+    return faiss.deserialize_index(payload)
+
+
+def _write_index_file(index: Any, path: Path, faiss: Any) -> None:
+    """Persist an index through Python's Unicode-safe filesystem APIs."""
+    serialized = faiss.serialize_index(index)
+    path.write_bytes(bytes(serialized))
+
+
 class FAISSIndexManager:
     """Manages FAISS index persistence and incremental updates.
 
@@ -116,7 +128,7 @@ class FAISSIndexManager:
             # Try to load cached index (avoids full rebuild)
             if index_path.exists() and len(vectors) <= 10000:
                 try:
-                    index = faiss.read_index(str(index_path))
+                    index = _read_index_file(index_path, numpy, faiss)
                     if index.ntotal == len(vectors):
                         self._stats.cache_hit_count += 1
                         self._stats.total_searches += 1
@@ -146,7 +158,7 @@ class FAISSIndexManager:
             # Save index for future reuse
             if len(vectors) <= 10000:
                 try:
-                    faiss.write_index(index, str(index_path))
+                    _write_index_file(index, index_path, faiss)
                     self._stats.total_saves += 1
                 except Exception as exc:
                     logger.debug("Failed to save FAISS index: %s", exc)
@@ -226,11 +238,11 @@ class FAISSIndexManager:
             if numpy is None or faiss is None:
                 return 0
 
-            index = faiss.read_index(str(index_path))
+            index = _read_index_file(index_path, numpy, faiss)
             matrix = numpy.asarray(vectors, dtype="float32")
             faiss.normalize_L2(matrix)
             index.add(matrix)
-            faiss.write_index(index, str(index_path))
+            _write_index_file(index, index_path, faiss)
             self._stats.total_adds += len(vectors)
             self._stats.current_index_size = index.ntotal
             return len(vectors)

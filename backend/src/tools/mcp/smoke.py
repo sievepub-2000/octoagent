@@ -82,6 +82,31 @@ def _configured_smoke(config: McpServerConfig) -> tuple[str | None, dict[str, An
     return tool_name, dict(args) if isinstance(args, dict) else {}
 
 
+def _semantic_failure(output: Any) -> str | None:
+    """Detect a tool-level failure hidden inside a successful MCP transport."""
+
+    pending = [output]
+    while pending:
+        value = pending.pop()
+        if isinstance(value, dict):
+            if value.get("ok") is False:
+                return str(value.get("error") or value.get("stderr") or "tool_returned_ok_false")[:1000]
+            exit_code = value.get("exit_code")
+            if isinstance(exit_code, int) and exit_code != 0:
+                return str(value.get("stderr") or f"tool_exit_code_{exit_code}")[:1000]
+            pending.extend(value.values())
+        elif isinstance(value, (list, tuple)):
+            pending.extend(value)
+        elif isinstance(value, str):
+            candidate = value.strip()
+            if candidate.startswith(("{", "[")):
+                try:
+                    pending.append(json.loads(candidate))
+                except (TypeError, ValueError):
+                    pass
+    return None
+
+
 def _schema_check(name: str, config: McpServerConfig) -> dict[str, Any]:
     checks: dict[str, Any] = {"ok": True, "issues": []}
     if config.type == "stdio":
@@ -151,13 +176,16 @@ async def smoke_one_mcp_server(name: str, config: McpServerConfig) -> dict[str, 
         else:
             try:
                 output = await asyncio.wait_for(selected.ainvoke(smoke_args), timeout=30)
+                semantic_failure = _semantic_failure(output)
                 result["minimal_call"] = {
-                    "ok": True,
+                    "ok": semantic_failure is None,
                     "skipped": False,
                     "tool": selected.name,
                     "args": smoke_args,
                     "output_preview": str(output)[:1000],
                 }
+                if semantic_failure is not None:
+                    result["minimal_call"]["error"] = semantic_failure
             except Exception as exc:  # noqa: BLE001 - captured in smoke report
                 result["minimal_call"] = {"ok": False, "skipped": False, "tool": selected.name, "args": smoke_args, "error": _serialize_error(exc)}
         ok = bool(result["startup"].get("ok") and result["list_tools"].get("ok") and result["minimal_call"].get("ok"))

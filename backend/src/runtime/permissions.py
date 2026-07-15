@@ -38,7 +38,9 @@ def _target_uid_gid() -> tuple[int, int] | None:
 
 def runtime_write_roots(paths: Paths | None = None, backend_state_root: Path | None = None) -> list[Path]:
     resolved_paths = paths or get_paths()
-    backend_state = backend_state_root or (Path(__file__).resolve().parents[1] / ".octoagent")
+    # Runtime state must never be created below the immutable application
+    # source tree. This is especially important for the non-root Docker image.
+    backend_state = backend_state_root or (resolved_paths.runtime_root / "backend-state")
     return [
         backend_state,
         resolved_paths.runtime_root,

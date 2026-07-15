@@ -183,7 +183,9 @@ You have access to skills that provide optimized workflows for specific tasks. E
 
 
 def get_capability_guide_prompt_section() -> str:
-    guide_path = Path(__file__).resolve().parents[3] / ".github" / "copilot-instructions.md"
+    from src.utils.agent_tool_guide import get_agent_tool_guide_path
+
+    guide_path = get_agent_tool_guide_path()
     if not guide_path.exists():
         return ""
     return f"""<capability_system>

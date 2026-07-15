@@ -15,9 +15,9 @@ dependencies = [
     "langchain-mcp-adapters>=0.1.0",
     "langchain-openai>=1.1.7",
     "langgraph>=1.0.6",
-    "langgraph-api>=0.8.1,<0.9.0",
+    "langgraph-api>=0.11.0,<0.12.0",
     "langgraph-cli>=0.4.14",
-    "langgraph-runtime-inmem>=0.28.0,<0.29.0",
+    "langgraph-runtime-inmem>=0.31.0,<0.32.0",
     "markdownify>=1.2.2",
     "markitdown[all,xlsx]>=0.0.1a2",
     "pydantic>=2.13.3",
@@ -66,6 +66,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "datamodel-code-generator==0.31.2",
+    "httpx2>=0.1.0",
     "playwright>=1.58.0",
     "pytest>=9.0.3",
     "ruff>=0.14.11",
@@ -77,4 +78,7 @@ pythonpath = ["."]
 addopts = "-m 'not live_ui' --import-mode=importlib"
 markers = [
     "live_ui: tests that require a live frontend (deselected by default)",
+]
+filterwarnings = [
+    "ignore:Call to deprecated method findAll.*:DeprecationWarning:readabilipy\\.simplifiers\\.html",
 ]

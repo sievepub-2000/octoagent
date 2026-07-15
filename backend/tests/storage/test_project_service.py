@@ -30,6 +30,19 @@ def test_project_lifecycle(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> N
     assert updated["pinned_files"] == ["README.md"]
     assert service.list_projects() == []
     assert len(service.list_projects(include_archived=True)) == 1
+    assert service.delete_project(created["project_id"])
+    assert service.get_project(created["project_id"]) is None
+
+
+def test_active_project_must_be_archived_before_delete(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    root = tmp_path / "repo"
+    root.mkdir()
+    monkeypatch.setattr("src.storage.project.service._ALLOWED_ROOTS", (tmp_path,))
+    service = ProjectService(store_path=tmp_path / "projects.json")
+    created = service.create_project("OctoAgent", str(root))
+
+    with pytest.raises(ValueError, match="must be archived"):
+        service.delete_project(created["project_id"])
 
 
 def test_project_rejects_missing_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -37,6 +50,18 @@ def test_project_rejects_missing_directory(tmp_path: Path, monkeypatch: pytest.M
     service = ProjectService(store_path=tmp_path / "projects.json")
     with pytest.raises(ValueError, match="does not exist"):
         service.create_project("Missing", str(tmp_path / "missing"))
+
+
+def test_project_accepts_configured_workspace_outside_system_roots(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    workspace = tmp_path / "container-app" / "workspace"
+    workspace.mkdir(parents=True)
+    monkeypatch.setenv("OCTO_AGENT_HOME", str(workspace))
+    monkeypatch.setattr("src.storage.project.service._ALLOWED_ROOTS", ())
+
+    service = ProjectService(store_path=tmp_path / "projects.json")
+    created = service.create_project("Container project", str(workspace))
+
+    assert created["root_path"] == str(workspace.resolve())
 
 
 def test_project_store_migrates_legacy_json(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -12,8 +12,7 @@ Built-in tables (registered on import):
 Async-friendly: every handler is blocking I/O (sqlite/duckdb/BM25 +
 sentence-transformers embedding) so ``aunified_search`` offloads to a thread
 via ``asyncio.to_thread``. This is the canonical way to avoid stalling the
-LangGraph event loop (which is why ``--allow-blocking`` was needed in the
-first place).
+LangGraph event loop without enabling its unsafe blocking-I/O escape hatch.
 """
 
 from __future__ import annotations
@@ -98,8 +97,8 @@ async def aunified_search(
 
     Critical: never call ``unified_search`` directly from an event-loop
     coroutine — sentence-transformers ``encode()`` holds the GIL for tens of
-    milliseconds and DuckDB's ``execute()`` is fully synchronous. Both stall
-    the LangGraph queue and force ``--allow-blocking`` slow path.
+    milliseconds and DuckDB's ``execute()`` is fully synchronous. Both would
+    stall the LangGraph queue if they were not moved to a worker thread.
     """
     return await asyncio.to_thread(unified_search, table=table, query=query, namespace=namespace, top_k=top_k, mode=mode)
 

@@ -2,7 +2,19 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from src.community.scrapling import tools as scrapling_tools
+
+
+@pytest.fixture(autouse=True)
+def allow_example_urls(monkeypatch) -> None:
+    original = scrapling_tools.is_url_safe
+    monkeypatch.setattr(
+        scrapling_tools,
+        "is_url_safe",
+        lambda url: (True, "") if "example.com" in url else original(url),
+    )
 
 
 class _FakeSelection(list):

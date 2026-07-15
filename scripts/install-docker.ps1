@@ -23,8 +23,24 @@ function Invoke-Compose([string[]]$Args) {
 
 function New-Secret {
     $bytes = New-Object byte[] 48
-    [Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
+    $generator = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $generator.GetBytes($bytes)
+    } finally {
+        $generator.Dispose()
+    }
     [Convert]::ToBase64String($bytes)
+}
+
+function New-HexSecret {
+    $bytes = New-Object byte[] 24
+    $generator = [Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $generator.GetBytes($bytes)
+    } finally {
+        $generator.Dispose()
+    }
+    (($bytes | ForEach-Object { $_.ToString("x2") }) -join "")
 }
 
 Require-Command git
@@ -37,6 +53,10 @@ if (Test-Path (Join-Path $Prefix ".git")) {
     git fetch origin $Branch
     git checkout $Branch
     git pull --ff-only origin $Branch
+} elseif ((Test-Path (Join-Path $Prefix "compose.yaml")) -and (Test-Path (Join-Path $Prefix "docker\Dockerfile.backend-prod"))) {
+    # Packaged release archives have no .git directory but are complete and
+    # valid installation sources.
+    Set-Location $Prefix
 } elseif ((Test-Path $Prefix) -and ((Get-ChildItem -LiteralPath $Prefix -Force | Select-Object -First 1) -ne $null)) {
     throw "Prefix exists and is not an empty git checkout: $Prefix"
 } else {
@@ -45,16 +65,30 @@ if (Test-Path (Join-Path $Prefix ".git")) {
     Set-Location $Prefix
 }
 
-if (-not (Test-Path config.yaml)) { Copy-Item config.example.yaml config.yaml }
+New-Item -ItemType Directory -Force -Path "runtime/config" | Out-Null
+if (-not (Test-Path "runtime/config/config.yaml")) {
+    if (Test-Path config.yaml) { Copy-Item config.yaml "runtime/config/config.yaml" }
+    else { Copy-Item config.example.yaml "runtime/config/config.yaml" }
+}
+if (-not (Test-Path "runtime/config/extensions_config.json")) {
+    if (Test-Path extensions_config.json) { Copy-Item extensions_config.json "runtime/config/extensions_config.json" }
+    else { Copy-Item extensions_config.example.json "runtime/config/extensions_config.json" }
+}
 if (-not (Test-Path .env.docker)) { Copy-Item .env.docker.example .env.docker }
 $envText = Get-Content .env.docker -Raw
 if ($envText.Contains("replace-with-a-long-random-secret")) {
     $envText = $envText.Replace("replace-with-a-long-random-secret", (New-Secret))
-    Set-Content -Encoding utf8 -NoNewline -Path .env.docker -Value $envText
 }
+if ($envText.Contains("POSTGRES_PASSWORD=octoagent-change-me")) {
+    $envText = $envText.Replace("POSTGRES_PASSWORD=octoagent-change-me", "POSTGRES_PASSWORD=$(New-HexSecret)")
+}
+Set-Content -Encoding utf8 -NoNewline -Path .env.docker -Value $envText
 
-foreach ($dir in @("logs", "runtime/cache", "runtime/logs", "runtime/system_tools", "workspace/env", "workspace/default", "tmp")) {
+foreach ($dir in @("logs", "runtime/cache", "runtime/langgraph", "runtime/logs", "runtime/secrets", "runtime/system_tools", "skills/custom", "workspace/env", "workspace/default", "tmp")) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
+}
+if (-not (Test-Path "runtime/secrets/models.env")) {
+    New-Item -ItemType File -Path "runtime/secrets/models.env" | Out-Null
 }
 
 if ($Pull) { docker compose --env-file .env.docker -f compose.yaml pull --ignore-buildable }

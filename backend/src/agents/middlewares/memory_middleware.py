@@ -182,6 +182,16 @@ def _should_skip_heavy_memory_for_fast_turn(
     user_messages: list[Any],
     assistant_messages: list[Any],
 ) -> bool:
+    latest_user = _message_text(user_messages[-1]) if user_messages else ""
+    durable_signal = re.search(
+        r"remember|preference|from now on|always|never|correction|incorrect|wrong|must|do not|"
+        r"记住|偏好|纠正|更正|错误|以后|今后|不要|必须|始终|永远",
+        latest_user,
+        re.IGNORECASE,
+    )
+    if durable_signal:
+        return False
+
     route = runtime_context.get("dialogue_route")
     if isinstance(route, dict):
         route = route.get("kind")

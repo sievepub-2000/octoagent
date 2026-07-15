@@ -124,6 +124,41 @@ def test_apply_updates_skips_duplicate_completed_item_in_same_task_phase() -> No
     assert second["task_phases"]["task-phase-test"]["completedItemHashes"] == ["hash-completed-1"]
 
 
+def test_apply_updates_skips_normalized_duplicate_fact() -> None:
+    updater = MemoryUpdater()
+    existing = ensure_memory_schema(
+        {
+            "facts": [
+                {
+                    "id": "fact-existing",
+                    "content": "User prefers concise Chinese reports.",
+                    "category": "preference",
+                    "confidence": 0.9,
+                }
+            ]
+        }
+    )
+
+    updated = updater._apply_updates(
+        existing,
+        {
+            "user": {},
+            "history": {},
+            "newFacts": [
+                {
+                    "content": "  user PREFERS concise Chinese reports. ",
+                    "category": "preference",
+                    "confidence": 0.95,
+                }
+            ],
+            "factsToRemove": [],
+        },
+        thread_id="thread-duplicate",
+    )
+
+    assert len(updated["facts"]) == 1
+
+
 def test_memory_api_snapshot_backfills_overview_from_facts() -> None:
     normalized = _normalize_memory_snapshot(
         {

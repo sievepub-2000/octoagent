@@ -6,6 +6,13 @@ from fastapi import HTTPException
 from src.gateway.routers import models
 
 
+def test_managed_secret_path_can_be_explicitly_configured(monkeypatch, tmp_path):
+    managed_path = tmp_path / "runtime" / "secrets" / "models.env"
+    monkeypatch.setenv("OCTOAGENT_MANAGED_SECRETS_FILE", str(managed_path))
+
+    assert models._project_dotenv_path() == managed_path.resolve()
+
+
 def test_raw_model_key_is_stored_in_dotenv_and_referenced(monkeypatch, tmp_path):
     dotenv_path = tmp_path / ".env"
     monkeypatch.setattr(models, "_project_dotenv_path", lambda: dotenv_path)

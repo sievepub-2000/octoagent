@@ -14,7 +14,12 @@
     "@modelcontextprotocol/server-filesystem": "^2026.1.14",
     "@modelcontextprotocol/server-postgres": "^0.6.2",
     "@modelcontextprotocol/server-redis": "^2025.4.25",
-    "docker-mcp": "^1.0.0",
-    "mcp-server-kubernetes": "^3.8.0"
+    "docker-mcp": "^1.0.0"
+  },
+  "overrides": {
+    "@modelcontextprotocol/sdk": "^1.25.3",
+    "dockerode": {
+      "uuid": "^11.1.1"
+    }
   }
 }

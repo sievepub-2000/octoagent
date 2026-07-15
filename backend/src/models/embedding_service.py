@@ -129,6 +129,10 @@ class EmbeddingService:
         if importlib.util.find_spec("sentence_transformers") is not None:
             try:
                 return SentenceTransformerBackend()
+            except RuntimeError as exc:
+                # A cold/offline installation intentionally uses the
+                # deterministic fallback until an embedding model is cached.
+                logger.info("sentence-transformers model unavailable: %s", exc)
             except Exception as exc:
                 logger.warning("sentence-transformers failed to load: %s", exc)
         else:

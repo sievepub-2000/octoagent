@@ -20,6 +20,29 @@ from src.runtime.config.paths import get_paths
 logger = logging.getLogger(__name__)
 
 
+def _fact_retention_key(fact: dict[str, Any]) -> tuple[int, float, str]:
+    """Keep durable user signals ahead of generic historical detail.
+
+    Confidence remains important inside each class, while the timestamp makes
+    equally reliable corrections replace stale context when the bounded profile
+    reaches capacity.
+    """
+
+    category = str(fact.get("category") or "context").strip().lower()
+    category_priority = {
+        "preference": 3,
+        "behavior": 3,
+        "context": 2,
+        "goal": 1,
+        "knowledge": 0,
+    }.get(category, 0)
+    return (
+        category_priority,
+        float(fact.get("confidence") or 0.0),
+        str(fact.get("createdAt") or ""),
+    )
+
+
 def _get_memory_file_path(agent_name: str | None = None) -> Path:
     """Get the path to the memory file.
 
@@ -523,10 +546,14 @@ class MemoryUpdater:
         # Add new facts
         new_facts = update_data.get("newFacts", [])
         facts_added: list[dict[str, Any]] = []
+        known_fact_contents = {_normalise_completed_item(fact.get("content")) for fact in current_memory.get("facts", []) if isinstance(fact, dict) and _normalise_completed_item(fact.get("content"))}
         for fact in new_facts:
             confidence = fact.get("confidence", 0.5)
             if confidence >= config.fact_confidence_threshold:
                 content = str(fact.get("content") or "").strip()
+                normalized_content = _normalise_completed_item(content)
+                if not normalized_content or normalized_content in known_fact_contents:
+                    continue
                 fact_completed_hash = str(fact.get("completed_item_hash") or fact.get("completedItemHash") or "").strip()
                 if not fact_completed_hash and completed_hashes and len(completed_hashes) == 1:
                     fact_completed_hash = completed_hashes[0]
@@ -558,6 +585,7 @@ class MemoryUpdater:
                         phase_hashes.append(fact_completed_hash)
                 current_memory["facts"].append(fact_entry)
                 facts_added.append(fact_entry)
+                known_fact_contents.add(normalized_content)
 
         for completed_hash in completed_hashes:
             if completed_hash and completed_hash not in phase.setdefault("completedItemHashes", []):
@@ -568,10 +596,11 @@ class MemoryUpdater:
 
         # Enforce max facts limit
         if len(current_memory["facts"]) > config.max_facts:
-            # Sort by confidence and keep top ones
+            # Preserve durable preferences/user context first, then the most
+            # reliable and recent historical details within the fixed budget.
             current_memory["facts"] = sorted(
                 current_memory["facts"],
-                key=lambda f: f.get("confidence", 0),
+                key=_fact_retention_key,
                 reverse=True,
             )[: config.max_facts]
 

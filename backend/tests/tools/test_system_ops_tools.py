@@ -4,6 +4,7 @@ import json
 import shutil
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from src.tools.builtins import system_ops_tools
@@ -18,6 +19,15 @@ from src.tools.builtins.system_ops_tools import (
     runtime_health_report_tool,
     security_audit_scan_tool,
 )
+
+
+@pytest.fixture(autouse=True)
+def allow_test_artifact_root(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(
+        system_ops_tools,
+        "_allowed_roots",
+        lambda: [system_ops_tools._REPO_ROOT, system_ops_tools._SYSTEM_TOOL_ARTIFACT_ROOT, tmp_path],
+    )
 
 
 def test_security_audit_scan_masks_secret_values(tmp_path: Path) -> None:

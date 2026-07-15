@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 
 from src.harness.deep_agent import DeepAgentConfig, DeepAgentExecutor, TaskPlan
 from src.harness.work_bus_redis import WorkBusRedis
@@ -58,7 +59,7 @@ def test_deep_agent_solidifies_completed_multistep_plan(tmp_path):
     assert result.status == "completed"
     skill_path = result.metadata.get("solidified_skill_path")
     assert skill_path is not None
-    content = tmp_path.joinpath(skill_path.split(str(tmp_path), 1)[1].lstrip("/")).read_text(encoding="utf-8")
+    content = Path(skill_path).read_text(encoding="utf-8")
     assert "name: deep-agent-prepare-weekly-operations-report" in content
     assert "Captured from a successful DeepAgent workflow." in content
 

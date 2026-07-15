@@ -105,6 +105,12 @@ class OrphanRunSweeper:
             r.raise_for_status()
             data = r.json()
             return data if isinstance(data, list) else []
+        except httpx.ConnectError as exc:
+            # Gateway and LangGraph are separate services in Docker. During a
+            # cold start the gateway can become healthy first; the periodic
+            # sweeper will retry after LangGraph is ready.
+            logger.info("OrphanRunSweeper: LangGraph not ready yet: %s", exc)
+            return []
         except Exception:
             logger.exception("OrphanRunSweeper: failed to list busy threads")
             return []

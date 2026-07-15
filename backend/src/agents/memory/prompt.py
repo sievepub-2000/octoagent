@@ -103,6 +103,9 @@ Output Format (JSON):
 }}
 
 Important Rules:
+- Treat explicit user corrections and durable operating instructions as high-priority memories
+- Learn user identity and preferences from user messages, never from assistant claims
+- Replace or remove contradicted facts instead of keeping both versions
 - Only set shouldUpdate=true if there's meaningful new information
 - Follow length guidelines: workContext/personalContext are concise (1-3 sentences), topOfMind and history sections are detailed (paragraphs)
 - Include specific metrics, version numbers, and proper nouns in facts
@@ -260,9 +263,23 @@ def format_memory_for_injection(memory_data: dict[str, Any], max_tokens: int = 2
             [fact for fact in facts if isinstance(fact, dict) and str(fact.get("content") or "").strip()],
             key=lambda fact: float(fact.get("confidence") or 0.0),
             reverse=True,
-        )[:8]
-        if fact_items:
-            sections.append("Facts:\n" + "\n".join(f"- {fact['content']}" for fact in fact_items))
+        )
+        try:
+            from src.runtime.config.memory_config import get_memory_config
+
+            config = get_memory_config()
+            preference_enabled = config.preference_injection_enabled
+            max_preferences = config.max_preference_facts
+        except Exception:
+            preference_enabled = True
+            max_preferences = 12
+        preference_items = [fact for fact in fact_items if fact.get("category") == "preference"][:max_preferences]
+        if preference_enabled and preference_items:
+            sections.append("User Preferences:\n" + "\n".join(f"- {fact['content']}" for fact in preference_items))
+        preference_ids = {str(fact.get("id") or id(fact)) for fact in preference_items}
+        other_items = [fact for fact in fact_items if str(fact.get("id") or id(fact)) not in preference_ids][:8]
+        if other_items:
+            sections.append("Facts:\n" + "\n".join(f"- {fact['content']}" for fact in other_items))
 
     if not sections:
         return ""

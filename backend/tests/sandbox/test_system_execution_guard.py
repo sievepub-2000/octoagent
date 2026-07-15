@@ -69,10 +69,11 @@ def test_decision_is_frozen():
         decision.allowed = not decision.allowed  # type: ignore[misc]
 
 
-def test_audit_event_records_actor_and_outcome():
+def test_audit_event_records_actor_and_outcome(monkeypatch):
     """Every decision must produce a signed audit event recording who
     asked for what and whether it was allowed — this is the audit trail
     the operator console reads."""
+    monkeypatch.setenv("OCTO_OPERATOR_AUDIT_SECRET", "test-only-audit-secret")
     decision = evaluate_system_operation_governance(
         command="sudo systemctl restart nginx",
         require_approval=True,

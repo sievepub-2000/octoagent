@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-trap 'echo "ERROR: $0 failed at line $LINENO" >> /var/log/octoagent_errors.log; exit 1' ERR
+trap 'echo "ERROR: $0 failed at line $LINENO" >> "${TMPDIR:-/tmp}/octoagent_errors.log"; exit 1' ERR
 
 
 REPO_URL="${OCTOAGENT_REPO_URL:-https://github.com/sievepub-2000/octoagent.git}"
@@ -62,12 +62,27 @@ PY
     fi
 }
 
+random_hex_secret() {
+    if command -v openssl >/dev/null 2>&1; then
+        openssl rand -hex 24
+    else
+        python3 - <<'PY'
+import secrets
+print(secrets.token_hex(24))
+PY
+    fi
+}
+
 ensure_checkout() {
     if [ -d "$PREFIX/.git" ]; then
         cd "$PREFIX"
         git fetch origin "$BRANCH"
         git checkout "$BRANCH"
         git pull --ff-only origin "$BRANCH"
+    elif [ -f "$PREFIX/compose.yaml" ] && [ -f "$PREFIX/docker/Dockerfile.backend-prod" ]; then
+        # Release archives intentionally have no .git directory. An explicit
+        # prefix containing the packaged Compose markers is a valid checkout.
+        cd "$PREFIX"
     elif [ -e "$PREFIX" ] && [ "$(find "$PREFIX" -mindepth 1 -maxdepth 1 2>/dev/null | wc -l)" -gt 0 ]; then
         echo "Prefix exists and is not an empty git checkout: $PREFIX" >&2
         exit 1
@@ -79,7 +94,21 @@ ensure_checkout() {
 }
 
 prepare_files() {
-    [ -f config.yaml ] || cp config.example.yaml config.yaml
+    mkdir -p runtime/config
+    if [ ! -f runtime/config/config.yaml ]; then
+        if [ -f config.yaml ]; then
+            cp config.yaml runtime/config/config.yaml
+        else
+            cp config.example.yaml runtime/config/config.yaml
+        fi
+    fi
+    if [ ! -f runtime/config/extensions_config.json ]; then
+        if [ -f extensions_config.json ]; then
+            cp extensions_config.json runtime/config/extensions_config.json
+        else
+            cp extensions_config.example.json runtime/config/extensions_config.json
+        fi
+    fi
     [ -f .env.docker ] || cp .env.docker.example .env.docker
     if grep -q 'replace-with-a-long-random-secret' .env.docker; then
         secret="$(random_secret)"
@@ -89,7 +118,59 @@ prepare_files() {
             sed -i '' "s#replace-with-a-long-random-secret#$secret#" .env.docker
         fi
     fi
-    mkdir -p logs runtime/cache runtime/logs runtime/system_tools workspace/env workspace/default tmp
+    if grep -q '^POSTGRES_PASSWORD=octoagent-change-me$' .env.docker; then
+        postgres_secret="$(random_hex_secret)"
+        if sed --version >/dev/null 2>&1; then
+            sed -i "s#^POSTGRES_PASSWORD=octoagent-change-me#POSTGRES_PASSWORD=$postgres_secret#" .env.docker
+        else
+            sed -i '' "s#^POSTGRES_PASSWORD=octoagent-change-me#POSTGRES_PASSWORD=$postgres_secret#" .env.docker
+        fi
+    fi
+    mkdir -p logs runtime/cache runtime/langgraph runtime/logs runtime/secrets runtime/system_tools skills/custom workspace/env workspace/default tmp
+    touch runtime/secrets/models.env
+    chmod 600 .env.docker runtime/secrets/models.env
+}
+
+set_env_number() {
+    local key="$1"
+    local value="$2"
+    local expression="s/^${key}=.*/${key}=${value}/"
+    if grep -q "^${key}=" .env.docker; then
+        if sed --version >/dev/null 2>&1; then
+            sed -i "$expression" .env.docker
+        else
+            sed -i '' "$expression" .env.docker
+        fi
+    else
+        printf '\n%s=%s\n' "$key" "$value" >> .env.docker
+    fi
+}
+
+configure_container_identity() {
+    local host_uid="${SUDO_UID:-$(id -u)}"
+    local host_gid="${SUDO_GID:-$(id -g)}"
+    local docker_gid=0
+    # A direct root install must still produce a non-root image. UID/GID 1000
+    # are the portable Docker defaults; sudo preserves the invoking identity.
+    if [ "$host_uid" = "0" ]; then
+        host_uid=1000
+    fi
+    if [ "$host_gid" = "0" ]; then
+        host_gid=1000
+    fi
+    set_env_number OCTOAGENT_UID "$host_uid"
+    set_env_number OCTOAGENT_GID "$host_gid"
+    if [ -S /var/run/docker.sock ]; then
+        if [ "$(uname -s)" = "Darwin" ]; then
+            docker_gid="$(stat -f '%g' /var/run/docker.sock)"
+        else
+            docker_gid="$(stat -c '%g' /var/run/docker.sock)"
+        fi
+    fi
+    set_env_number OCTOAGENT_DOCKER_GID "$docker_gid"
+    if [ "$(id -u)" = "0" ]; then
+        chown -R "$host_uid:$host_gid" logs runtime/config runtime/cache runtime/langgraph runtime/logs runtime/secrets runtime/system_tools skills/custom workspace tmp
+    fi
 }
 
 wait_for_http() {
@@ -116,6 +197,7 @@ fi
 
 ensure_checkout
 prepare_files
+configure_container_identity
 
 if [ "$PULL" = "1" ]; then
     compose pull --ignore-buildable || true

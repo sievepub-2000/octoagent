@@ -30,7 +30,7 @@ def test_system_overview_cpu_sampling_is_nonblocking(monkeypatch) -> None:
     monkeypatch.setattr(module_status.psutil, "virtual_memory", Usage)
     monkeypatch.setattr(module_status.psutil, "disk_usage", lambda _: Usage)
     monkeypatch.setattr(module_status.psutil, "cpu_percent", lambda interval: intervals.append(interval) or 3.0)
-    monkeypatch.setattr(module_status.os, "getloadavg", lambda: (0.1, 0.2, 0.3))
+    monkeypatch.setattr(module_status.os, "getloadavg", lambda: (0.1, 0.2, 0.3), raising=False)
     monkeypatch.setattr(module_status, "_service_status", lambda name: {"name": name, "status": "active"})
     monkeypatch.setattr(module_status, "_thermal_sensors", lambda: [])
     monkeypatch.setattr(module_status, "_gpu_status", lambda: None)

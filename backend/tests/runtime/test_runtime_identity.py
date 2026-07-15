@@ -33,9 +33,9 @@ def test_runtime_identity_prefers_effective_posix_uid_over_root_env(monkeypatch)
     identity = runtime_identity.get_runtime_identity()
 
     assert identity.username == "sieve-pub"
-    assert identity.home == Path("/home/sieve-pub")
-    assert identity.data_root == Path("/home/sieve-pub/.local/share/octoagent")
-    assert identity.config_root == Path("/home/sieve-pub/.config/octoagent")
-    assert identity.cache_root == Path("/home/sieve-pub/.cache/octoagent")
+    assert identity.home == Path("/home/sieve-pub").resolve()
+    assert identity.data_root == identity.home / ".local" / "share" / "octoagent"
+    assert identity.config_root == identity.home / ".config" / "octoagent"
+    assert identity.cache_root == identity.home / ".cache" / "octoagent"
     assert identity.is_root is False
     runtime_identity.reset_runtime_identity_cache()

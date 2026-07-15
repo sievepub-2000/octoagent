@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from types import SimpleNamespace
 
 from src.tools.sandbox.tools import get_runtime_thread_id, get_thread_data
@@ -26,9 +27,9 @@ def test_get_thread_data_lazily_builds_paths_from_config_thread_id() -> None:
     thread_data = get_thread_data(runtime)
 
     assert thread_data is not None
-    assert thread_data["workspace_path"].endswith("/thread-lazy-paths/workspace")
-    assert thread_data["uploads_path"].endswith("/thread-lazy-paths/uploads")
-    assert thread_data["outputs_path"].endswith("/thread-lazy-paths/outputs")
+    assert Path(thread_data["workspace_path"]).parts[-2:] == ("thread-lazy-paths", "workspace")
+    assert Path(thread_data["uploads_path"]).parts[-2:] == ("thread-lazy-paths", "uploads")
+    assert Path(thread_data["outputs_path"]).parts[-2:] == ("thread-lazy-paths", "outputs")
     assert runtime.state["thread_data"] == thread_data
 
 

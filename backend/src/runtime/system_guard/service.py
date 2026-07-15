@@ -142,7 +142,9 @@ class SystemGuardService:
         # Keep signal-handler logic minimal and lock-free.
         # Final snapshot persistence is performed by graceful shutdown or atexit.
         self._signal_exit_reason = f"signal_{signal_name.lower()}"
-        logger.warning("System guard received signal %s", signal_name)
+        # SIGTERM/SIGINT are normal lifecycle events under systemd and Docker;
+        # the subsequent graceful-shutdown snapshot is the relevant outcome.
+        logger.info("System guard received signal %s", signal_name)
 
         previous = self._previous_signal_handlers.get(signum)
         if callable(previous):

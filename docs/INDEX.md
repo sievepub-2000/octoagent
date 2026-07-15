@@ -20,6 +20,9 @@ goal below.
   Docker compose, environment matrix.
 * **Docker install and deployment** — [`docs/docker-install.md`](./docker-install.md).
   Linux, Windows, and macOS Docker profile, packaging, and verification.
+* **Long-term memory and personalization**:
+  [`docs/memory-personalization.md`](./memory-personalization.md). Hermes Agent
+  comparison, OctoAgent memory layers, and durable preference policy.
 * **Japanese quick guide** — [`docs/ja/README.md`](./ja/README.md).
   Project overview, installation, usage, and verification in Japanese.
 * **Configure runtime** — [`docs/CONFIGURATION.md`](./CONFIGURATION.md)
@@ -77,5 +80,5 @@ goal below.
 * If a document moves between trees, leave a one-line stub at the old
   path pointing to the new location for at least one release.
 
-Last reviewed: 2026-05-28.
+Last reviewed: 2026-07-15.
 - [Writing and Publishing Tool Suite](writing-publishing-tools.md)
