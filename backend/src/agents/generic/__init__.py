@@ -70,12 +70,18 @@ class GenericMaintenanceAgent:
     def run_once(self) -> dict[str, Any]:
         result: dict[str, Any] = {"created_at": _utc_now(), "jobs": {}}
         try:
+            from src.harness.artifact_governance import cleanup_artifacts
             from src.runtime.governance import get_runtime_maintenance_scheduler
             from src.storage.query.service import get_query_engine_service
 
             runtime = get_runtime_maintenance_scheduler().run_once()
             query = get_query_engine_service().run_maintenance(created_at=_utc_now())
-            result["jobs"] = {"runtime_maintenance": runtime, "query_maintenance": query}
+            artifacts = cleanup_artifacts(dry_run=False)
+            result["jobs"] = {
+                "runtime_maintenance": runtime,
+                "query_maintenance": query,
+                "artifact_maintenance": artifacts,
+            }
             with self._lock:
                 self._status.last_run_at = result["created_at"]
                 self._status.last_result = result

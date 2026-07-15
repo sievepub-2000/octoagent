@@ -140,7 +140,7 @@ def _slug(value: str, fallback: str) -> str:
 
 
 def _artifact_dir(tool_name: str) -> Path:
-    root = _ARTIFACT_ROOT / _slug(tool_name, "tool")
+    root = _ARTIFACT_ROOT / _slug(tool_name, "tool") / "artifacts"
     root.mkdir(parents=True, exist_ok=True)
     return root
 

@@ -68,6 +68,7 @@ class LeadAgentRuntimeOptions:
     dialogue_route_reason: str
     dialogue_needs_tools: bool
     dialogue_needs_memory: bool
+    dialogue_text: str
     project_id: str | None
     project_root_path: str | None
     project_prompt: str
@@ -309,6 +310,7 @@ class LeadAgentRuntimeResolver:
             dialogue_route_reason=route.reason,
             dialogue_needs_tools=route.needs_tools,
             dialogue_needs_memory=route.needs_memory,
+            dialogue_text=str(dialogue_text),
             project_id=project_id,
             project_root_path=project_root_path,
             project_prompt=project_prompt,

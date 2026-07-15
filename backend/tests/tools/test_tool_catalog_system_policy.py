@@ -5,6 +5,7 @@ from __future__ import annotations
 from src.agents.core.tool_loader import clear_session_cache, load_tools_for_intent
 from src.tools import get_available_tools
 from src.tools.catalog import BUILTIN_TOOLS, LAZY_LOAD_REGISTRY
+from src.tools.registry.builtin_catalog import ToolRegistryBuiltinCatalog
 
 SYSTEM_TOOL_NAMES = {
     "flipbook",
@@ -14,6 +15,8 @@ SYSTEM_TOOL_NAMES = {
     "tcp_connect",
     "http_transfer",
     "python_package_install",
+    "github_tool_install",
+    "managed_tool_uninstall",
     "process_manage",
 }
 
@@ -35,6 +38,27 @@ def test_system_intent_loads_system_tools_on_demand() -> None:
     assert {"host_shell", "process_manage"} <= names
 
 
+def test_install_and_delete_require_system_permission() -> None:
+    clear_session_cache("tool-permission-test")
+    directory_names = {
+        tool.name
+        for tool in load_tools_for_intent("install a github tool", session_id="tool-permission-test", permission_mode="directory")
+    }
+    clear_session_cache("tool-permission-test")
+    system_names = {
+        tool.name
+        for tool in load_tools_for_intent("install a github tool", session_id="tool-permission-test", permission_mode="system")
+    }
+    assert "github_tool_install" not in directory_names
+    assert "managed_tool_uninstall" not in directory_names
+    assert {"github_tool_install", "managed_tool_uninstall"} <= system_names
+
+
 def test_permission_mode_does_not_bypass_intent_loading() -> None:
     names = {tool.name for tool in get_available_tools(include_mcp=False, permission_mode="system")}
     assert names.isdisjoint(SYSTEM_TOOL_NAMES)
+
+
+def test_tools_hub_catalog_includes_lazy_lifecycle_tools() -> None:
+    names = {item.name for item in ToolRegistryBuiltinCatalog(get_available_tools_fn=get_available_tools).list_items()}
+    assert {"github_tool_install", "managed_tool_list", "managed_tool_execute", "managed_tool_uninstall", "artifact_cleanup"} <= names

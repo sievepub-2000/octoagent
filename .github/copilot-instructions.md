@@ -5,22 +5,25 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
 
 ## System Rules
 
-- Before using a specialized capability, prefer an installed skill/plugin/MCP server over ad-hoc behavior.
-- If a requested capability is already installed, use it instead of recreating it.
+- Before every specialized tool action, query Tools Hub (`/api/tools/registry` or `list_capabilities`) and use an installed, enabled, callable capability first.
+- When several installed capabilities plausibly match, try them in least-privilege order and continue to the next candidate only when the prior result is unusable.
+- Search GitHub only after Tools Hub has no suitable capability; install only a reviewed HTTPS GitHub source pinned to a tag/branch under `runtime/system_tools/<tool>`.
+- Never run ad-hoc pip/npm installs in the backend environment or user site-packages. Every operator-installed tool needs `manifest.json`, a verification result, and a Tools Hub entry.
+- Uninstall through the owning Skills/MCP/Plugins/Managed Tools lifecycle. Confirm the exact root, remove it, refresh this guide, and verify post-delete invisibility.
 - If a capability depends on runtime state, check installed/enabled state and activation blockers first.
 - Before using a managed capability category, read the relevant section in this file and follow the listed interface contract.
 - After any change to skills/plugins/MCP/hooks, regenerate this guide.
 
 ## Registry Summary
 
-- Generated at: 2026-07-14T10:20:23.543209+00:00
-- Total capabilities: 82
-- Enabled capabilities: 72
-- Installed capabilities: 82
+- Generated at: 2026-07-15T01:28:19.798416+00:00
+- Total capabilities: 83
+- Enabled capabilities: 73
+- Installed capabilities: 83
 - Channel: 10 total, 0 enabled
 - MCP Servers: 6 total, 6 enabled
 - Plugins: 16 total, 16 enabled
-- Skills: 50 total, 50 enabled
+- Skills: 51 total, 51 enabled
 
 ## Interface Contract
 
@@ -363,7 +366,7 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the requested capability already exists as an installed plugin or command set.
   How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.
 
-## Skills (50)
+## Skills (51)
 
 - agent-rules-books (skill:public:agent-rules-books)
   State: installed, enabled
@@ -673,6 +676,17 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
+- office-generation (skill:public:office-generation)
+  State: installed, enabled
+  Description: Generate real Word, Excel, PowerPoint, PDF, and Markdown files from a structured JSON specification and save them in the current conversation output directory.
+  Source: skills/public/office-generation
+  Category: public
+  Skill file: office-generation
+  Provides: skill:office-generation
+  Requires: none
+  When to use: the user task clearly matches this domain or workflow.
+  How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
+
 - okta-broker (skill:public:okta-broker)
   State: installed, enabled
   Description: Plan-only Okta provisioning broker: emits Okta API user/create + group assignment + MFA-factor enrollment request envelopes for tenant admin execution. OctoAgent never calls Okta directly.
@@ -915,8 +929,10 @@ Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, dis
   When to use: the user task clearly matches this domain or workflow.
   How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.
 
+## Managed Tools (0)
+
 ## Maintenance
 
 - Regeneration source: `backend/src/utils/agent_tool_guide.py`.
-- Snapshot source: `backend/src/capability_core/registry.py`.
+- Snapshot sources: capability registry plus `runtime/system_tools/*/manifest.json`.
 - Regenerate after install/uninstall/enable/disable/configuration changes of any managed capability.

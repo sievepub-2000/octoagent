@@ -129,6 +129,9 @@ OCTOAGENT_NGINX_IMAGE=mirror.example.com/library/nginx:1.27-alpine
 OCTOAGENT_PYTHON_BASE_IMAGE=mirror.example.com/library/python:3.12-slim
 OCTOAGENT_NODE_RUNTIME_IMAGE=mirror.example.com/library/node:22-bookworm-slim
 OCTOAGENT_NODE_FRONTEND_IMAGE=mirror.example.com/library/node:22-alpine
+OCTOAGENT_DOCKER_CLI_IMAGE=mirror.example.com/library/docker:cli
+OCTOAGENT_UV_IMAGE=mirror.example.com/astral-sh/uv:0.7.20
+OCTOAGENT_NPM_REGISTRY=https://registry.npmmirror.com
 ```
 
 This is useful for China-region networks, enterprise registries, and offline registry mirrors.

@@ -1,6 +1,5 @@
 import logging
 from datetime import datetime
-from pathlib import Path
 
 from src.runtime.config.agents_config import load_agent_soul
 from src.runtime.config.ml_intern_defaults import build_ml_intern_prompt_section
@@ -189,13 +188,17 @@ def get_capability_guide_prompt_section() -> str:
     if not guide_path.exists():
         return ""
     return f"""<capability_system>
-You have a generated runtime capability guide that documents installed skills, plugins, MCP servers, and hooks.
+You have a generated runtime capability guide that documents installed skills, plugins, MCP servers, hooks, built-ins, and operator-installed tools.
 
-Before using a managed capability category, call `list_capabilities` when that tool is available,
+Before every specialized tool action, call `list_capabilities` when that tool is available,
 then use `load_skill` or `get_plugin_command` for the selected managed capability. If those tools
 are unavailable, call `read_file` on this guide and consult the relevant section first:
 - Guide path: {guide_path}
-- Required behavior: use installed capabilities before recreating them manually
+- Required behavior: query Tools Hub first and use installed, enabled, callable capabilities before recreating behavior
+- Similar tools: try suitable candidates in least-privilege order until one produces a usable result; record concrete failure before moving on
+- Missing tools: only then research an established open-source GitHub tool, pin its ref, request approval, and install it through `github_tool_install`
+- Installation: never use ad-hoc pip/npm/user-site installation; use the owning Skills/MCP/Plugins lifecycle or `runtime/system_tools/<tool>/manifest.json`
+- Uninstallation: use the owning lifecycle or `managed_tool_uninstall`, refresh Tools Hub/this guide, and verify the item and its managed root are gone
 - Re-read the guide after capability configuration changes or when hook/plugin/MCP state may have changed
 - Tool permission scopes: each runtime tool is tagged as sandbox, directory, or system; prefer the lowest scope that satisfies the task and ask for confirmation before system-level side effects.
 

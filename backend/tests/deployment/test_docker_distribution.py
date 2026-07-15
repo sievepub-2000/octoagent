@@ -39,6 +39,7 @@ def test_mutable_settings_are_persistent_and_writable() -> None:
     gateway_volumes = compose["services"]["gateway"]["volumes"]
 
     assert "./runtime/config:/app/runtime/config" in gateway_volumes
+    assert "./backend/runtime:/app/backend/runtime" in gateway_volumes
     assert "./skills/custom:/app/skills/custom" in gateway_volumes
     assert "./tmp:/app/tmp" in gateway_volumes
     assert "./runtime/secrets:/app/runtime/secrets" in gateway_volumes

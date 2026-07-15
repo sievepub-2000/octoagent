@@ -26,8 +26,11 @@ import psutil
 from langchain_core.tools import tool
 
 from src.gateway.observability import record_exception_trace, record_tool_trace
+from src.harness.artifact_governance import cleanup_artifacts, policy_snapshot
 from src.runtime.config.paths import get_paths
 from src.runtime.governance import get_runtime_worker_isolation
+from src.tools.managed_tools import list_managed_tools, register_managed_tool, uninstall_managed_tool
+from src.utils.agent_tool_guide import generate_agent_tool_guide
 from src.utils.datetime import utc_now_iso_seconds as _utc_now
 from src.utils.serialization import fmt_json as _json
 
@@ -104,7 +107,8 @@ def _ensure_artifact_tool_root(tool_name: str) -> Path:
 
 def _artifact_dir(tool_name: str, output_name: str | None) -> Path:
     artifact_name = _safe_artifact_name(output_name, prefix=tool_name)
-    root = _ensure_artifact_tool_root(tool_name)
+    root = _ensure_artifact_tool_root(tool_name) / "artifacts"
+    root.mkdir(parents=True, exist_ok=True)
     target = (root / artifact_name).resolve()
     if not (target == root or root in target.parents):
         raise ValueError(f"invalid artifact path: {target}")
@@ -126,7 +130,18 @@ def _ensure_tool_python_env(tool_name: str) -> Path:
     python_path = venv_dir / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     if python_path.exists():
         return python_path
-    result = subprocess.run([sys.executable, "-m", "venv", str(venv_dir)], cwd=str(tool_root), capture_output=True, text=True, timeout=600, check=False)
+    # Keep the registered entrypoint physically inside the managed root.  On
+    # POSIX, venv otherwise symlinks ``bin/python`` to the system interpreter,
+    # which correctly fails our no-path-escape check and makes the tool
+    # non-callable in Tools Hub.
+    result = subprocess.run(
+        [sys.executable, "-m", "venv", "--copies", str(venv_dir)],
+        cwd=str(tool_root),
+        capture_output=True,
+        text=True,
+        timeout=600,
+        check=False,
+    )
     if result.returncode != 0:
         raise RuntimeError(f"failed to create tool environment at {venv_dir}: {result.stderr[-2000:]}")
     return python_path
@@ -1148,7 +1163,7 @@ def python_package_install_tool(
     Args:
         packages: Space-separated package specifiers.
         target_tool: Tool name that owns the install. Defaults to python_package_install.
-        python_executable: Optional Python executable to use. If omitted, a tool-local venv under runtime/system_tools/<target_tool>/.venv is created and used.
+        python_executable: Optional Python executable. It must be inside runtime/system_tools/<target_tool>; otherwise installation is rejected.
         extra_args: Extra pip install arguments.
         confirmed_by_user: True only after the user explicitly approves the install target and package list.
         verification_command: Optional command to run after a successful install to verify the tool works.
@@ -1167,6 +1182,8 @@ def python_package_install_tool(
 
     if not packages.strip():
         return _json({"error": "packages is required"})
+    if not verification_command.strip():
+        return _json({"error": "verification_command_required"})
 
     clean_tool_name = _tool_directory_name(target_tool)
     tool_root = _ensure_artifact_tool_root(clean_tool_name)
@@ -1174,6 +1191,16 @@ def python_package_install_tool(
         py = Path(python_executable).expanduser()
         if not py.is_absolute():
             py = (_REPO_ROOT / py).resolve()
+        else:
+            py = py.resolve()
+        if not (py == tool_root or tool_root in py.parents):
+            return _json(
+                {
+                    "error": "python_environment_outside_managed_tool_root",
+                    "message": "Install tools only under runtime/system_tools/<target_tool>.",
+                    "install_root": str(tool_root),
+                }
+            )
         install_scope = "explicit_python_environment"
     else:
         py = _ensure_tool_python_env(clean_tool_name)
@@ -1216,6 +1243,20 @@ def python_package_install_tool(
         exit_code=result.returncode,
         duration_ms=round((time.monotonic() - started) * 1000, 3),
     )
+    manifest = None
+    if result.returncode == 0 and not (verification and (verification.get("exit_code", 0) != 0 or verification.get("error"))):
+        relative_python = str(py.relative_to(tool_root))
+        manifest = register_managed_tool(
+            clean_tool_name,
+            root=_SYSTEM_TOOL_ARTIFACT_ROOT,
+            source_type="python",
+            source=packages,
+            entrypoint=relative_python,
+            invocation=f"{relative_python} -m <package_module>",
+            description=f"Managed Python tool: {packages}",
+            verification=verification,
+        )
+        generate_agent_tool_guide()
     return _json(
         {
             "generated_at": _utc_now(),
@@ -1227,9 +1268,171 @@ def python_package_install_tool(
             "stdout": result.stdout[-8000:],
             "stderr": result.stderr[-8000:],
             "verification": verification,
-            "system_tools_doc": "Update project_docs/TOOLS_CATALOG.md after successful tool installation or behavior changes.",
+            "manifest": manifest,
+            "tools_hub": "Updated automatically after successful installation.",
         }
     )
+
+
+@tool("github_tool_install", parse_docstring=True)
+def github_tool_install_tool(
+    name: str,
+    repository_url: str,
+    ref: str,
+    entrypoint: str,
+    install_command: str = "",
+    verification_command: str = "",
+    description: str = "",
+    confirmed_by_user: bool = False,
+) -> str:
+    """Install a pinned GitHub tool under runtime/system_tools after explicit approval.
+
+    Args:
+        name: Stable managed tool name.
+        repository_url: HTTPS GitHub repository URL.
+        ref: Required tag or branch selected during research.
+        entrypoint: Relative executable path inside the cloned repository.
+        install_command: Optional argv-style setup command executed without a shell.
+        verification_command: Required argv-style smoke command executed without a shell.
+        description: Tools Hub usage description.
+        confirmed_by_user: True only after the user approves source, ref, directory, and commands.
+    """
+
+    if not confirmed_by_user:
+        return _json({"error": "user_confirmation_required", "name": name, "repository_url": repository_url, "ref": ref})
+    parsed = urllib.parse.urlparse(repository_url.strip())
+    if parsed.scheme != "https" or parsed.hostname not in {"github.com", "www.github.com"}:
+        return _json({"error": "github_https_repository_required"})
+    if not ref.strip() or not verification_command.strip():
+        return _json({"error": "ref_and_verification_command_required"})
+    clean_name = _tool_directory_name(name)
+    root = _ensure_artifact_tool_root(clean_name)
+    if any(root.iterdir()):
+        return _json({"error": "managed_tool_directory_not_empty", "install_root": str(root)})
+    source = root / "source"
+    clone = subprocess.run(
+        ["git", "clone", "--depth", "1", "--branch", ref.strip(), repository_url.strip(), str(source)],
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=900,
+        check=False,
+    )
+    if clone.returncode != 0:
+        shutil.rmtree(root, ignore_errors=True)
+        return _json({"error": "git_clone_failed", "exit_code": clone.returncode, "stderr": clone.stderr[-4000:]})
+    install_result = None
+    if install_command.strip():
+        install_result = subprocess.run(shlex.split(install_command), cwd=source, capture_output=True, text=True, encoding="utf-8", timeout=1800, check=False)
+        if install_result.returncode != 0:
+            shutil.rmtree(root, ignore_errors=True)
+            return _json({"error": "install_command_failed", "exit_code": install_result.returncode, "stderr": install_result.stderr[-4000:]})
+    entry = (source / entrypoint).resolve()
+    if source.resolve() not in entry.parents or not entry.exists():
+        shutil.rmtree(root, ignore_errors=True)
+        return _json({"error": "entrypoint_not_found_or_unsafe", "entrypoint": entrypoint})
+    verify = subprocess.run(shlex.split(verification_command), cwd=source, capture_output=True, text=True, encoding="utf-8", timeout=600, check=False)
+    if verify.returncode != 0:
+        shutil.rmtree(root, ignore_errors=True)
+        return _json({"error": "verification_failed", "exit_code": verify.returncode, "stderr": verify.stderr[-4000:]})
+    manifest = register_managed_tool(
+        clean_name,
+        root=_SYSTEM_TOOL_ARTIFACT_ROOT,
+        source_type="github",
+        source=repository_url,
+        version=ref,
+        entrypoint=str(entry.relative_to(root)),
+        invocation=str(entry.relative_to(root)),
+        description=description,
+        verification={"command": verification_command, "exit_code": 0, "stdout": verify.stdout[-2000:]},
+    )
+    generate_agent_tool_guide()
+    return _json({"ok": True, "manifest": manifest, "tools_hub": "Updated automatically."})
+
+
+@tool("managed_tool_list", parse_docstring=True)
+def managed_tool_list_tool() -> str:
+    """List operator-installed tools from the same manifest source used by Tools Hub."""
+
+    return _json({"tools": list_managed_tools(root=_SYSTEM_TOOL_ARTIFACT_ROOT)})
+
+
+@tool("managed_tool_execute", parse_docstring=True)
+def managed_tool_execute_tool(name: str, arguments: str = "", timeout_seconds: int = 600) -> str:
+    """Execute the registered entrypoint of one callable managed tool.
+
+    Args:
+        name: Managed tool name shown in Tools Hub.
+        arguments: Optional argv-style arguments passed without a shell.
+        timeout_seconds: Bounded execution timeout from 1 to 1800 seconds.
+    """
+
+    manifest = next((item for item in list_managed_tools(root=_SYSTEM_TOOL_ARTIFACT_ROOT) if item.get("name") == name), None)
+    if manifest is None:
+        return _json({"error": "managed_tool_not_found", "name": name})
+    if not manifest.get("callable"):
+        return _json({"error": "managed_tool_not_callable", "name": name})
+    root = Path(str(manifest["install_root"])).resolve()
+    entrypoint = (root / str(manifest["entrypoint"])).resolve()
+    if root not in entrypoint.parents or not entrypoint.is_file():
+        return _json({"error": "managed_entrypoint_not_found_or_unsafe", "name": name})
+    command = ([sys.executable, str(entrypoint)] if entrypoint.suffix.lower() == ".py" else [str(entrypoint)]) + shlex.split(arguments)
+    timeout = min(1800, max(1, int(timeout_seconds)))
+    started = time.monotonic()
+    record_tool_trace("subprocess_start", tool=f"managed:{name}", args=command, cwd=str(entrypoint.parent), timeout=timeout)
+    try:
+        with get_runtime_worker_isolation().slot("system"):
+            result = subprocess.run(command, cwd=entrypoint.parent, capture_output=True, text=True, encoding="utf-8", timeout=timeout, check=False)
+    except Exception as exc:
+        record_exception_trace(f"managed_tool.{name}", exc, args=command, cwd=str(entrypoint.parent), timeout=timeout)
+        return _json({"error": str(exc), "name": name})
+    record_tool_trace(
+        "subprocess_end",
+        tool=f"managed:{name}",
+        args=command,
+        cwd=str(entrypoint.parent),
+        exit_code=result.returncode,
+        duration_ms=round((time.monotonic() - started) * 1000, 3),
+    )
+    return _json({"name": name, "exit_code": result.returncode, "stdout": result.stdout[-8000:], "stderr": result.stderr[-8000:]})
+
+
+@tool("managed_tool_uninstall", parse_docstring=True)
+def managed_tool_uninstall_tool(name: str, confirmed_by_user: bool = False) -> str:
+    """Uninstall one manifest-owned tool and remove its artifacts/cache/logs.
+
+    Args:
+        name: Managed tool name shown in Tools Hub.
+        confirmed_by_user: True only after the user approves deletion of the exact managed root.
+    """
+
+    if not confirmed_by_user:
+        return _json({"error": "user_confirmation_required", "name": name})
+    result = uninstall_managed_tool(name, root=_SYSTEM_TOOL_ARTIFACT_ROOT)
+    if result.get("ok"):
+        generate_agent_tool_guide()
+    return _json({**result, "tools_hub": "Updated automatically." if result.get("ok") else "unchanged"})
+
+
+@tool("artifact_governance_status", parse_docstring=True)
+def artifact_governance_status_tool() -> str:
+    """Show artifact ownership, protected paths, and the current retention policy."""
+
+    return _json(policy_snapshot())
+
+
+@tool("artifact_cleanup", parse_docstring=True)
+def artifact_cleanup_tool(dry_run: bool = True, confirmed_by_user: bool = False) -> str:
+    """Preview or apply cleanup only inside policy-owned disposable artifact roots.
+
+    Args:
+        dry_run: True reports candidates without deletion; False applies cleanup.
+        confirmed_by_user: Required when dry_run is False.
+    """
+
+    if not dry_run and not confirmed_by_user:
+        return _json({"error": "user_confirmation_required", "dry_run": False})
+    return _json(cleanup_artifacts(dry_run=dry_run))
 
 
 @tool("process_manage", parse_docstring=True)
@@ -1271,5 +1474,11 @@ SYSTEM_OPS_TOOLS = [
     tcp_connect_tool,
     http_transfer_tool,
     python_package_install_tool,
+    github_tool_install_tool,
+    managed_tool_list_tool,
+    managed_tool_execute_tool,
+    managed_tool_uninstall_tool,
+    artifact_governance_status_tool,
+    artifact_cleanup_tool,
     process_manage_tool,
 ]

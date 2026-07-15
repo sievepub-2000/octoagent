@@ -17,7 +17,7 @@ from src.utils.serialization import fmt_json as _json
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
 _ARTIFACT_ROOT = _REPO_ROOT / "runtime" / "system_tools"
-_WRITING_ROOT = _ARTIFACT_ROOT / "writing-suite"
+_WRITING_ROOT = _ARTIFACT_ROOT / "writing-suite" / "artifacts"
 _WRITING_PYTHON = _ARTIFACT_ROOT / "writing-python" / ".venv" / "bin" / "python"
 _RUNTIME_TOOLS = _REPO_ROOT / "runtime" / "tools"
 _RUNTIME_BIN = _RUNTIME_TOOLS / "bin"

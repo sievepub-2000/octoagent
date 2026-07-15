@@ -21,7 +21,7 @@ type TraceFilter = "" | "subprocess_start" | "subprocess_end" | "artifact_lifecy
 interface ToolEntry {
   id: string;
   name: string;
-  category: "skill" | "mcp" | "channel" | "plugin" | "hook" | "builtin" | "desktop";
+  category: "skill" | "mcp" | "channel" | "plugin" | "hook" | "builtin" | "managed" | "desktop";
   description?: string;
   usage?: string;
   enabled?: boolean;
@@ -135,6 +135,8 @@ interface ToolRegistryResponse {
     channels_total?: number;
     channels_enabled?: number;
     builtin_tools_total?: number;
+    managed_tools_total?: number;
+    managed_tools_callable?: number;
   };
   runtime?: {
     default_model?: string | null;
@@ -154,6 +156,18 @@ interface ToolRegistryResponse {
     risk_level?: string;
     failure_modes?: string[];
   }>;
+  managed_tools?: Array<{
+    name?: string;
+    description?: string;
+    source_type?: string;
+    source?: string;
+    version?: string;
+    install_root?: string;
+    entrypoint?: string;
+    invocation?: string;
+    installed?: boolean;
+    callable?: boolean;
+  }>;
 }
 
 const CATEGORY_LABELS: Record<ToolEntry["category"], string> = {
@@ -163,6 +177,7 @@ const CATEGORY_LABELS: Record<ToolEntry["category"], string> = {
   plugin: "Plugins",
   hook: "Hooks",
   builtin: "Built-in Tools",
+  managed: "Managed Tools",
   desktop: "Desktop Control",
 };
 
@@ -174,11 +189,20 @@ const DESKTOP_CATEGORY_LABEL_I18N: Record<string, string> = {
   "ko": "데스크톱 제어",
 };
 
+const MANAGED_CATEGORY_LABEL_I18N: Record<string, string> = {
+  "en-US": "Managed Tools",
+  "zh-CN": "托管工具",
+  "zh-TW": "受管理工具",
+  ja: "管理対象ツール",
+  ko: "관리형 도구",
+};
+
 const CATEGORY_ORDER: ToolEntry["category"][] = [
   "skill",
   "mcp",
   "channel",
   "builtin",
+  "managed",
   "desktop",
 ];
 
@@ -449,6 +473,21 @@ function normalizeEntries(
     });
   }
 
+  for (const tool of registry.managed_tools ?? []) {
+    if (!tool?.name) continue;
+    const source = tool.source ?? tool.source_type ?? "managed";
+    entries.push({
+      id: `managed:${tool.name}`,
+      name: tool.name,
+      category: "managed",
+      description: optionalText(tool.description) ?? `Managed source: ${source}`,
+      enabled: tool.installed !== false && tool.callable === true,
+      badge: tool.callable ? "callable" : "installed",
+      status: tool.callable ? "ready" : "warn",
+      usage: `Source: ${source}; version: ${tool.version || "unspecified"}; root: ${tool.install_root || "unknown"}; entrypoint: ${tool.entrypoint || "not configured"}; invocation: ${tool.invocation || "not configured"}.`,
+    });
+  }
+
   const desktopEnabled = desktop.enabled === true;
   const desktopBadge = desktop.badge ?? "stub";
   const envFlag = desktop.env_flag ?? "BYTEBOT_COMPAT_ENABLED";
@@ -477,7 +516,9 @@ export default function ToolsHubPage() {
     (cat: ToolEntry["category"]) =>
       cat === "desktop"
         ? DESKTOP_CATEGORY_LABEL_I18N[locale] ?? CATEGORY_LABELS.desktop
-        : CATEGORY_LABELS[cat],
+        : cat === "managed"
+          ? MANAGED_CATEGORY_LABEL_I18N[locale] ?? CATEGORY_LABELS.managed
+          : CATEGORY_LABELS[cat],
     [locale],
   );
   const [tab, setTab] = useState<HubTab>("tools");
@@ -656,6 +697,7 @@ export default function ToolsHubPage() {
           <Badge variant="outline">Skills {registrySummary.skills_enabled ?? 0}/{registrySummary.skills_total ?? 0}</Badge>
           <Badge variant="outline">Plugins {registrySummary.plugins_enabled ?? 0}/{registrySummary.plugins_total ?? 0}</Badge>
           <Badge variant="outline">Built-ins {registrySummary.builtin_tools_total ?? 0}</Badge>
+          <Badge variant="outline">{categoryLabel("managed")} {registrySummary.managed_tools_callable ?? 0}/{registrySummary.managed_tools_total ?? 0}</Badge>
           {runtimeSummary?.default_model ? (
             <Badge variant="secondary">Model {runtimeSummary.default_model}</Badge>
           ) : null}

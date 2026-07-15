@@ -126,6 +126,7 @@ def _format_capability_item(item: UnifiedCapabilityItem) -> list[str]:
 
 def generate_agent_tool_guide() -> Path:
     from src.tools.capability.registry import build_capability_registry_snapshot
+    from src.tools.managed_tools import list_managed_tools
 
     guide_path = get_agent_tool_guide_path()
     guide_path.parent.mkdir(parents=True, exist_ok=True)
@@ -143,8 +144,11 @@ def generate_agent_tool_guide() -> Path:
         "",
         "## System Rules",
         "",
-        "- Before using a specialized capability, prefer an installed skill/plugin/MCP server over ad-hoc behavior.",
-        "- If a requested capability is already installed, use it instead of recreating it.",
+        "- Before every specialized tool action, query Tools Hub (`/api/tools/registry` or `list_capabilities`) and use an installed, enabled, callable capability first.",
+        "- When several installed capabilities plausibly match, try them in least-privilege order and continue to the next candidate only when the prior result is unusable.",
+        "- Search GitHub only after Tools Hub has no suitable capability; install only a reviewed HTTPS GitHub source pinned to a tag/branch under `runtime/system_tools/<tool>`.",
+        "- Never run ad-hoc pip/npm installs in the backend environment or user site-packages. Every operator-installed tool needs `manifest.json`, a verification result, and a Tools Hub entry.",
+        "- Uninstall through the owning Skills/MCP/Plugins/Managed Tools lifecycle. Confirm the exact root, remove it, refresh this guide, and verify post-delete invisibility.",
         "- If a capability depends on runtime state, check installed/enabled state and activation blockers first.",
         "- Before using a managed capability category, read the relevant section in this file and follow the listed interface contract.",
         "- After any change to skills/plugins/MCP/hooks, regenerate this guide.",
@@ -186,17 +190,33 @@ def generate_agent_tool_guide() -> Path:
             lines.extend(_format_capability_item(item))
             lines.append("")
 
+    managed_tools = list_managed_tools()
+    lines.extend([f"## Managed Tools ({len(managed_tools)})", ""])
+    for item in managed_tools:
+        lines.extend(
+            [
+                f"- {item.get('name')}",
+                f"  State: installed, {'callable' if item.get('callable') else 'not-callable'}",
+                f"  Description: {item.get('description') or 'operator-installed tool'}",
+                f"  Source: {item.get('source_type')} {item.get('source')}",
+                f"  Version/ref: {item.get('version') or 'unspecified'}",
+                f"  Install root: {item.get('install_root')}",
+                f"  How to use: {item.get('invocation') or item.get('entrypoint') or 'consult the tool manifest'}",
+                "",
+            ]
+        )
+
     lines.extend(
         [
             "## Maintenance",
             "",
             "- Regeneration source: `backend/src/utils/agent_tool_guide.py`.",
-            "- Snapshot source: `backend/src/capability_core/registry.py`.",
+            "- Snapshot sources: capability registry plus `runtime/system_tools/*/manifest.json`.",
             "- Regenerate after install/uninstall/enable/disable/configuration changes of any managed capability.",
         ]
     )
 
-    guide_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    guide_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return guide_path
 
 

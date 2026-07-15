@@ -94,7 +94,7 @@ ensure_checkout() {
 }
 
 prepare_files() {
-    mkdir -p runtime/config
+    mkdir -p runtime/config backend/runtime
     if [ ! -f runtime/config/config.yaml ]; then
         if [ -f config.yaml ]; then
             cp config.yaml runtime/config/config.yaml
@@ -169,7 +169,7 @@ configure_container_identity() {
     fi
     set_env_number OCTOAGENT_DOCKER_GID "$docker_gid"
     if [ "$(id -u)" = "0" ]; then
-        chown -R "$host_uid:$host_gid" logs runtime/config runtime/cache runtime/langgraph runtime/logs runtime/secrets runtime/system_tools skills/custom workspace tmp
+        chown -R "$host_uid:$host_gid" logs backend/runtime runtime/config runtime/cache runtime/langgraph runtime/logs runtime/secrets runtime/system_tools skills/custom workspace tmp
     fi
 }
 

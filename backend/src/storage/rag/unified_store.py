@@ -33,6 +33,49 @@ def _duckdb_serialize_enabled() -> bool:
     return os.getenv(_DUCKDB_SERIALIZE_ENV, "1").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _try_advisory_lock(fd: int, *, shared: bool) -> bool:
+    """Take a non-blocking advisory lock on POSIX or Windows.
+
+    Windows' standard library has no shared byte-lock primitive, so read-only
+    connections use the same exclusive lock there. This is more conservative
+    than POSIX shared reads and preserves the single-writer safety contract.
+    """
+
+    if os.name == "nt":
+        import msvcrt
+
+        if os.fstat(fd).st_size == 0:
+            os.write(fd, b"\0")
+        os.lseek(fd, 0, os.SEEK_SET)
+        try:
+            msvcrt.locking(fd, msvcrt.LK_NBLCK, 1)
+            return True
+        except OSError:
+            return False
+
+    import fcntl
+
+    lock_type = fcntl.LOCK_SH if shared else fcntl.LOCK_EX
+    try:
+        fcntl.flock(fd, lock_type | fcntl.LOCK_NB)
+        return True
+    except OSError:
+        return False
+
+
+def _release_advisory_lock(fd: int) -> None:
+    if os.name == "nt":
+        import msvcrt
+
+        os.lseek(fd, 0, os.SEEK_SET)
+        msvcrt.locking(fd, msvcrt.LK_UNLCK, 1)
+        return
+
+    import fcntl
+
+    fcntl.flock(fd, fcntl.LOCK_UN)
+
+
 class _GuardedDuckDBConnection:
     """Wrap a DuckDB connection so the process-level advisory lock is released
     exactly once when the connection is closed (via ``with`` or ``.close()``).
@@ -121,11 +164,6 @@ def connect_duckdb_with_retry(
     if not _duckdb_serialize_enabled():
         return _open_duckdb_with_retry(db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay)
 
-    try:
-        import fcntl
-    except ImportError:  # non-POSIX: fall back to retry-only
-        return _open_duckdb_with_retry(db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay)
-
     import time as _time
 
     lock_path = str(db_path) + ".rwlock"
@@ -134,15 +172,12 @@ def connect_duckdb_with_retry(
     except OSError:
         return _open_duckdb_with_retry(db_path, read_only=read_only, attempts=attempts, base_delay=base_delay, max_delay=max_delay)
 
-    lock_type = fcntl.LOCK_SH if read_only else fcntl.LOCK_EX
     acquired = False
     for _ in range(_SERIALIZE_ACQUIRE_ATTEMPTS):
-        try:
-            fcntl.flock(fd, lock_type | fcntl.LOCK_NB)
+        if _try_advisory_lock(fd, shared=read_only):
             acquired = True
             break
-        except OSError:
-            _time.sleep(_SERIALIZE_ACQUIRE_DELAY)
+        _time.sleep(_SERIALIZE_ACQUIRE_DELAY)
     if not acquired:
         logger.warning("duckdb serialize: could not acquire %s lock, proceeding with retry-only", "read" if read_only else "write")
 
@@ -151,7 +186,7 @@ def connect_duckdb_with_retry(
     except Exception:
         with contextlib.suppress(Exception):
             if acquired:
-                fcntl.flock(fd, fcntl.LOCK_UN)
+                _release_advisory_lock(fd)
         with contextlib.suppress(Exception):
             os.close(fd)
         raise
@@ -159,7 +194,7 @@ def connect_duckdb_with_retry(
     def _release() -> None:
         with contextlib.suppress(Exception):
             if acquired:
-                fcntl.flock(fd, fcntl.LOCK_UN)
+                _release_advisory_lock(fd)
         with contextlib.suppress(Exception):
             os.close(fd)
 

@@ -9,22 +9,17 @@ from __future__ import annotations
 
 import os
 
-import pytest
-
-from src.storage.rag.unified_store import connect_duckdb_with_retry
-
-fcntl = pytest.importorskip("fcntl")
+from src.storage.rag.unified_store import _release_advisory_lock, _try_advisory_lock, connect_duckdb_with_retry
 
 
 def _ex_lock_free(lock_path: str) -> bool:
     """True if an exclusive non-blocking flock can be taken (i.e. not held)."""
     fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
     try:
-        fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        return True
-    except OSError:
-        return False
+        acquired = _try_advisory_lock(fd, shared=False)
+        if acquired:
+            _release_advisory_lock(fd)
+        return acquired
     finally:
         os.close(fd)
 
@@ -32,11 +27,10 @@ def _ex_lock_free(lock_path: str) -> bool:
 def _sh_lock_free(lock_path: str) -> bool:
     fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o644)
     try:
-        fcntl.flock(fd, fcntl.LOCK_SH | fcntl.LOCK_NB)
-        fcntl.flock(fd, fcntl.LOCK_UN)
-        return True
-    except OSError:
-        return False
+        acquired = _try_advisory_lock(fd, shared=True)
+        if acquired:
+            _release_advisory_lock(fd)
+        return acquired
     finally:
         os.close(fd)
 
@@ -113,7 +107,7 @@ def test_serialize_shared_lock_for_read_only(tmp_path, monkeypatch) -> None:
     reader = connect_duckdb_with_retry(db, read_only=True)
     try:
         # A shared lock is held: another shared lock is allowed, exclusive is not.
-        assert _sh_lock_free(lock_path) is True
+        assert _sh_lock_free(lock_path) is (os.name != "nt")
         assert _ex_lock_free(lock_path) is False
         assert reader.execute("SELECT count(*) FROM t").fetchone()[0] == 0
     finally:

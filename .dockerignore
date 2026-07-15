@@ -1,4 +1,8 @@
 .env
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.*.example
 Dockerfile
 .dockerignore
 .git
@@ -62,9 +66,11 @@ docker/
 frontend/.next
 frontend/node_modules
 backend/.venv
+backend/runtime
 backend/htmlcov
 backend/.coverage
 *.md
 !README.md
 !frontend/README.md
 !backend/README.md
+!skills/**/*.md

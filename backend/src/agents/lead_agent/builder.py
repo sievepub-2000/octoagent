@@ -105,6 +105,16 @@ class LeadAgentBuilder:
                 permission_mode=options.permission_mode,
                 subagent_enabled=options.subagent_enabled,
             )
+            from src.agents.core.tool_loader import load_tools_for_intent
+            from src.tools.permissions import dedupe_tools_by_name
+
+            tools = dedupe_tools_by_name(
+                tools
+                + load_tools_for_intent(
+                    options.dialogue_text,
+                    permission_mode=options.permission_mode,
+                )
+            )
 
         return self._create_agent_fn(
             model=self._create_chat_model_fn(

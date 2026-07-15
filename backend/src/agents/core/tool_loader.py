@@ -26,7 +26,8 @@ import logging
 
 from langchain.tools import BaseTool
 
-from src.tools.catalog import L3_MCP_PLUGIN_TOOLS, LAZY_LOAD_REGISTRY
+from src.tools.catalog import BUILTIN_PERMISSION_SCOPES, DANGEROUS_CONFIRMATION_TOOLS, L3_MCP_PLUGIN_TOOLS, LAZY_LOAD_REGISTRY
+from src.tools.permissions import apply_runtime_permission_policy, dedupe_tools_by_name, set_tool_permission_metadata
 
 logger = logging.getLogger(__name__)
 
@@ -213,6 +214,7 @@ def load_tools_for_intent(
     session_id: str | None = None,
     *,
     enable_l3: bool = False,
+    permission_mode: str | None = None,
 ) -> list[BaseTool]:
     """Detect intent from the goal/prompt and load matching L2 tools.
 
@@ -274,7 +276,17 @@ def load_tools_for_intent(
                     ", ".join(tool_names[:5]) + ("..." if len(tool_names) > 5 else ""),
                 )
 
-    return tools
+    governed = [
+        set_tool_permission_metadata(
+            tool,
+            BUILTIN_PERMISSION_SCOPES.get(tool.name, "sandbox"),
+            source="lazy_builtin",
+            requires_confirmation=tool.name in DANGEROUS_CONFIRMATION_TOOLS,
+        )
+        for tool in tools
+    ]
+    governed = dedupe_tools_by_name(governed)
+    return governed if permission_mode is None else apply_runtime_permission_policy(governed, permission_mode)
 
 
 def clear_session_cache(session_id: str | None = None) -> None:

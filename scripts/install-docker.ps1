@@ -66,6 +66,7 @@ if (Test-Path (Join-Path $Prefix ".git")) {
 }
 
 New-Item -ItemType Directory -Force -Path "runtime/config" | Out-Null
+New-Item -ItemType Directory -Force -Path "backend/runtime" | Out-Null
 if (-not (Test-Path "runtime/config/config.yaml")) {
     if (Test-Path config.yaml) { Copy-Item config.yaml "runtime/config/config.yaml" }
     else { Copy-Item config.example.yaml "runtime/config/config.yaml" }

@@ -56,6 +56,8 @@ class ToolRegistrySummary(BaseModel):
     channels_total: int = 0
     channels_enabled: int = 0
     builtin_tools_total: int = 0
+    managed_tools_total: int = 0
+    managed_tools_callable: int = 0
 
 
 class ToolRegistryBuiltinItem(BaseModel):
@@ -70,6 +72,19 @@ class ToolRegistryBuiltinItem(BaseModel):
     failure_modes: list[str] = []
 
 
+class ToolRegistryManagedItem(BaseModel):
+    name: str
+    description: str = ""
+    source_type: str = ""
+    source: str = ""
+    version: str = ""
+    install_root: str
+    entrypoint: str = ""
+    invocation: str = ""
+    installed: bool = True
+    callable: bool = False
+
+
 class ToolCapabilityRegistryResponse(BaseModel):
     summary: ToolRegistrySummary
     runtime: ToolRegistryRuntime
@@ -78,3 +93,4 @@ class ToolCapabilityRegistryResponse(BaseModel):
     plugins: list[ToolRegistryPluginItem] = []
     channels: list[ToolRegistryChannelItem] = []
     builtin_tools: list[ToolRegistryBuiltinItem] = []
+    managed_tools: list[ToolRegistryManagedItem] = []

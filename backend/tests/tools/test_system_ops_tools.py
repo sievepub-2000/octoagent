@@ -14,11 +14,13 @@ from src.tools.builtins.system_ops_tools import (
     config_drift_snapshot_tool,
     flipbook_tool,
     html_to_canvas_tool,
+    managed_tool_execute_tool,
     media_probe_tool,
     python_package_install_tool,
     runtime_health_report_tool,
     security_audit_scan_tool,
 )
+from src.tools.managed_tools import register_managed_tool
 
 
 @pytest.fixture(autouse=True)
@@ -28,6 +30,7 @@ def allow_test_artifact_root(monkeypatch, tmp_path: Path) -> None:
         "_allowed_roots",
         lambda: [system_ops_tools._REPO_ROOT, system_ops_tools._SYSTEM_TOOL_ARTIFACT_ROOT, tmp_path],
     )
+    monkeypatch.setattr(system_ops_tools, "generate_agent_tool_guide", lambda: tmp_path / "tool-guide.md")
 
 
 def test_security_audit_scan_masks_secret_values(tmp_path: Path) -> None:
@@ -74,12 +77,31 @@ def test_canvas_and_flipbook_tools_are_registered() -> None:
     assert flipbook_tool.name in names
 
 
+def test_managed_tool_execute_calls_only_registered_entrypoint(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setattr(system_ops_tools, "_SYSTEM_TOOL_ARTIFACT_ROOT", tmp_path)
+    script = tmp_path / "demo" / "source" / "main.py"
+    script.parent.mkdir(parents=True)
+    script.write_text("import sys; print('managed:' + sys.argv[1])\n", encoding="utf-8")
+    register_managed_tool(
+        "demo",
+        root=tmp_path,
+        source_type="test",
+        source="local-test",
+        entrypoint="source/main.py",
+    )
+
+    payload = json.loads(managed_tool_execute_tool.invoke({"name": "demo", "arguments": "ok"}))
+
+    assert payload["exit_code"] == 0
+    assert payload["stdout"].strip() == "managed:ok"
+
+
 def test_artifact_dir_treats_null_output_name_as_auto_name(tmp_path: Path, monkeypatch) -> None:
     monkeypatch.setattr(system_ops_tools, "_SYSTEM_TOOL_ARTIFACT_ROOT", tmp_path)
 
     artifact_dir = system_ops_tools._artifact_dir("html_to_canvas", "null")
 
-    assert artifact_dir.parent == tmp_path / "html_to_canvas"
+    assert artifact_dir.parent == tmp_path / "html_to_canvas" / "artifacts"
     assert artifact_dir.name.startswith("html_to_canvas-")
 
 
@@ -123,6 +145,28 @@ def test_python_package_install_requires_user_confirmation(monkeypatch, tmp_path
 
     assert payload["error"] == "user_confirmation_required"
     assert payload["default_install_root"].endswith("demo-tool")
+
+
+def test_managed_python_environment_uses_local_interpreter_copy(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr(system_ops_tools, "_SYSTEM_TOOL_ARTIFACT_ROOT", tmp_path)
+    calls = []
+
+    class FakeResult:
+        returncode = 0
+        stderr = ""
+
+    def fake_run(args, **kwargs):
+        calls.append((args, kwargs))
+        return FakeResult()
+
+    monkeypatch.setattr(system_ops_tools.subprocess, "run", fake_run)
+
+    python_path = system_ops_tools._ensure_tool_python_env("demo-tool")
+
+    assert calls[0][0][1:4] == ["-m", "venv", "--copies"]
+    assert calls[0][0][4] == str(tmp_path / "demo-tool" / ".venv")
+    expected_executable = "Scripts/python.exe" if system_ops_tools.os.name == "nt" else "bin/python"
+    assert python_path == tmp_path / "demo-tool" / ".venv" / expected_executable
 
 
 def test_python_package_install_defaults_to_tool_directory(monkeypatch, tmp_path: Path) -> None:

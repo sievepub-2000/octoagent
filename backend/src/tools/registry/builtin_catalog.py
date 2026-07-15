@@ -167,14 +167,18 @@ class ToolRegistryBuiltinCatalog:
         self._get_available_tools_fn = get_available_tools_fn
 
     def list_items(self) -> list[ToolRegistryBuiltinItem]:
-        all_builtin = self._get_available_tools_fn(include_mcp=False, subagent_enabled=True, permission_mode="system")
+        from src.tools.catalog import BUILTIN_PERMISSION_SCOPES, LAZY_LOAD_REGISTRY
+
+        all_builtin = list(self._get_available_tools_fn(include_mcp=False, subagent_enabled=True, permission_mode="system"))
+        for category_tools in LAZY_LOAD_REGISTRY.values():
+            all_builtin.extend(category_tools)
         seen: set[str] = set()
         items: list[ToolRegistryBuiltinItem] = []
         for tool in sorted(all_builtin, key=lambda item: item.name):
             if tool.name in seen:
                 continue
             seen.add(tool.name)
-            scope = get_tool_permission_scope(tool)
+            scope = BUILTIN_PERMISSION_SCOPES.get(tool.name, get_tool_permission_scope(tool))
             items.append(
                 ToolRegistryBuiltinItem(
                     name=tool.name,
@@ -183,7 +187,7 @@ class ToolRegistryBuiltinCatalog:
                     permission_scope=scope,
                     parameters=_tool_parameters(tool),
                     timeout_seconds=_DEFAULT_TIMEOUTS.get(tool.name),
-                    output_artifacts=["runtime/system_tools/<tool>/<timestamp>.json"] if tool.name in _SYSTEM_ARTIFACT_TOOLS else [],
+                    output_artifacts=["runtime/system_tools/<tool>/artifacts/<timestamp>.json"] if tool.name in _SYSTEM_ARTIFACT_TOOLS else [],
                     risk_level=_risk_level(scope, tool.name),
                     failure_modes=_failure_modes(tool.name, scope),
                 )

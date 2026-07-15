@@ -1,5 +1,37 @@
 ## [Unreleased] - 2026-07-15
 
+### Managed tool lifecycle and artifact harness
+
+- Enforced Tools Hub-first capability resolution and added system-permission,
+  confirmation-gated GitHub/Python installation and manifest-owned uninstall.
+- Made all lazy built-in tools and operator-installed managed tools visible in
+  Tools Hub from their live registry sources; successful lifecycle changes
+  refresh the agent usage guide automatically.
+- Added a bundled Office generation Skill for real DOCX, XLSX, PPTX, PDF, and
+  Markdown output using locked application dependencies.
+- Replaced three divergent cleanup scripts with one conservative artifact
+  governance policy used by the maintenance agent, with user outputs, memory,
+  configuration, secrets, tool source, and environments protected.
+- Added lifecycle, path-escape, permission, cleanup-boundary, and five-format
+  generation regression tests.
+- Replaced the Windows DuckDB serialization fallback with a real standard-library
+  advisory lock; the cross-platform lock suite now executes without skips.
+- Made every backend/frontend build stage image configurable so regional or
+  offline registry mirrors can build the complete production stack.
+- Made the frontend package registry configurable and retained bounded network
+  retries plus visible install diagnostics instead of swallowing build errors.
+- Excluded nested environment and credential files from the Docker build
+  context so non-root images never contain host-owned secrets or unreadable
+  dotenv files.
+- Moved ignored RAG/model-auth runtime state behind a writable service-owned
+  bind mount and taught both installers to create it before Compose starts.
+- Corrected the production Docker context so global Markdown exclusions do not
+  strip bundled Skill definitions or their Markdown references.
+- Created managed Python environments with a local interpreter copy so the
+  callable entrypoint remains inside its enforced tool ownership boundary.
+- Removed obsolete pnpm-only hoist settings from the npm production build so
+  validation completes without deprecated project-configuration warnings.
+
 ### Docker deployment and full-lifecycle verification
 
 - Added strict repository audit acceptance criteria covering live runtime

@@ -42,5 +42,5 @@ The bracketed tools requested for writing are exposed as a professional writing 
 
 - `browser_publisher` and `wp_cli_publish` require `human_approval_gate` before public submission.
 - CAPTCHA, SMS, payment, identity, contract, and platform terms confirmations must be handled by a human.
-- Publishing artifacts and approval records are stored under `runtime/system_tools/writing-suite/`.
+- Publishing artifacts and approval records are stored under `runtime/system_tools/writing-suite/artifacts/`.
 - Tool-local Python dependencies live under `runtime/system_tools/writing-python/.venv`; Node lint dependencies live under `runtime/tools/writing-node`; standalone binaries live under `runtime/tools/bin`.

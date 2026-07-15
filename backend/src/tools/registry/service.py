@@ -7,6 +7,7 @@ from src.runtime.config.paths import resolve_configured_default_model_name
 from src.runtime.config.subagents_config import get_subagents_app_config
 from src.storage.skills import load_skills
 from src.tools import get_available_tools
+from src.tools.managed_tools import list_managed_tools
 from src.tools.mcp.smoke import load_mcp_smoke_snapshot
 from src.tools.plugins import get_plugin_service
 
@@ -14,6 +15,7 @@ from .builtin_catalog import ToolRegistryBuiltinCatalog
 from .channels import ToolRegistryChannelReader
 from .contracts import (
     ToolCapabilityRegistryResponse,
+    ToolRegistryManagedItem,
     ToolRegistryMcpItem,
     ToolRegistryPluginItem,
     ToolRegistryRuntime,
@@ -34,6 +36,7 @@ class ToolRegistryService:
         runtime_snapshot_getter=get_subagent_runtime_snapshot,
         builtin_catalog: ToolRegistryBuiltinCatalog | None = None,
         channel_reader: ToolRegistryChannelReader | None = None,
+        managed_tools_loader=list_managed_tools,
     ):
         self._extensions_config_getter = extensions_config_getter
         self._plugin_service_getter = plugin_service_getter
@@ -43,6 +46,7 @@ class ToolRegistryService:
         self._runtime_snapshot_getter = runtime_snapshot_getter
         self._builtin_catalog = builtin_catalog or ToolRegistryBuiltinCatalog(get_available_tools_fn=get_available_tools)
         self._channel_reader = channel_reader or ToolRegistryChannelReader()
+        self._managed_tools_loader = managed_tools_loader
 
     def build_registry(self) -> ToolCapabilityRegistryResponse:
         extensions = self._extensions_config_getter()
@@ -96,6 +100,7 @@ class ToolRegistryService:
             builtin_items = self._builtin_catalog.list_items()
         except Exception:
             builtin_items = []
+        managed_items = [ToolRegistryManagedItem.model_validate(item) for item in self._managed_tools_loader()]
 
         app_config = self._app_config_getter()
         subagent_config = self._subagents_config_getter()
@@ -115,6 +120,8 @@ class ToolRegistryService:
             channels_total=len(channel_items),
             channels_enabled=sum(1 for item in channel_items if item.enabled),
             builtin_tools_total=len(builtin_items),
+            managed_tools_total=len(managed_items),
+            managed_tools_callable=sum(1 for item in managed_items if item.callable),
         )
         default_model_name = resolve_configured_default_model_name(model.name for model in app_config.models)
         runtime = ToolRegistryRuntime(
@@ -133,4 +140,5 @@ class ToolRegistryService:
             plugins=plugin_items,
             channels=channel_items,
             builtin_tools=builtin_items,
+            managed_tools=managed_items,
         )

@@ -15,6 +15,8 @@ and `/api/hooks` endpoints. Keep this in sync with the Settings → Tools Hub vi
 | Plugins  | `GET /api/plugins/registry` | Settings → Plugins | Runtime plugin registry |
 | Agents | `GET /api/agents` | Workspace → Agents | Custom agents plus immutable skill-exported templates |
 | Hooks    | `GET /api/hooks` | (auto) | Lifecycle triggers |
+| Built-in tools | `GET /api/tools/registry` | Settings → Tools Hub | Includes intent-lazy tools, permission and risk metadata |
+| Managed tools | `GET /api/tools/registry` | Settings → Tools Hub | Manifest-backed standalone tools under `runtime/system_tools/` |
 
 ## MCP readiness notes
 
@@ -43,7 +45,11 @@ Tool, package, runtime, and dependency installation requires explicit user confi
 Installation locations:
 
 - Tool-owned Python packages should default to `runtime/system_tools/<tool_name>/.venv` via `python_package_install` with `target_tool` set.
-- Tool artifacts and generated runtime files must stay under `runtime/system_tools/<tool_name>/`.
+- Tool artifacts must stay under `runtime/system_tools/<tool_name>/artifacts/`.
+- A successful standalone install must create `manifest.json`, `artifacts/`,
+  `cache/`, and `logs/`; Tools Hub and the generated guide read the manifest.
+- Standalone deletion must use `managed_tool_uninstall`, which refuses paths
+  without a matching manifest and performs a post-delete visibility check.
 - The shared backend environment `backend/.venv` may be modified only when the user explicitly confirms that the OctoAgent runtime itself should change.
 
 After every successful tool installation or tool-behavior change, run a real verification command and update this catalog or the owning tool documentation with the path, usage, and verification result.
@@ -54,9 +60,9 @@ All entries exposed to the Tools Hub follow the `ToolEntry` shape:
 
 ```ts
 interface ToolEntry {
-  id: string;         // "skill:<id>" | "mcp:<name>" | "channel:<name>" | "plugin:<id>" | "hook:<name>"
+  id: string;         // also "builtin:<name>" and "managed:<name>"
   name: string;       // user-facing label
-  category: "skill" | "mcp" | "channel" | "plugin" | "hook";
+  category: "skill" | "mcp" | "channel" | "plugin" | "hook" | "builtin" | "managed";
   description?: string;
   usage?: string;
   enabled?: boolean;
@@ -92,6 +98,10 @@ existing setups stay unchanged.
 - Verify with `backend/.venv/bin/python -c "import faiss"` and RAG tests before documenting success.
 
 ## Writing and Publishing Suite
+
+- `office-generation` Skill: creates real DOCX, XLSX, PPTX, PDF, and Markdown
+  deliverables in the current conversation output directory using locked
+  application dependencies.
 
 - `writing_toolchain_status`: verifies browser-use, Playwright, WP-CLI, Presidio, Pandoc, textlint, and Vale installation status.
 - `novel_project_store`, `writestory`, `chapter_drafter`, `chapter_writer`, and `webnovel_write`: professional writing flow for articles, novels, papers, and web serials.
