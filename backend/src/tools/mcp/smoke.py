@@ -61,7 +61,9 @@ def _build_server_params(server_name: str, config: McpServerConfig) -> dict[str,
         params["command"] = config.command
         params["args"] = config.args
         if config.env:
-            params["env"] = config.env
+            child_env = os.environ.copy()
+            child_env.update(config.env)
+            params["env"] = child_env
     elif transport_type in {"sse", "http"}:
         if not config.url:
             raise ValueError(f"MCP server '{server_name}' with {transport_type} transport requires 'url' field")

@@ -1,14 +1,3 @@
-import {
-  CompassIcon,
-  GraduationCapIcon,
-  ImageIcon,
-  MicroscopeIcon,
-  PenLineIcon,
-  ShapesIcon,
-  SparklesIcon,
-  VideoIcon,
-} from "lucide-react";
-
 import type { Translations } from "./types";
 
 export const ja: Translations = {
@@ -107,56 +96,6 @@ export const ja: Translations = {
     reasoningEffortHighDescription:
       "全次元の論理推論 + 多経路検証 + 逆方向チェック",
     searchModels: "モデルを検索...",
-    surpriseMe: "サプライズ",
-    surpriseMePrompt: "サプライズをお願い",
-    suggestions: [
-      {
-        suggestion: "執筆",
-        prompt: "[トピック]に関するブログ記事を書いてください",
-        icon: PenLineIcon,
-      },
-      {
-        suggestion: "調査",
-        prompt: "[トピック]について深く調査し、結果をまとめてください。",
-        icon: MicroscopeIcon,
-      },
-      {
-        suggestion: "収集",
-        prompt: "[ソース]からデータを収集し、レポートを作成してください。",
-        icon: ShapesIcon,
-      },
-      {
-        suggestion: "学習",
-        prompt: "[トピック]について学び、チュートリアルを作成してください。",
-        icon: GraduationCapIcon,
-      },
-    ],
-    suggestionsCreate: [
-      {
-        suggestion: "Webページ",
-        prompt: "[トピック]に関するWebページを作成",
-        icon: CompassIcon,
-      },
-      {
-        suggestion: "画像",
-        prompt: "[トピック]に関する画像を作成",
-        icon: ImageIcon,
-      },
-      {
-        suggestion: "動画",
-        prompt: "[トピック]に関する動画を作成",
-        icon: VideoIcon,
-      },
-      {
-        type: "separator",
-      },
-      {
-        suggestion: "スキル",
-        prompt:
-          "skill-creator を使って新しいスキルを段階的に作成しましょう。まず、このスキルに何をさせたいですか？",
-        icon: SparklesIcon,
-      },
-    ],
   },
 
   // Sidebar

@@ -136,6 +136,28 @@ OCTOAGENT_NPM_REGISTRY=https://registry.npmmirror.com
 
 This is useful for China-region networks, enterprise registries, and offline registry mirrors.
 
+The installers pre-pull the five build-stage images through the Docker daemon
+before invoking BuildKit. They derive the Docker server platform (or use
+`OCTOAGENT_BUILD_PLATFORM`) and pass it explicitly, which avoids flaky
+multi-architecture manifest/TLS requests on ARM64 hosts. This is deliberate: a
+daemon proxy can pull an image successfully even when BuildKit's anonymous
+Docker Hub token request times out. If a pre-pull fails, installation stops and
+reports the exact image and the override key; it no longer ignores the failure
+with `|| true`.
+
+BuildKit does not automatically inherit a Docker daemon's systemd proxy. The
+Linux installer forwards `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` from the
+daemon into build-only arguments when available; on Windows or custom setups,
+set `OCTOAGENT_BUILD_HTTP_PROXY`, `OCTOAGENT_BUILD_HTTPS_PROXY`, and
+`OCTOAGENT_BUILD_NO_PROXY` in `.env.docker`. These values are kept separate from
+runtime proxy variables so a host-loopback proxy is not accidentally used by
+containers at runtime.
+
+When the Linux installer discovers a loopback-bound Docker daemon proxy, it
+also selects `OCTOAGENT_BUILD_NETWORK=host` for the build only, because the
+default BuildKit network cannot reach host `127.0.0.1`. Override this explicitly
+when using a non-loopback proxy or Docker Desktop.
+
 ## Configuration
 
 Edit `.env.docker` for ports, provider keys, and runtime tokens. Common values:

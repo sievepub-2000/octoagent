@@ -1,6 +1,7 @@
 """MCP client using langchain-mcp-adapters."""
 
 import logging
+import os
 from typing import Any
 
 from src.runtime.config.extensions_config import ExtensionsConfig, McpServerConfig
@@ -26,9 +27,14 @@ def build_server_params(server_name: str, config: McpServerConfig) -> dict[str, 
             raise ValueError(f"MCP server '{server_name}' with stdio transport requires 'command' field")
         params["command"] = config.command
         params["args"] = config.args
-        # Add environment variables if present
+        # MCP subprocesses must inherit the runtime environment (model keys,
+        # database URLs, and path settings).  The per-server values override
+        # it; passing only ``config.env`` silently stripped required secrets
+        # and caused false "unresolved environment variable" warnings.
         if config.env:
-            params["env"] = config.env
+            child_env = os.environ.copy()
+            child_env.update(config.env)
+            params["env"] = child_env
     elif transport_type in ("sse", "http"):
         if not config.url:
             raise ValueError(f"MCP server '{server_name}' with {transport_type} transport requires 'url' field")

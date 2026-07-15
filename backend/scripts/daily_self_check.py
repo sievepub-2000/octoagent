@@ -11,6 +11,8 @@ import datetime as dt
 import hashlib
 import json
 import os
+import platform
+import re
 import shutil
 import subprocess
 import time
@@ -423,6 +425,111 @@ def live_health(runner: Runner) -> dict[str, Any]:
     return status
 
 
+def docker_runtime_audit(runner: Runner) -> dict[str, Any]:
+    """Audit the live Compose runtime instead of inferring health from config.
+
+    The previous self-check only exercised HTTP endpoints.  That allowed a
+    cached local image, stale data source, or recent runtime warning to be
+    reported as healthy.  Keep this check dependency-light and make every
+    skipped/failed probe explicit in the persisted report.
+    """
+
+    if not shutil.which("docker") or not (REPO_ROOT / "compose.yaml").exists():
+        return {"ok": False, "status": "unavailable", "reason": "docker or compose.yaml missing"}
+
+    compose = ["docker", "compose", "--env-file", ".env.docker", "-f", "compose.yaml"]
+    ps_step = runner.run("docker-runtime-ps", compose + ["ps", "--format", "json"], timeout=90)
+    raw_lines = [line.strip() for line in str(ps_step.get("output_tail") or "").splitlines() if line.strip()]
+    containers: list[dict[str, Any]] = []
+    for line in raw_lines:
+        try:
+            item = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(item, dict):
+            containers.append(item)
+    expected = {"gateway", "langgraph", "frontend", "nginx", "postgres", "redis"}
+    by_service = {str(item.get("Service") or item.get("service") or ""): item for item in containers}
+    missing = sorted(expected - set(by_service))
+    unhealthy = sorted(
+        service
+        for service, item in by_service.items()
+        if service in expected
+        and (
+            str(item.get("State") or item.get("state") or "").lower() != "running"
+            or str(item.get("Health") or item.get("health") or "").lower() not in {"healthy", ""}
+        )
+    )
+
+    log_step = runner.run("docker-runtime-logs", compose + ["logs", "--no-color", "--since", "15m"], timeout=120)
+    log_text = str(log_step.get("output_tail") or "")
+    error_patterns = [
+        r"Memory update failed",
+        r"Blocking call to",
+        r"Traceback \(most recent call last\)",
+        r"ModuleNotFoundError",
+        r"\b(?:ERROR|Exception|failed)\b",
+    ]
+    warning_patterns = [r"\bwarning\b", r"GoalMiddleware: drift detected"]
+    errors = [pattern for pattern in error_patterns if re.search(pattern, log_text, re.IGNORECASE)]
+    warnings = [pattern for pattern in warning_patterns if re.search(pattern, log_text, re.IGNORECASE)]
+
+    return {
+        "ok": ps_step["status"] == "ok" and not missing and not unhealthy and not errors and not warnings,
+        "status": "ok" if ps_step["status"] == "ok" else "fail",
+        "architecture": platform.machine(),
+        "containers": containers,
+        "missing_services": missing,
+        "unhealthy_services": unhealthy,
+        "recent_log_errors": errors,
+        "recent_log_warnings": warnings,
+        "observability": {"free": bool(shutil.which("free")), "ps": bool(shutil.which("ps"))},
+        "steps": {"ps": ps_step, "logs": log_step},
+    }
+
+
+def data_source_audit() -> dict[str, Any]:
+    """Verify the runtime's authoritative stores and surface legacy copies.
+
+    Runtime services mount ``workspace`` and ``runtime/config``.  Keeping this
+    inventory in the daily report prevents a stale backup or an old checkout
+    from being mistaken for the live source of truth.
+    """
+
+    authoritative = {
+        "projects_db": REPO_ROOT / "workspace" / "projects" / "projects.sqlite3",
+        "lessons_db": REPO_ROOT / "workspace" / "lessons.db",
+        "system_guard_vectors": REPO_ROOT / "workspace" / "system_guard_vectors.duckdb",
+        "global_memory": REPO_ROOT / "workspace" / "env" / "global_memory.json",
+        "conversation_memory": MEMORY_PATH,
+    }
+    legacy_paths = [
+        REPO_ROOT / "backend" / "workspace" / "lessons.db",
+        REPO_ROOT / ".octoagent" / "global_memory.json",
+        REPO_ROOT / "backend" / ".octoagent" / "global_memory.json",
+    ]
+    archive_dir = RUNTIME_DIR / "legacy-sources-20260715"
+    missing = sorted(name for name, path in authoritative.items() if not path.is_file())
+    active_legacy = sorted(str(path.relative_to(REPO_ROOT)) for path in legacy_paths if path.exists())
+    archived_legacy = sorted(
+        str(path.relative_to(REPO_ROOT))
+        for path in archive_dir.glob("*")
+        if path.is_file()
+    ) if archive_dir.is_dir() else []
+    return {
+        "ok": not missing and not active_legacy,
+        "authoritative": {
+            name: {"path": str(path.relative_to(REPO_ROOT)), "bytes": path.stat().st_size}
+            for name, path in authoritative.items()
+            if path.is_file()
+        },
+        "missing_authoritative": missing,
+        "active_legacy_duplicates": active_legacy,
+        "archived_legacy_copies": archived_legacy,
+        "archive_dir": str(archive_dir.relative_to(REPO_ROOT)),
+    }
+
+
 def restart_if_needed(runner: Runner, live: dict[str, Any], *, force: bool = False) -> dict[str, Any]:
     needs_restart = force or not all(item.get("ok") for item in live.values())
     if not needs_restart:
@@ -551,6 +658,8 @@ def main() -> int:
         report["runtime_temp_cleanup"] = cleanup_runtime_temps(runner)
         report["tor"] = ensure_tor_runtime(runner)
         report["doctor"] = run_doctor(runner)
+        report["data_source_audit"] = data_source_audit()
+        report["docker_runtime_audit"] = docker_runtime_audit(runner)
         live = live_health(runner)
         report["live_health"] = live
         report["restart"] = restart_if_needed(runner, live, force=args.force_restart)
@@ -572,6 +681,8 @@ def main() -> int:
         and report.get("scrapling_fetch", {}).get("ok") is True
         and report.get("runtime_temp_cleanup", {}).get("ok") is True
         and report.get("tor", {}).get("ok") is True
+        and report.get("data_source_audit", {}).get("ok") is True
+        and report.get("docker_runtime_audit", {}).get("ok") is True
         and all(item.get("ok") for item in live_final.values())
     )
     if not args.no_memory:

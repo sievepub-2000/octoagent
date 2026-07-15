@@ -5,7 +5,11 @@ APP=${OCTOAGENT_APP_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}
 cd "$APP"
 export OCTOAGENT_APP_ROOT="${OCTOAGENT_APP_ROOT:-$APP}"
 export OCTOAGENT_BACKEND_PATH="${OCTOAGENT_BACKEND_PATH:-$APP/backend}"
-export OCTOAGENT_PYTHON_BIN="${OCTOAGENT_PYTHON_BIN:-$APP/backend/.venv/bin/python}"
+if [[ -x "${OCTOAGENT_PYTHON_BIN:-$APP/backend/.venv/bin/python}" ]]; then
+  PYTHON_CMD=("${OCTOAGENT_PYTHON_BIN:-$APP/backend/.venv/bin/python}")
+else
+  PYTHON_CMD=(docker compose exec -T -e PYTHONPATH=/app/backend gateway /app/backend/.venv/bin/python)
+fi
 export OCTOAGENT_FILESYSTEM_ROOT="${OCTOAGENT_FILESYSTEM_ROOT:-$APP}"
 export OCTOAGENT_MCP_TOOLS_DIR="${OCTOAGENT_MCP_TOOLS_DIR:-$APP/runtime/tools/mcp}"
 export OCTOAGENT_MCP_FILESYSTEM_BIN="${OCTOAGENT_MCP_FILESYSTEM_BIN:-$OCTOAGENT_MCP_TOOLS_DIR/node_modules/.bin/mcp-server-filesystem}"
@@ -19,4 +23,4 @@ export OCTOAGENT_GATEWAY_INTERNAL_URL="${OCTOAGENT_GATEWAY_INTERNAL_URL:-http://
 export OCTOAGENT_GATEWAY_HEALTH_URL="${OCTOAGENT_GATEWAY_HEALTH_URL:-$OCTOAGENT_GATEWAY_INTERNAL_URL/health}"
 export OCTOAGENT_OPENAPI_SPEC_URL="${OCTOAGENT_OPENAPI_SPEC_URL:-$OCTOAGENT_GATEWAY_INTERNAL_URL/openapi.json}"
 export OCTOAGENT_KUBECONFIG_SMOKE="${OCTOAGENT_KUBECONFIG_SMOKE:-$APP/runtime/tools/kubernetes/kubeconfig-smoke.yaml}"
-PYTHONPATH="$APP/backend" exec "$OCTOAGENT_PYTHON_BIN" -m src.tools.mcp.smoke "$@"
+PYTHONPATH="$APP/backend" exec "${PYTHON_CMD[@]}" -m src.tools.mcp.smoke "$@"

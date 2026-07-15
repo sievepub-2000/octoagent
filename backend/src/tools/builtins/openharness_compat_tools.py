@@ -17,7 +17,6 @@ from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
 from langchain.tools import ToolRuntime, tool
-from langgraph.typing import ContextT
 
 from src.agents.lead_agent.prompt import (
     get_capability_guide_prompt_section,
@@ -578,20 +577,20 @@ def _safe_json(data: object) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2)
 
 
-def _resolve_path(runtime: ToolRuntime[ContextT, ThreadState], path: str) -> str:
+def _resolve_path(runtime: ToolRuntime[dict[str, object], ThreadState], path: str) -> str:
     if is_local_sandbox(runtime):
         thread_data = get_thread_data(runtime)
         return replace_virtual_path(path, thread_data)
     return path
 
 
-async def _run_shell(runtime: ToolRuntime[ContextT, ThreadState], command: str) -> str:
+async def _run_shell(runtime: ToolRuntime[dict[str, object], ThreadState], command: str) -> str:
     # ``Sandbox.execute_command`` is an async coroutine; callers used to invoke
     # this helper from sync tools and returned the coroutine object verbatim,
     # which generated the ``coroutine ... was never awaited`` warning and
     # caused the model to loop until LangGraph's recursion ceiling.
     sandbox = ensure_sandbox_initialized(runtime)
-    ensure_thread_directories_exist(runtime)
+    await ensure_thread_directories_exist(runtime)
     if is_local_sandbox(runtime):
         thread_data = get_thread_data(runtime)
         command = replace_virtual_paths_in_command(command, thread_data)
@@ -599,7 +598,7 @@ async def _run_shell(runtime: ToolRuntime[ContextT, ThreadState], command: str) 
 
 
 def _spawn_subagent_task(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     prompt: str,
     *,
     subagent_type: str = "general-purpose",
@@ -676,7 +675,7 @@ def ask_user_question_tool(question: str) -> str:
 
 @tool("edit_file", parse_docstring=True)
 async def edit_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     path: str,
     old_text: str,
     new_text: str,
@@ -689,7 +688,7 @@ async def edit_file_tool(
         new_text: Replacement text.
     """
     sandbox = ensure_sandbox_initialized(runtime)
-    ensure_thread_directories_exist(runtime)
+    await ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
     content = await sandbox.read_file_async(path)
     if old_text not in content:
@@ -699,7 +698,7 @@ async def edit_file_tool(
 
 
 @tool("glob", parse_docstring=True)
-async def glob_tool(runtime: ToolRuntime[ContextT, ThreadState], pattern: str, root: str = "/mnt/user-data/workspace") -> str:
+async def glob_tool(runtime: ToolRuntime[dict[str, object], ThreadState], pattern: str, root: str = "/mnt/user-data/workspace") -> str:
     """Find files by glob-like pattern.
 
     Args:
@@ -712,7 +711,7 @@ async def glob_tool(runtime: ToolRuntime[ContextT, ThreadState], pattern: str, r
 
 
 @tool("grep", parse_docstring=True)
-async def grep_tool(runtime: ToolRuntime[ContextT, ThreadState], query: str, root: str = "/mnt/user-data/workspace") -> str:
+async def grep_tool(runtime: ToolRuntime[dict[str, object], ThreadState], query: str, root: str = "/mnt/user-data/workspace") -> str:
     """Search text in files.
 
     Args:
@@ -936,7 +935,7 @@ def tool_search_tool(query: str) -> str:
 
 
 @tool("lsp", parse_docstring=True)
-async def lsp_tool(runtime: ToolRuntime[ContextT, ThreadState], symbol: str, root: str = "/mnt/user-data/workspace") -> str:
+async def lsp_tool(runtime: ToolRuntime[dict[str, object], ThreadState], symbol: str, root: str = "/mnt/user-data/workspace") -> str:
     """Find symbol references with a fast text fallback.
 
     Args:
@@ -950,7 +949,7 @@ async def lsp_tool(runtime: ToolRuntime[ContextT, ThreadState], symbol: str, roo
 
 @tool("notebook_edit", parse_docstring=True)
 async def notebook_edit_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     path: str,
     cell_index: int,
     new_source: str,
@@ -963,7 +962,7 @@ async def notebook_edit_tool(
         new_source: New source text for that cell.
     """
     sandbox = ensure_sandbox_initialized(runtime)
-    ensure_thread_directories_exist(runtime)
+    await ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
     raw = await sandbox.read_file_async(path)
     data = json.loads(raw)
@@ -1022,21 +1021,21 @@ def sleep_tool(seconds: int) -> str:
 
 
 @tool("enter_plan_mode", parse_docstring=True)
-def enter_plan_mode_tool(runtime: ToolRuntime[ContextT, ThreadState]) -> str:
+def enter_plan_mode_tool(runtime: ToolRuntime[dict[str, object], ThreadState]) -> str:
     """Enable plan mode for this thread runtime."""
     runtime.state["openharness_plan_mode"] = True
     return "Plan mode enabled."
 
 
 @tool("exit_plan_mode", parse_docstring=True)
-def exit_plan_mode_tool(runtime: ToolRuntime[ContextT, ThreadState]) -> str:
+def exit_plan_mode_tool(runtime: ToolRuntime[dict[str, object], ThreadState]) -> str:
     """Disable plan mode for this thread runtime."""
     runtime.state["openharness_plan_mode"] = False
     return "Plan mode disabled."
 
 
 @tool("enter_worktree", parse_docstring=True)
-def enter_worktree_tool(runtime: ToolRuntime[ContextT, ThreadState], path: str) -> str:
+def enter_worktree_tool(runtime: ToolRuntime[dict[str, object], ThreadState], path: str) -> str:
     """Set active worktree path in runtime context.
 
     Args:
@@ -1047,14 +1046,14 @@ def enter_worktree_tool(runtime: ToolRuntime[ContextT, ThreadState], path: str) 
 
 
 @tool("exit_worktree", parse_docstring=True)
-def exit_worktree_tool(runtime: ToolRuntime[ContextT, ThreadState]) -> str:
+def exit_worktree_tool(runtime: ToolRuntime[dict[str, object], ThreadState]) -> str:
     """Clear active worktree path."""
     runtime.state.pop("openharness_worktree", None)
     return "Worktree cleared."
 
 
 @tool("todo_write", parse_docstring=True)
-async def todo_write_tool(runtime: ToolRuntime[ContextT, ThreadState], item: str, done: bool = False, path: str = "/mnt/user-data/workspace/TODO.md") -> str:
+async def todo_write_tool(runtime: ToolRuntime[dict[str, object], ThreadState], item: str, done: bool = False, path: str = "/mnt/user-data/workspace/TODO.md") -> str:
     """Append a TODO item to a markdown file.
 
     Args:
@@ -1063,7 +1062,7 @@ async def todo_write_tool(runtime: ToolRuntime[ContextT, ThreadState], item: str
         path: Target TODO markdown path.
     """
     sandbox = ensure_sandbox_initialized(runtime)
-    ensure_thread_directories_exist(runtime)
+    await ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
     prefix = "- [x]" if done else "- [ ]"
     line = f"{prefix} {item}\n"
@@ -1143,7 +1142,7 @@ def remote_trigger_tool(trigger_id: str, payload: str = "") -> str:
 
 @tool("task_create", parse_docstring=True)
 def task_create_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     prompt: str,
     subagent_type: str = "general-purpose",
     max_turns: int | None = None,
@@ -1353,7 +1352,7 @@ def mcp_tool_proxy(tool_name: str, arguments_json: str = "{}") -> str:
 
 @tool("bash", parse_docstring=True)
 def bash_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     command: str,
     cwd: str = "/mnt/user-data/workspace",
 ) -> str:
@@ -1373,7 +1372,7 @@ def bash_tool(
 
 @tool("file_read", parse_docstring=True)
 async def file_read_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     path: str,
     offset: int = 0,
     limit: int = 2000,
@@ -1386,7 +1385,7 @@ async def file_read_tool(
         limit: Maximum number of lines to return.
     """
     sandbox = ensure_sandbox_initialized(runtime)
-    ensure_thread_directories_exist(runtime)
+    await ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
     try:
         content = await sandbox.read_file_async(path)
@@ -1400,7 +1399,7 @@ async def file_read_tool(
 
 @tool("file_write", parse_docstring=True)
 async def file_write_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     path: str,
     content: str,
 ) -> str:
@@ -1411,7 +1410,7 @@ async def file_write_tool(
         content: New file content.
     """
     sandbox = ensure_sandbox_initialized(runtime)
-    ensure_thread_directories_exist(runtime)
+    await ensure_thread_directories_exist(runtime)
     path = _resolve_path(runtime, path)
     try:
         await sandbox.write_file_async(path, content)

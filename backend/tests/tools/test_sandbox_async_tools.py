@@ -18,11 +18,14 @@ These tests guard against the regression by asserting:
 from __future__ import annotations
 
 import inspect
+import threading
+from types import SimpleNamespace
 
 import pytest
 
 from src.tools.builtins.openharness_compat_tools import glob_tool, grep_tool, lsp_tool
-from src.tools.sandbox.tools import bash_tool
+from src.tools.sandbox.local.local_sandbox import LocalSandbox
+from src.tools.sandbox.tools import bash_tool, ensure_thread_directories_exist
 
 
 @pytest.mark.parametrize(
@@ -39,3 +42,50 @@ def test_tool_exposes_async_coroutine(tool) -> None:
     """
     assert tool.coroutine is not None, f"tool {tool.name!r} must be async to safely call LocalSandbox.execute_command (which is a coroutine)"
     assert inspect.iscoroutinefunction(tool.coroutine), f"tool {tool.name!r} coroutine slot is not a coroutine function"
+
+
+@pytest.mark.asyncio
+async def test_thread_directory_creation_runs_off_event_loop(tmp_path, monkeypatch) -> None:
+    """Local sandbox setup must not perform filesystem I/O on the ASGI loop."""
+    event_loop_thread = threading.get_ident()
+    mkdir_threads: list[int] = []
+
+    def record_makedirs(path, exist_ok=False) -> None:
+        mkdir_threads.append(threading.get_ident())
+
+    monkeypatch.setattr("src.tools.sandbox.tools.os.makedirs", record_makedirs)
+    runtime = SimpleNamespace(
+        context={"sandbox_id": "local"},
+        state={
+            "sandbox": {"sandbox_id": "local"},
+            "thread_data": {
+                "workspace_path": str(tmp_path / "workspace"),
+                "uploads_path": str(tmp_path / "uploads"),
+                "outputs_path": str(tmp_path / "outputs"),
+            }
+        },
+    )
+
+    await ensure_thread_directories_exist(runtime)
+
+    assert len(mkdir_threads) == 3
+    assert all(thread_id != event_loop_thread for thread_id in mkdir_threads)
+    assert runtime.state["thread_directories_created"] is True
+
+
+@pytest.mark.asyncio
+async def test_local_shell_detection_runs_off_event_loop(monkeypatch) -> None:
+    """Async command execution must not probe shell permissions on the ASGI loop."""
+    event_loop_thread = threading.get_ident()
+    shell_threads: list[int] = []
+
+    def get_shell() -> str:
+        shell_threads.append(threading.get_ident())
+        return "/bin/sh"
+
+    monkeypatch.setattr(LocalSandbox, "_get_shell", staticmethod(get_shell))
+    monkeypatch.setattr("src.tools.sandbox.local.local_sandbox.record_tool_trace", lambda *args, **kwargs: None)
+    sandbox = LocalSandbox("test")
+
+    assert (await sandbox.execute_command("printf ok")) == "ok"
+    assert shell_threads and shell_threads[0] != event_loop_thread

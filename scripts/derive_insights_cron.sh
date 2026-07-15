@@ -17,10 +17,23 @@ echo "=== derive_insights run at $(date -u '+%Y-%m-%dT%H:%M:%SZ') ===" >> "$LOG_
 
 cd "$REPO_ROOT" || exit 1
 
+if [[ -r "${REPO_ROOT}/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "${REPO_ROOT}/.env"
+  set +a
+fi
+
+if [[ -x "$VENV" ]]; then
+  PYTHON_CMD=("$VENV")
+else
+  PYTHON_CMD=(docker compose exec -T gateway /app/backend/.venv/bin/python)
+fi
+
 # Run derive_insights via the reflection service
-"$VENV" -c "
+"${PYTHON_CMD[@]}" -c "
 import sys
-sys.path.insert(0, 'backend/src')
+sys.path.insert(0, 'backend')
 
 from pathlib import Path
 from src.harness.reflection.service import ReflectionService

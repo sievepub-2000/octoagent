@@ -75,10 +75,23 @@ def _git_sync_detail() -> str:
     return "working_tree=clean, origin/main...HEAD=0 0"
 
 
-def _json(client: TestClient, path: str) -> Any:
-    response = client.get(path)
+def _json(client: TestClient, path: str, *, headers: dict[str, str] | None = None) -> Any:
+    response = client.get(path, headers=headers)
     response.raise_for_status()
     return response.json()
+
+
+def _operator_headers(*, role: str = "admin") -> dict[str, str]:
+    """Use the configured operator credential for guarded doctor probes."""
+    import os
+
+    token = os.getenv("OCTO_OPERATOR_TOKEN", "").strip()
+    if not token:
+        raise RuntimeError("OCTO_OPERATOR_TOKEN is required for guarded doctor probes")
+    return {
+        "X-OctoAgent-Operator-Token": token,
+        "X-OctoAgent-Operator-Role": role,
+    }
 
 
 def _contract_checks(*, include_git: bool) -> list[DoctorCheck]:
@@ -207,7 +220,7 @@ def _check_capability_policy(client: TestClient) -> str:
 
 
 def _check_capability_policy_export(client: TestClient) -> str:
-    payload = _json(client, "/api/capabilities/policies/export")
+    payload = _json(client, "/api/capabilities/policies/export", headers=_operator_headers(role="admin"))
     _expect(payload.get("signature_algorithm") == "sha256", "policy export must be signed with sha256")
     _expect(bool(payload.get("signature")), "policy export signature missing")
     state = payload.get("state") or {}

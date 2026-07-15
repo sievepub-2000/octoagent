@@ -33,7 +33,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="OctoAgent API Gateway",
         description=API_DESCRIPTION,
-        version="20260714",
+        version="20260715",
         lifespan=gateway_lifespan,
         docs_url="/docs",
         redoc_url="/redoc",

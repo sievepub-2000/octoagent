@@ -48,7 +48,92 @@ require_cmd() {
 }
 
 compose() {
-    docker compose --env-file .env.docker -f compose.yaml "$@"
+    # Never let a fixed COMPOSE_PROJECT_NAME in a copied env file make an
+    # isolated install reuse another checkout's containers or volumes.
+    local project_name="${OCTOAGENT_COMPOSE_PROJECT_NAME:-$(basename "$PREFIX")}"
+    docker compose --project-name "$project_name" --env-file .env.docker -f compose.yaml "$@"
+}
+
+configure_build_proxy_env() {
+    # BuildKit does not inherit the Docker daemon's systemd proxy. Forward
+    # explicit shell values first, then recover daemon proxy values on Linux;
+    # keep these build-only variables separate from runtime HTTP_PROXY.
+    export OCTOAGENT_BUILD_HTTP_PROXY="${OCTOAGENT_BUILD_HTTP_PROXY:-${HTTP_PROXY:-}}"
+    export OCTOAGENT_BUILD_HTTPS_PROXY="${OCTOAGENT_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-}}"
+    export OCTOAGENT_BUILD_NO_PROXY="${OCTOAGENT_BUILD_NO_PROXY:-${NO_PROXY:-}}"
+    export OCTOAGENT_BUILD_NETWORK="${OCTOAGENT_BUILD_NETWORK:-default}"
+    if command -v systemctl >/dev/null 2>&1; then
+        local daemon_env token
+        daemon_env="$(systemctl show docker --property=Environment --value 2>/dev/null || true)"
+        for token in $daemon_env; do
+            case "$token" in
+                HTTP_PROXY=*) [ -n "$OCTOAGENT_BUILD_HTTP_PROXY" ] || export OCTOAGENT_BUILD_HTTP_PROXY="${token#HTTP_PROXY=}" ;;
+                HTTPS_PROXY=*) [ -n "$OCTOAGENT_BUILD_HTTPS_PROXY" ] || export OCTOAGENT_BUILD_HTTPS_PROXY="${token#HTTPS_PROXY=}" ;;
+                NO_PROXY=*) [ -n "$OCTOAGENT_BUILD_NO_PROXY" ] || export OCTOAGENT_BUILD_NO_PROXY="${token#NO_PROXY=}" ;;
+            esac
+        done
+    fi
+    if [ "$OCTOAGENT_BUILD_NETWORK" = "default" ] && [ -n "$OCTOAGENT_BUILD_HTTP_PROXY" ] && command -v systemctl >/dev/null 2>&1; then
+        # Linux daemon proxies commonly bind only to 127.0.0.1; host BuildKit
+        # networking is the only way for the build namespace to reach them.
+        export OCTOAGENT_BUILD_NETWORK=host
+    fi
+}
+
+env_value() {
+    local key="$1"
+    grep -E "^${key}=" .env.docker | tail -1 | cut -d= -f2-
+}
+
+build_platform() {
+    local configured arch
+    configured="$(env_value OCTOAGENT_BUILD_PLATFORM)"
+    if [ -n "$configured" ]; then
+        printf '%s' "$configured"
+        return
+    fi
+    arch="$(docker info --format '{{.Architecture}}' 2>/dev/null || true)"
+    case "$arch" in
+        aarch64|arm64) printf '%s' "linux/arm64" ;;
+        amd64|x86_64) printf '%s' "linux/amd64" ;;
+        *) printf '%s' "" ;;
+    esac
+}
+
+ensure_build_base_images() {
+    local spec key default image platform
+    platform="$(build_platform)"
+    local -a specs=(
+        "OCTOAGENT_PYTHON_BASE_IMAGE|python:3.12-slim"
+        "OCTOAGENT_NODE_RUNTIME_IMAGE|node:22-bookworm-slim"
+        "OCTOAGENT_DOCKER_CLI_IMAGE|docker:cli"
+        "OCTOAGENT_UV_IMAGE|ghcr.io/astral-sh/uv:0.7.20"
+        "OCTOAGENT_NODE_FRONTEND_IMAGE|node:22-alpine"
+    )
+    for spec in "${specs[@]}"; do
+        key="${spec%%|*}"
+        default="${spec#*|}"
+        image="$(env_value "$key")"
+        image="${image:-$default}"
+        if docker image inspect "$image" >/dev/null 2>&1; then
+            continue
+        fi
+        echo "Pulling build base image: $image"
+        if [ -n "$platform" ]; then
+            pull_cmd=(docker pull --platform "$platform" "$image")
+        else
+            pull_cmd=(docker pull "$image")
+        fi
+        if ! "${pull_cmd[@]}"; then
+            cat >&2 <<EOF
+Failed to pull build base image: $image
+Configure $key in .env.docker to a reachable registry mirror, or fix the
+Docker daemon proxy before retrying. The installer will not continue with a
+partially pullable build.
+EOF
+            return 1
+        fi
+    done
 }
 
 random_secret() {
@@ -198,9 +283,14 @@ fi
 ensure_checkout
 prepare_files
 configure_container_identity
+configure_build_proxy_env
+
+if [ "$BUILD" = "1" ]; then
+    ensure_build_base_images
+fi
 
 if [ "$PULL" = "1" ]; then
-    compose pull --ignore-buildable || true
+    compose pull
 fi
 
 if [ "$START_AFTER" = "1" ]; then

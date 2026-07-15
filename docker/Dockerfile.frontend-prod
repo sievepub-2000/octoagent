@@ -2,9 +2,18 @@ ARG NODE_FRONTEND_IMAGE=node:22-alpine
 FROM ${NODE_FRONTEND_IMAGE} AS frontend
 
 ARG NPM_REGISTRY=https://registry.npmjs.org
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ARG NO_PROXY
 
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
+    HTTP_PROXY=${HTTP_PROXY} \
+    HTTPS_PROXY=${HTTPS_PROXY} \
+    NO_PROXY=${NO_PROXY} \
+    http_proxy=${HTTP_PROXY} \
+    https_proxy=${HTTPS_PROXY} \
+    no_proxy=${NO_PROXY} \
     NPM_CONFIG_UPDATE_NOTIFIER=false \
     BETTER_AUTH_SECRET=docker-build-placeholder-change-at-runtime \
     BETTER_AUTH_BASE_URL=http://localhost:19800 \

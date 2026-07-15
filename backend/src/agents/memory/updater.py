@@ -1,5 +1,6 @@
 """Memory updater for reading, writing, and updating memory data."""
 
+import asyncio
 import hashlib
 import json
 import logging
@@ -426,8 +427,10 @@ class MemoryUpdater:
             return False
 
         try:
-            # Get current memory
-            current_memory = ensure_memory_schema(get_memory_data(agent_name))
+            # Both reads and writes touch the operator-managed filesystem. This
+            # method runs on LangGraph's async request path, so keep blocking
+            # Path/open/replace calls off the event loop.
+            current_memory = ensure_memory_schema(await asyncio.to_thread(get_memory_data, agent_name))
 
             # Format conversation for prompt
             conversation_text = format_conversation_for_update(messages)
@@ -464,7 +467,7 @@ class MemoryUpdater:
             updated_memory = _strip_upload_mentions_from_memory(updated_memory)
 
             # Save
-            return _save_memory_to_file(updated_memory, agent_name)
+            return await asyncio.to_thread(_save_memory_to_file, updated_memory, agent_name)
 
         except json.JSONDecodeError as e:
             logger.warning("Failed to parse LLM response for memory update: %s", e)

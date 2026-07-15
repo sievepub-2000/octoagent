@@ -1,5 +1,3 @@
-name: octoagent
-
 x-backend-env: &backend-env
   CI: "true"
   PYTHONDONTWRITEBYTECODE: "1"
@@ -11,8 +9,12 @@ x-backend-env: &backend-env
   OCTOAGENT_RUNTIME_CONFIG_DIR: /app/backend/runtime
   OCTOAGENT_APP_ROOT: /app
   OCTOAGENT_BACKEND_PATH: /app/backend
+  PYTHONPATH: /app/backend
   OCTOAGENT_FILESYSTEM_ROOT: /app
   OCTOAGENT_PYTHON_BIN: /app/backend/.venv/bin/python
+  OCTOAGENT_RUNTIME_PROFILE: production
+  NPM_CONFIG_CACHE: /app/runtime/tools/npm-cache
+  npm_config_cache: /app/runtime/tools/npm-cache
   OCTOAGENT_MCP_TOOLS_DIR: /app/runtime/tools/mcp
   OCTOAGENT_MCP_FILESYSTEM_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-filesystem
   OCTOAGENT_MCP_POSTGRES_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres
@@ -87,11 +89,15 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend-prod
+      network: ${OCTOAGENT_BUILD_NETWORK:-default}
       args:
         PYTHON_BASE_IMAGE: ${OCTOAGENT_PYTHON_BASE_IMAGE:-python:3.12-slim}
         NODE_RUNTIME_IMAGE: ${OCTOAGENT_NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
         DOCKER_CLI_IMAGE: ${OCTOAGENT_DOCKER_CLI_IMAGE:-docker:cli}
         UV_IMAGE: ${OCTOAGENT_UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
+        HTTP_PROXY: ${OCTOAGENT_BUILD_HTTP_PROXY:-}
+        HTTPS_PROXY: ${OCTOAGENT_BUILD_HTTPS_PROXY:-}
+        NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-}
         OCTOAGENT_UID: ${OCTOAGENT_UID:-1000}
         OCTOAGENT_GID: ${OCTOAGENT_GID:-1000}
     image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
@@ -105,7 +111,9 @@ services:
       OCTO_GATEWAY_PORT: ${OCTO_GATEWAY_PORT:-19802}
     volumes: *backend-volumes
     group_add:
-      - ${OCTOAGENT_DOCKER_GID:-0}
+      # Docker's socket group is host-specific; 126 is the packaged Linux
+      # default and can still be overridden with OCTOAGENT_DOCKER_GID.
+      - ${OCTOAGENT_DOCKER_GID:-126}
     depends_on:
       postgres:
         condition: service_healthy
@@ -126,11 +134,15 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.backend-prod
+      network: ${OCTOAGENT_BUILD_NETWORK:-default}
       args:
         PYTHON_BASE_IMAGE: ${OCTOAGENT_PYTHON_BASE_IMAGE:-python:3.12-slim}
         NODE_RUNTIME_IMAGE: ${OCTOAGENT_NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
         DOCKER_CLI_IMAGE: ${OCTOAGENT_DOCKER_CLI_IMAGE:-docker:cli}
         UV_IMAGE: ${OCTOAGENT_UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
+        HTTP_PROXY: ${OCTOAGENT_BUILD_HTTP_PROXY:-}
+        HTTPS_PROXY: ${OCTOAGENT_BUILD_HTTPS_PROXY:-}
+        NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-}
         OCTOAGENT_UID: ${OCTOAGENT_UID:-1000}
         OCTOAGENT_GID: ${OCTOAGENT_GID:-1000}
     image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
@@ -144,7 +156,7 @@ services:
       OCTO_LANGGRAPH_PORT: ${OCTO_LANGGRAPH_PORT:-19804}
     volumes: *backend-volumes
     group_add:
-      - ${OCTOAGENT_DOCKER_GID:-0}
+      - ${OCTOAGENT_DOCKER_GID:-126}
     depends_on:
       gateway:
         condition: service_healthy
@@ -163,9 +175,13 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend-prod
+      network: ${OCTOAGENT_BUILD_NETWORK:-default}
       args:
         NODE_FRONTEND_IMAGE: ${OCTOAGENT_NODE_FRONTEND_IMAGE:-node:22-alpine}
         NPM_REGISTRY: ${OCTOAGENT_NPM_REGISTRY:-https://registry.npmjs.org}
+        HTTP_PROXY: ${OCTOAGENT_BUILD_HTTP_PROXY:-}
+        HTTPS_PROXY: ${OCTOAGENT_BUILD_HTTPS_PROXY:-}
+        NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-}
     image: octoagent/frontend:${OCTOAGENT_IMAGE_TAG:-local}
     restart: unless-stopped
     env_file:

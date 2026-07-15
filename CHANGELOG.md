@@ -1,3 +1,35 @@
+## [20260715] - 2026-07-15
+
+### Full-audit repair and runtime truthfulness
+
+- Moved memory profile reads and atomic writes off LangGraph's async event loop,
+  preventing `Blocking call to os.mkdir` from dropping memory updates; added a
+  regression test that asserts filesystem persistence runs in a worker thread.
+- Extended the daily self-check with live Compose status, recent warning/error
+  detection, architecture, and observability evidence. Reports now fail closed
+  when the runtime has recent warnings or failed memory updates instead of
+  claiming a healthy system from configuration inventory alone.
+- Made Docker installers pre-pull every build base image through the Docker
+  daemon and fail with a mirror/proxy diagnostic instead of swallowing
+  `compose pull` failures. Added explicit ARM64/AMD64 selection and build-only
+  proxy/network forwarding so BuildKit apt/npm/uv stages can use a daemon
+  proxy. Archived three stale lessons/global-memory copies with checksums and
+  made the self-check fail if an active duplicate reappears.
+- Reconciled the persona, human profile, task state, backend package, gateway
+  API, and frontend versions at `20260715`.
+- Hardened the production image for the real web path: installed Chromium's
+  ARM64 shared libraries, preinstalled Readability.js, and created a writable
+  managed npm cache for the unprivileged service user. Runtime doctor now
+  understands the production binary profile, normalizes host/container setup
+  paths, and local contract cleanup no longer emits remote-thread 404s.
+
+### Local-model evaluation
+
+- Added the Hugging Face model evaluation note for Qwen3.6-27B,
+  Qwen3.6-35B-A3B, Qwen3-Next-80B-A3B, Qwen3-Coder-30B-A3B, Devstral Small 2,
+  and Magistral Small. Production remains on Ornith until a controlled
+  llama.cpp A/B run validates quality, tool calls, latency, and memory use.
+
 ## [Unreleased] - 2026-07-15
 
 ### Managed tool lifecycle and artifact harness

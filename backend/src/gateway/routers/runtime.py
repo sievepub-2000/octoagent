@@ -5,7 +5,7 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any, Literal
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from src.agents.core.run_record_store import build_run_record_summary, list_run_records
@@ -372,6 +372,13 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
             setup_workspace_path = str(state.get("workspace_path") or "")
         except Exception:
             setup_workspace_path = ""
+    if setup_workspace_path and not Path(setup_workspace_path).exists():
+        # A setup snapshot created on the host can contain the host-side
+        # checkout path. In a container, prefer the explicitly mounted home
+        # when both paths refer to the same workspace directory.
+        runtime_home = os.getenv("OCTO_AGENT_HOME", "").strip()
+        if runtime_home and Path(runtime_home).exists() and Path(setup_workspace_path).name == Path(runtime_home).name:
+            setup_workspace_path = runtime_home
     if setup_workspace_path:
         checks.append(
             RuntimeDoctorCheck(
@@ -595,15 +602,17 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
             )
         )
 
+    runtime_profile = os.getenv("OCTOAGENT_RUNTIME_PROFILE", "development").strip().lower()
     for binary in ("git", "node", "pnpm", "python3"):
         location = shutil.which(binary)
+        production_optional = binary == "pnpm" and runtime_profile == "production" and not location
         checks.append(
             RuntimeDoctorCheck(
                 id=f"binary:{binary}",
                 title=f"Binary: {binary}",
-                status="ok" if location else "warn",
-                detail=location or "Not found in PATH",
-                recommendation=None if location else f"Install {binary} or ensure it is available in PATH.",
+                status="ok" if location or production_optional else "warn",
+                detail=location or ("Not required in production image" if production_optional else "Not found in PATH"),
+                recommendation=None if location or production_optional else f"Install {binary} or ensure it is available in PATH.",
             )
         )
 
@@ -691,24 +700,29 @@ async def copy_langgraph_contract_thread(request: LangGraphContractCopyRequest) 
 
 
 @router.delete("/langgraph-contract/threads/{thread_id}")
-async def delete_langgraph_contract_thread(thread_id: str) -> dict[str, Any]:
+async def delete_langgraph_contract_thread(
+    thread_id: str,
+    remote_requested: bool = Query(default=False, alias="remote", description="Also delete the LangGraph remote thread."),
+) -> dict[str, Any]:
     from src.agents.runtime import get_langgraph_workflow_contract_service
 
     service = get_langgraph_workflow_contract_service()
-    remote: dict[str, Any] | None = None
     remote_ok = False
-    try:
-        remote = await service.delete_remote_thread(thread_id)
-        remote_ok = bool(remote and remote.get("ok"))
-    except Exception as exc:
-        remote = {"ok": False, "error": str(exc)}
+    if remote_requested:
+        try:
+            remote_result = await service.delete_remote_thread(thread_id)
+            remote_ok = bool(remote_result and remote_result.get("ok"))
+        except Exception as exc:
+            remote_result = {"ok": False, "error": str(exc)}
+    else:
+        remote_result = {"ok": True, "skipped": True, "reason": "remote deletion not requested"}
     deleted = service.delete_thread_contract(thread_id)
     # Return success if the thread was removed from either store.  A thread
     # that exists only in the LangGraph registry (e.g. restored after a crash)
     # will not be in workflow_contract.json, but it is still valid to delete.
     if not deleted and not remote_ok:
         raise HTTPException(status_code=404, detail=f"Thread '{thread_id}' not found")
-    return {"deleted": True, "contract_deleted": deleted, "remote": remote}
+    return {"deleted": True, "contract_deleted": deleted, "remote": remote_result}
 
 
 @router.post("/langgraph-contract/threads/{thread_id}/lifecycle")

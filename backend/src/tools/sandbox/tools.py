@@ -7,7 +7,6 @@ import tempfile
 from pathlib import Path
 
 from langchain.tools import ToolRuntime, tool
-from langgraph.typing import ContextT
 
 from src.agents.thread_state import ThreadDataState, ThreadState
 from src.runtime.config.paths import VIRTUAL_PATH_PREFIX, get_paths
@@ -96,7 +95,7 @@ def replace_virtual_paths_in_command(command: str, thread_data: ThreadDataState 
     return pattern.sub(replace_match, command)
 
 
-def get_runtime_thread_id(runtime: ToolRuntime[ContextT, ThreadState] | None) -> str | None:
+def get_runtime_thread_id(runtime: ToolRuntime[dict[str, object], ThreadState] | None) -> str | None:
     """Resolve the LangGraph thread id across embedded and HTTP runtimes."""
     if runtime is None:
         return None
@@ -154,7 +153,7 @@ def _build_thread_data(thread_id: str) -> ThreadDataState:
     }
 
 
-def get_thread_data(runtime: ToolRuntime[ContextT, ThreadState] | None) -> ThreadDataState | None:
+def get_thread_data(runtime: ToolRuntime[dict[str, object], ThreadState] | None) -> ThreadDataState | None:
     """Extract or lazily build thread_data from runtime state."""
     if runtime is None:
         return None
@@ -174,7 +173,7 @@ def get_thread_data(runtime: ToolRuntime[ContextT, ThreadState] | None) -> Threa
     return thread_data
 
 
-def is_local_sandbox(runtime: ToolRuntime[ContextT, ThreadState] | None) -> bool:
+def is_local_sandbox(runtime: ToolRuntime[dict[str, object], ThreadState] | None) -> bool:
     """Check if the current sandbox is a local sandbox.
 
     Path replacement is only needed for local sandbox since aio sandbox
@@ -190,7 +189,7 @@ def is_local_sandbox(runtime: ToolRuntime[ContextT, ThreadState] | None) -> bool
     return sandbox_state.get("sandbox_id") == "local"
 
 
-def sandbox_from_runtime(runtime: ToolRuntime[ContextT, ThreadState] | None = None) -> Sandbox:
+def sandbox_from_runtime(runtime: ToolRuntime[dict[str, object], ThreadState] | None = None) -> Sandbox:
     """Extract sandbox instance from tool runtime.
 
     DEPRECATED: Use ensure_sandbox_initialized() for lazy initialization support.
@@ -218,7 +217,7 @@ def sandbox_from_runtime(runtime: ToolRuntime[ContextT, ThreadState] | None = No
     return sandbox
 
 
-def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | None = None) -> Sandbox:
+def ensure_sandbox_initialized(runtime: ToolRuntime[dict[str, object], ThreadState] | None = None) -> Sandbox:
     """Ensure sandbox is initialized, acquiring lazily if needed.
 
     On first call, acquires a sandbox from the provider and stores it in runtime state.
@@ -273,7 +272,7 @@ def ensure_sandbox_initialized(runtime: ToolRuntime[ContextT, ThreadState] | Non
     return sandbox
 
 
-def ensure_thread_directories_exist(runtime: ToolRuntime[ContextT, ThreadState] | None) -> None:
+async def ensure_thread_directories_exist(runtime: ToolRuntime[dict[str, object], ThreadState] | None) -> None:
     """Ensure thread data directories (workspace, uploads, outputs) exist.
 
     This function is called lazily when any sandbox tool is first used.
@@ -299,19 +298,18 @@ def ensure_thread_directories_exist(runtime: ToolRuntime[ContextT, ThreadState] 
         return
 
     # Create the three directories
+    import asyncio
     import os
 
-    for key in ["workspace_path", "uploads_path", "outputs_path"]:
-        path = thread_data.get(key)
-        if path:
-            os.makedirs(path, exist_ok=True)
+    paths = [thread_data.get(key) for key in ["workspace_path", "uploads_path", "outputs_path"]]
+    await asyncio.gather(*(asyncio.to_thread(os.makedirs, path, exist_ok=True) for path in paths if path))
 
     # Mark as created to avoid redundant operations
     runtime.state["thread_directories_created"] = True
 
 
 @tool("bash", parse_docstring=True)
-async def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, command: str) -> str:
+async def bash_tool(runtime: ToolRuntime[dict[str, object], ThreadState], description: str, command: str) -> str:
     """Execute a bash command in a Linux environment.
 
 
@@ -324,7 +322,7 @@ async def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: st
     """
     try:
         sandbox = ensure_sandbox_initialized(runtime)
-        ensure_thread_directories_exist(runtime)
+        await ensure_thread_directories_exist(runtime)
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             command = replace_virtual_paths_in_command(command, thread_data)
@@ -342,7 +340,7 @@ async def bash_tool(runtime: ToolRuntime[ContextT, ThreadState], description: st
 
 
 @tool("ls", parse_docstring=True)
-async def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str, path: str) -> str:
+async def ls_tool(runtime: ToolRuntime[dict[str, object], ThreadState], description: str, path: str) -> str:
     """List the contents of a directory up to 2 levels deep in tree format.
 
     Args:
@@ -351,7 +349,7 @@ async def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str,
     """
     try:
         sandbox = ensure_sandbox_initialized(runtime)
-        ensure_thread_directories_exist(runtime)
+        await ensure_thread_directories_exist(runtime)
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
@@ -371,7 +369,7 @@ async def ls_tool(runtime: ToolRuntime[ContextT, ThreadState], description: str,
 
 @tool("read_file", parse_docstring=True)
 async def read_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     description: str,
     path: str,
     start_line: int | None = None,
@@ -387,7 +385,7 @@ async def read_file_tool(
     """
     try:
         sandbox = ensure_sandbox_initialized(runtime)
-        ensure_thread_directories_exist(runtime)
+        await ensure_thread_directories_exist(runtime)
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
@@ -451,7 +449,7 @@ async def _convert_markdown_to_office(content: str, output_path: str, sandbox) -
 
 @tool("write_file", parse_docstring=True)
 async def write_file_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     description: str,
     path: str,
     content: str,
@@ -466,7 +464,7 @@ async def write_file_tool(
     """
     try:
         sandbox = ensure_sandbox_initialized(runtime)
-        ensure_thread_directories_exist(runtime)
+        await ensure_thread_directories_exist(runtime)
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)
@@ -494,7 +492,7 @@ async def write_file_tool(
 
 @tool("str_replace", parse_docstring=True)
 async def str_replace_tool(
-    runtime: ToolRuntime[ContextT, ThreadState],
+    runtime: ToolRuntime[dict[str, object], ThreadState],
     description: str,
     path: str,
     old_str: str,
@@ -513,7 +511,7 @@ async def str_replace_tool(
     """
     try:
         sandbox = ensure_sandbox_initialized(runtime)
-        ensure_thread_directories_exist(runtime)
+        await ensure_thread_directories_exist(runtime)
         if is_local_sandbox(runtime):
             thread_data = get_thread_data(runtime)
             path = replace_virtual_path(path, thread_data)

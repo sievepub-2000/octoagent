@@ -1,5 +1,3 @@
-import type { LucideIcon } from "lucide-react";
-
 export interface Translations {
   // Locale meta
   locale: {
@@ -89,23 +87,6 @@ export interface Translations {
     reasoningEffortHigh: string;
     reasoningEffortHighDescription: string;
     searchModels: string;
-    surpriseMe: string;
-    surpriseMePrompt: string;
-    suggestions: {
-      suggestion: string;
-      prompt: string;
-      icon: LucideIcon;
-    }[];
-    suggestionsCreate: (
-      | {
-          suggestion: string;
-          prompt: string;
-          icon: LucideIcon;
-        }
-      | {
-          type: "separator";
-        }
-    )[];
   };
 
   // Sidebar

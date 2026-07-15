@@ -6,6 +6,7 @@ skip heavy analyzer/evolver in flash mode, non-blocking after_agent analysis.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import threading
 import time
@@ -347,12 +348,18 @@ class SkillEvolutionMiddleware(AgentMiddleware):
                 final_status="completed" if trace.success and structurally_complete else None,
                 evaluation_reason=record_reason,
             )
-            runtime_state["last_run_record"] = append_run_record(
-                run_record,
-                thread_id=thread_id_value,
-                agent_name=agent_name_value,
-                run_id=run_id_value,
-            )
+            record_kwargs = {
+                "thread_id": thread_id_value,
+                "agent_name": agent_name_value,
+                "run_id": run_id_value,
+            }
+            try:
+                asyncio.get_running_loop()
+            except RuntimeError:
+                runtime_state["last_run_record"] = append_run_record(run_record, **record_kwargs)
+            else:
+                asyncio.create_task(asyncio.to_thread(append_run_record, run_record, **record_kwargs))
+                runtime_state["last_run_record_pending"] = True
 
             # Skip heavy analysis in flash mode
             if runtime_context.get("mode") == "flash":

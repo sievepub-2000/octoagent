@@ -1,14 +1,3 @@
-import {
-  CompassIcon,
-  GraduationCapIcon,
-  ImageIcon,
-  MicroscopeIcon,
-  PenLineIcon,
-  ShapesIcon,
-  SparklesIcon,
-  VideoIcon,
-} from "lucide-react";
-
 import type { Translations } from "./types";
 
 export const zhTW: Translations = {
@@ -104,56 +93,6 @@ export const zhTW: Translations = {
     reasoningEffortHigh: "高",
     reasoningEffortHighDescription: "全維度邏輯推理 + 多路徑驗證 + 反向檢查",
     searchModels: "搜尋模型...",
-    surpriseMe: "給我驚喜",
-    surpriseMePrompt: "給我一個驚喜",
-    suggestions: [
-      {
-        suggestion: "寫作",
-        prompt: "請撰寫一篇關於[主題]的部落格文章",
-        icon: PenLineIcon,
-      },
-      {
-        suggestion: "研究",
-        prompt: "請深入研究[主題]並彙整結果。",
-        icon: MicroscopeIcon,
-      },
-      {
-        suggestion: "收集",
-        prompt: "請從[來源]收集資料並製作報告。",
-        icon: ShapesIcon,
-      },
-      {
-        suggestion: "學習",
-        prompt: "請學習[主題]並建立教學文件。",
-        icon: GraduationCapIcon,
-      },
-    ],
-    suggestionsCreate: [
-      {
-        suggestion: "網頁",
-        prompt: "建立關於[主題]的網頁",
-        icon: CompassIcon,
-      },
-      {
-        suggestion: "圖片",
-        prompt: "建立關於[主題]的圖片",
-        icon: ImageIcon,
-      },
-      {
-        suggestion: "影片",
-        prompt: "建立關於[主題]的影片",
-        icon: VideoIcon,
-      },
-      {
-        type: "separator",
-      },
-      {
-        suggestion: "技能",
-        prompt:
-          "讓我們使用 skill-creator 逐步建立一個新技能。首先，您希望這個技能做什麼？",
-        icon: SparklesIcon,
-      },
-    ],
   },
 
   // Sidebar

@@ -79,3 +79,14 @@ class SandboxMiddleware(AgentMiddleware[SandboxMiddlewareState]):
 
         # No sandbox to release
         return super().after_agent(state, runtime)
+
+    @override
+    async def aafter_agent(self, state: SandboxMiddlewareState, runtime: Runtime) -> dict | None:
+        """Release local sandboxes without blocking the async agent loop."""
+        sandbox = state.get("sandbox")
+        sandbox_id = sandbox.get("sandbox_id") if sandbox else (runtime.context or {}).get("sandbox_id")
+        if sandbox_id is not None:
+            logger.info("Releasing sandbox %s from async context", sandbox_id)
+            await get_sandbox_provider().release_async(sandbox_id)
+            return None
+        return await super().aafter_agent(state, runtime)

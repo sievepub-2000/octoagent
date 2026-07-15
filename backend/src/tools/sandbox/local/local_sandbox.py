@@ -169,13 +169,14 @@ class LocalSandbox(Sandbox):
         # Resolve container paths in command before execution
         resolved_command = self._resolve_paths_in_command(command)
         started = time.monotonic()
-        record_tool_trace("shell_start", tool="local_sandbox", command=resolved_command, sandbox_id=self.id, timeout=600)
+        await asyncio.to_thread(record_tool_trace, "shell_start", tool="local_sandbox", command=resolved_command, sandbox_id=self.id, timeout=600)
+        shell = await asyncio.to_thread(self._get_shell)
 
         # Create subprocess
         async with get_runtime_worker_isolation().async_slot("system"):
             process = await asyncio.create_subprocess_shell(
                 resolved_command,
-                executable=self._get_shell(),
+                executable=shell,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
@@ -185,7 +186,7 @@ class LocalSandbox(Sandbox):
             except TimeoutError as exc:
                 process.kill()
                 await process.wait()
-                record_exception_trace("local_sandbox.execute_command", exc, command=resolved_command, sandbox_id=self.id)
+                await asyncio.to_thread(record_exception_trace, "local_sandbox.execute_command", exc, command=resolved_command, sandbox_id=self.id)
                 raise TimeoutError("Command execution timed out after 600 seconds") from exc
 
         stdout_text = (stdout or b"").decode().strip("\n")
@@ -206,7 +207,7 @@ class LocalSandbox(Sandbox):
                 final_output = f"(exit={process.returncode}, stdout=<empty>, stderr=<empty>)"
         else:
             final_output = output
-        record_tool_trace(
+        await asyncio.to_thread(record_tool_trace,
             "shell_end",
             tool="local_sandbox",
             command=resolved_command,
@@ -217,7 +218,7 @@ class LocalSandbox(Sandbox):
             stderr_preview=stderr_text[-1200:],
         )
         # Reverse resolve local paths back to container paths in output
-        return self._reverse_resolve_paths_in_output(final_output)
+        return await asyncio.to_thread(self._reverse_resolve_paths_in_output, final_output)
 
     def list_dir(self, path: str, max_depth=2) -> list[str]:
         resolved_path = self._resolve_path(path)

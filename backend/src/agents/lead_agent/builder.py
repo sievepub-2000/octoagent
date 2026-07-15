@@ -2,6 +2,9 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from typing import TypedDict
+
+from pydantic import ConfigDict
 
 from langchain_core.runnables import RunnableConfig
 
@@ -11,6 +14,16 @@ from ..dialogue_routing import FAST_ROUTES
 from .runtime import LeadAgentRuntimeOptions
 
 logger = logging.getLogger(__name__)
+
+# The API accepts a deliberately open per-run context (mode, sandbox_id,
+# routing hints, continuation data, and plugin-specific keys).  An empty
+# TypedDict with ``extra='allow'`` gives LangGraph a real object schema while
+# preserving the existing dict-shaped, extensible runtime context.
+class LeadAgentContext(TypedDict, total=False):
+    pass
+
+
+LeadAgentContext.__pydantic_config__ = ConfigDict(extra="allow")
 
 
 class LeadAgentBuilder:
@@ -63,6 +76,7 @@ class LeadAgentBuilder:
                 ),
                 system_prompt=self._embedded_backup_prompt_fn(options.conversation_language) + project_prompt,
                 state_schema=self._state_schema,
+                context_schema=LeadAgentContext,
             )
 
         if options.is_bootstrap:
@@ -91,6 +105,7 @@ class LeadAgentBuilder:
                 )
                 + project_prompt,
                 state_schema=self._state_schema,
+                context_schema=LeadAgentContext,
             )
 
         lightweight_dialogue_mode = not options.thinking_enabled and not options.is_plan_mode and not options.subagent_enabled and options.dialogue_route in FAST_ROUTES
@@ -140,4 +155,5 @@ class LeadAgentBuilder:
             )
             + project_prompt,
             state_schema=self._state_schema,
+            context_schema=LeadAgentContext,
         )

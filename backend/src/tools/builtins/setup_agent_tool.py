@@ -6,6 +6,7 @@ from langchain_core.tools import tool
 from langgraph.prebuilt import ToolRuntime
 from langgraph.types import Command
 
+from src.agents.thread_state import ThreadState
 from src.runtime.config.paths import get_paths
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,7 @@ logger = logging.getLogger(__name__)
 def setup_agent(
     soul: str,
     description: str,
-    runtime: ToolRuntime,
+    runtime: ToolRuntime[dict[str, object], ThreadState],
 ) -> Command:
     """Setup the custom OctoAgent agent.
 

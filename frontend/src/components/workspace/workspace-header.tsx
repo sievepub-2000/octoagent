@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 export function WorkspaceHeader({ className }: { className?: string }) {
   const { t } = useI18n();
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -33,9 +33,17 @@ export function WorkspaceHeader({ className }: { className?: string }) {
         )}
       >
         {state === "collapsed" ? (
-          <div className="group-has-data-[collapsible=icon]/sidebar-wrapper:-translate-y flex w-max cursor-default items-center gap-1 pl-1">
-            <BrandMark priority size={38} />
-            <SidebarTrigger className="shrink-0" />
+          <div className="flex h-12 w-full items-center justify-center">
+            <button
+              type="button"
+              data-testid="sidebar-collapsed-brand-trigger"
+              aria-label={t.workspace.inspector.expand}
+              title={t.workspace.inspector.expand}
+              onClick={toggleSidebar}
+              className="flex size-8 shrink-0 items-center justify-center rounded-md outline-hidden transition-colors hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-sidebar-ring"
+            >
+              <BrandMark priority size={32} />
+            </button>
           </div>
         ) : (
           <div className="flex items-center justify-between gap-2">

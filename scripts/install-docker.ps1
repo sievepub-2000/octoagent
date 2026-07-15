@@ -17,8 +17,57 @@ function Require-Command([string]$Name) {
 }
 
 function Invoke-Compose([string[]]$Args) {
-    & docker compose --env-file .env.docker -f compose.yaml @Args
+    $projectName = if ($env:OCTOAGENT_COMPOSE_PROJECT_NAME) { $env:OCTOAGENT_COMPOSE_PROJECT_NAME } else { Split-Path -Leaf ((Resolve-Path $Prefix).Path) }
+    & docker compose --project-name $projectName --env-file .env.docker -f compose.yaml @Args
     if ($LASTEXITCODE -ne 0) { throw "docker compose failed: $($Args -join ' ')" }
+}
+
+function Get-EnvValue([string]$Key) {
+    $line = Get-Content .env.docker | Where-Object { $_ -match "^$([regex]::Escape($Key))=" } | Select-Object -Last 1
+    if ($line) { return ($line -split '=', 2)[1].Trim() }
+    return $null
+}
+
+function Get-BuildPlatform {
+    $configured = Get-EnvValue "OCTOAGENT_BUILD_PLATFORM"
+    if ($configured) { return $configured }
+    $arch = (& docker info --format '{{.Architecture}}' 2>$null | Out-String).Trim()
+    switch ($arch) {
+        "aarch64" { return "linux/arm64" }
+        "arm64" { return "linux/arm64" }
+        "amd64" { return "linux/amd64" }
+        "x86_64" { return "linux/amd64" }
+        default { return $null }
+    }
+}
+
+function Set-BuildProxyEnvironment {
+    if (-not $env:OCTOAGENT_BUILD_HTTP_PROXY -and $env:HTTP_PROXY) { $env:OCTOAGENT_BUILD_HTTP_PROXY = $env:HTTP_PROXY }
+    if (-not $env:OCTOAGENT_BUILD_HTTPS_PROXY -and $env:HTTPS_PROXY) { $env:OCTOAGENT_BUILD_HTTPS_PROXY = $env:HTTPS_PROXY }
+    if (-not $env:OCTOAGENT_BUILD_NO_PROXY -and $env:NO_PROXY) { $env:OCTOAGENT_BUILD_NO_PROXY = $env:NO_PROXY }
+}
+
+function Ensure-BuildBaseImages {
+    $platform = Get-BuildPlatform
+    $images = [ordered]@{
+        OCTOAGENT_PYTHON_BASE_IMAGE = "python:3.12-slim"
+        OCTOAGENT_NODE_RUNTIME_IMAGE = "node:22-bookworm-slim"
+        OCTOAGENT_DOCKER_CLI_IMAGE = "docker:cli"
+        OCTOAGENT_UV_IMAGE = "ghcr.io/astral-sh/uv:0.7.20"
+        OCTOAGENT_NODE_FRONTEND_IMAGE = "node:22-alpine"
+    }
+    foreach ($key in $images.Keys) {
+        $image = Get-EnvValue $key
+        if (-not $image) { $image = $images[$key] }
+        & docker image inspect $image *> $null
+        if ($LASTEXITCODE -eq 0) { continue }
+        Write-Host "Pulling build base image: $image"
+        if ($platform) { & docker pull --platform $platform $image }
+        else { & docker pull $image }
+        if ($LASTEXITCODE -ne 0) {
+            throw "Failed to pull $image. Set $key in .env.docker to a reachable registry mirror or fix the Docker daemon proxy."
+        }
+    }
 }
 
 function New-Secret {
@@ -84,6 +133,7 @@ if ($envText.Contains("POSTGRES_PASSWORD=octoagent-change-me")) {
     $envText = $envText.Replace("POSTGRES_PASSWORD=octoagent-change-me", "POSTGRES_PASSWORD=$(New-HexSecret)")
 }
 Set-Content -Encoding utf8 -NoNewline -Path .env.docker -Value $envText
+Set-BuildProxyEnvironment
 
 foreach ($dir in @("logs", "runtime/cache", "runtime/langgraph", "runtime/logs", "runtime/secrets", "runtime/system_tools", "skills/custom", "workspace/env", "workspace/default", "tmp")) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -92,7 +142,8 @@ if (-not (Test-Path "runtime/secrets/models.env")) {
     New-Item -ItemType File -Path "runtime/secrets/models.env" | Out-Null
 }
 
-if ($Pull) { docker compose --env-file .env.docker -f compose.yaml pull --ignore-buildable }
+if (-not $NoBuild) { Ensure-BuildBaseImages }
+if ($Pull) { Invoke-Compose @("pull") }
 if (-not $NoStart) {
     if ($NoBuild) {
         Invoke-Compose @("up", "-d", "--remove-orphans")
@@ -111,8 +162,8 @@ if (-not $NoStart) {
             Start-Sleep -Seconds 3
         }
     } while ((Get-Date) -lt $deadline)
-    docker compose --env-file .env.docker -f compose.yaml ps
-    docker compose --env-file .env.docker -f compose.yaml logs --tail=120 nginx gateway langgraph frontend
+    Invoke-Compose @("ps")
+    Invoke-Compose @("logs", "--tail=120", "nginx", "gateway", "langgraph", "frontend")
     throw "Timed out waiting for http://127.0.0.1:$port/health"
 }
 

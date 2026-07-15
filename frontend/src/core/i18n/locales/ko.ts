@@ -1,14 +1,3 @@
-import {
-  CompassIcon,
-  GraduationCapIcon,
-  ImageIcon,
-  MicroscopeIcon,
-  PenLineIcon,
-  ShapesIcon,
-  SparklesIcon,
-  VideoIcon,
-} from "lucide-react";
-
 import type { Translations } from "./types";
 
 export const ko: Translations = {
@@ -108,56 +97,6 @@ export const ko: Translations = {
     reasoningEffortHighDescription:
       "전차원 논리 추론 + 다경로 검증 + 역방향 확인",
     searchModels: "모델 검색...",
-    surpriseMe: "깜짝 선물",
-    surpriseMePrompt: "깜짝 선물을 부탁드립니다",
-    suggestions: [
-      {
-        suggestion: "글쓰기",
-        prompt: "[주제]에 관한 블로그 게시물을 작성해 주세요",
-        icon: PenLineIcon,
-      },
-      {
-        suggestion: "조사",
-        prompt: "[주제]에 대해 깊이 조사하고 결과를 요약해 주세요.",
-        icon: MicroscopeIcon,
-      },
-      {
-        suggestion: "수집",
-        prompt: "[소스]에서 데이터를 수집하고 보고서를 작성해 주세요.",
-        icon: ShapesIcon,
-      },
-      {
-        suggestion: "학습",
-        prompt: "[주제]에 대해 배우고 튜토리얼을 작성해 주세요.",
-        icon: GraduationCapIcon,
-      },
-    ],
-    suggestionsCreate: [
-      {
-        suggestion: "웹 페이지",
-        prompt: "[주제]에 관한 웹 페이지 만들기",
-        icon: CompassIcon,
-      },
-      {
-        suggestion: "이미지",
-        prompt: "[주제]에 관한 이미지 만들기",
-        icon: ImageIcon,
-      },
-      {
-        suggestion: "동영상",
-        prompt: "[주제]에 관한 동영상 만들기",
-        icon: VideoIcon,
-      },
-      {
-        type: "separator",
-      },
-      {
-        suggestion: "스킬",
-        prompt:
-          "skill-creator를 사용하여 단계별로 새 스킬을 만들어 봅시다. 먼저, 이 스킬이 무엇을 하길 원하시나요?",
-        icon: SparklesIcon,
-      },
-    ],
   },
 
   // Sidebar
