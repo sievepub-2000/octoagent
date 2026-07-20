@@ -77,6 +77,7 @@ import {
   ModelSelectorSeparator,
   ModelSelectorTrigger,
 } from "../ai-elements/model-selector";
+
 import { ModeHoverGuide } from "./mode-hover-guide";
 
 type InputMode = "flash" | "thinking" | "pro" | "ultra";

@@ -1,3 +1,26 @@
+## [20260721.0.0] - 2026-07-21
+
+### Cold-start capability truthfulness
+
+- Moved unified Tools Hub registry construction off the FastAPI event loop so
+  a cold process cannot report zero skills before the dedicated skills endpoint
+  has warmed its cache.
+- Added a regression test that requires registry construction to run outside
+  the active async loop, matching the filesystem skill loader's contract.
+- Corrected the Tools tab's `All` count so capabilities managed in the
+  separate Plugins and Hooks tabs are not counted as invisible tool cards.
+- Made the permission selector E2E assertion locale-independent while still
+  exercising both real `directory` and `system` values.
+- Gave the unprivileged frontend process ownership of only `.next/cache`,
+  restoring runtime image optimization without making application code
+  writable.
+- Corrected the Brain Core code map to its authoritative
+  `backend/src/storage/brain/` location and synchronized all runtime version
+  surfaces.
+- Restored the documented read-only Brain capabilities endpoint so operators
+  can distinguish deterministic Brain planning modules from LangGraph chat
+  execution without relying on stale documentation.
+
 ## [20260720.1.0] - 2026-07-20
 
 ### Authoritative self-inspection and permission switching

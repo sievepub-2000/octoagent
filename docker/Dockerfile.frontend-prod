@@ -33,6 +33,10 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --reporter=append-only --network-concurrency=4 --fetch-retries=5 --fetch-timeout=120000
 COPY frontend ./
 RUN pnpm exec next build
+# Next's image optimizer writes derivatives at runtime.  Keep the application
+# tree immutable while granting the unprivileged process ownership of only its
+# dedicated cache subtree.
+RUN mkdir -p .next/cache/images && chown -R node:node .next/cache
 
 USER node
 EXPOSE 19806

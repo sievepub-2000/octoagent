@@ -25,6 +25,22 @@ class BrainCapabilitiesResponse(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+@router.get(
+    "/capabilities",
+    response_model=BrainCapabilitiesResponse,
+    summary="Get Brain Core Capabilities",
+    description="List the deterministic Brain planning modules and execution-contract backends.",
+)
+async def get_brain_capabilities() -> BrainCapabilitiesResponse:
+    service = BrainCoreService()
+    return BrainCapabilitiesResponse(
+        modules=service.describe_modules(),
+        notes=[
+            "Brain Core plans and emits execution contracts; LangGraph owns conversational execution.",
+        ],
+    )
+
+
 @router.post(
     "/plan",
     response_model=BrainResponse,

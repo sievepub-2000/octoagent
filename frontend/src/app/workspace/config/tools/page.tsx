@@ -569,10 +569,14 @@ export default function ToolsHubPage() {
 
   const registrySummary = registryQuery.data?.summary;
   const runtimeSummary = registryQuery.data?.runtime;
+  const toolEntries = useMemo(
+    () => entries.filter((entry) => CATEGORY_ORDER.includes(entry.category)),
+    [entries],
+  );
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return entries.filter((entry) => {
+    return toolEntries.filter((entry) => {
       if (activeCategory !== "all" && entry.category !== activeCategory) return false;
       if (!q) return true;
       return (
@@ -580,7 +584,7 @@ export default function ToolsHubPage() {
         (entry.description?.toLowerCase().includes(q) ?? false)
       );
     });
-  }, [entries, query, activeCategory]);
+  }, [toolEntries, query, activeCategory]);
 
   const grouped = useMemo(() => {
     const map: Record<string, ToolEntry[]> = {};
@@ -594,9 +598,9 @@ export default function ToolsHubPage() {
 
   const totalByCategory = useMemo(() => {
     const counts: Record<string, number> = {};
-    for (const entry of entries) counts[entry.category] = (counts[entry.category] ?? 0) + 1;
+    for (const entry of toolEntries) counts[entry.category] = (counts[entry.category] ?? 0) + 1;
     return counts;
-  }, [entries]);
+  }, [toolEntries]);
 
   const hubTitle = t.settings?.tools?.title ?? "Tools Hub";
   const hubDescription =
@@ -672,7 +676,7 @@ export default function ToolsHubPage() {
                 : "border-border bg-background text-foreground hover:bg-muted"
             }`}
           >
-            All ({entries.length})
+            All ({toolEntries.length})
           </button>
           {CATEGORY_ORDER.map((cat) => (
             <button

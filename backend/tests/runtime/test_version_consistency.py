@@ -18,7 +18,7 @@ def test_release_version_is_consistent_across_runtime_surfaces() -> None:
     persona_version = re.search(r'^- \*\*Version\*\*: ([^\s]+)', persona_text, re.MULTILINE)
     assert backend_version and gateway_version and persona_version
     versions = {backend_version.group(1), gateway_version.group(1), persona_version.group(1), str(frontend["version"])}
-    assert versions == {"20260720.1.0"}
+    assert versions == {"20260721.0.0"}
 
 
 if __name__ == "__main__":

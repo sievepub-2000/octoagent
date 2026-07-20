@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
@@ -18,7 +20,11 @@ router = APIRouter(prefix="/api/tools", tags=["tools"])
     description="Aggregate MCP, skills, plugins, channels, and runtime capability surfaces in one endpoint.",
 )
 async def get_tool_capability_registry() -> ToolCapabilityRegistryResponse:
-    return ToolRegistryService().build_registry()
+    # Building the unified registry scans skill files and probes several
+    # capability sources.  Running it on the ASGI event loop makes the skill
+    # loader deliberately return an empty cold cache, so the first Tools Hub
+    # request after a restart incorrectly reports zero skills.
+    return await asyncio.to_thread(ToolRegistryService().build_registry)
 
 
 class DesktopControlTool(BaseModel):

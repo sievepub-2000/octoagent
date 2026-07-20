@@ -13,27 +13,27 @@ It is designed to answer:
 
 ## Code Map
 
-- `backend/src/brain/contracts.py`
+- `backend/src/storage/brain/contracts.py`
   Shared task, plan, analysis, decision, contract, and response schemas.
-- `backend/src/brain/planner.py`
+- `backend/src/storage/brain/planner.py`
   Builds workflow plans and strategy-fusion graphs.
-- `backend/src/brain/strategy_graph.py`
+- `backend/src/storage/brain/strategy_graph.py`
   Validates execution-order, causal-order, and arbitration guardrails.
-- `backend/src/brain/service.py`
+- `backend/src/storage/brain/service.py`
   Main facade that coordinates registered modules and policy output.
-- `backend/src/brain/modules.py`
+- `backend/src/storage/brain/modules.py`
   Registry and descriptor surface for Brain analysis modules.
-- `backend/src/brain/research.py`
+- `backend/src/storage/brain/research.py`
   Baseline goal, evidence, and constraint framing.
-- `backend/src/brain/evidence.py`
+- `backend/src/storage/brain/evidence.py`
   Evidence sufficiency and routing readiness.
-- `backend/src/brain/memory_reasoner.py`
+- `backend/src/storage/brain/memory_reasoner.py`
   Memory-hint shaping for plan context.
-- `backend/src/brain/quant.py`
+- `backend/src/storage/brain/quant.py`
   Quant scope and bounded execution readiness.
-- `backend/src/brain/policy.py`
+- `backend/src/storage/brain/policy.py`
   Conservative recommendation layer.
-- `backend/src/brain/execution_contracts.py`
+- `backend/src/storage/brain/execution_contracts.py`
   Converts analysis + decision into explicit workflow/runtime contracts.
 
 ## Runtime Surface
