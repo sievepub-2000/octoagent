@@ -13,7 +13,7 @@ class SystemGuardConfig(BaseModel):
         description="Whether to execute built-in repair actions when issues are detected.",
     )
     invoke_default_agent_on_issue: bool = Field(
-        default=True,
+        default=False,
         description="Whether to call the default agent for a self-repair plan when issues are detected.",
     )
     startup_agent_timeout_seconds: float = Field(

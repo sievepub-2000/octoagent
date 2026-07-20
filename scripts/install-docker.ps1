@@ -129,8 +129,19 @@ $envText = Get-Content .env.docker -Raw
 if ($envText.Contains("replace-with-a-long-random-secret")) {
     $envText = $envText.Replace("replace-with-a-long-random-secret", (New-Secret))
 }
+if ($envText.Contains("replace-with-a-long-random-system-executor-token")) {
+    $envText = $envText.Replace("replace-with-a-long-random-system-executor-token", (New-Secret))
+} elseif ($envText -notmatch '(?m)^OCTOAGENT_SYSTEM_EXECUTOR_TOKEN=') {
+    $envText += "`nOCTOAGENT_SYSTEM_EXECUTOR_TOKEN=$(New-Secret)`n"
+}
 if ($envText.Contains("POSTGRES_PASSWORD=octoagent-change-me")) {
     $envText = $envText.Replace("POSTGRES_PASSWORD=octoagent-change-me", "POSTGRES_PASSWORD=$(New-HexSecret)")
+}
+$resolvedPrefix = (Resolve-Path $Prefix).Path
+if ($envText -match '(?m)^OCTOAGENT_HOST_REPO_ROOT=') {
+    $envText = [regex]::Replace($envText, '(?m)^OCTOAGENT_HOST_REPO_ROOT=.*$', "OCTOAGENT_HOST_REPO_ROOT=$resolvedPrefix")
+} else {
+    $envText += "`nOCTOAGENT_HOST_REPO_ROOT=$resolvedPrefix`n"
 }
 Set-Content -Encoding utf8 -NoNewline -Path .env.docker -Value $envText
 Set-BuildProxyEnvironment

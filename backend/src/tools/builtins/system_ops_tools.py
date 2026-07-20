@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import base64
 import fnmatch
 import hashlib
 import http.client
 import json
 import mimetypes
 import os
+import posixpath
 import re
 import shlex
 import shutil
@@ -15,6 +17,7 @@ import subprocess
 import sys
 import time
 import urllib.parse
+import urllib.request
 from collections.abc import Iterable
 from datetime import UTC, datetime
 from html import escape as html_escape
@@ -286,39 +289,54 @@ def _run_command(args: list[str], *, cwd: Path = _REPO_ROOT, timeout: int = 5) -
     }
 
 
-def _run_shell(command: str, *, cwd: Path | None = None, timeout: int = 120) -> dict[str, Any]:
-    target_cwd = cwd or _REPO_ROOT
+def _run_host_shell(command: str, *, cwd: str, timeout: int = 120) -> dict[str, Any]:
+    endpoint = os.environ.get("OCTOAGENT_SYSTEM_EXECUTOR_URL", "").rstrip("/")
+    token = os.environ.get("OCTOAGENT_SYSTEM_EXECUTOR_TOKEN", "")
+    if not endpoint or len(token) < 32:
+        return {"error": "system executor is not configured"}
     started = time.monotonic()
-    record_tool_trace("shell_start", tool="host_shell", command=command, cwd=str(target_cwd), timeout=timeout)
-    shell_bin = shutil.which("bash") or "/bin/sh"
+    record_tool_trace("shell_start", tool="host_shell", command=command, cwd=cwd, timeout=timeout)
+    payload = json.dumps(
+        {"command": command, "cwd": cwd, "timeout_seconds": timeout},
+        ensure_ascii=False,
+    ).encode("utf-8")
+    request = urllib.request.Request(
+        f"{endpoint}/execute",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
     try:
-        with get_runtime_worker_isolation().slot("system"):
-            result = subprocess.run(
-                [shell_bin, "-lc", command],
-                cwd=str(target_cwd),
-                capture_output=True,
-                text=True,
-                timeout=timeout,
-                check=False,
-            )
+        # The executor is an internal Compose service. Never route its bearer
+        # token or request through an operator-configured outbound proxy.
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(request, timeout=timeout + 35) as response:
+            result = json.loads(response.read().decode("utf-8"))
     except Exception as exc:
-        record_exception_trace("system_ops._run_shell", exc, command=command, cwd=str(target_cwd), timeout=timeout)
-        raise
+        record_exception_trace("system_ops._run_host_shell", exc, command=command, cwd=cwd, timeout=timeout)
+        return {"error": f"system executor request failed: {type(exc).__name__}: {exc}"}
     record_tool_trace(
         "shell_end",
         tool="host_shell",
         command=command,
-        cwd=str(target_cwd),
-        exit_code=result.returncode,
+        cwd=cwd,
+        exit_code=result.get("exit_code"),
         duration_ms=round((time.monotonic() - started) * 1000, 3),
-        stdout_preview=(result.stdout or "")[-1200:],
-        stderr_preview=(result.stderr or "")[-1200:],
+        stdout_preview=str(result.get("stdout") or "")[-1200:],
+        stderr_preview=str(result.get("stderr") or "")[-1200:],
     )
-    return {
-        "exit_code": result.returncode,
-        "stdout": (result.stdout or "").strip(),
-        "stderr": (result.stderr or "").strip(),
-    }
+    return result
+
+
+def _resolve_host_path(path: str) -> str:
+    value = str(path or ".").strip()
+    if value.startswith("/"):
+        return posixpath.normpath(value)
+    root = os.environ.get("OCTOAGENT_HOST_REPO_ROOT", "/") or "/"
+    return posixpath.normpath(posixpath.join(root, value))
 
 
 def _run_node_script(script_path: Path, config_path: Path, *, timeout: int) -> dict[str, Any]:
@@ -971,20 +989,11 @@ def host_shell_tool(
     """
     _ = description  # surfaced via tool-call args in the chat UI
 
-    target_cwd = Path(cwd).expanduser()
-    if not target_cwd.is_absolute():
-        target_cwd = _REPO_ROOT / target_cwd
-    target_cwd = target_cwd.resolve()
-    if not target_cwd.exists() or not target_cwd.is_dir():
-        return _json({"error": f"invalid cwd: {target_cwd}"})
+    requested_cwd = str(cwd or ".").strip()
+    target_cwd = _resolve_host_path(requested_cwd)
     safe_timeout = _safe_int(timeout_seconds, minimum=1, maximum=3600)
-    try:
-        result = _run_shell(command, cwd=target_cwd, timeout=safe_timeout)
-    except subprocess.TimeoutExpired:
-        return _json({"command": command, "cwd": str(target_cwd), "timeout": safe_timeout, "error": "timeout"})
-    except Exception as exc:
-        return _json({"command": command, "cwd": str(target_cwd), "error": str(exc)})
-    return _json({"generated_at": _utc_now(), "command": command, "cwd": str(target_cwd), **result})
+    result = _run_host_shell(command, cwd=target_cwd, timeout=safe_timeout)
+    return _json({"generated_at": _utc_now(), "command": command, "cwd": target_cwd, **result})
 
 
 @tool("host_file_manage", parse_docstring=True)
@@ -1008,50 +1017,50 @@ def host_file_manage_tool(
     """
 
     op = operation.strip().lower()
-    source = Path(path).expanduser().resolve()
-    target = Path(target_path).expanduser().resolve() if target_path else None
-    try:
-        if op == "mkdir":
-            source.mkdir(parents=parents, exist_ok=True)
-        elif op == "delete":
-            if source.is_dir():
-                if recursive:
-                    shutil.rmtree(source)
-                else:
-                    source.rmdir()
-            else:
-                source.unlink()
-        elif op in {"move", "rename"}:
-            if target is None:
-                return _json({"error": "target_path is required"})
-            if parents:
-                target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.move(str(source), str(target))
-        elif op == "copy":
-            if target is None:
-                return _json({"error": "target_path is required"})
-            if parents:
-                target.parent.mkdir(parents=True, exist_ok=True)
-            if source.is_dir():
-                shutil.copytree(source, target, dirs_exist_ok=recursive)
-            else:
-                shutil.copy2(source, target)
-        elif op == "read":
-            text = source.read_text(encoding="utf-8", errors="replace")
-            return _json({"operation": op, "path": str(source), "content": text})
-        elif op in {"write", "append"}:
-            if content is None:
-                return _json({"error": "content is required"})
-            if parents:
-                source.parent.mkdir(parents=True, exist_ok=True)
-            mode = "a" if op == "append" else "w"
-            with source.open(mode, encoding="utf-8") as handle:
-                handle.write(content)
-        else:
-            return _json({"error": f"unsupported operation: {operation}"})
-    except Exception as exc:
-        return _json({"operation": op, "path": str(source), "target_path": str(target) if target else None, "error": str(exc)})
-    return _json({"generated_at": _utc_now(), "operation": op, "path": str(source), "target_path": str(target) if target else None, "ok": True})
+    source = _resolve_host_path(path)
+    target = _resolve_host_path(target_path) if target_path else None
+    quoted_source = shlex.quote(source)
+    prefix = ""
+    if parents and op in {"write", "append"}:
+        prefix = f"mkdir -p -- {shlex.quote(posixpath.dirname(source) or '/')} && "
+    elif parents and op in {"move", "rename", "copy"} and target:
+        prefix = f"mkdir -p -- {shlex.quote(posixpath.dirname(target) or '/')} && "
+
+    if op == "mkdir":
+        command = f"mkdir {'-p ' if parents else ''}-- {quoted_source}"
+    elif op == "delete":
+        command = f"rm {'-rf ' if recursive else ''}-- {quoted_source}"
+    elif op in {"move", "rename"}:
+        if target is None:
+            return _json({"error": "target_path is required"})
+        command = f"{prefix}mv -- {quoted_source} {shlex.quote(target)}"
+    elif op == "copy":
+        if target is None:
+            return _json({"error": "target_path is required"})
+        command = f"{prefix}cp {'-a ' if recursive else ''}-- {quoted_source} {shlex.quote(target)}"
+    elif op == "read":
+        command = f"cat -- {quoted_source}"
+    elif op in {"write", "append"}:
+        if content is None:
+            return _json({"error": "content is required"})
+        encoded = base64.b64encode(content.encode("utf-8")).decode("ascii")
+        redirect = ">>" if op == "append" else ">"
+        command = f"{prefix}printf %s {shlex.quote(encoded)} | base64 -d {redirect} {quoted_source}"
+    else:
+        return _json({"error": f"unsupported operation: {operation}"})
+
+    result = _run_host_shell(command, cwd="/", timeout=120)
+    response: dict[str, Any] = {
+        "generated_at": _utc_now(),
+        "operation": op,
+        "path": source,
+        "target_path": target,
+        **result,
+    }
+    if op == "read" and result.get("exit_code") == 0:
+        response["content"] = result.get("stdout", "")
+    response["ok"] = result.get("exit_code") == 0 and not result.get("error")
+    return _json(response)
 
 
 @tool("tcp_connect", parse_docstring=True)

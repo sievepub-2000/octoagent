@@ -174,8 +174,8 @@ class SystemGuardService:
             issues.append(
                 {
                     "code": "no_models_configured",
-                    "severity": "critical",
-                    "message": "No models are configured in current config.",
+                    "severity": "info",
+                    "message": "No models are configured yet; complete model setup in the WebUI.",
                     "auto_repairable": False,
                 }
             )

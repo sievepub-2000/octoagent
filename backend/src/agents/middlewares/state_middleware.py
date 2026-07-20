@@ -44,6 +44,9 @@ _RECOVERY_HUMAN_PATTERN = re.compile(
     r"continue the unfinished work in this conversation\b|"
     r"continue the latest unfinished user task\b|"
     r"continue the current task using the visible conversation context\b|"
+    r"请阅读之前的完整对话内容|"
+    r"请阅读前面的完整对话内容|"
+    r"阅读之前的完整对话内容|"
     r"继续执行上一段对话中尚未完成的任务|"
     r"继续执行当前对话中尚未完成的任务|"
     r"根据隐藏的接续记忆"
@@ -122,6 +125,14 @@ def _is_new_user_goal(latest_goal: str, task_state: dict[str, Any] | None) -> bo
     if not old_goal or old_goal == new_goal or old_goal in new_goal or new_goal in old_goal:
         return False
     return not re.match(r"^(继续|接着|然后|下一步|按上面|继续上|continue\b|go on\b)", new_goal)
+
+
+def _resume_requested(runtime: Runtime | None) -> bool:
+    context = runtime.context if runtime is not None and isinstance(runtime.context, dict) else {}
+    if context.get("continue_trigger") == "continue":
+        return True
+    event = context.get("client_control_event")
+    return isinstance(event, dict) and str(event.get("action") or "").strip().lower() == "resume"
 
 
 def _todo_bucket(todos: list[dict[str, Any]], status: str) -> list[str]:
@@ -382,7 +393,7 @@ class StateMiddleware(AgentMiddleware[StateMiddlewareState]):
         messages = list(state.get("messages") or [])
         task_state = self._merge_context_task_state(state, runtime)
         latest_goal = _latest_user_human_text(messages)
-        if _is_new_user_goal(latest_goal, task_state):
+        if not _resume_requested(runtime) and _is_new_user_goal(latest_goal, task_state):
             task_state = _new_task_state(latest_goal)
         if task_state is None:
             if not _is_complex_task(latest_goal):
@@ -406,7 +417,7 @@ class StateMiddleware(AgentMiddleware[StateMiddlewareState]):
         messages = list(state.get("messages") or [])
         task_state = _normalize_task_state(state.get("task_state"))
         latest_goal = _latest_user_human_text(messages)
-        if _is_new_user_goal(latest_goal, task_state):
+        if not _resume_requested(runtime) and _is_new_user_goal(latest_goal, task_state):
             task_state = _new_task_state(latest_goal)
         if task_state is None:
             if not _is_complex_task(latest_goal):

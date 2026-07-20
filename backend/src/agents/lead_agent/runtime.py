@@ -187,7 +187,13 @@ class LeadAgentRuntimeResolver:
         conversation_language = runtime_config_value(config, "conversation_language")
         permission_mode = normalize_runtime_permission_mode(requested_permission)
         workflow_run_mode = runtime_config_value(config, "workflow_run_mode")
-        runtime_mode = runtime_config_value(config, "mode")
+        runtime_mode = str(runtime_config_value(config, "mode") or "").strip().lower()
+        if runtime_mode in {"thinking", "pro", "ultra"}:
+            thinking_enabled = True
+            if reasoning_effort is None:
+                reasoning_effort = "high" if runtime_mode in {"pro", "ultra"} else "medium"
+        if runtime_mode == "ultra":
+            subagent_enabled = True
         dialogue_route_payload = runtime_config_value(config, "dialogue_route")
         explicit_dialogue_route = None
         if isinstance(dialogue_route_payload, dict):
@@ -219,12 +225,17 @@ class LeadAgentRuntimeResolver:
         system_continue_reason = runtime_config_value(config, "system_continue_reason")
         continue_message_count = runtime_config_value(config, "continue_message_count")
         thread_message_count = runtime_config_value(config, "thread_message_count")
-        if (
+        if continue_trigger == "continue":
+            route = classify_dialogue_route(
+                "",
+                mode=runtime_mode,
+                explicit_route="tool_action",
+            )
+        elif (
             route.kind in FAST_ROUTES
             and route.kind not in {ROUTE_CONTROL_COMMAND, ROUTE_PLAN_ONLY}
             and (
-                continue_trigger == "continue"
-                or bool(system_continue_reason)
+                bool(system_continue_reason)
                 or (isinstance(continue_message_count, (int, float)) and int(continue_message_count) >= 1)
                 or (isinstance(thread_message_count, (int, float)) and int(thread_message_count) >= 2)
             )

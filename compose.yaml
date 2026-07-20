@@ -29,6 +29,9 @@ x-backend-env: &backend-env
   OCTOAGENT_GATEWAY_HEALTH_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/health
   OCTOAGENT_OPENAPI_SPEC_URL: http://gateway:${OCTO_GATEWAY_PORT:-19802}/openapi.json
   OCTO_LANGGRAPH_BASE_URL: http://langgraph:${OCTO_LANGGRAPH_PORT:-19804}
+  OCTOAGENT_SYSTEM_EXECUTOR_URL: http://system-executor:19808
+  OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env}
+  OCTOAGENT_HOST_REPO_ROOT: ${OCTOAGENT_HOST_REPO_ROOT:-/}
   OCTOAGENT_OPENROUTER_APP_URL: ${OCTOAGENT_OPENROUTER_APP_URL:-https://github.com/sievepub-2000/octoagent}
   OCTOAGENT_OPENROUTER_APP_TITLE: ${OCTOAGENT_OPENROUTER_APP_TITLE:-OctoAgent}
   OCTOAGENT_OPENROUTER_USAGE_INCLUDE: ${OCTOAGENT_OPENROUTER_USAGE_INCLUDE:-true}
@@ -53,7 +56,6 @@ x-backend-volumes: &backend-volumes
   - ./runtime/secrets:/app/runtime/secrets
   - ./runtime/system_tools:/app/runtime/system_tools
   - ./skills/custom:/app/skills/custom
-  - /var/run/docker.sock:/var/run/docker.sock
 
 services:
   postgres:
@@ -85,6 +87,26 @@ services:
       retries: 12
       start_period: 5s
 
+  system-executor:
+    image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
+    restart: unless-stopped
+    user: "0:0"
+    command: >-
+      bash -lc "cd /app/backend && /app/backend/.venv/bin/uvicorn src.system_executor.app:app --host 0.0.0.0 --port 19808"
+    environment:
+      OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env}
+      OCTOAGENT_BACKEND_IMAGE: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    expose:
+      - "19808"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:19808/health', timeout=5)\""]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 10s
+
   gateway:
     build:
       context: .
@@ -110,14 +132,12 @@ services:
       <<: *backend-env
       OCTO_GATEWAY_PORT: ${OCTO_GATEWAY_PORT:-19802}
     volumes: *backend-volumes
-    group_add:
-      # Docker's socket group is host-specific; 126 is the packaged Linux
-      # default and can still be overridden with OCTOAGENT_DOCKER_GID.
-      - ${OCTOAGENT_DOCKER_GID:-126}
     depends_on:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      system-executor:
         condition: service_healthy
     ports:
       - "127.0.0.1:${OCTO_GATEWAY_PORT:-19802}:${OCTO_GATEWAY_PORT:-19802}"
@@ -155,11 +175,11 @@ services:
       <<: *backend-env
       OCTO_LANGGRAPH_PORT: ${OCTO_LANGGRAPH_PORT:-19804}
     volumes: *backend-volumes
-    group_add:
-      - ${OCTOAGENT_DOCKER_GID:-126}
     depends_on:
       gateway:
-        condition: service_healthy
+        # LangGraph creates the checkpoint schema on an empty database. Waiting
+        # for the gateway's deep persistence health here would deadlock a clean install.
+        condition: service_started
     ports:
       - "127.0.0.1:${OCTO_LANGGRAPH_PORT:-19804}:${OCTO_LANGGRAPH_PORT:-19804}"
     extra_hosts:

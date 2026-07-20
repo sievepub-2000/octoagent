@@ -18,9 +18,9 @@ export const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
   context: {
     model_name: undefined,
     agent_name: undefined,
-    mode: "flash",
-    reasoning_effort: "minimal",
-    permission_mode: "approval",
+    mode: "pro",
+    reasoning_effort: "high",
+    permission_mode: "directory",
     conversation_language: undefined,
     ml_intern_profile: undefined,
   },
@@ -102,6 +102,19 @@ export function getLocalSettings(): LocalSettings {
           ...settings.setup,
         },
       };
+      const legacyLowAutonomyDefaults =
+        settings.context?.mode === "flash" &&
+        settings.context?.reasoning_effort === "minimal" &&
+        settings.context?.permission_mode === "approval";
+      if (legacyLowAutonomyDefaults) {
+        mergedSettings.context = {
+          ...mergedSettings.context,
+          mode: "pro",
+          reasoning_effort: "high",
+          permission_mode: "directory",
+        };
+        localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(mergedSettings));
+      }
       return mergedSettings;
     }
   } catch {}

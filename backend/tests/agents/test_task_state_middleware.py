@@ -313,3 +313,32 @@ def test_substantive_advisory_answer_completes_task_state_without_todos() -> Non
     assert update["task_state"]["status"] == "completed"
     assert update["task_state"]["pending_steps"] == []
     assert update["runtime"]["recoverable_failure"] is None
+
+
+def test_resume_control_event_preserves_active_goal_for_chinese_history_request() -> None:
+    middleware = StateMiddleware()
+    original_goal = "排查并修复 OctoAgent 的本地系统执行问题"
+    state = {
+        "messages": [HumanMessage(content="请阅读之前的完整对话内容，搞清楚应该做哪些工作，然后继续")],
+        "runtime": {},
+        "task_state": {
+            "goal": original_goal,
+            "status": "incomplete",
+            "completed_steps": ["读取运行日志"],
+            "pending_steps": ["修复执行链", "运行回归测试"],
+            "next_action": "修复执行链",
+        },
+    }
+    runtime = _Runtime(
+        {
+            "client_control_event": {"action": "resume"},
+            "continue_trigger": "continue",
+        }
+    )
+
+    update = middleware.before_agent(state, runtime)
+
+    assert update is not None
+    assert update["task_state"]["goal"] == original_goal
+    assert update["task_state"]["completed_steps"] == ["读取运行日志"]
+    assert update["task_state"]["pending_steps"] == ["修复执行链", "运行回归测试"]

@@ -13,7 +13,6 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import ModelRequest
 from langgraph.runtime import Runtime
 
-from src.agents.memory.global_memory import build_global_memory_prompt
 from src.agents.memory.queue import get_memory_queue
 from src.runtime.config.memory_config import get_memory_config
 from src.utils.messages import message_text as _message_text
@@ -264,14 +263,8 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
 
             query = _extract_user_query_from_messages(list(request.messages))
             current_goal = _extract_goal_from_context(request)
-            blocks = [
-                block
-                for block in (
-                    build_global_memory_prompt(max_chars=config.max_injection_tokens * 4),
-                    _build_semantic_recall_block(query or "", current_goal=current_goal) if query or current_goal else None,
-                )
-                if block
-            ]
+            recalled = _build_semantic_recall_block(query or "", current_goal=current_goal) if query or current_goal else None
+            blocks = [recalled] if recalled else []
             if not blocks:
                 return request
 

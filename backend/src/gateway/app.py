@@ -33,7 +33,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="OctoAgent API Gateway",
         description=API_DESCRIPTION,
-        version="20260715",
+        version="20260720",
         lifespan=gateway_lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
@@ -101,8 +101,8 @@ def create_app() -> FastAPI:
         _persistence_cache["ts"] = now
         return result
 
-    @app.get("/health", tags=["health"])
-    async def health_check() -> dict:
+    @app.get("/health", tags=["health"], response_model=None)
+    async def health_check():
         """Health check endpoint.
 
         Returns:
@@ -112,7 +112,14 @@ def create_app() -> FastAPI:
         import asyncio
 
         persistence = await asyncio.to_thread(_probe_persistence)
-        return {"status": "healthy", "service": "octoagent-gateway", "persistence": persistence}
+        payload = {
+            "status": "healthy" if persistence.get("ok") else "unhealthy",
+            "service": "octoagent-gateway",
+            "persistence": persistence,
+        }
+        if not persistence.get("ok"):
+            return JSONResponse(status_code=503, content=payload)
+        return payload
 
     @app.get("/health/persistence", tags=["health"])
     async def health_persistence() -> dict:

@@ -1,3 +1,51 @@
+## [20260720] - 2026-07-20
+
+### Model-owned agent reasoning
+
+- Removed instruction-contract, goal-rewrite, step-reflection, progress-stall,
+  forced-skill, and hook-dispatch layers from the active lead-agent path so the
+  model owns task interpretation, planning, and tool sequencing.
+- Kept execution-focused seams for state recovery, continuation, compaction,
+  sandboxing, dangerous-operation confirmation, resource limits, and semantic
+  memory recall. Tool recovery now reacts only to explicit execution failures
+  instead of rewriting successful calls from incidental output text.
+- Corrected Chinese and client-driven continuation handling, preserved the
+  active objective on resume, enabled thinking for Pro/Ultra modes, and raised
+  the local-model output budget while aligning configured and served context.
+- Changed the WebUI defaults to Pro mode, high reasoning effort, and directory
+  permission; legacy Flash/minimal settings migrate without overwriting later
+  user choices.
+
+### Explicit ordinary and system permissions
+
+- Added an internal-only authenticated system-executor service. Ordinary
+  gateway and LangGraph containers remain non-root and have no Docker socket;
+  explicit system mode can use `host_shell` and `host_file_manage` against the
+  real host through a short-lived privileged helper.
+- Added generated executor credentials, host-root discovery, installer support,
+  documentation, permission-catalog tests, and true host file/network lifecycle
+  verification without publishing the executor port.
+- Removed obsolete Docker group injection from application containers and made
+  startup self-checks report first-run model setup without asking an agent to
+  invent its own repair plan.
+
+### Docker lifecycle and runtime truthfulness
+
+- Fixed clean-database startup ordering so LangGraph can initialize the
+  checkpoint schema before the gateway's deep persistence health becomes green.
+- Added Docker-DNS-aware Nginx upstreams so backend or frontend container IP
+  changes recover without an ingress restart.
+- Made gateway health fail with HTTP 503 when PostgreSQL persistence is down,
+  repaired the packaged web-fetch provider, and documented the two permission
+  surfaces and their security boundary.
+- Verified isolated install, upgrade, stop, restart, persistence, removal,
+  eight configurable-module CRUD lifecycles, real model execution, Chinese
+  continuation, full cold start, and ordinary/system Internet access on an
+  ARM64 Docker Engine host.
+- Removed obsolete native-service roots, stale prompt backups, duplicate host
+  tool payloads, and an unused legacy model after checksummed rollback archives
+  were created.
+
 ## [20260715] - 2026-07-15
 
 ### Full-audit repair and runtime truthfulness

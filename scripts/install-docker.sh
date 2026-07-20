@@ -203,6 +203,16 @@ prepare_files() {
             sed -i '' "s#replace-with-a-long-random-secret#$secret#" .env.docker
         fi
     fi
+    if grep -q 'replace-with-a-long-random-system-executor-token' .env.docker; then
+        system_executor_secret="$(random_secret)"
+        if sed --version >/dev/null 2>&1; then
+            sed -i "s#replace-with-a-long-random-system-executor-token#$system_executor_secret#" .env.docker
+        else
+            sed -i '' "s#replace-with-a-long-random-system-executor-token#$system_executor_secret#" .env.docker
+        fi
+    elif ! grep -q '^OCTOAGENT_SYSTEM_EXECUTOR_TOKEN=' .env.docker; then
+        printf '\nOCTOAGENT_SYSTEM_EXECUTOR_TOKEN=%s\n' "$(random_secret)" >> .env.docker
+    fi
     if grep -q '^POSTGRES_PASSWORD=octoagent-change-me$' .env.docker; then
         postgres_secret="$(random_hex_secret)"
         if sed --version >/dev/null 2>&1; then
@@ -234,7 +244,6 @@ set_env_number() {
 configure_container_identity() {
     local host_uid="${SUDO_UID:-$(id -u)}"
     local host_gid="${SUDO_GID:-$(id -g)}"
-    local docker_gid=0
     # A direct root install must still produce a non-root image. UID/GID 1000
     # are the portable Docker defaults; sudo preserves the invoking identity.
     if [ "$host_uid" = "0" ]; then
@@ -245,14 +254,15 @@ configure_container_identity() {
     fi
     set_env_number OCTOAGENT_UID "$host_uid"
     set_env_number OCTOAGENT_GID "$host_gid"
-    if [ -S /var/run/docker.sock ]; then
-        if [ "$(uname -s)" = "Darwin" ]; then
-            docker_gid="$(stat -f '%g' /var/run/docker.sock)"
+    if grep -q '^OCTOAGENT_HOST_REPO_ROOT=' .env.docker; then
+        if sed --version >/dev/null 2>&1; then
+            sed -i "s#^OCTOAGENT_HOST_REPO_ROOT=.*#OCTOAGENT_HOST_REPO_ROOT=$PREFIX#" .env.docker
         else
-            docker_gid="$(stat -c '%g' /var/run/docker.sock)"
+            sed -i '' "s#^OCTOAGENT_HOST_REPO_ROOT=.*#OCTOAGENT_HOST_REPO_ROOT=$PREFIX#" .env.docker
         fi
+    else
+        printf '\nOCTOAGENT_HOST_REPO_ROOT=%s\n' "$PREFIX" >> .env.docker
     fi
-    set_env_number OCTOAGENT_DOCKER_GID "$docker_gid"
     if [ "$(id -u)" = "0" ]; then
         chown -R "$host_uid:$host_gid" logs backend/runtime runtime/config runtime/cache runtime/langgraph runtime/logs runtime/secrets runtime/system_tools skills/custom workspace tmp
     fi

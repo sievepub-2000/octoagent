@@ -661,10 +661,12 @@ function ChatThreadView({
     });
     const controlEvent = createRunEvent("planning", "User resumed the run", "Resume requested from chat controls.");
     setRunEvents((previous) => mergeRunEvents([controlEvent], previous, 120));
+    const continuation = buildContinuationContext(threadId, thread.values) ?? {};
     void sendMessage(threadId, {
-      text: "Continue the unfinished work in this conversation. Use the existing runtime state, todos, tool results, and recent context. Start from the next concrete step; if a failure exists, first name the recovery point and then continue.",
+      text: "继续",
       files: [],
     }, {
+      ...continuation,
       client_control_event: {
         id: controlEvent.id,
         action: "resume",
@@ -672,7 +674,7 @@ function ChatThreadView({
         detail: controlEvent.detail,
       },
     });
-  }, [sendMessage, thread.isLoading, threadId]);
+  }, [sendMessage, thread.isLoading, thread.values, threadId]);
 
   const handleContextThreshold = useCallback((usage: ContextTokenUsage) => {
     if (thread.isLoading) {

@@ -12,6 +12,7 @@ OctoAgent's default deployment path is Docker Compose. The same profile is used 
 | `frontend` | Production Next.js WebUI | internal `19806` |
 | `gateway` | FastAPI gateway and REST APIs | localhost `19802` |
 | `langgraph` | Agent runtime | localhost `19804` |
+| `system-executor` | Internal authenticated bridge for explicit system-mode host tools | internal `19808` |
 | `postgres` | Packaged PostgreSQL for conversations, checkpoints, and DB/MCP checks | internal `5432` |
 | `redis` | Packaged Redis sidecar for Redis MCP checks | internal `6379` |
 
@@ -83,7 +84,9 @@ The installer creates local runtime files if they do not exist:
 
 `.env.docker` is ignored by git. On first run the installer replaces the
 placeholder `BETTER_AUTH_SECRET` with a random 48-byte secret and the packaged
-PostgreSQL placeholder with a URL-safe random 24-byte hex password.
+PostgreSQL placeholder with a URL-safe random 24-byte hex password. It also
+generates a separate 48-byte bearer secret for the internal system executor
+and records the absolute installation directory for relative system-tool paths.
 
 ## Daily Operations
 
@@ -183,7 +186,7 @@ If the host needs an outbound proxy to reach model or search providers, copy
 its `HTTP_PROXY`, `HTTPS_PROXY`, lowercase variants, and `NO_PROXY` values into
 `.env.docker`. A proxy listening on host `127.0.0.1` must be written as
 `host.docker.internal` from inside the containers. Keep `gateway`, `langgraph`, `postgres`, `redis`, and
-`host.docker.internal` in `NO_PROXY`. Avoid defining both `GOOGLE_API_KEY` and
+`system-executor`, `host.docker.internal` in `NO_PROXY`. Avoid defining both `GOOGLE_API_KEY` and
 `GEMINI_API_KEY`; Google GenAI warns when both are present and chooses one by
 SDK precedence.
 
@@ -233,7 +236,13 @@ addresses are mapped in memory to their container equivalents. The default
 packaged sidecars make Redis and PostgreSQL MCP smoke checks available without
 extra host services.
 
-Docker MCP mounts `/var/run/docker.sock` into the backend containers. On hardened Docker Desktop installations, you may need to enable Docker socket access or run the containers from WSL2/macOS where the socket is available.
+Ordinary agent containers never receive `/var/run/docker.sock` and continue to
+run as the configured non-root UID/GID. System mode exposes `host_shell` and
+`host_file_manage` through a dedicated, internal-only `system-executor` service.
+That service alone mounts the Docker socket, authenticates every request with a
+generated bearer secret, and launches a short-lived privileged helper in the
+host namespaces. This is an intentional root-equivalent capability: do not
+publish port `19808` or share `OCTOAGENT_SYSTEM_EXECUTOR_TOKEN`.
 
 ## Packaging A Release Bundle
 
@@ -254,6 +263,9 @@ curl -fsS http://127.0.0.1:19800/health
 curl -fsS http://127.0.0.1:19800/api/tools/registry
 curl -fsS http://127.0.0.1:19800/api/mcp/smoke
 ```
+
+Also verify that directory mode has no Docker socket, while an isolated system
+mode test can read/write/delete a temporary host file and reach the Internet.
 
 Run the isolated lifecycle verifier from the checkout to validate create,
 read, update, archive/confirmed delete, and post-delete visibility for the configurable

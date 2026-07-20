@@ -248,20 +248,16 @@ class SubagentService:
             )
         else:
             model = create_chat_model(name=model_name, thinking_enabled=False)
-        from src.agents.middlewares.progress_stall_middleware import ProgressStallMiddleware
         from src.agents.middlewares.thread_data_middleware import ThreadDataMiddleware
-        from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
+        from src.agents.middlewares.tool_budget_middleware import ToolExecutionGuardMiddleware
         from src.tools.sandbox.middleware import SandboxMiddleware
 
-        # Subagents share the lead agent's stall-detection + tool-budget guardrails so
-        # that a stuck subagent (e.g. shell_command loop) gets the same Reflexion-style
-        # nudge + soft recovery escalation that protects the lead loop. Without these
-        # the subagent will happily repeat the identical tool call until recursion_limit.
+        # Subagents use the same execution-seam guard as the lead agent. Planning
+        # and recovery remain model-owned.
         middlewares = [
             ThreadDataMiddleware(lazy_init=True),
             SandboxMiddleware(lazy_init=True),
-            ProgressStallMiddleware(),
-            ToolBudgetMiddleware(),
+            ToolExecutionGuardMiddleware(),
         ]
         return create_agent(
             model=model,

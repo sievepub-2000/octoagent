@@ -297,10 +297,19 @@ class RuntimeStateMiddleware(AgentMiddleware[RuntimeStateMiddlewareState]):
 
     state_schema = RuntimeStateMiddlewareState
 
-    def __init__(self, model_name: str | None, fallback_models: list[str] | None = None):
+    def __init__(
+        self,
+        model_name: str | None,
+        fallback_models: list[str] | None = None,
+        *,
+        thinking_enabled: bool | None = None,
+        reasoning_effort: str | None = None,
+    ):
         super().__init__()
         self.model_name = model_name
         self.fallback_models = list(fallback_models or [])
+        self.thinking_enabled = thinking_enabled
+        self.reasoning_effort = reasoning_effort
 
     def _build_runtime_state(
         self,
@@ -339,6 +348,8 @@ class RuntimeStateMiddleware(AgentMiddleware[RuntimeStateMiddlewareState]):
                 "continuation_source": continuation_source,
                 "workflow_resume_state": workflow_resume_state,
                 "memory_guard_state": _compute_memory_guard_state(),
+                "thinking_enabled": self.thinking_enabled,
+                "reasoning_effort": self.reasoning_effort,
                 "updated_at": _utc_now(),
             }
         )

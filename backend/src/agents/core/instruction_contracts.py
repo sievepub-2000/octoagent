@@ -32,16 +32,10 @@ _IDENTITY_MARKERS = (
 
 _CURRENT_RESEARCH_MARKERS = (
     "latest",
-    "current",
     "today",
-    "recent",
     "news",
     "headlines",
     "trending",
-    "search",
-    "query",
-    "browse",
-    "web",
     "weather",
     "forecast",
     "最新",
@@ -208,7 +202,7 @@ def detect_instruction_contract(
             ),
         )
 
-    if is_current_research:
+    if is_current_research and not is_code_task:
         domains = _extract_required_domains(text)
         requested_count = _requested_result_count(text)
         min_links = min(requested_count, _MAX_RESEARCH_EVIDENCE_LINK_REQUIREMENT)

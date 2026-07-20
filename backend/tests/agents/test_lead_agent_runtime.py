@@ -222,3 +222,43 @@ def test_runtime_resolver_applies_project_context_and_caps_permission() -> None:
     assert options.model_name == "project-model"
     assert options.permission_mode == "directory"
     assert "Run project checks" in options.project_prompt
+
+
+def test_pro_mode_enables_native_thinking_and_high_effort() -> None:
+    model = _model("local-qwen", "llamacpp")
+    model.supports_thinking = True
+    config = RuntimeConfigStub([model])
+    resolver = LeadAgentRuntimeResolver(
+        app_config_getter=lambda: config,
+        agent_config_loader=lambda _name: None,
+    )
+
+    options = resolver.resolve(
+        {"configurable": {"model_name": "local-qwen", "mode": "pro"}}
+    )
+
+    assert options.thinking_enabled is True
+    assert options.reasoning_effort == "high"
+
+
+def test_resume_always_keeps_tools_attached() -> None:
+    config = RuntimeConfigStub([_model("local-qwen", "llamacpp")])
+    resolver = LeadAgentRuntimeResolver(
+        app_config_getter=lambda: config,
+        agent_config_loader=lambda _name: None,
+    )
+
+    options = resolver.resolve(
+        {
+            "configurable": {
+                "model_name": "local-qwen",
+                "mode": "flash",
+                "dialogue_text": "继续",
+                "dialogue_route": "direct_answer",
+                "continue_trigger": "continue",
+            }
+        }
+    )
+
+    assert options.dialogue_route == "tool_action"
+    assert options.dialogue_needs_tools is True

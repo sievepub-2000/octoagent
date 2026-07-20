@@ -21,15 +21,18 @@ http {
     }
 
     upstream gateway {
-        server gateway:${OCTO_GATEWAY_PORT};
+        zone gateway 64k;
+        server gateway:${OCTO_GATEWAY_PORT} resolve;
     }
 
     upstream langgraph {
-        server langgraph:${OCTO_LANGGRAPH_PORT};
+        zone langgraph 64k;
+        server langgraph:${OCTO_LANGGRAPH_PORT} resolve;
     }
 
     upstream frontend {
-        server frontend:${OCTO_FRONTEND_PORT};
+        zone frontend 64k;
+        server frontend:${OCTO_FRONTEND_PORT} resolve;
     }
 
     server {

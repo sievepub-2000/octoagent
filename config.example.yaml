@@ -193,10 +193,10 @@ tools:
   #   # Used to limit the scope of search results, only returns content within the specified time range. Set to -1 to disable time filtering
   #   search_time_range: 10
 
-  # Web fetch tool (uses Jina AI reader)
+  # Web fetch tool (direct HTTP with layered Scrapling/RSS fallbacks)
   - name: web_fetch
     group: web
-    use: src.community.jina_ai.tools:web_fetch_tool
+    use: src.community.ddg.tools:web_fetch_tool
     timeout: 10
 
   # Web fetch tool (uses InfoQuest AI reader)
@@ -531,7 +531,7 @@ memory:
 # system_guard:
 #   enabled: true
 #   auto_repair: true
-#   invoke_default_agent_on_issue: true
+#   invoke_default_agent_on_issue: false
 #   startup_agent_timeout_seconds: 20
 #   vector_store_path: system_guard_vectors.duckdb
 #   namespace: system_lifecycle

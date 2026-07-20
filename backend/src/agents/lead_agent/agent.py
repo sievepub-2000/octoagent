@@ -5,34 +5,24 @@ from langchain_core.runnables import RunnableConfig
 
 from src.agents.middlewares.title_middleware import TitleMiddleware
 from src.agents.middlewares.todo_middleware import TodoMiddleware
-from src.agents.middlewares.tool_budget_middleware import ToolBudgetMiddleware
+from src.agents.middlewares.tool_budget_middleware import ToolExecutionGuardMiddleware
 from src.agents.middlewares.uploads_middleware import UploadsMiddleware
 from src.agents.middlewares.view_image_middleware import ViewImageMiddleware
 from src.agents.thread_state import ThreadState
-from src.harness import (
-    HookDispatchMiddleware,
-    install_default_hooks,
-    maybe_build_budget_middleware,
-)
+from src.harness import maybe_build_budget_middleware
 from src.models import create_chat_model
 from src.runtime.config.app_config import get_app_config
 from src.runtime.config.paths import resolve_configured_default_model_name
 from src.tools.sandbox.middleware import SandboxMiddleware
 
 from ..middlewares.clarification_middleware import ClarificationMiddleware
-from ..middlewares.client_command_middleware import ClientCommandMiddleware
 from ..middlewares.continuation_middleware import ContinuationMiddleware
 from ..middlewares.conversation_integrity_middleware import ConversationIntegrityMiddleware
 from ..middlewares.dangerous_tool_confirmation_middleware import DangerousToolConfirmationMiddleware
 from ..middlewares.dangling_tool_call_middleware import DanglingToolCallMiddleware
-from ..middlewares.execution_middleware import ExecutionMiddleware
-from ..middlewares.goal_middleware import GoalMiddleware
-from ..middlewares.instruction_contract_middleware import InstructionContractMiddleware
-from ..middlewares.lesson_injection_middleware import LessonInjectionMiddleware
 from ..middlewares.memory_middleware import MemoryMiddleware
 from ..middlewares.runtime_state_middleware import RuntimeStateMiddleware
 from ..middlewares.session_compaction_middleware import SessionCompactionMiddleware
-from ..middlewares.skill_evolution_middleware import SkillEvolutionMiddleware
 from ..middlewares.state_middleware import StateMiddleware
 from ..middlewares.subagent_limit_middleware import SubagentLimitMiddleware
 from .builder import LeadAgentBuilder
@@ -214,10 +204,7 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     _SKIP_FOR_FAST = {
         SessionCompactionMiddleware,
         MemoryMiddleware,
-        SkillEvolutionMiddleware,
-        LessonInjectionMiddleware,
-        ToolBudgetMiddleware,
-        GoalMiddleware,
+        ToolExecutionGuardMiddleware,
         TitleMiddleware,
     }
 
@@ -225,8 +212,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
         StateMiddleware(project_root_path=runtime_config_value(config, "project_root_path")),
         UploadsMiddleware(),
         ContinuationMiddleware(),
-        ClientCommandMiddleware(),
-        ExecutionMiddleware(),
         SandboxMiddleware(),
         DanglingToolCallMiddleware(),
     ]
@@ -238,7 +223,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
         middlewares.append(todo_list_middleware)
 
     # Add TitleMiddleware
-    middlewares.append(GoalMiddleware())
     middlewares.append(TitleMiddleware())
     # Add MemoryMiddleware (after TitleMiddleware)
     middlewares.append(MemoryMiddleware(agent_name=agent_name))
@@ -248,28 +232,28 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     app_config = get_app_config()
     model_config = app_config.get_model_config(model_name) if model_name else None
     fallback_models = model_config.fallback_models if model_config is not None else []
-    middlewares.append(RuntimeStateMiddleware(model_name=model_name, fallback_models=fallback_models))
-    middlewares.append(InstructionContractMiddleware())
+    middlewares.append(
+        RuntimeStateMiddleware(
+            model_name=model_name,
+            fallback_models=fallback_models,
+            thinking_enabled=runtime_config_value(config, "thinking_enabled"),
+            reasoning_effort=runtime_config_value(config, "reasoning_effort"),
+        )
+    )
     if model_config is not None and model_config.supports_vision:
         middlewares.append(ViewImageMiddleware())
 
-    # Phase-2 harness: ProgressStall / StepReflection are now registered as
-    # AFTER_MODEL hooks via install_default_hooks(); we only keep the single
-    # HookDispatchMiddleware in the agent build, plus the budget guard.
-    install_default_hooks()
+    # Resource budgets remain an execution seam. Model-output rewriting hooks
+    # are intentionally not attached here: the model owns planning, reflection,
+    # and tool selection; safety is enforced where actions actually execute.
     _budget_mw = maybe_build_budget_middleware()
     if _budget_mw is not None:
         middlewares.append(_budget_mw)
-    middlewares.append(HookDispatchMiddleware())
     middlewares.append(DangerousToolConfirmationMiddleware())
-    middlewares.append(ToolBudgetMiddleware())
+    middlewares.append(ToolExecutionGuardMiddleware())
 
     # Add SubagentLimitMiddleware to truncate excess parallel task calls
     subagent_enabled = runtime_config_value(config, "subagent_enabled", False)
-    # Goal drift detection and lesson injection should be active for ALL tasks,
-    # not just subagent mode — they improve task accuracy universally.
-    middlewares.append(LessonInjectionMiddleware())  # sprint-1 P0: inject top-K lessons into system prompt
-
     if subagent_enabled:
         max_concurrent_subagents = runtime_config_value(
             config,
@@ -277,15 +261,7 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
             3,
         )
         middlewares.append(SubagentLimitMiddleware(max_concurrent=max_concurrent_subagents))
-        # CriticMiddleware migrated to harness hook (see install_default_hooks);
-        # we keep the conditional branch so the hook is *only* effective when
-        # subagents are enabled — matches pre-migration semantics.
-        from src.harness import get_hook_registry as _ghk
-
-        # If critic hook absent (e.g. subagent path is the only place it runs),
-        # ensure the bridge is set up.
-        if _ghk().event_count(__import__("src.harness", fromlist=["HookEvent"]).HookEvent.ON_CRITIC_CHECK) == 0:
-            install_default_hooks()
+        # Concurrency is bounded at the execution seam by SubagentLimitMiddleware.
 
     # SessionCompactionMiddleware — compress long context before LLM call (claw-code)
     middlewares.append(
@@ -295,16 +271,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
     )
 
     # SkillEvolutionMiddleware — record execution traces and trigger evolution
-    try:
-        from src.runtime.config.paths import Paths
-
-        paths = Paths()
-        data_dir = paths.base_dir / "skill_evolution"
-        skills_root = paths.base_dir / "skills"
-        middlewares.append(SkillEvolutionMiddleware(data_dir=data_dir, skills_root=skills_root))
-    except Exception:
-        logger.warning("SkillEvolutionMiddleware not loaded", exc_info=True)
-
     # ConversationIntegrityMiddleware - collapse degenerate repeated output
     middlewares.append(ConversationIntegrityMiddleware())
 

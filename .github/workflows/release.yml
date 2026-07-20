@@ -48,28 +48,19 @@ jobs:
           set -euo pipefail
           TAG_VERSION="${GITHUB_REF_NAME#v}"
 
-          # Read backend version (format: YYYY.M.D, e.g. 2026.6.6)
+          # Read the canonical compact release version (YYYYMMDD).
           BACKEND_VERSION="$(python -c \"from pathlib import Path; import tomllib; print(tomllib.loads(Path('backend/pyproject.toml').read_text(encoding='utf-8'))['project']['version'])\")"
 
-          # Read frontend version (format: YYYYMMDD.n, e.g. 20260606.1)
+          # The frontend must ship with the same release version.
           FRONTEND_VERSION="$(node -p \"require('./frontend/package.json').version\")"
 
-          # Normalize both to a common date string YYYYMMDD for comparison.
-          # Backend 'YYYY.M.D' -> first 3 numeric segments as YYYYMMDD
-          BACKEND_DATE="$(echo "$BACKEND_VERSION" | python -c "import sys; parts=sys.stdin.read().strip().split('.'); print(f'{int(parts[0]):04d}{int(parts[1]):02d}{int(parts[2]):02d}')")"
-
-          # Frontend 'YYYYMMDD.n' -> take the date portion (before first dot)
-          FRONTEND_DATE="$(echo "$FRONTEND_VERSION" | cut -d. -f1)"
-
           echo "Tag version:     $TAG_VERSION"
-          echo "Backend version: $BACKEND_VERSION (date: $BACKEND_DATE)"
-          echo "Frontend version:$FRONTEND_VERSION (date: $FRONTEND_DATE)"
+          echo "Backend version: $BACKEND_VERSION"
+          echo "Frontend version:$FRONTEND_VERSION"
 
-          # Tag must match backend version exactly (backend is the canonical source)
+          [[ "$BACKEND_VERSION" =~ ^[0-9]{8}$ ]] || { echo "ERROR: Backend version must use YYYYMMDD"; exit 1; }
           [[ "$TAG_VERSION" == "$BACKEND_VERSION" ]] || { echo "ERROR: Tag $TAG_VERSION does not match backend version $BACKEND_VERSION"; exit 1; }
-
-          # Frontend date portion must equal backend date portion
-          [[ "$FRONTEND_DATE" == "$BACKEND_DATE" ]] || { echo "ERROR: Frontend date $FRONTEND_DATE does not match backend date $BACKEND_DATE"; exit 1; }
+          [[ "$FRONTEND_VERSION" == "$BACKEND_VERSION" ]] || { echo "ERROR: Frontend version $FRONTEND_VERSION does not match backend version $BACKEND_VERSION"; exit 1; }
 
           echo "Version check passed."
 

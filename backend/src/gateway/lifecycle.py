@@ -96,14 +96,12 @@ async def _start_channel_service() -> None:
 
 
 def _register_reflection_hooks() -> None:
-    try:
-        from src.harness.hook_middleware import install_default_hooks
-        from src.harness.reflection.skill_evolution_bridge import register_reflection_hooks
+    """Legacy compatibility no-op.
 
-        install_default_hooks()
-        register_reflection_hooks()
-    except Exception:
-        logger.exception("Failed to register reflection→skill_evolution hooks")
+    Planning, reflection, and recovery are model-owned in the lead graph. The
+    gateway must not globally install hooks that inject additional model turns.
+    """
+    return None
 
 
 def _start_memory_cleanup_scheduler() -> None:
