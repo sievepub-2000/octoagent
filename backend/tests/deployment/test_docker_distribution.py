@@ -15,6 +15,7 @@ def test_compose_packages_every_required_runtime_module() -> None:
 
     assert "COPY backend ./backend" in dockerfile
     assert "COPY skills ./skills" in dockerfile
+    assert "COPY tools/hooks ./tools/hooks" in dockerfile
     assert "COPY runtime/catalogs ./runtime/catalogs" in dockerfile
     assert "runtime/tools/mcp/package-lock.json" in dockerfile
     assert "USER octoagent" in dockerfile
@@ -77,6 +78,18 @@ def test_all_supported_platform_installers_are_shipped() -> None:
     assert "New-HexSecret" in powershell_installer
     assert "runtime/config/config.yaml" in shell_installer
     assert 'runtime/config/config.yaml' in powershell_installer
+    assert 'ensure_env_csv_value "NO_PROXY" "system-executor"' in shell_installer
+    assert 'ensure_env_csv_value "no_proxy" "system-executor"' in shell_installer
+    assert 'Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "system-executor"' in powershell_installer
+    assert 'Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "system-executor"' in powershell_installer
+
+
+def test_runtime_uses_consolidated_tools_hook_root() -> None:
+    service = (ROOT / "backend" / "src" / "harness" / "hook_core" / "service.py").read_text(encoding="utf-8")
+
+    assert 'cls._repo_root() / "tools" / "hooks"' in service
+    assert 'cls._repo_root() / ".github" / "hooks"' not in service
+    assert 'line.startswith("description:")' in service
 
 
 def test_frontend_image_uses_repository_toolchain_as_non_root() -> None:

@@ -1025,12 +1025,12 @@ export const ko: Translations = {
     approval: "승인",
     approvalDescription:
       "기본 승인 흐름. 시스템 수준 도구는 숨겨지고 민감한 작업은 확인이 필요합니다.",
-    directory: "디렉터리",
+    directory: "컨테이너 권한",
     directoryDescription:
-      "저장소/작업 디렉터리 내 작업을 허용. 호스트/시스템 도구는 노출되지 않습니다.",
-    system: "시스템",
+      "컨테이너 내부의 읽기, 쓰기, 실행 및 네트워크 액세스를 허용하며 호스트 시스템 도구는 허용하지 않습니다.",
+    system: "시스템 권한",
     systemDescription:
-      "시스템 수준의 host/shell/network/process 도구를 허용. 모든 명령은 감사됩니다.",
+      "컨테이너 권한에 호스트 수준 shell/network/process 도구를 추가하며 모든 명령은 감사됩니다.",
     label: "권한 모드",
     conversationContext: "대화 컨텍스트",
   },

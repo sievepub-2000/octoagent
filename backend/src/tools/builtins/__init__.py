@@ -1,5 +1,6 @@
 from ..capability_tools import (
     get_plugin_command_tool,
+    inspect_octoagent_runtime_tool,
     list_capabilities_tool,
     load_skill_tool,
 )
@@ -42,6 +43,7 @@ __all__ = [
     "SYSTEM_EXTRA_TOOLS",
     "SOFTWARE_INTERFACE_TOOLS",
     "list_capabilities_tool",
+    "inspect_octoagent_runtime_tool",
     "load_skill_tool",
     "get_plugin_command_tool",
     "search_memory_tool",

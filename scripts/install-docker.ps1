@@ -28,6 +28,20 @@ function Get-EnvValue([string]$Key) {
     return $null
 }
 
+function Ensure-EnvCsvValue([string]$Text, [string]$Key, [string]$Value) {
+    # Preserve existing operator settings while migrating internal routing
+    # exclusions added by newer OctoAgent releases.
+    $pattern = "(?m)^$([regex]::Escape($Key))=([^\r\n]*)$"
+    $match = [regex]::Match($Text, $pattern)
+    if ($match.Success) {
+        $values = @($match.Groups[1].Value.Split(',') | ForEach-Object { $_.Trim() } | Where-Object { $_ })
+        if ($values -contains $Value) { return $Text }
+        $updated = (($values + $Value) -join ',')
+        return [regex]::Replace($Text, $pattern, "$Key=$updated")
+    }
+    return $Text.TrimEnd("`r", "`n") + "`n$Key=$Value`n"
+}
+
 function Get-BuildPlatform {
     $configured = Get-EnvValue "OCTOAGENT_BUILD_PLATFORM"
     if ($configured) { return $configured }
@@ -126,6 +140,24 @@ if (-not (Test-Path "runtime/config/extensions_config.json")) {
 }
 if (-not (Test-Path .env.docker)) { Copy-Item .env.docker.example .env.docker }
 $envText = Get-Content .env.docker -Raw
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "localhost"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "127.0.0.1"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "::1"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "gateway"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "langgraph"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "system-executor"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "postgres"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "redis"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "host.docker.internal"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "localhost"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "127.0.0.1"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "::1"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "gateway"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "langgraph"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "system-executor"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "postgres"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "redis"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "host.docker.internal"
 if ($envText.Contains("replace-with-a-long-random-secret")) {
     $envText = $envText.Replace("replace-with-a-long-random-secret", (New-Secret))
 }

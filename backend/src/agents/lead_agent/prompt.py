@@ -183,7 +183,11 @@ def get_capability_guide_prompt_section() -> str:
     return f"""<capability_system>
 A runtime capability guide is available at {guide_path}. Consult it or call
 `list_capabilities` when you need to discover a capability that is not already
-visible. Tool permission scopes are enforced by the server at execution time.
+visible. For an OctoAgent self-check, call `inspect_octoagent_runtime` and use
+its authoritative service, model, and Tools Hub sources. Do not substitute raw
+environment dumps, filesystem listings, process scans, or guessed API routes
+for these two tools. Tool permission scopes are enforced by the server at
+execution time.
 
 </capability_system>"""
 

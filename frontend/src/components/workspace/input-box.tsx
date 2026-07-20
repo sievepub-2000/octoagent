@@ -11,7 +11,6 @@ import {
   MicOffIcon,
   PaperclipIcon,
   ShieldCheckIcon,
-  ShieldQuestionIcon,
   ShieldIcon,
   RocketIcon,
   UserIcon,
@@ -88,19 +87,13 @@ type PermissionModeOption = {
   value: PermissionMode;
   label: string;
   detail: string;
-  icon: typeof ShieldQuestionIcon;
+  icon: typeof ShieldCheckIcon;
 };
 
 function getPermissionModeOptions(
   t: ReturnType<typeof useI18n>["t"],
 ): PermissionModeOption[] {
   return [
-    {
-      value: "approval",
-      label: t.permissionMode.approval,
-      detail: t.permissionMode.approvalDescription,
-      icon: ShieldQuestionIcon,
-    },
     {
       value: "directory",
       label: t.permissionMode.directory,
@@ -118,8 +111,7 @@ function getPermissionModeOptions(
 
 function normalizePermissionMode(value: unknown): PermissionMode {
   if (value === "system" || value === "yolo") return "system";
-  if (value === "directory" || value === "workspace") return "directory";
-  return "approval";
+  return "directory";
 }
 
 function normalizeLegacyMode(
@@ -542,6 +534,23 @@ export function InputBox({
     },
     [context, localSettings.context, onContextChange, setLocalSettings],
   );
+
+  useEffect(() => {
+    // Approval is retained only as a backend compatibility value. The chat
+    // selector represents the two real execution boundaries and migrates old
+    // thread/local state to container scope before the next submission.
+    if (context.permission_mode === "directory" || context.permission_mode === "system") {
+      return;
+    }
+    onContextChange?.({
+      ...context,
+      permission_mode: "directory",
+    });
+    setLocalSettings("context", {
+      ...localSettings.context,
+      permission_mode: "directory",
+    });
+  }, [context, localSettings.context, onContextChange, setLocalSettings]);
 
   useEffect(() => {
     if (status !== "ready" || !queuedMessage) {

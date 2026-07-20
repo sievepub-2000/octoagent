@@ -1036,12 +1036,12 @@ export const ja: Translations = {
     approval: "承認",
     approvalDescription:
       "既定の承認フロー。システムレベルのツールは非表示で、機密操作には事前確認が必要です。",
-    directory: "ディレクトリ",
+    directory: "コンテナ権限",
     directoryDescription:
-      "リポジトリ/タスク・ディレクトリ内の操作を許可。ホスト/システムツールは公開されません。",
-    system: "システム",
+      "コンテナ内の読み書き、実行、ネットワークアクセスを許可。ホストのシステムツールは許可されません。",
+    system: "システム権限",
     systemDescription:
-      "システムレベルの host/shell/network/process ツールを許可。すべてのコマンドは監査可能です。",
+      "コンテナ権限に加えて、ホストレベルの shell/network/process ツールを許可。すべてのコマンドは監査可能です。",
     label: "権限モード",
     conversationContext: "対話コンテキスト",
   },

@@ -24,9 +24,9 @@ This hook provides detailed logging of Copilot coding agent activity:
 
 ## Installation
 
-1. Copy this hook folder to your repository's `.github/hooks/` directory:
+1. Keep or copy this hook folder under the repository's `tools/hooks/` directory:
    ```bash
-   cp -r hooks/session-logger .github/hooks/
+   cp -r hooks/session-logger tools/hooks/
    ```
 
 2. Create the logs directory:
@@ -36,7 +36,7 @@ This hook provides detailed logging of Copilot coding agent activity:
 
 3. Ensure scripts are executable:
    ```bash
-   chmod +x .github/hooks/session-logger/*.sh
+   chmod +x tools/hooks/session-logger/*.sh
    ```
 
 4. Commit the hook configuration to your repository's default branch

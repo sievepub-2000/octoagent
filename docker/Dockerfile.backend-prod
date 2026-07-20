@@ -99,6 +99,7 @@ RUN --mount=type=cache,target=/root/.npm \
 
 COPY backend ./backend
 COPY skills ./skills
+COPY tools/hooks ./tools/hooks
 COPY runtime/catalogs ./runtime/catalogs
 COPY --from=docker-cli /usr/local/libexec/docker/cli-plugins /usr/local/libexec/docker/cli-plugins
 
@@ -106,8 +107,7 @@ RUN mkdir -p /app/logs /app/tmp /app/runtime/cache /app/runtime/logs \
     /app/runtime/system_tools /app/workspace/env /app/workspace/default \
     && groupadd --gid "$OCTOAGENT_GID" octoagent \
     && useradd --uid "$OCTOAGENT_UID" --gid "$OCTOAGENT_GID" --home-dir /tmp --no-create-home octoagent \
-    && mkdir -p /app/runtime/tools/npm-cache \
-    && chown -R "$OCTOAGENT_UID:$OCTOAGENT_GID" /app/runtime/tools/npm-cache
+    && install -d -o "$OCTOAGENT_UID" -g "$OCTOAGENT_GID" /app/runtime/tools/npm-cache
 
 WORKDIR /app
 USER octoagent

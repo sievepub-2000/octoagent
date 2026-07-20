@@ -1,3 +1,30 @@
+## [20260720.1.0] - 2026-07-20
+
+### Authoritative self-inspection and permission switching
+
+- Replaced the chat-bar approval/directory selector with two real execution
+  boundaries: container permission and host system permission. Legacy approval
+  state migrates to container permission, while the existing server-side tool
+  policy continues to enforce which tools can bind and execute.
+- Added always-visible, low-overhead `inspect_octoagent_runtime` and
+  `list_capabilities` tools. Self-checks now use sanitized live service probes,
+  configured model metadata, and the same registry sources as Tools Hub instead
+  of shell environment dumps, directory counts, or guessed LangGraph routes.
+- Repaired the stale Hooks registry root (`tools/hooks/` is now authoritative),
+  packaged Hook assets in the production backend image, and corrected bundled
+  Hook command paths.
+- Migrated existing Docker `.env.docker` files so every internal service,
+  including `system-executor`, is present in both `NO_PROXY` variants. Internal
+  health and executor requests explicitly bypass outbound proxies.
+- Passed the configured outbound proxy into the executor's short-lived host
+  helper and added host-gateway resolution, so container and system permission
+  modes both have real Internet access.
+- Added regression coverage for core-tool visibility, sanitized runtime
+  inspection, Tools Hub inventory alignment, Docker installer migration,
+  consolidated Hook discovery, and the two-option permission selector.
+- Renamed the 64-item managed capability activation subset in Runtime Doctor
+  so it cannot be mistaken for the 173-item full Tools Hub inventory.
+
 ## [20260720] - 2026-07-20
 
 ### Model-owned agent reasoning

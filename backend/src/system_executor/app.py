@@ -4,6 +4,7 @@ import asyncio
 import hmac
 import os
 import shlex
+import socket
 import subprocess
 import time
 from typing import Annotated
@@ -51,14 +52,20 @@ def _execute_on_host(request: ExecuteRequest) -> dict[str, object]:
         "--pid=host",
         "--network=host",
         "--user=0",
+        "--add-host=host.docker.internal:host-gateway",
         "--volume=/:/host:rw",
-        backend_image,
-        "chroot",
-        "/host",
-        "/bin/bash",
-        "-lc",
-        host_script,
     ]
+    for key in ("HTTP_PROXY", "HTTPS_PROXY", "NO_PROXY", "http_proxy", "https_proxy", "no_proxy"):
+        value = os.environ.get(key, "").strip()
+        if key.lower() in {"http_proxy", "https_proxy"} and "host.docker.internal" in value:
+            try:
+                host_gateway = socket.gethostbyname("host.docker.internal")
+                value = value.replace("host.docker.internal", host_gateway)
+            except OSError:
+                pass
+        if value:
+            command.extend(["--env", f"{key}={value}"])
+    command.extend([backend_image, "chroot", "/host", "/bin/bash", "-lc", host_script])
     started = time.monotonic()
     result = subprocess.run(
         command,

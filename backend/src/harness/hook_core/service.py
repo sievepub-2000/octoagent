@@ -401,7 +401,7 @@ class HookCoreService:
 
     @classmethod
     def _hooks_root(cls) -> Path:
-        return cls._repo_root() / ".github" / "hooks"
+        return cls._repo_root() / "tools" / "hooks"
 
     @staticmethod
     def _extract_description(hook_dir: Path) -> str:
@@ -409,8 +409,14 @@ class HookCoreService:
         if not readme_path.exists():
             return ""
         lines = [line.strip() for line in readme_path.read_text(encoding="utf-8").splitlines()]
+        if lines and lines[0] == "---":
+            for line in lines[1:]:
+                if line == "---":
+                    break
+                if line.startswith("description:"):
+                    return line.split(":", 1)[1].strip().strip("'\"")
         for line in lines:
-            if line and not line.startswith("#"):
+            if line and line != "---" and not line.startswith(("#", "name:", "description:", "tags:")):
                 return line
         return ""
 

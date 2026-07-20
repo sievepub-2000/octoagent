@@ -85,6 +85,27 @@ env_value() {
     grep -E "^${key}=" .env.docker | tail -1 | cut -d= -f2-
 }
 
+ensure_env_csv_value() {
+    # Existing installations keep their .env.docker. Migrate comma-separated
+    # routing lists in place so newly added internal services never traverse a
+    # host HTTP proxy.
+    local key="$1" value="$2" current updated
+    current="$(env_value "$key")"
+    case ",$current," in
+        *",$value,"*) return ;;
+    esac
+    updated="${current:+$current,}$value"
+    if grep -q "^${key}=" .env.docker; then
+        if sed --version >/dev/null 2>&1; then
+            sed -i "s#^${key}=.*#${key}=${updated}#" .env.docker
+        else
+            sed -i '' "s#^${key}=.*#${key}=${updated}#" .env.docker
+        fi
+    else
+        printf '\n%s=%s\n' "$key" "$updated" >> .env.docker
+    fi
+}
+
 build_platform() {
     local configured arch
     configured="$(env_value OCTOAGENT_BUILD_PLATFORM)"
@@ -195,6 +216,24 @@ prepare_files() {
         fi
     fi
     [ -f .env.docker ] || cp .env.docker.example .env.docker
+    ensure_env_csv_value "NO_PROXY" "localhost"
+    ensure_env_csv_value "NO_PROXY" "127.0.0.1"
+    ensure_env_csv_value "NO_PROXY" "::1"
+    ensure_env_csv_value "NO_PROXY" "gateway"
+    ensure_env_csv_value "NO_PROXY" "langgraph"
+    ensure_env_csv_value "NO_PROXY" "system-executor"
+    ensure_env_csv_value "NO_PROXY" "postgres"
+    ensure_env_csv_value "NO_PROXY" "redis"
+    ensure_env_csv_value "NO_PROXY" "host.docker.internal"
+    ensure_env_csv_value "no_proxy" "localhost"
+    ensure_env_csv_value "no_proxy" "127.0.0.1"
+    ensure_env_csv_value "no_proxy" "::1"
+    ensure_env_csv_value "no_proxy" "gateway"
+    ensure_env_csv_value "no_proxy" "langgraph"
+    ensure_env_csv_value "no_proxy" "system-executor"
+    ensure_env_csv_value "no_proxy" "postgres"
+    ensure_env_csv_value "no_proxy" "redis"
+    ensure_env_csv_value "no_proxy" "host.docker.internal"
     if grep -q 'replace-with-a-long-random-secret' .env.docker; then
         secret="$(random_secret)"
         if sed --version >/dev/null 2>&1; then

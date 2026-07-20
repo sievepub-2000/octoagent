@@ -39,12 +39,12 @@ This hook provides governance controls for Copilot coding agent sessions:
 
 1. Copy the hook folder to your repository:
    ```bash
-   cp -r hooks/governance-audit .github/hooks/
+   cp -r hooks/governance-audit tools/hooks/
    ```
 
 2. Ensure scripts are executable:
    ```bash
-   chmod +x .github/hooks/governance-audit/*.sh
+   chmod +x tools/hooks/governance-audit/*.sh
    ```
 
 3. Create the logs directory and add to `.gitignore`:

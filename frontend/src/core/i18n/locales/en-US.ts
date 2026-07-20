@@ -1044,12 +1044,12 @@ This signs out the upstream account when supported and keeps the reusable interf
     approval: "Approval",
     approvalDescription:
       "Default approval flow; system-level tools are hidden and sensitive actions require confirmation.",
-    directory: "Directory",
+    directory: "Container permission",
     directoryDescription:
-      "Allow operations within the repository/task directory; host/system tools remain hidden.",
-    system: "System",
+      "Allow read, write, execution, and network access inside the container; host system tools remain unavailable.",
+    system: "System permission",
     systemDescription:
-      "Allow system-level host/shell/network/process tools; every command is auditable.",
+      "Add host-level shell, network, and process tools on top of container access; every command is auditable.",
     label: "Permission mode",
     conversationContext: "Conversation context",
   },

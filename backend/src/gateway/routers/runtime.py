@@ -442,16 +442,16 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
         checks.append(
             RuntimeDoctorCheck(
                 id="capability-registry",
-                title="Capability registry",
+                title="Managed capability activation registry",
                 status="ok" if registry_total > 0 else "fail",
-                detail=f"items={registry_total}, kinds={by_kind}",
+                detail=f"managed_items={registry_total}, kinds={by_kind}; this is the activation subset, not the full Tools Hub inventory",
                 recommendation=None if registry_total > 0 else "Capability registry returned no items; check skills/plugins/MCP/channel loading.",
             )
         )
         checks.append(
             RuntimeDoctorCheck(
                 id="capability-binding-contract",
-                title="Capability binding contract",
+                title="Managed capability binding contract",
                 status="ok" if contract_total == registry_total and contract_total > 0 else "fail",
                 detail=f"contract_items={contract_total}, registry_items={registry_total}",
                 recommendation=None if contract_total == registry_total and contract_total > 0 else "Binding contract should cover every registry item.",
@@ -461,7 +461,7 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
         checks.append(
             RuntimeDoctorCheck(
                 id="capability-registry",
-                title="Capability registry",
+                title="Managed capability activation registry",
                 status="fail",
                 detail=str(exc),
                 recommendation="Inspect CapabilityCore registry construction and extension config loading.",

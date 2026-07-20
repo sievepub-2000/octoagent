@@ -981,11 +981,11 @@ export const zhTW: Translations = {
   permissionMode: {
     approval: "審批",
     approvalDescription: "預設審批；隱藏系統級工具，敏感操作先請求確認。",
-    directory: "目錄",
-    directoryDescription: "允許倉庫/任務目錄內操作；不暴露 host/system 工具。",
-    system: "系統",
+    directory: "容器權限",
+    directoryDescription: "允許容器內讀寫、執行和連網；不授權宿主機系統工具。",
+    system: "系統權限",
     systemDescription:
-      "允許系統級 host/shell/network/process 工具，所有命令可追蹤。",
+      "在容器權限之上授權宿主機 host/shell/network/process 工具，所有命令可追蹤。",
     label: "權限模式",
     conversationContext: "對話上下文",
   },

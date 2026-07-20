@@ -96,10 +96,18 @@ services:
     environment:
       OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env}
       OCTOAGENT_BACKEND_IMAGE: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      http_proxy: ${HTTP_PROXY:-}
+      https_proxy: ${HTTPS_PROXY:-}
+      no_proxy: ${NO_PROXY:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     expose:
       - "19808"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:19808/health', timeout=5)\""]
       interval: 10s

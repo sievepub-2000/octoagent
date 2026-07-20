@@ -1,12 +1,14 @@
 """Tool catalog — narrow-waist design.
 
-Only 5 core tools are loaded into every system prompt by default:
+Seven core tools are loaded into every tool-capable system prompt by default:
 
     1. task_tool          - Task management / subagent delegation
     2. ask_clarification  - Ask the user for clarification
     3. present_file       - Present file contents to the user
     4. setup_agent        - Agent configuration / role setup
     5. read_webpage       - Web content reading
+    6. list_capabilities  - Authoritative Tools Hub discovery
+    7. inspect_octoagent_runtime - Sanitized deployment self-check
 
 All other tools are registered in ``LAZY_LOAD_REGISTRY`` and loaded on
 demand via :func:`tool_loader.load_tools_for_intent` when the agent's
@@ -47,6 +49,8 @@ from src.tools.builtins import (
     process_image_tool,
     read_webpage_tool,
     setup_agent,
+    inspect_octoagent_runtime_tool,
+    list_capabilities_tool,
     task_tool,
     view_image_tool,
 )
@@ -66,7 +70,7 @@ def _configured_tool_names(tools: Iterable[BaseTool]) -> set[str]:
 
 
 # ---------------------------------------------------------------------------
-# Narrow-waist core: exactly 5 tools always loaded
+# Narrow-waist core: action primitives plus two authoritative discovery tools
 # ---------------------------------------------------------------------------
 
 BUILTIN_TOOLS_CORE: list[BaseTool] = [
@@ -75,6 +79,8 @@ BUILTIN_TOOLS_CORE: list[BaseTool] = [
     present_file_tool,
     setup_agent,
     read_webpage_tool,
+    list_capabilities_tool,
+    inspect_octoagent_runtime_tool,
 ]
 
 

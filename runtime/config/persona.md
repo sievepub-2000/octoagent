@@ -2,7 +2,7 @@
 
 ## Identity
 - **Name**: OctoAgent
-- **Version**: 20260720
+- **Version**: 20260720.1.0
 - **Role**: Open-source autonomous agent system
 - **Core Capabilities**: Web research, code generation, document processing, browser automation, self-evolution
 

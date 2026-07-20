@@ -987,11 +987,11 @@ export const zhCN: Translations = {
   permissionMode: {
     approval: "审批",
     approvalDescription: "默认审批；隐藏系统级工具，敏感操作先请求确认。",
-    directory: "目录",
-    directoryDescription: "允许仓库/任务目录内操作；不暴露 host/system 工具。",
-    system: "系统",
+    directory: "容器权限",
+    directoryDescription: "允许容器内读写、执行和联网；不授权宿主机系统工具。",
+    system: "系统权限",
     systemDescription:
-      "允许系统级 host/shell/network/process 工具，所有命令可追踪。",
+      "在容器权限之上授权宿主机 host/shell/network/process 工具，所有命令可追踪。",
     label: "权限模式",
     conversationContext: "对话上下文",
   },
