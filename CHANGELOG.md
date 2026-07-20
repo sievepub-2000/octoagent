@@ -19,6 +19,9 @@
 - Passed the configured outbound proxy into the executor's short-lived host
   helper and added host-gateway resolution, so container and system permission
   modes both have real Internet access.
+- Made installer readiness probes honor externally overridden ingress ports,
+  preventing an isolated install from mistaking another live instance for its
+  own health endpoint.
 - Added regression coverage for core-tool visibility, sanitized runtime
   inspection, Tools Hub inventory alignment, Docker installer migration,
   consolidated Hook discovery, and the two-option permission selector.

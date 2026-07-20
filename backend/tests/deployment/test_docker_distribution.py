@@ -82,6 +82,8 @@ def test_all_supported_platform_installers_are_shipped() -> None:
     assert 'ensure_env_csv_value "no_proxy" "system-executor"' in shell_installer
     assert 'Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "system-executor"' in powershell_installer
     assert 'Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "system-executor"' in powershell_installer
+    assert 'port="${OCTO_NGINX_PORT:-}"' in shell_installer
+    assert 'if ($env:OCTO_NGINX_PORT)' in powershell_installer
 
 
 def test_runtime_uses_consolidated_tools_hook_root() -> None:

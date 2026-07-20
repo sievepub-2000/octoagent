@@ -348,7 +348,10 @@ if [ "$START_AFTER" = "1" ]; then
     else
         compose up -d --remove-orphans
     fi
-    port="$(grep -E '^OCTO_NGINX_PORT=' .env.docker | tail -1 | cut -d= -f2 | tr -d '\r')"
+    port="${OCTO_NGINX_PORT:-}"
+    if [ -z "$port" ]; then
+        port="$(grep -E '^OCTO_NGINX_PORT=' .env.docker | tail -1 | cut -d= -f2 | tr -d '\r')"
+    fi
     port="${port:-19800}"
     wait_for_http "http://127.0.0.1:${port}/health"
     echo "OctoAgent Docker is ready: http://127.0.0.1:${port}"

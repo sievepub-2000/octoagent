@@ -194,7 +194,7 @@ if (-not $NoStart) {
         Invoke-Compose @("up", "-d", "--build", "--remove-orphans")
     }
     $portLine = (Get-Content .env.docker | Where-Object { $_ -match '^OCTO_NGINX_PORT=' } | Select-Object -Last 1)
-    $port = if ($portLine) { ($portLine -split '=', 2)[1].Trim() } else { "19800" }
+    $port = if ($env:OCTO_NGINX_PORT) { $env:OCTO_NGINX_PORT } elseif ($portLine) { ($portLine -split '=', 2)[1].Trim() } else { "19800" }
     $deadline = (Get-Date).AddSeconds($WaitSeconds)
     do {
         try {
