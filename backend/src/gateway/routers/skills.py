@@ -19,7 +19,7 @@ from src.storage.skills.agent_templates import (
     install_agency_agents_skill_from_archive,
 )
 from src.storage.skills.loader import get_skills_root_path, invalidate_skills_cache
-from src.utils.agent_tool_guide import async_refresh_agent_tool_guide
+from src.utils.agent_tool_guide import async_refresh_agent_tool_guide, generate_agent_tool_guide
 from src.utils.json_atomic import write_json_atomic
 
 logger = logging.getLogger(__name__)
@@ -267,7 +267,7 @@ async def get_skill(skill_name: str) -> SkillResponse:
     summary="Update Skill",
     description="Update a skill's enabled status by modifying the extensions_config.json file.",
 )
-async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillResponse:
+def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillResponse:
     """Update a skill's enabled status.
 
     This will modify the extensions_config.json file to update the enabled state.
@@ -389,13 +389,13 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillRes
         invalidate_skills_cache()
 
         # Reload the skills to get the updated status (for API response)
-        skills = await asyncio.to_thread(load_skills, None, True, False)
+        skills = load_skills(None, True, False)
         updated_skill = next((s for s in skills if s.name == skill_name), None)
 
         if updated_skill is None:
             raise HTTPException(status_code=500, detail=f"Failed to reload skill '{skill_name}' after update")
 
-        await async_refresh_agent_tool_guide()
+        generate_agent_tool_guide()
         logger.info("Skill '%s' updated", skill_name)
         return _skill_to_response(updated_skill)
 
@@ -412,7 +412,7 @@ async def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillRes
     summary="Create a custom skill",
     description="Create a new custom skill with name and description.",
 )
-async def create_skill(request: SkillCreateRequest) -> SkillResponse:
+def create_skill(request: SkillCreateRequest) -> SkillResponse:
     """Create a custom skill by generating a SKILL.md in the custom skills directory."""
     import re as _re
 
@@ -448,12 +448,12 @@ async def create_skill(request: SkillCreateRequest) -> SkillResponse:
 
     # Reload and return
     invalidate_skills_cache()
-    skills = await asyncio.to_thread(load_skills)
+    skills = load_skills()
     skill = next((s for s in skills if s.name == name), None)
     if not skill:
         raise HTTPException(status_code=500, detail=f"Failed to load newly created skill '{name}'")
 
-    await async_refresh_agent_tool_guide()
+    generate_agent_tool_guide()
     logger.info(f"Skill '{name}' created successfully")
     return _skill_to_response(skill)
 
@@ -464,7 +464,7 @@ async def create_skill(request: SkillCreateRequest) -> SkillResponse:
     summary="Install Skill",
     description="Install a skill from a .skill file (ZIP archive) located in the thread's user-data directory.",
 )
-async def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
+def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
     """Install a skill from a .skill file.
 
     The .skill file is a ZIP archive containing a skill directory with SKILL.md
@@ -589,8 +589,8 @@ async def install_skill(request: SkillInstallRequest) -> SkillInstallResponse:
 
         logger.info(f"Skill '{skill_name}' installed successfully to {target_dir}")
         invalidate_skills_cache()
-        await asyncio.to_thread(load_skills)
-        await async_refresh_agent_tool_guide()
+        load_skills()
+        generate_agent_tool_guide()
         return SkillInstallResponse(success=True, skill_name=skill_name, message=f"Skill '{skill_name}' installed successfully")
 
     except HTTPException:
@@ -610,7 +610,7 @@ async def install_agency_agents() -> AgencyAgentsInstallResponse:
     try:
         skills_root = get_skills_root_path()
         custom_skills_dir = skills_root / "custom"
-        custom_skills_dir.mkdir(parents=True, exist_ok=True)
+        await asyncio.to_thread(custom_skills_dir.mkdir, parents=True, exist_ok=True)
 
         async with httpx.AsyncClient(timeout=90.0, follow_redirects=True) as client:
             response = await client.get(AGENCY_AGENTS_DOWNLOAD_URL)
@@ -660,10 +660,10 @@ class SkillDeleteResponse(BaseModel):
     summary="Delete a custom skill",
     description="Remove a custom skill from the system. Only custom skills can be deleted.",
 )
-async def delete_skill(skill_name: str) -> SkillDeleteResponse:
+def delete_skill(skill_name: str) -> SkillDeleteResponse:
     """Delete a custom skill by name."""
     invalidate_skills_cache()
-    skills = await asyncio.to_thread(load_skills)
+    skills = load_skills()
     skill = next((s for s in skills if s.name == skill_name), None)
     if not skill:
         raise HTTPException(status_code=404, detail=f"Skill '{skill_name}' not found")
@@ -681,8 +681,8 @@ async def delete_skill(skill_name: str) -> SkillDeleteResponse:
     try:
         shutil.rmtree(target_dir)
         invalidate_skills_cache()
-        await asyncio.to_thread(load_skills)
-        await async_refresh_agent_tool_guide()
+        load_skills()
+        generate_agent_tool_guide()
         logger.info(f"Skill '{skill_name}' deleted successfully")
         return SkillDeleteResponse(success=True, skill_name=skill_name, message=f"Skill '{skill_name}' deleted successfully")
     except Exception as e:
