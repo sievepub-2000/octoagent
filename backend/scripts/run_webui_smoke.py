@@ -8,7 +8,6 @@ import os
 import re
 import shutil
 import sys
-import uuid
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -57,19 +56,14 @@ def _browser_launch_options(playwright) -> dict[str, object]:
 class SmokeResult:
     backend_ok: bool = False
     frontend_ok: bool = False
-    embedded_model_name: str | None = None
     models_api_count: int = 0
-    embedded_backup_present: bool = False
-    bootstrap_installed: bool = False
     chat_input_ready: bool = False
     chat_message_sent: bool = False
     multi_turn_message_sent: bool = False
     continuation_route_opened: bool = False
-    workflow_task_created: bool = False
-    task_workspace_cleaned: bool = False
     settings_opened: bool = False
-    bootstrap_section_opened: bool = False
-    guide_generated: bool = False
+    models_section_opened: bool = False
+    projects_page_opened: bool = False
     notes: list[str] = field(default_factory=list)
 
 
@@ -290,28 +284,12 @@ def main() -> None:
     route_transition_timeout_ms = max(int(args.timeout_seconds * 1500), 15000)
 
     with httpx.Client(timeout=args.timeout_seconds, trust_env=False) as client:
-        _note("checking bootstrap status")
-        status = client.get(f"{args.gateway_url}/api/bootstrap/status")
-        status.raise_for_status()
-        bootstrap = status.json()
-        result.backend_ok = True
-        result.bootstrap_installed = bool(bootstrap.get("installed"))
-        result.embedded_model_name = bootstrap.get("recommended_model")
-
         _note("checking models api")
         models = client.get(f"{args.gateway_url}/api/models")
         models.raise_for_status()
         models_payload = models.json().get("models", [])
+        result.backend_ok = True
         result.models_api_count = len(models_payload)
-        result.embedded_backup_present = any(bool(model.get("is_embedded_backup")) for model in models_payload)
-
-        _note("creating task workspace")
-        task_workspace = client.post(
-            f"{args.gateway_url}/api/task-workspaces",
-            json={"name": f"Smoke Task {uuid.uuid4().hex[:8]}", "mode": "single"},
-        )
-        task_workspace.raise_for_status()
-        task_workspace_id = task_workspace.json()["task_id"]
 
     with sync_playwright() as playwright:
         _note("launching browser")
@@ -538,11 +516,11 @@ def main() -> None:
         result.settings_opened = True
 
         _note("opening models settings section")
-        bootstrap_settings_url = f"{args.frontend_url}/workspace/chats/{current_thread_id}?settings=models"
-        if page.url != bootstrap_settings_url:
+        models_settings_url = f"{args.frontend_url}/workspace/chats/{current_thread_id}?settings=models"
+        if page.url != models_settings_url:
             _goto_with_recovery(
                 page,
-                bootstrap_settings_url,
+                models_settings_url,
                 wait_until="domcontentloaded",
             )
         page.wait_for_timeout(1000)
@@ -577,59 +555,15 @@ def main() -> None:
             ],
             timeout=10000,
         )
-        result.bootstrap_section_opened = True
-        try:
-            _wait_for_any_text(
-                page,
-                [
-                    "Recommended embedded runtime",
-                    "推荐的内嵌运行时",
-                    "Model status",
-                    "模型状态",
-                ],
-                timeout=10000,
-            )
-        except PlaywrightTimeoutError:
-            result.notes.append("bootstrap_hint_text_not_found")
-        try:
-            expected_model_label = result.embedded_model_name or str(bootstrap.get("recommended_model") or "")
-            page.get_by_text(expected_model_label, exact=False).first.wait_for(timeout=10000)
-        except PlaywrightTimeoutError:
-            result.notes.append("bootstrap_model_label_not_found")
-
-        guide_button = page.get_by_role("button", name="Generate guide")
-        try:
-            guide_button.wait_for(timeout=1500)
-        except PlaywrightTimeoutError:
-            result.guide_generated = True
-        else:
-            try:
-                _note("generating bootstrap guide")
-                guide_button.click()
-                page.get_by_text("Install the embedded model", exact=False).wait_for(
-                    state="detached",
-                    timeout=20000,
-                )
-                result.guide_generated = True
-            except PlaywrightTimeoutError:
-                result.notes.append("bootstrap_guide_generation_not_observed")
+        result.models_section_opened = True
 
         page.keyboard.press("Escape")
         _note("opening projects page")
         page.goto(f"{args.frontend_url}/workspace/projects", wait_until="domcontentloaded")
         page.wait_for_url(re.compile(r".*/workspace/projects(?:\?.*)?$"), timeout=10000)
-        result.workflow_task_created = True
+        result.projects_page_opened = True
 
         browser.close()
-
-    with httpx.Client(timeout=args.timeout_seconds, trust_env=False) as client:
-        try:
-            cleanup = client.delete(f"{args.gateway_url}/api/task-workspaces/{task_workspace_id}")
-            result.task_workspace_cleaned = cleanup.status_code in {200, 204, 404}
-            if not result.task_workspace_cleaned:
-                result.notes.append(f"task_workspace_cleanup_status={cleanup.status_code}")
-        except Exception as exc:
-            result.notes.append(f"task_workspace_cleanup_failed={exc}")
 
     print(json.dumps(asdict(result), ensure_ascii=False, indent=2))
 

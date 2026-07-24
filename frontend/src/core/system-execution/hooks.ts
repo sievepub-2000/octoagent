@@ -5,7 +5,6 @@ import {
   executeSystemCliCommand,
   executeWorkspaceCliCommand,
   loadRuntimeDoctor,
-  loadRuntimeProviderHealth,
   loadSystemExecutionConfig,
   loadSystemExecutionPermissionPolicy,
   loadSystemExecutionAudit,
@@ -189,19 +188,4 @@ export function useRuntimeDoctor({
   });
 
   return { doctor: data, isLoading, error, refetch };
-}
-
-export function useRuntimeProviderHealth({
-  enabled = true,
-}: {
-  enabled?: boolean;
-} = {}) {
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ["runtime-provider-health"],
-    queryFn: loadRuntimeProviderHealth,
-    enabled,
-    refetchOnWindowFocus: false,
-  });
-
-  return { providerHealth: data, isLoading, error, refetch };
 }

@@ -284,7 +284,6 @@ class HookCoreService:
         agent_id: str,
         *,
         query_session_id: str | None = None,
-        runtime_provider: str | None = None,
         status: str = "running",
     ) -> int:
         return self.dispatch(
@@ -293,7 +292,6 @@ class HookCoreService:
                 "task_id": task_id,
                 "agent_id": agent_id,
                 "query_session_id": query_session_id,
-                "runtime_provider": runtime_provider,
                 "status": status,
             },
         )

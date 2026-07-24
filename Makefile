@@ -224,7 +224,9 @@ smoke-system-execution-security:
 	@cd backend && .venv/bin/python scripts/run_system_execution_security_smoke.py
 
 smoke-operator-module-closure:
-	@cd backend && .venv/bin/python scripts/run_operator_module_closure_smoke.py
+	@backend/.venv/bin/python scripts/verify-module-lifecycles.py \
+		--base-url $(SMOKE_GATEWAY_URL) \
+		--env-file .env.docker
 
 release-precheck:
 	@cd backend && .venv/bin/python scripts/run_release_precheck.py \

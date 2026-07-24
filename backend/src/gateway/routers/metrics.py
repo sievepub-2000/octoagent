@@ -92,10 +92,7 @@ async def metrics_governance() -> MetricsGovernanceResponse:
         "octoagent_requests_total",
         "octoagent_task_completed_total",
         "octoagent_task_failed_total",
-        "octoagent_active_workspaces",
-        "octoagent_active_agents",
-        "octoagent_skill_evolutions_total",
-        "octoagent_reflection_observations_total",
+        "octoagent_request_duration_seconds",
     ]
     return MetricsGovernanceResponse(
         metric_count=len(snapshots),

@@ -17,8 +17,9 @@ Python, Node.js, pnpm, nginx, PostgreSQL, and Redis are not required.
 
 The `app-server` is the single model-facing backend. Harness dynamically scans
 and dispatches built-in tools, MCP servers, skills, plugins, hooks, container
-execution, host execution, and browser adapters. Redis and the former separate
-Gateway/LangGraph/Tools Hub services are not part of the current topology.
+execution, host execution, and browser adapters. FastAPI control endpoints and
+LangGraph share this process; Redis and separate Gateway, LangGraph, and Tools
+Hub services are not part of the current topology.
 
 ## Prerequisites
 
@@ -69,9 +70,8 @@ http://127.0.0.1:19800/health
 | LangGraph local runtime index | `runtime/langgraph/` | `/app/backend/.langgraph_api` |
 
 Markdown is the durable human-readable memory source. Harness indexes it into
-PostgreSQL pgvector during initialization and after writes. Existing legacy
-JSON/DuckDB memory is imported idempotently; it is not queried as a competing
-live source.
+PostgreSQL pgvector during initialization and after writes. Legacy JSON and
+DuckDB stores are not live sources and are not scanned during startup.
 
 ## Daily Operations
 

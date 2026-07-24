@@ -9,8 +9,8 @@ from typing import Any
 
 from langchain.chat_models import BaseChatModel
 from langchain_core.language_models.chat_models import BaseChatModel as CoreBaseChatModel
-from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
-from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
+from langchain_core.messages import BaseMessage
+from langchain_core.outputs import ChatGenerationChunk, ChatResult
 from langchain_core.runnables import Runnable
 from pydantic import ConfigDict, Field
 
@@ -31,7 +31,6 @@ from src.models.runtime_telemetry import (
 )
 from src.models.semantics import ModelSemanticTranslator
 from src.runtime.config import get_app_config, get_tracing_config, is_tracing_enabled
-from src.runtime.config.embedded_model_config import get_embedded_model_config
 from src.runtime.context_budget import (
     SYSTEM_SESSION_CONTINUE_PROMPT,
     estimate_message_tokens,
@@ -58,7 +57,6 @@ def _model_cooldown_file() -> Path:
 
 
 _MODEL_COOLDOWN_FILE = _model_cooldown_file()
-EMBEDDED_BACKUP_MODEL_NAME = "__embedded_bootstrap__"
 _semantic_translator = ModelSemanticTranslator()
 _FALLBACKABLE_STATUS_CODES = {400, 404, 408, 429, 500, 502, 503, 504}
 
@@ -289,13 +287,12 @@ def resolve_effective_fallback_model_names(
     selection_profile: str = "default",
     requires_vision: bool = False,
     min_context_tokens: int | None = None,
-    include_embedded_backup: bool = True,
 ) -> list[str]:
     """Return explicit and runtime-inferred fallback names for a model."""
     config = get_app_config()
     model_config = config.get_model_config(model_name)
     if model_config is None:
-        return [EMBEDDED_BACKUP_MODEL_NAME] if include_embedded_backup and _embedded_backup_enabled() else []
+        return []
     effective = [
         *model_config.fallback_models,
         *_implicit_fallback_model_names(
@@ -306,8 +303,6 @@ def resolve_effective_fallback_model_names(
             min_context_tokens=min_context_tokens,
         ),
     ]
-    if include_embedded_backup and _embedded_backup_enabled():
-        effective.append(EMBEDDED_BACKUP_MODEL_NAME)
     return [name for name in dict.fromkeys(effective) if name != model_name]
 
 
@@ -806,94 +801,12 @@ class FallbackChatModel(CoreBaseChatModel):
             return {}
         bound = model.bind_tools(self.bound_tools_list, **self.bound_tools_kwargs)
         if bound is model:
-            # Model returned itself (e.g. EmbeddedBootstrapChatModel) — no tool kwargs.
+            # Some providers bind tools in-place and return the same model.
             return {}
         if hasattr(bound, "bound_invocation_kwargs"):
             return dict(bound.bound_invocation_kwargs())
         # RunnableBinding.kwargs contains {"tools": [...], "tool_choice": ...}
         return dict(getattr(bound, "kwargs", {}))
-
-
-class EmbeddedBootstrapChatModel(CoreBaseChatModel):
-    """Emergency fallback model backed by the embedded bootstrap runtime."""
-
-    emergency_reason: str = "primary model unavailable"
-
-    @property
-    def _llm_type(self) -> str:
-        return "embedded-bootstrap-chat-model"
-
-    def _generate(
-        self,
-        messages: list[BaseMessage],
-        stop: list[str] | None = None,
-        run_manager=None,
-        **kwargs: Any,
-    ) -> ChatResult:
-        del stop, run_manager, kwargs
-        from src.runtime.bootstrap.runtime import get_embedded_bootstrap_runtime
-
-        result = get_embedded_bootstrap_runtime().emergency_chat(
-            messages,
-            emergency_reason=self.emergency_reason,
-        )
-        set_active_model(EMBEDDED_BACKUP_MODEL_NAME)
-        return ChatResult(generations=[ChatGeneration(message=AIMessage(content=result["message"]))])
-
-    async def _agenerate(
-        self,
-        messages: list[BaseMessage],
-        stop: list[str] | None = None,
-        run_manager=None,
-        **kwargs: Any,
-    ) -> ChatResult:
-        return self._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
-
-    def _stream(
-        self,
-        messages: list[BaseMessage],
-        stop: list[str] | None = None,
-        run_manager=None,
-        **kwargs: Any,
-    ) -> Iterator[ChatGenerationChunk]:
-        result = self._generate(messages, stop=stop, run_manager=run_manager, **kwargs)
-        text = result.generations[0].message.content
-        yield ChatGenerationChunk(message=AIMessageChunk(content=str(text)))
-
-    async def _astream(
-        self,
-        messages: list[BaseMessage],
-        stop: list[str] | None = None,
-        run_manager=None,
-        **kwargs: Any,
-    ) -> AsyncIterator[ChatGenerationChunk]:
-        for chunk in self._stream(messages, stop=stop, run_manager=run_manager, **kwargs):
-            yield chunk
-
-    def bind_tools(
-        self,
-        tools,
-        *,
-        tool_choice: str | None = None,
-        **kwargs: Any,
-    ) -> Runnable:
-        del tools, tool_choice, kwargs
-        # The embedded emergency model is text-only. Returning self keeps agent
-        # execution alive in fallback mode instead of raising NotImplementedError.
-        return self
-
-
-def is_embedded_backup_model_name(name: str | None) -> bool:
-    return name == EMBEDDED_BACKUP_MODEL_NAME
-
-
-def embedded_backup_enabled() -> bool:
-    config = get_embedded_model_config()
-    return config.enabled
-
-
-def _embedded_backup_enabled() -> bool:
-    return embedded_backup_enabled()
 
 
 def _create_chat_model(
@@ -924,26 +837,10 @@ def _create_chat_model(
         )
         if selected_name is not None:
             name = selected_name
-        elif _embedded_backup_enabled():
-            return EmbeddedBootstrapChatModel(
-                emergency_reason="no primary model is configured",
-            )
         else:
             raise ValueError("No chat models are configured.") from None
-    if is_embedded_backup_model_name(name):
-        return EmbeddedBootstrapChatModel(
-            emergency_reason="the primary model is unavailable or not configured",
-        )
     model_config = config.get_model_config(name)
     if model_config is None:
-        if _embedded_backup_enabled():
-            logger.warning(
-                "Model '%s' not found in config; falling back to embedded bootstrap model.",
-                name,
-            )
-            return EmbeddedBootstrapChatModel(
-                emergency_reason=f"model '{name}' is not configured",
-            )
         raise ValueError(f"Model {name} not found in config") from None
     if not _supports_required_capabilities(
         model_config,
@@ -961,14 +858,11 @@ def _create_chat_model(
             selection_profile=selection_profile,
             requires_vision=requires_vision,
             min_context_tokens=min_context_tokens,
-            include_embedded_backup=False,
         )
         if enable_fallback
         else model_config.fallback_models
     )
     candidate_names = list(dict.fromkeys([name, *effective_fallbacks]))
-    if enable_fallback and _embedded_backup_enabled():
-        candidate_names.append(EMBEDDED_BACKUP_MODEL_NAME)
     if enable_fallback and len(candidate_names) > 1:
         return FallbackChatModel(
             primary_model_name=name,

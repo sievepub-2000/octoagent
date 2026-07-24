@@ -7,8 +7,6 @@ from typing import TypedDict
 from langchain_core.runnables import RunnableConfig
 from pydantic import ConfigDict
 
-from src.models import is_embedded_backup_model_name
-
 from ..dialogue_routing import FAST_ROUTES
 from .runtime import LeadAgentRuntimeOptions
 
@@ -37,7 +35,6 @@ class LeadAgentBuilder:
         apply_prompt_template_fn: Callable[..., str],
         state_schema,
         setup_agent_tool,
-        embedded_backup_prompt_fn: Callable[[str | None], str],
     ):
         self._create_agent_fn = create_agent_fn
         self._create_chat_model_fn = create_chat_model_fn
@@ -46,7 +43,6 @@ class LeadAgentBuilder:
         self._apply_prompt_template_fn = apply_prompt_template_fn
         self._state_schema = state_schema
         self._setup_agent_tool = setup_agent_tool
-        self._embedded_backup_prompt_fn = embedded_backup_prompt_fn
 
     def build(self, config: RunnableConfig, options: LeadAgentRuntimeOptions):
         project_prompt = f"\n{options.project_prompt}" if options.project_prompt else ""
@@ -60,24 +56,6 @@ class LeadAgentBuilder:
             options.subagent_enabled,
             options.max_concurrent_subagents,
         )
-
-        if is_embedded_backup_model_name(options.model_name):
-            return self._create_agent_fn(
-                model=self._create_chat_model_fn(
-                    name=options.model_name,
-                    thinking_enabled=False,
-                ),
-                tools=[],
-                middleware=self._build_middlewares_fn(
-                    config,
-                    model_name=options.model_name,
-                    agent_name=options.agent_name,
-                    dialogue_route=options.dialogue_route,
-                ),
-                system_prompt=self._embedded_backup_prompt_fn(options.conversation_language) + project_prompt,
-                state_schema=self._state_schema,
-                context_schema=LeadAgentContext,
-            )
 
         if options.is_bootstrap:
             return self._create_agent_fn(

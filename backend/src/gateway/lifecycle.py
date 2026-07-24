@@ -12,7 +12,6 @@ from fastapi import FastAPI
 from src.gateway.config import get_gateway_config
 from src.governance.about import initialize_internal_secrets
 from src.harness.dispatcher import start_dispatcher_task, stop_dispatcher_task
-from src.runtime.architecture import get_service_bus
 from src.runtime.config.app_config import get_app_config
 from src.runtime.system_guard.service import get_system_guard_service
 
@@ -40,16 +39,6 @@ def _repair_runtime_permissions(app: FastAPI) -> None:
         logger.exception("Runtime permission repair failed")
 
 
-def _initialize_runtime_config(app: FastAPI) -> None:
-    try:
-        from src.runtime.config.effective import initialize_runtime_config, rag_config_path
-
-        app.state.rag_config = initialize_runtime_config()
-        logger.info("Runtime configuration loaded from %s", rag_config_path())
-    except Exception:
-        logger.exception("Runtime configuration initialization failed")
-
-
 def _initialize_system_guard(app: FastAPI) -> None:
     try:
         system_guard = get_system_guard_service()
@@ -57,15 +46,6 @@ def _initialize_system_guard(app: FastAPI) -> None:
         logger.info("System guard startup report: %s", system_guard.startup_check_and_repair())
     except Exception:
         logger.exception("System guard startup check failed")
-
-
-def _initialize_service_bus(app: FastAPI, config) -> None:
-    bus = get_service_bus()
-    bus.register("system_guard", getattr(app.state, "system_guard", None))
-    bus.register("app_config", get_app_config())
-    bus.register("gateway_config", config)
-    app.state.service_bus = bus
-    logger.info("Service bus initialized: %s", bus.registered)
 
 
 async def _start_channel_service() -> None:
@@ -130,11 +110,9 @@ def _shutdown_system_guard(app: FastAPI) -> None:
 
 @asynccontextmanager
 async def gateway_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
-    config = _initialize_configuration()
+    _initialize_configuration()
     _repair_runtime_permissions(app)
-    _initialize_runtime_config(app)
     _initialize_system_guard(app)
-    _initialize_service_bus(app, config)
     await _start_channel_service()
     await _initialize_harness(app)
     _start_oom_guard(app)

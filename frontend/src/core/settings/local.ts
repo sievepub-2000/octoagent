@@ -12,9 +12,6 @@ export const DEFAULT_LOCAL_SETTINGS: LocalSettings = {
   notification: {
     enabled: true,
   },
-  bootstrap: {
-    onboarding_enabled: true,
-  },
   context: {
     model_name: undefined,
     agent_name: undefined,
@@ -44,9 +41,6 @@ export interface LocalSettings {
   };
   notification: {
     enabled: boolean;
-  };
-  bootstrap: {
-    onboarding_enabled: boolean;
   };
   context: Omit<
     AgentThreadContext,
@@ -92,10 +86,6 @@ export function getLocalSettings(): LocalSettings {
         notification: {
           ...DEFAULT_LOCAL_SETTINGS.notification,
           ...settings.notification,
-        },
-        bootstrap: {
-          ...DEFAULT_LOCAL_SETTINGS.bootstrap,
-          ...settings.bootstrap,
         },
         setup: {
           ...DEFAULT_LOCAL_SETTINGS.setup,

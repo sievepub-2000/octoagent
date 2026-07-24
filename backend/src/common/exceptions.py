@@ -46,7 +46,7 @@ class ResourceExhaustedError(OctoAgentError):
     pass
 
 
-def safe_execute(
+def safe_execute[T](
     func: Callable[..., T],
     *args: Any,
     default: T | None = None,

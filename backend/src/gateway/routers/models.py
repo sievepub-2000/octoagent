@@ -10,12 +10,10 @@ import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.models.factory import EMBEDDED_BACKUP_MODEL_NAME
 from src.models.interfaces import normalize_interface_type, resolve_model_interface_profile
 from src.models.provider_adapter import resolve_provider_adapter_profile
 from src.runtime.config import get_app_config
 from src.runtime.config.app_config import AppConfig, reload_app_config
-from src.runtime.config.embedded_model_config import get_embedded_model_config
 from src.runtime.config.paths import get_setup_state_file
 
 router = APIRouter(prefix="/api", tags=["models"])
@@ -64,10 +62,6 @@ class ModelResponse(BaseModel):
     max_context_tokens: int | None = Field(
         default=None,
         description="Declared maximum context window, if configured.",
-    )
-    is_embedded_backup: bool = Field(
-        default=False,
-        description="Whether this model is the built-in embedded emergency backup.",
     )
     is_default: bool = Field(default=False, description="Whether this is the default model")
 
@@ -377,7 +371,6 @@ def _serialize_model(model, *, default_model_name: str | None = None) -> ModelRe
         supports_vision=model.supports_vision,
         fallback_models=model.fallback_models,
         max_context_tokens=model.max_context_tokens,
-        is_embedded_backup=False,
         is_default=model.name == default_model_name,
     )
 
@@ -514,31 +507,6 @@ async def list_models() -> ModelsListResponse:
 
     default_model_name = resolve_configured_default_model_name(model.name for model in config.models)
     models = [_serialize_model(model, default_model_name=default_model_name) for model in config.models]
-    embedded_config = get_embedded_model_config()
-    if embedded_config.enabled:
-        models.append(
-            ModelResponse(
-                name=EMBEDDED_BACKUP_MODEL_NAME,
-                display_name="Embedded Bootstrap Backup",
-                description="Built-in tiny local emergency fallback model for dialogue continuity and reconfiguration guidance.",
-                resolved_use_path=None,
-                resolved_provider_family="generic",
-                adapter_type="generic",
-                adapter_request_contract="generic.invoke",
-                adapter_response_contract="generic.invoke",
-                adapter_streaming_contract="generic.stream",
-                adapter_auth_mode="provider_native",
-                proxy_compatible=False,
-                semantic_format="generic",
-                thinking_semantics="none",
-                supports_thinking=False,
-                supports_reasoning_effort=False,
-                supports_vision=False,
-                fallback_models=[],
-                max_context_tokens=embedded_config.n_ctx,
-                is_embedded_backup=True,
-            )
-        )
     return ModelsListResponse(models=models)
 
 
@@ -572,29 +540,6 @@ async def get_model(model_name: str) -> ModelResponse:
     """
     config = get_app_config()
     model = config.get_model_config(model_name)
-    if model_name == EMBEDDED_BACKUP_MODEL_NAME and get_embedded_model_config().enabled:
-        embedded_config = get_embedded_model_config()
-        return ModelResponse(
-            name=EMBEDDED_BACKUP_MODEL_NAME,
-            display_name="Embedded Bootstrap Backup",
-            description="Built-in tiny local emergency fallback model for dialogue continuity and reconfiguration guidance.",
-            resolved_use_path=None,
-            resolved_provider_family="generic",
-            adapter_type="generic",
-            adapter_request_contract="generic.invoke",
-            adapter_response_contract="generic.invoke",
-            adapter_streaming_contract="generic.stream",
-            adapter_auth_mode="provider_native",
-            proxy_compatible=False,
-            semantic_format="generic",
-            thinking_semantics="none",
-            supports_thinking=False,
-            supports_reasoning_effort=False,
-            supports_vision=False,
-            fallback_models=[],
-            max_context_tokens=embedded_config.n_ctx,
-            is_embedded_backup=True,
-        )
     if model is None:
         raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
 
@@ -608,8 +553,6 @@ async def get_model(model_name: str) -> ModelResponse:
     description="Set an existing configured model as the system default.",
 )
 async def set_default_model(model_name: str) -> ModelResponse:
-    if model_name == EMBEDDED_BACKUP_MODEL_NAME:
-        raise HTTPException(status_code=400, detail="Embedded backup model cannot be the configured default")
     return _set_default_model_in_config(model_name)
 
 
@@ -671,8 +614,6 @@ async def update_model(model_name: str, request: ModelUpdateRequest) -> ModelRes
     description="Delete a configured AI model from config.yaml and reload application config.",
 )
 async def delete_model(model_name: str) -> DeleteModelResponse:
-    if model_name == EMBEDDED_BACKUP_MODEL_NAME:
-        raise HTTPException(status_code=400, detail="Embedded backup model cannot be deleted")
     deleted = _delete_model_from_config(model_name)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")

@@ -7,7 +7,6 @@ from typing import Any
 from langchain_core.runnables import RunnableConfig
 
 from src.agents.dialogue_routing import FAST_ROUTES, ROUTE_CONTROL_COMMAND, ROUTE_PLAN_ONLY, classify_dialogue_route
-from src.models import is_embedded_backup_model_name
 from src.runtime.config.agents_config import load_agent_config
 from src.runtime.config.app_config import get_app_config
 from src.runtime.config.ml_intern_defaults import build_ml_intern_runtime_context, resolve_ml_intern_profile_name
@@ -74,17 +73,6 @@ class LeadAgentRuntimeOptions:
     project_prompt: str
 
 
-def embedded_backup_system_prompt(conversation_language: str | None = None) -> str:
-    language_hint = f"Reply in {conversation_language}." if conversation_language else "Reply in the user's language."
-    return (
-        "You are OctoAgent's embedded emergency fallback assistant. "
-        "A primary model is not configured or is unavailable, so you must keep helping with a compact, plain-text response. "
-        f"{language_hint} "
-        "Do not call tools. Do not claim that you completed actions you could not actually perform. "
-        "If the request depends on unavailable tools or remote models, say so briefly and provide the most useful next step."
-    )
-
-
 def resolve_model_name(
     requested_model_name: str | None = None,
     *,
@@ -93,8 +81,7 @@ def resolve_model_name(
     app_config = app_config_getter()
     default_model_name = resolve_configured_default_model_name(model.name for model in app_config.models)
     if default_model_name is None:
-        logger.warning("No configured chat model found; embedded bootstrap model will be used as emergency default.")
-        return "__embedded_bootstrap__"
+        raise ValueError("No chat model is configured")
 
     if requested_model_name and app_config.get_model_config(requested_model_name):
         return requested_model_name
@@ -274,7 +261,7 @@ class LeadAgentRuntimeResolver:
         app_config = self._app_config_getter()
         model_config = app_config.get_model_config(model_name) if model_name else None
 
-        if model_config is None and not is_embedded_backup_model_name(model_name):
+        if model_config is None:
             raise ValueError("No chat model could be resolved. Please configure at least one model in config.yaml or provide a valid 'model_name'/'model' in the request.")
         if model_config is not None and thinking_enabled and not model_config.supports_thinking:
             logger.warning(

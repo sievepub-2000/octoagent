@@ -176,13 +176,21 @@ def collect_runtime_governance_snapshot(
 ) -> dict[str, Any]:
     paths = get_paths()
     disk = shutil.disk_usage(paths.base_dir)
-    checkpoint_snapshot: dict[str, Any]
-    try:
-        from src.agents.runtime.workflow_contract import get_langgraph_workflow_contract_service
+    checkpoint_snapshot: dict[str, Any] = {"backend": "postgres", "checkpoint_count": 0, "thread_count": 0}
+    dsn = os.getenv("OCTOAGENT_CHECKPOINTER_DSN")
+    if dsn:
+        try:
+            import psycopg
 
-        checkpoint_snapshot = get_langgraph_workflow_contract_service().snapshot()
-    except Exception as exc:  # pragma: no cover - diagnostic boundary
-        checkpoint_snapshot = {"error": str(exc)}
+            with psycopg.connect(dsn, connect_timeout=2) as connection, connection.cursor() as cursor:
+                cursor.execute("SELECT count(*), count(DISTINCT thread_id) FROM checkpoints")
+                checkpoint_count, thread_count = cursor.fetchone()
+            checkpoint_snapshot.update(
+                checkpoint_count=int(checkpoint_count),
+                thread_count=int(thread_count),
+            )
+        except Exception as exc:  # pragma: no cover - diagnostic boundary
+            checkpoint_snapshot["error"] = str(exc)
 
     snapshot = {
         "memory": {
@@ -199,7 +207,7 @@ def collect_runtime_governance_snapshot(
             "host_process_count": _process_count(),
         },
         "worker_isolation": get_runtime_worker_isolation().snapshot(),
-        "langgraph_contract": checkpoint_snapshot,
+        "langgraph_state": checkpoint_snapshot,
         "event_loop": {
             "latency_ms": event_loop_latency_ms,
         },
@@ -229,14 +237,13 @@ def evaluate_runtime_alerts(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
         "max_event_loop_latency_ms": _env_float("OCTO_ALERT_MAX_EVENT_LOOP_LATENCY_MS", 100.0),
         "max_queue_depth": _env_float("OCTO_ALERT_MAX_QUEUE_DEPTH", 0.0),
         "max_checkpoint_count": _env_float("OCTO_ALERT_MAX_CHECKPOINT_COUNT", 1000.0),
-        "max_active_runs": _env_float("OCTO_ALERT_MAX_ACTIVE_RUNS", 20.0),
     }
     alerts: list[dict[str, Any]] = []
 
     memory = snapshot.get("memory") if isinstance(snapshot.get("memory"), dict) else {}
     disk = snapshot.get("disk") if isinstance(snapshot.get("disk"), dict) else {}
     worker = snapshot.get("worker_isolation") if isinstance(snapshot.get("worker_isolation"), dict) else {}
-    contract = snapshot.get("langgraph_contract") if isinstance(snapshot.get("langgraph_contract"), dict) else {}
+    langgraph_state = snapshot.get("langgraph_state") if isinstance(snapshot.get("langgraph_state"), dict) else {}
     event_loop = snapshot.get("event_loop") if isinstance(snapshot.get("event_loop"), dict) else {}
 
     def add_alert(code: str, severity: str, message: str, value: Any, threshold: Any) -> None:
@@ -271,13 +278,9 @@ def evaluate_runtime_alerts(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     if isinstance(queue_depth, (int, float)) and queue_depth > thresholds["max_queue_depth"]:
         add_alert("worker.queue_depth", "warning", "Worker queue depth is above steady-state target.", queue_depth, thresholds["max_queue_depth"])
 
-    checkpoint_count = contract.get("checkpoint_count")
+    checkpoint_count = langgraph_state.get("checkpoint_count")
     if isinstance(checkpoint_count, (int, float)) and checkpoint_count > thresholds["max_checkpoint_count"]:
         add_alert("checkpoint.count_high", "warning", "Checkpoint count is above retention target.", checkpoint_count, thresholds["max_checkpoint_count"])
-    active_runs = contract.get("active_runs")
-    if isinstance(active_runs, (int, float)) and active_runs > thresholds["max_active_runs"]:
-        add_alert("langgraph.active_runs_high", "warning", "Active LangGraph runs exceed concurrency target.", active_runs, thresholds["max_active_runs"])
-
     latency_ms = event_loop.get("latency_ms")
     if isinstance(latency_ms, (int, float)) and latency_ms > thresholds["max_event_loop_latency_ms"]:
         add_alert("event_loop.latency_high", "warning", "Event loop latency is above threshold.", latency_ms, thresholds["max_event_loop_latency_ms"])
@@ -286,30 +289,16 @@ def evaluate_runtime_alerts(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 class RuntimeMaintenanceScheduler:
-    """Periodic maintenance for query cache and LangGraph contract retention."""
+    """Periodic cleanup for policy-owned disposable artifacts."""
 
     def __init__(
         self,
         *,
         interval_seconds: int | None = None,
-        max_checkpoints_per_thread: int | None = None,
-        max_runs_per_thread: int | None = None,
     ) -> None:
         self.interval_seconds = max(
             60,
             interval_seconds or _env_int("OCTO_RUNTIME_MAINTENANCE_INTERVAL_SECONDS", 300),
-        )
-        self.max_checkpoints_per_thread = max_checkpoints_per_thread or _env_int(
-            "OCTO_RUNTIME_MAX_CHECKPOINTS_PER_THREAD",
-            10,
-        )
-        self.max_runs_per_thread = max_runs_per_thread or _env_int(
-            "OCTO_RUNTIME_MAX_RUNS_PER_THREAD",
-            50,
-        )
-        self.max_running_run_age_seconds = _env_int(
-            "OCTO_RUNTIME_MAX_RUNNING_RUN_AGE_SECONDS",
-            3600,
         )
         self._task: asyncio.Task[None] | None = None
         self._stop_event: asyncio.Event | None = None
@@ -327,9 +316,6 @@ class RuntimeMaintenanceScheduler:
         return {
             "running": self.running,
             "interval_seconds": self.interval_seconds,
-            "max_checkpoints_per_thread": self.max_checkpoints_per_thread,
-            "max_runs_per_thread": self.max_runs_per_thread,
-            "max_running_run_age_seconds": self.max_running_run_age_seconds,
             "last_run": self._last_run,
         }
 
@@ -361,22 +347,11 @@ class RuntimeMaintenanceScheduler:
                 continue
 
     def run_once(self) -> dict[str, Any]:
-        from src.agents.runtime import get_langgraph_workflow_contract_service
         from src.runtime.artifact_lifecycle import run_artifact_lifecycle
 
-        contract_service = get_langgraph_workflow_contract_service()
-        stale_runs = contract_service.recover_stale_running_runs(
-            max_age_seconds=self.max_running_run_age_seconds,
-        )
-        contract = contract_service.prune(
-            max_checkpoints_per_thread=self.max_checkpoints_per_thread,
-            max_runs_per_thread=self.max_runs_per_thread,
-        )
         artifact_lifecycle = run_artifact_lifecycle()
         self._last_run = {
             "ran_at": datetime.now(UTC).isoformat(),
-            "langgraph_contract": contract,
-            "langgraph_stale_runs": stale_runs,
             "artifact_lifecycle": artifact_lifecycle,
         }
         return self._last_run

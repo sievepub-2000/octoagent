@@ -58,7 +58,7 @@ export function RuntimeHealthSettingsPage() {
 
   async function handleRunMaintenance() {
     try {
-      await runMaintenance.mutateAsync({});
+      await runMaintenance.mutateAsync();
       await refetch();
       await refetchMaintenance();
       toast.success(copy.maintenanceCompleted);
@@ -148,7 +148,7 @@ export function RuntimeHealthSettingsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-2xl font-semibold">
-                {formatNumber(snapshot.langgraph_contract?.checkpoint_count)}
+                {formatNumber(snapshot.langgraph_state?.checkpoint_count)}
               </CardContent>
             </Card>
             <Card variant="compact">
@@ -219,8 +219,6 @@ export function RuntimeHealthSettingsPage() {
             </CardHeader>
             <CardContent className="space-y-2 text-xs text-muted-foreground">
               <p>{copy.interval}: {maintenance?.interval_seconds ?? "-"}s</p>
-              <p>{copy.checkpointCap}: {maintenance?.max_checkpoints_per_thread ?? "-"}</p>
-              <p>{copy.runCap}: {maintenance?.max_runs_per_thread ?? "-"}</p>
               <p className="break-all">{copy.lastRun}: {maintenance?.last_run ? JSON.stringify(maintenance.last_run) : copy.none}</p>
             </CardContent>
           </Card>

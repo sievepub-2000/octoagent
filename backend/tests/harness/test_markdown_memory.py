@@ -23,3 +23,15 @@ def test_markdown_is_durable_when_vector_index_is_pending(tmp_path, monkeypatch)
     extracted = tmp_path / "thread-1" / f"{result['run_id']}.memory.md"
     assert "deployments require real tests" in raw.read_text(encoding="utf-8")
     assert "run lifecycle and permission tests" in extracted.read_text(encoding="utf-8")
+
+
+def test_compaction_keeps_goal_and_outcome_without_keywords() -> None:
+    summary = HarnessMemory._compact(
+        [
+            ("User", "Build a small calendar."),
+            ("Assistant", "The calendar was created and its tests pass."),
+        ]
+    )
+
+    assert "user goal: Build a small calendar." in summary
+    assert "outcome: The calendar was created and its tests pass." in summary

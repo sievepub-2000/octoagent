@@ -1,6 +1,6 @@
 [project]
 name = "octoagent"
-version = "20260721.1.0"
+version = "20260724.1.0"
 description = "LangGraph-based AI agent system with sandbox execution capabilities"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -37,9 +37,6 @@ dependencies = [
     "python-telegram-bot>=21.0",
     "langgraph-sdk>=0.1.51",
     "markdown-to-mrkdwn>=0.3.1",
-    "huggingface_hub>=1.7.1",
-    "llama-cpp-python>=0.3.23",
-    "sentence-transformers>=3.4.0",
     "Pillow>=12.2.0",
     "faster-whisper>=1.0.0",
     "psutil>=7.2.2",
@@ -53,14 +50,12 @@ dependencies = [
     "pyjwt>=2.12.0",
     "requests>=2.33.0",
     "scrapling[fetchers]>=0.4.8",
-    "rank-bm25>=0.2.2",
     "langgraph-checkpoint-postgres>=3.1.0",
     "psycopg[binary]>=3.3.4",
     "psycopg-pool>=3.3.1",
     "slowapi>=0.1.9",
     "patchright>=1.59.1",
     "markdown>=3.10.0",
-    "faiss-cpu>=1.14.2",
     "python-docx>=1.2.0",
     "reportlab>=5.0.0",
 ]

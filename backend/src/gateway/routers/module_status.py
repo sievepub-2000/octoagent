@@ -191,13 +191,6 @@ def _probe_checkpointer() -> dict[str, Any]:
     return info
 
 
-def _probe_lessons_store() -> dict[str, Any]:
-    from src.storage.self_evolution.lessons import LessonsStore
-
-    store = LessonsStore.default()
-    return {"status": "ok", "count": store.count(), "db": str(store.db_path)}
-
-
 def _probe_openrouter_key() -> dict[str, Any]:
     k = os.getenv("OPENROUTER_API_KEY", "")
     if not k:
@@ -245,13 +238,6 @@ def _probe_web_search_keys() -> dict[str, Any]:
     return out
 
 
-def _probe_self_evolution() -> dict[str, Any]:
-    from src.storage.self_evolution import get_self_evolution_engine
-
-    engine = get_self_evolution_engine()
-    return {"status": "ok", "engine_loaded": engine is not None}
-
-
 def _probe_workspace_db() -> dict[str, Any]:
     # Use absolute path relative to repo root (parents[5] from this file:
     # backend/src/gateway/routers/module_status.py -> repo root)
@@ -262,17 +248,13 @@ def _probe_workspace_db() -> dict[str, Any]:
     return {
         "status": "ok",
         "path": str(ws),
-        "lessons_db": (ws / "lessons.db").exists(),
-        "checkpoints_db": (ws / "runtime" / "checkpoints.db").exists(),
     }
 
 
 _PROBES: list[tuple[str, Callable[[], dict[str, Any]]]] = [
     ("checkpointer", _probe_checkpointer),
-    ("lessons_store", _probe_lessons_store),
     ("openrouter_key", _probe_openrouter_key),
     ("web_search_keys", _probe_web_search_keys),
-    ("self_evolution", _probe_self_evolution),
     ("workspace_db", _probe_workspace_db),
 ]
 

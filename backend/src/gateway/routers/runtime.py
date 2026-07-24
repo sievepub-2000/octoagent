@@ -4,15 +4,15 @@ import os
 import shutil
 from datetime import UTC
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from src.agents.core.run_record_store import build_run_record_summary, list_run_records
 from src.agents.subagents.executor import get_subagent_runtime_snapshot
 from src.agents.subagents.policy import is_host_memory_oom_critical
-from src.models.factory import EMBEDDED_BACKUP_MODEL_NAME, embedded_backup_enabled, resolve_effective_fallback_model_names
+from src.models.factory import resolve_effective_fallback_model_names
 from src.runtime.config import get_app_config
 from src.runtime.config.integrations_config import get_integrations_config
 from src.runtime.config.paths import get_setup_state_file, resolve_configured_default_model_name
@@ -64,10 +64,6 @@ class RuntimeModelCapability(BaseModel):
         default_factory=list,
         description="Ordered effective fallback chain including runtime-provided emergency backups.",
     )
-    embedded_backup_available: bool = Field(
-        default=False,
-        description="Whether the built-in embedded emergency backup model is enabled for this model path.",
-    )
     degraded_mode_supported: bool = Field(
         default=False,
         description="Whether this model path can continue in degraded mode through a configured fallback chain.",
@@ -105,8 +101,6 @@ class RuntimeStatus(BaseModel):
 
 class RuntimeCapabilitiesResponse(BaseModel):
     default_model: str | None = None
-    embedded_backup_model: str | None = None
-    embedded_backup_enabled: bool = False
     models: list[RuntimeModelCapability]
     agent_limits: RuntimeAgentLimits
     runtime_status: RuntimeStatus
@@ -166,33 +160,6 @@ class RuntimeRunRecordsResponse(BaseModel):
     summary: dict[str, Any] = Field(default_factory=dict)
 
 
-class LangGraphContractPruneRequest(BaseModel):
-    max_checkpoints_per_thread: int = Field(default=20, ge=1, le=500)
-    max_runs_per_thread: int = Field(default=100, ge=1, le=1000)
-    remote_thread_ids: list[str] = Field(default_factory=list)
-    remote_strategy: str = "delete"
-
-
-class LangGraphContractCopyRequest(BaseModel):
-    source_thread_id: str
-    target_thread_id: str
-    target_task_id: str | None = None
-    remote: bool = False
-
-
-class RuntimeMaintenanceRunRequest(BaseModel):
-    max_checkpoints_per_thread: int | None = Field(default=None, ge=1, le=500)
-    max_runs_per_thread: int | None = Field(default=None, ge=1, le=1000)
-
-
-class LangGraphLifecycleRequest(BaseModel):
-    action: Literal["pause", "resume", "cancel", "replay", "terminate"]
-    run_id: str | None = None
-    actor: str = "operator"
-    reason: str = ""
-    remote: bool = False
-
-
 @router.get(
     "/capabilities",
     response_model=RuntimeCapabilitiesResponse,
@@ -226,8 +193,6 @@ async def get_runtime_capabilities() -> RuntimeCapabilitiesResponse:
 
     return RuntimeCapabilitiesResponse(
         default_model=default_model_name,
-        embedded_backup_model=EMBEDDED_BACKUP_MODEL_NAME if embedded_backup_enabled() else None,
-        embedded_backup_enabled=embedded_backup_enabled(),
         models=[
             RuntimeModelCapability(
                 name=model.name,
@@ -240,8 +205,7 @@ async def get_runtime_capabilities() -> RuntimeCapabilitiesResponse:
                     model.name,
                     thinking_enabled=model.supports_thinking,
                 ),
-                embedded_backup_available=embedded_backup_enabled(),
-                degraded_mode_supported=bool(resolve_effective_fallback_model_names(model.name) or embedded_backup_enabled()),
+                degraded_mode_supported=bool(resolve_effective_fallback_model_names(model.name)),
             )
             for model in app_config.models
         ],
@@ -498,37 +462,6 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
         )
 
     try:
-        from src.agents.runtime import get_agent_runtime_manager
-
-        runtime_manager = get_agent_runtime_manager()
-        provider_health = runtime_manager.provider_health()
-        default_provider = runtime_manager.resolve_provider_name()
-        default_status = provider_health.get(default_provider)
-        if isinstance(default_status, dict):
-            default_available = bool(default_status.get("available"))
-        else:
-            default_available = bool(getattr(default_status, "available", False)) if default_status is not None else False
-        checks.append(
-            RuntimeDoctorCheck(
-                id="runtime-provider",
-                title="Runtime provider",
-                status="ok" if default_available else "warn",
-                detail=f"default={default_provider}, providers={list(provider_health.keys())}",
-                recommendation=None if default_available else "Verify LangGraph SDK/runtime configuration before running workflows.",
-            )
-        )
-    except Exception as exc:
-        checks.append(
-            RuntimeDoctorCheck(
-                id="runtime-provider",
-                title="Runtime provider",
-                status="warn",
-                detail=str(exc),
-                recommendation="Inspect agent runtime provider configuration.",
-            )
-        )
-
-    try:
         pages = os.sysconf("SC_AVPHYS_PAGES")
         page_size = os.sysconf("SC_PAGE_SIZE")
         available_gb = (pages * page_size) / (1024**3)
@@ -550,12 +483,11 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
         governance = await collect_runtime_governance_snapshot_async()
         disk = governance.get("disk", {})
         worker = governance.get("worker_isolation", {})
-        langgraph_contract = governance.get("langgraph_contract", {})
+        langgraph_state = governance.get("langgraph_state", {})
         event_loop = governance.get("event_loop", {})
         disk_free_gb = float(disk.get("free_gb") or 0)
         queue_depth = int(worker.get("total_queued") or 0)
-        checkpoint_count = int(langgraph_contract.get("checkpoint_count") or 0)
-        active_runs = int(langgraph_contract.get("active_runs") or 0)
+        checkpoint_count = int(langgraph_state.get("checkpoint_count") or 0)
         event_loop_latency_ms = float(event_loop.get("latency_ms") or 0)
         checks.append(
             RuntimeDoctorCheck(
@@ -577,10 +509,11 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
         )
         checks.append(
             RuntimeDoctorCheck(
-                id="langgraph-contract",
-                title="LangGraph contract ledger",
-                status="ok",
-                detail=(f"threads={langgraph_contract.get('thread_count')}, checkpoints={checkpoint_count}, active_runs={active_runs}"),
+                id="langgraph-state",
+                title="LangGraph PostgreSQL state",
+                status="ok" if not langgraph_state.get("error") else "warn",
+                detail=(f"threads={langgraph_state.get('thread_count')}, checkpoints={checkpoint_count}"),
+                recommendation=None if not langgraph_state.get("error") else str(langgraph_state.get("error")),
             )
         )
         checks.append(
@@ -599,7 +532,7 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
                 title="Runtime governance snapshot",
                 status="warn",
                 detail=str(exc),
-                recommendation="Inspect runtime_governance collection and LangGraph contract ledger state.",
+                recommendation="Inspect runtime governance collection and LangGraph PostgreSQL state.",
             )
         )
 
@@ -640,243 +573,10 @@ async def get_runtime_maintenance_status() -> dict[str, Any]:
 
 
 @router.post("/maintenance/run")
-async def run_runtime_maintenance(request: RuntimeMaintenanceRunRequest) -> dict[str, Any]:
+async def run_runtime_maintenance() -> dict[str, Any]:
     from src.runtime.governance import get_runtime_maintenance_scheduler
 
-    scheduler = get_runtime_maintenance_scheduler()
-    if request.max_checkpoints_per_thread is not None:
-        scheduler.max_checkpoints_per_thread = request.max_checkpoints_per_thread
-    if request.max_runs_per_thread is not None:
-        scheduler.max_runs_per_thread = request.max_runs_per_thread
-    return scheduler.run_once()
-
-
-@router.get("/langgraph-contract")
-async def get_langgraph_contract() -> dict[str, Any]:
-    from src.agents.runtime import get_langgraph_workflow_contract_service
-
-    service = get_langgraph_workflow_contract_service()
-    payload = service.export_state()
-    try:
-        payload["remote_capabilities"] = await service.remote_capabilities()
-    except Exception as exc:
-        payload["remote_capabilities"] = {"error": str(exc)}
-    return payload
-
-
-@router.post("/langgraph-contract/prune")
-async def prune_langgraph_contract(request: LangGraphContractPruneRequest) -> dict[str, Any]:
-    from src.agents.runtime import get_langgraph_workflow_contract_service
-
-    service = get_langgraph_workflow_contract_service()
-    local = service.prune(
-        max_checkpoints_per_thread=request.max_checkpoints_per_thread,
-        max_runs_per_thread=request.max_runs_per_thread,
-    )
-    remote: dict[str, Any] | None = None
-    if request.remote_thread_ids:
-        remote = await service.prune_remote_threads(
-            request.remote_thread_ids,
-            strategy=request.remote_strategy,
-        )
-    return {"local": local, "remote": remote}
-
-
-@router.post("/langgraph-contract/copy")
-async def copy_langgraph_contract_thread(request: LangGraphContractCopyRequest) -> dict[str, Any]:
-    from src.agents.runtime import get_langgraph_workflow_contract_service
-
-    service = get_langgraph_workflow_contract_service()
-    copied = service.copy_thread_contract(
-        request.source_thread_id,
-        request.target_thread_id,
-        target_task_id=request.target_task_id,
-    )
-    if copied is None:
-        raise HTTPException(status_code=404, detail=f"Thread '{request.source_thread_id}' not found")
-    payload = copied.model_dump(mode="json")
-    if request.remote:
-        payload["remote"] = await service.copy_remote_thread(request.source_thread_id)
-    return payload
-
-
-@router.delete("/langgraph-contract/threads/{thread_id}")
-async def delete_langgraph_contract_thread(
-    thread_id: str,
-    remote_requested: bool = Query(default=False, alias="remote", description="Also delete the LangGraph remote thread."),
-) -> dict[str, Any]:
-    from src.agents.runtime import get_langgraph_workflow_contract_service
-
-    service = get_langgraph_workflow_contract_service()
-    remote_ok = False
-    if remote_requested:
-        try:
-            remote_result = await service.delete_remote_thread(thread_id)
-            remote_ok = bool(remote_result and remote_result.get("ok"))
-        except Exception as exc:
-            remote_result = {"ok": False, "error": str(exc)}
-    else:
-        remote_result = {"ok": True, "skipped": True, "reason": "remote deletion not requested"}
-    deleted = service.delete_thread_contract(thread_id)
-    # Return success if the thread was removed from either store.  A thread
-    # that exists only in the LangGraph registry (e.g. restored after a crash)
-    # will not be in workflow_contract.json, but it is still valid to delete.
-    if not deleted and not remote_ok:
-        raise HTTPException(status_code=404, detail=f"Thread '{thread_id}' not found")
-    return {"deleted": True, "contract_deleted": deleted, "remote": remote_result}
-
-
-@router.post("/langgraph-contract/threads/{thread_id}/lifecycle")
-async def record_langgraph_workflow_lifecycle(
-    thread_id: str,
-    request: LangGraphLifecycleRequest,
-) -> dict[str, Any]:
-    from src.agents.runtime import get_langgraph_workflow_contract_service
-
-    service = get_langgraph_workflow_contract_service()
-    remote_result: dict[str, Any] | None = None
-    if request.remote:
-        try:
-            if request.action in {"cancel", "terminate"} and request.run_id:
-                from langgraph_sdk import get_client
-
-                base_url = str((await service.remote_capabilities()).get("base_url") or "http://localhost:19804")
-                client = get_client(url=base_url)
-                remote_result = {
-                    "ok": True,
-                    "operation": "runs.cancel",
-                    "result": await client.runs.cancel(thread_id, request.run_id),
-                }
-            elif request.action == "replay":
-                remote_result = await service.copy_remote_thread(thread_id)
-            else:
-                remote_result = {
-                    "ok": True,
-                    "skipped": True,
-                    "reason": "no_remote_mapping_for_action",
-                    "action": request.action,
-                }
-        except Exception as exc:
-            remote_result = {"ok": False, "error": str(exc), "action": request.action}
-
-    result = service.record_lifecycle_action(
-        thread_id=thread_id,
-        run_id=request.run_id,
-        action=request.action,
-        actor=request.actor,
-        reason=request.reason,
-        remote=remote_result,
-    )
-    if not result.get("ok"):
-        raise HTTPException(status_code=404, detail=f"Thread '{thread_id}' not found")
-    return result
-
-
-# ---------------------------------------------------------------------------
-#  Agent runtime provider health
-# ---------------------------------------------------------------------------
-
-
-class RuntimeProviderStatus(BaseModel):
-    available: bool = Field(..., description="Whether the provider SDK is installed and loadable")
-    detail: str = Field(default="ok", description="Status detail or error message")
-    sdk_info: dict[str, Any] = Field(default_factory=dict, description="SDK version and capability metadata")
-
-
-class RuntimeProviderHealthResponse(BaseModel):
-    default_provider: str = Field(..., description="Currently configured default provider")
-    providers: dict[str, RuntimeProviderStatus] = Field(
-        default_factory=dict,
-        description="Per-provider availability status",
-    )
-
-
-class RuntimeExecutionSnapshotResponse(BaseModel):
-    provider: str = Field(..., description="Runtime provider name")
-    session_id: str | None = Field(default=None, description="Provider-neutral runtime session identifier")
-    execution_target: str | None = Field(default=None, description="Resolved runtime execution target")
-    message_count: int = Field(default=0, description="Observed message count")
-    tool_call_count: int = Field(default=0, description="Observed tool call count")
-    model_name: str | None = Field(default=None, description="Resolved execution model when available")
-    status: str = Field(default="completed", description="Last observed execution status")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Provider-specific snapshot metadata")
-
-
-class RuntimeProviderContractResponse(BaseModel):
-    provider: str = Field(..., description="Runtime provider name")
-    runtime_kind: str = Field(..., description="Underlying runtime kind")
-    session_identifier_kind: str = Field(..., description="Canonical session identifier type")
-    execution_target_kind: str = Field(..., description="Canonical execution target type")
-    tool_runtime_contract: str = Field(..., description="Tool invocation/runtime contract class")
-    supports_subagents: bool = Field(default=False, description="Whether the runtime supports subagent execution")
-    supports_thread_reuse: bool = Field(default=False, description="Whether the runtime can resume a prior session/thread")
-    sdk_info: dict[str, Any] = Field(default_factory=dict, description="SDK metadata for the provider")
-    last_execution: RuntimeExecutionSnapshotResponse | None = Field(default=None, description="Most recent execution snapshot for this provider")
-
-
-class RuntimeProviderContractsResponse(BaseModel):
-    default_provider: str = Field(..., description="Currently configured default provider")
-    providers: dict[str, RuntimeProviderContractResponse] = Field(default_factory=dict, description="Per-provider runtime contract metadata")
-
-
-@router.get("/provider-health", response_model=RuntimeProviderHealthResponse)
-async def get_runtime_provider_health() -> RuntimeProviderHealthResponse:
-    """Report availability of each registered agent runtime provider."""
-    from src.agents.runtime import get_agent_runtime_manager
-
-    manager = get_agent_runtime_manager()
-    raw = manager.provider_health()
-    default_name = manager.resolve_provider_name()
-    return RuntimeProviderHealthResponse(
-        default_provider=default_name,
-        providers={
-            name: RuntimeProviderStatus(
-                available=info["available"],
-                detail=str(info["detail"]),
-                sdk_info=info.get("sdk_info", {}),
-            )
-            for name, info in raw.items()
-        },
-    )
-
-
-@router.get("/provider-contracts", response_model=RuntimeProviderContractsResponse)
-async def get_runtime_provider_contracts() -> RuntimeProviderContractsResponse:
-    """Report provider-neutral runtime contracts and the latest execution snapshots."""
-    from src.agents.runtime import get_agent_runtime_manager
-
-    manager = get_agent_runtime_manager()
-    default_name = manager.resolve_provider_name()
-    contracts = manager.provider_contracts()
-    last_snapshots = manager.last_execution_snapshots()
-    providers: dict[str, RuntimeProviderContractResponse] = {}
-    for name, contract in contracts.items():
-        snapshot = last_snapshots.get(name)
-        providers[name] = RuntimeProviderContractResponse(
-            provider=contract.provider,
-            runtime_kind=contract.runtime_kind,
-            session_identifier_kind=contract.session_identifier_kind,
-            execution_target_kind=contract.execution_target_kind,
-            tool_runtime_contract=contract.tool_runtime_contract,
-            supports_subagents=contract.supports_subagents,
-            supports_thread_reuse=contract.supports_thread_reuse,
-            sdk_info=contract.sdk_info,
-            last_execution=(
-                RuntimeExecutionSnapshotResponse(
-                    provider=snapshot.provider,
-                    session_id=snapshot.session_id,
-                    execution_target=snapshot.execution_target,
-                    message_count=snapshot.message_count,
-                    tool_call_count=snapshot.tool_call_count,
-                    model_name=snapshot.model_name,
-                    status=snapshot.status,
-                    metadata=snapshot.metadata,
-                )
-                if snapshot is not None
-                else None
-            ),
-        )
-    return RuntimeProviderContractsResponse(default_provider=default_name, providers=providers)
+    return get_runtime_maintenance_scheduler().run_once()
 
 
 # =====================================================================
@@ -896,7 +596,6 @@ class RuntimeEffectiveConfigResponse(BaseModel):
     feature_flags: dict[str, bool | str | int] = Field(..., description="Boolean / scalar feature flags derived from env + config")
     ports: dict[str, int] = Field(..., description="Resolved port assignments")
     default_model: str | None = Field(default=None, description="Configured default model name, if any")
-    embedded_backup_model: str | None = Field(default=None, description="Embedded backup model name, if enabled")
 
 
 @router.get("/effective-config", response_model=RuntimeEffectiveConfigResponse)
@@ -956,7 +655,6 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
         pass
 
     flags: dict[str, bool | str | int] = {}
-    flags["embedded_backup_enabled"] = bool(embedded_backup_enabled())
     flags["host_memory_oom_critical"] = bool(is_host_memory_oom_critical())
     for key in (
         "OCTO_HARNESS_RUN_JOURNAL",
@@ -991,7 +689,6 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
         feature_flags=flags,
         ports=ports,
         default_model=default_model,
-        embedded_backup_model=EMBEDDED_BACKUP_MODEL_NAME if embedded_backup_enabled() else None,
     )
 
 

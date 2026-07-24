@@ -1,5 +1,5 @@
 ARG NODE_FRONTEND_IMAGE=node:22-alpine
-FROM ${NODE_FRONTEND_IMAGE} AS frontend
+FROM ${NODE_FRONTEND_IMAGE} AS frontend-builder
 
 ARG NPM_REGISTRY=https://registry.npmjs.org
 ARG HTTP_PROXY
@@ -33,6 +33,19 @@ RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile --reporter=append-only --network-concurrency=4 --fetch-retries=5 --fetch-timeout=120000
 COPY frontend ./
 RUN pnpm exec next build
+
+FROM ${NODE_FRONTEND_IMAGE} AS frontend
+
+ENV NODE_ENV=production \
+    NEXT_TELEMETRY_DISABLED=1 \
+    HOSTNAME=0.0.0.0 \
+    PORT=19806
+
+WORKDIR /app/frontend
+COPY --from=frontend-builder --chown=node:node /app/frontend/public ./public
+COPY --from=frontend-builder --chown=node:node /app/frontend/.next/standalone ./
+COPY --from=frontend-builder --chown=node:node /app/frontend/.next/static ./.next/static
+
 # Next's image optimizer writes derivatives at runtime.  Keep the application
 # tree immutable while granting the unprivileged process ownership of only its
 # dedicated cache subtree.
@@ -40,4 +53,4 @@ RUN mkdir -p .next/cache/images && chown -R node:node .next/cache
 
 USER node
 EXPOSE 19806
-CMD ["sh", "-c", "pnpm exec next start --hostname 0.0.0.0 --port ${OCTO_FRONTEND_PORT:-19806}"]
+CMD ["sh", "-c", "PORT=${OCTO_FRONTEND_PORT:-19806} node server.js"]

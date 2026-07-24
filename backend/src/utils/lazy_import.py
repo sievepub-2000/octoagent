@@ -2,7 +2,7 @@
 
 Wraps imports that should only execute when the attribute is accessed,
 reducing startup time and memory usage for rarely-used backends like
-sentence-transformers, faster-whisper, tavily, and faiss.
+faster-whisper and tavily.
 """
 
 from __future__ import annotations
@@ -52,15 +52,11 @@ class LazyImport:
 
 
 # Pre-defined lazy imports for heavy dependencies
-lazy_sentence_transformers = LazyImport("sentence_transformers")
-lazy_faiss = LazyImport("faiss", "index_factory")
 lazy_tavily = LazyImport("tavily")
 lazy_whisper = LazyImport("faster_whisper")
 
 __all__ = [
     "LazyImport",
-    "lazy_sentence_transformers",
-    "lazy_faiss",
     "lazy_tavily",
     "lazy_whisper",
 ]

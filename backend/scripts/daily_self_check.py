@@ -470,7 +470,7 @@ def docker_runtime_audit(runner: Runner) -> dict[str, Any]:
         r"ModuleNotFoundError",
         r"\b(?:ERROR|Exception|failed)\b",
     ]
-    warning_patterns = [r"\bwarning\b", r"GoalMiddleware: drift detected"]
+    warning_patterns = [r"\bwarning\b"]
     errors = [pattern for pattern in error_patterns if re.search(pattern, log_text, re.IGNORECASE)]
     warnings = [pattern for pattern in warning_patterns if re.search(pattern, log_text, re.IGNORECASE)]
 

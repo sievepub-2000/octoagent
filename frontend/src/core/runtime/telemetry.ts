@@ -393,15 +393,6 @@ export function buildRuntimeTelemetryEvents(
         "warning",
       ),
     );
-  } else if (!runtime?.default_model && runtime?.embedded_backup_enabled) {
-    events.push(
-      createWorkflowEvent(
-        "runtime_degraded",
-        copy.embeddedBackupOnlyTitle,
-        copy.embeddedBackupOnlyDetail,
-        "warning",
-      ),
-    );
   }
 
   return events;
@@ -438,10 +429,6 @@ export function buildThreadRuntimeTelemetry(
     fallback_ready:
       threadState.runtime?.fallback_ready ??
       defaultModel?.degraded_mode_supported ??
-      false,
-    embedded_backup_enabled:
-      runtime?.embedded_backup_enabled ??
-      threadState.runtime?.embedded_backup_enabled ??
       false,
     continuation_source: threadState.continuation
       ? formatContinuation(
@@ -494,9 +481,6 @@ export function buildThreadRuntimeTelemetry(
     recoverable_failure: threadState.runtime?.recoverable_failure ?? null,
     incomplete_state: threadState.runtime?.incomplete_state ?? null,
     instruction_contract: threadState.runtime?.instruction_contract ?? null,
-    skill_evolution_hints: threadState.runtime?.skill_evolution_hints ?? null,
-    skill_evolution_suggestions:
-      threadState.runtime?.skill_evolution_suggestions ?? null,
     memory_write: threadState.runtime?.memory_write ?? null,
     last_run_record: threadState.runtime?.last_run_record ?? null,
     compaction_strategy: threadState.runtime?.compaction_strategy ?? null,

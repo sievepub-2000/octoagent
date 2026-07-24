@@ -11,7 +11,6 @@ from langgraph.runtime import Runtime
 
 from src.harness.memory import get_harness_memory
 from src.runtime.config.memory_config import get_memory_config
-from src.utils.messages import message_text as _message_text
 
 logger = logging.getLogger(__name__)
 def _extract_user_query_from_messages(messages: list) -> str | None:
@@ -26,46 +25,29 @@ def _extract_user_query_from_messages(messages: list) -> str | None:
     return None
 
 
-def _extract_goal_from_context(request: ModelRequest) -> str | None:
-    """Extract current task goal from system messages in the request."""
-    for msg in request.messages:
-        if getattr(msg, "type", None) == "system":
-            content = str(getattr(msg, "content", "") or "")
-            m = re.search(r"Goal:\s*(.+?)(?:\n|$)", content)
-            if m:
-                return m.group(1).strip()
-            m = re.search(r"Current task:\s*(.+?)(?:\n|$)", content)
-            if m:
-                return m.group(1).strip()
-    return None
-
-
-def _build_semantic_recall_block(query: str, current_goal: str | None = None) -> str | None:
-    """Search the Harness pgvector index and return a compact recall block.
-
-    Threshold raised to 0.75 to only inject highly relevant memories.
-    Each recalled memory includes its source namespace and project context.
-    If a current goal is provided, it's injected as a reminder at the top.
-    """
+def _build_semantic_recall_block(query: str) -> str | None:
+    """Return a small, source-tagged recall block from the Harness index."""
     try:
         collected = [
             (entry.score, entry.source_path, entry.content.strip())
-            for entry in get_harness_memory().search(query, top_k=6)
+            for entry in get_harness_memory().search(query, top_k=4)
             if entry.score >= 0.55
         ]
 
-        if not collected and not current_goal:
+        if not collected:
             return None
 
         collected.sort(key=lambda t: t[0], reverse=True)
         lines = ["<recalled_memories>"]
         lines.append("  Note: These are memories from PAST conversations. Verify they are relevant to the current task before using.")
 
-        if current_goal:
-            lines.append(f"  Current task reminder: {current_goal[:300]}")
-
-        for _score, source, content in collected[:6]:
-            lines.append(f"- [{source}] {content[:600]}")
+        remaining = 1800
+        for _score, source, content in collected[:4]:
+            excerpt = content[: min(500, remaining)]
+            if not excerpt:
+                break
+            lines.append(f"- [{source}] {excerpt}")
+            remaining -= len(excerpt)
 
         lines.append("</recalled_memories>")
         return "\n".join(lines)
@@ -113,75 +95,12 @@ def _filter_messages_for_memory(messages: list[Any]) -> list[Any]:
     return filtered
 
 
-def _should_skip_heavy_memory_for_fast_turn(
-    *,
-    runtime_context: dict[str, Any],
-    user_messages: list[Any],
-    assistant_messages: list[Any],
-) -> bool:
-    latest_user = _message_text(user_messages[-1]) if user_messages else ""
-    durable_signal = re.search(
-        r"remember|preference|from now on|always|never|correction|incorrect|wrong|must|do not|"
-        r"记住|偏好|纠正|更正|错误|以后|今后|不要|必须|始终|永远",
-        latest_user,
-        re.IGNORECASE,
-    )
-    if durable_signal:
-        return False
-
-    route = runtime_context.get("dialogue_route")
-    if isinstance(route, dict):
-        route = route.get("kind")
-    if route in {"direct_answer", "current_snapshot"}:
-        return True
-    if runtime_context.get("dialogue_needs_memory") is False:
-        return True
-    if runtime_context.get("mode") != "flash":
-        return False
-    if runtime_context.get("thinking_enabled") or runtime_context.get("is_plan_mode"):
-        return False
-    latest_user = _message_text(user_messages[-1]) if user_messages else ""
-    latest_assistant = _message_text(assistant_messages[-1]) if assistant_messages else ""
-    if re.search(r"记住|記住|remember|偏好|preference|以后都|always", latest_user, re.IGNORECASE):
-        return False
-    return len(latest_user) <= 240 and len(latest_assistant) <= 1200
-
-
-def _memory_pipeline_metadata(runtime_context: dict[str, Any], runtime_state: dict[str, Any]) -> dict[str, Any]:
-    metadata: dict[str, Any] = {
-        "memory_pipeline": "conversation_compress_continue_extract_rag",
-        "memory_scope": "system_long_term_candidate",
-    }
-    for key in (
-        "continue_from_thread_id",
-        "continue_from_title",
-        "continue_cycle_id",
-        "continue_cycle_started_at",
-        "continue_cycle_base_tokens",
-        "dialogue_route",
-    ):
+def _memory_pipeline_metadata(runtime_context: dict[str, Any]) -> dict[str, Any]:
+    metadata: dict[str, Any] = {"memory_pipeline": "markdown_pgvector"}
+    for key in ("dialogue_route", "project_id"):
         value = runtime_context.get(key)
         if value is not None:
             metadata[key] = value
-    for key in (
-        "context_cycle_id",
-        "context_cycle_started_at",
-        "context_cycle_base_tokens",
-        "compaction_strategy",
-        "compaction_trigger",
-        "compaction_saved_tokens",
-        "recommended_memory_action",
-        "context_pressure",
-        "task_phase_id",
-        "source_event_id",
-        "completed_item_hashes",
-        "completed_item_hash",
-    ):
-        value = runtime_state.get(key)
-        if value is not None:
-            metadata[key] = value
-    if runtime_context.get("continue_trigger") == "continue":
-        metadata["continuation_mode"] = "continued"
     return metadata
 
 
@@ -193,15 +112,14 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
         self._agent_name = agent_name
 
     def _inject_semantic_memory(self, request: ModelRequest) -> ModelRequest:
-        """Inject recalled memories with source tags AND current goal reminder."""
+        """Inject a bounded set of relevant memories before the model call."""
         try:
             config = get_memory_config()
             if not config.enabled or not config.injection_enabled:
                 return request
 
             query = _extract_user_query_from_messages(list(request.messages))
-            current_goal = _extract_goal_from_context(request)
-            recalled = _build_semantic_recall_block(query or "", current_goal=current_goal) if query or current_goal else None
+            recalled = _build_semantic_recall_block(query or "") if query else None
             blocks = [recalled] if recalled else []
             if not blocks:
                 return request
@@ -256,23 +174,7 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
             return None
 
         runtime_state = dict(state.get("runtime") or {})
-        memory_metadata = _memory_pipeline_metadata(runtime_context, runtime_state)
-        memory_flush_required = runtime_state.get("memory_flush_required", False)
-
-        if not memory_flush_required and _should_skip_heavy_memory_for_fast_turn(
-            runtime_context=runtime_context,
-            user_messages=user_messages,
-            assistant_messages=assistant_messages,
-        ):
-            runtime_state["memory_write"] = {
-                "status": "skipped_fast_turn",
-                "message_count": len(filtered_messages),
-                "thread_id": thread_id,
-                "agent_name": self._agent_name,
-                "metadata": memory_metadata,
-            }
-            return {"runtime": runtime_state}
-
+        memory_metadata = _memory_pipeline_metadata(runtime_context)
         task_state = state.get("task_state")
         if isinstance(task_state, dict) and task_state.get("status") == "completed":
             memory_metadata["task_completed"] = True

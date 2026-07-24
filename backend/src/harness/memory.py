@@ -47,7 +47,6 @@ class HarnessMemory:
 
     def initialize(self) -> dict[str, Any]:
         self.root.mkdir(parents=True, exist_ok=True)
-        imported = self._import_legacy_sources()
         self._ensure_schema()
         indexed = 0
         failed = 0
@@ -74,66 +73,11 @@ class HarnessMemory:
             logger.exception("Memory batch reindex failed")
         return {
             "root": str(self.root),
-            "legacy_imported": imported,
             "recovered": recovered,
             "indexed_on_startup": indexed,
             "failed": failed,
             **self.stats(),
         }
-
-    def _import_legacy_sources(self) -> int:
-        """One-way, idempotent migration from the retired JSON/DuckDB stores."""
-        workspace = Path(os.getenv("OCTO_AGENT_HOME", "/app/workspace"))
-        target = self.root / "legacy"
-        target.mkdir(parents=True, exist_ok=True)
-        imported = 0
-
-        for source in (
-            workspace / "default" / "memory.json",
-            workspace / "default" / "memory.v2.json",
-            workspace / "default" / "memory.legacy.json",
-            workspace / "env" / "global_memory.json",
-        ):
-            destination = target / f"json-{source.name}.memory.md"
-            if destination.exists() or not source.is_file():
-                continue
-            try:
-                payload = json.loads(source.read_text(encoding="utf-8"))
-                body = f"---\nlegacy_source: {source}\nimported_at: {datetime.now(UTC).isoformat()}\n---\n\n# Imported legacy memory\n\n```json\n{json.dumps(payload, ensure_ascii=False, indent=2)}\n```\n"
-                self._atomic_write(destination, body)
-                imported += 1
-            except Exception:
-                logger.exception("Legacy JSON memory import failed for %s", source)
-
-        database = workspace / "runtime" / "memory" / "octoagent_rag.duckdb"
-        if database.is_file():
-            try:
-                import duckdb
-
-                with duckdb.connect(str(database), read_only=True) as conn:
-                    tables = {str(row[0]) for row in conn.execute("SHOW TABLES").fetchall()}
-                    for table in ("system_memories", "bootstrap_vectors"):
-                        if table not in tables:
-                            continue
-                        rows = conn.execute(
-                            f"SELECT id, namespace, content, metadata_json, created_at FROM {table}"  # noqa: S608
-                        ).fetchall()
-                        for memory_id, namespace, content, metadata, created_at in rows:
-                            safe_id = re.sub(r"[^a-zA-Z0-9_.-]+", "-", str(memory_id))[:96]
-                            destination = target / f"duckdb-{table}-{safe_id}.memory.md"
-                            if destination.exists():
-                                continue
-                            body = (
-                                f"---\nlegacy_source: {database.name}:{table}\nlegacy_id: {memory_id}\n"
-                                f"namespace: {namespace}\ncreated_at: {created_at}\nmetadata: {metadata or '{}'}\n"
-                                "---\n\n# Imported legacy memory\n\n"
-                                f"{str(content).strip()}\n"
-                            )
-                            self._atomic_write(destination, body)
-                            imported += 1
-            except Exception:
-                logger.exception("Legacy DuckDB memory import failed for %s", database)
-        return imported
 
     def capture(
         self,
@@ -304,12 +248,19 @@ class HarnessMemory:
         if not turns:
             return "No durable conversation content."
         selected: list[str] = []
-        for role, text in turns[-8:]:
-            sentences = re.split(r"(?<=[。！？.!?])\s+|\n+", text)
+        for role, text in turns[-12:]:
+            sentences = re.split(r"(?<=[。！？.!?])\s*|\n+", text)
             durable = [item.strip() for item in sentences if _DURABLE_SIGNAL.search(item)]
-            chosen = durable[:4] or [text.strip()]
-            selected.append(f"- {role}: {' '.join(chosen)[:1600]}")
-        return "\n".join(selected)[-6000:]
+            if durable:
+                selected.append(f"- {role}: {' '.join(durable[:3])[:1000]}")
+        if not selected:
+            first_user = next((text for role, text in turns if role == "User"), "")
+            last_assistant = next((text for role, text in reversed(turns) if role == "Assistant"), "")
+            if first_user:
+                selected.append(f"- user goal: {first_user[:1000]}")
+            if last_assistant:
+                selected.append(f"- outcome: {last_assistant[:1400]}")
+        return "\n".join(selected)[-4000:]
 
     @staticmethod
     def _raw_markdown(thread_id: str, run_id: str, now: datetime, agent_name: str | None, metadata: dict[str, Any], turns: list[tuple[str, str]]) -> str:

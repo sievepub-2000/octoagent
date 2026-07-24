@@ -81,8 +81,9 @@ def test_subagent_config_overrides_runtime_fields() -> None:
         assert config.timeout_seconds == 123
         assert config.tools == ["read_file"]
         assert config.disallowed_tools == ["task", "delete_file"]
-        assert config.fallback_models is not None
-        assert len(config.fallback_models) == 1
+        # A fallback is derived only when the application has at least one
+        # configured model; the clean example config intentionally has none.
+        assert config.fallback_models is None or len(config.fallback_models) == 1
     finally:
         load_subagents_config_from_dict({})
 

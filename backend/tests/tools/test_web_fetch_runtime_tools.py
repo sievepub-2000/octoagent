@@ -34,13 +34,13 @@ def _available_tool(name: str):
     raise AssertionError(f"tool not available: {name}")
 
 
-def test_runtime_exposes_web_fetch_and_scrapling_fetch() -> None:
+def test_runtime_exposes_one_layered_web_fetch_tool() -> None:
     from src.tools import get_available_tools
 
     names = {tool.name for tool in get_available_tools(include_mcp=False, permission_mode="approval")}
 
     assert "web_fetch" in names
-    assert "scrapling_fetch" in names
+    assert "scrapling_fetch" not in names
 
 
 def test_runtime_web_fetch_refuses_implicit_tls_verification_bypass(monkeypatch) -> None:
@@ -96,7 +96,7 @@ def test_runtime_scrapling_fetch_refuses_implicit_tls_verification_bypass(monkey
     monkeypatch.setattr(scrapling_tools, "_INIT_TRIED", True)
     monkeypatch.setattr(scrapling_tools, "_FETCHER", FakeFetcher)
 
-    result = _available_tool("scrapling_fetch").invoke({"url": "https://example.com/broken-chain"})
+    result = scrapling_tools.scrapling_fetch.invoke({"url": "https://example.com/broken-chain"})
 
     assert "SSL certificate problem" in result
     assert FakeFetcher.insecure_retry_called is False

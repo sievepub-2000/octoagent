@@ -2,12 +2,8 @@
 
 from __future__ import annotations
 
-import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any
-
-logger = logging.getLogger(__name__)
 
 
 class ModuleLayer(str, Enum):
@@ -47,40 +43,6 @@ MODULE_REGISTRY: dict[str, ModuleInfo] = {
 # Interfaces of the two Modules, not architectural Modules themselves.
 CLIENT_ROUTERS = ["agent_runtime", "harness"]
 SERVER_ROUTERS = ["agent_runtime", "harness"]
-
-
-@dataclass
-class ServiceBus:
-    """Small process-local dependency table for deep Interface implementations."""
-
-    _services: dict[str, Any] = field(default_factory=dict)
-
-    def register(self, name: str, service: Any) -> None:
-        self._services[name] = service
-        logger.debug("ServiceBus registered %s", name)
-
-    def get(self, name: str) -> Any | None:
-        return self._services.get(name)
-
-    def require(self, name: str) -> Any:
-        service = self.get(name)
-        if service is None:
-            raise KeyError(f"Service '{name}' not registered")
-        return service
-
-    @property
-    def registered(self) -> list[str]:
-        return list(self._services)
-
-
-_bus: ServiceBus | None = None
-
-
-def get_service_bus() -> ServiceBus:
-    global _bus
-    if _bus is None:
-        _bus = ServiceBus()
-    return _bus
 
 
 def get_module_info(name: str) -> ModuleInfo | None:

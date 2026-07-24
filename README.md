@@ -1,618 +1,156 @@
-> **OctoAgent — a white-box AI agent for business operations, system
-> administration, research, and office automation.** Every reasoning
-> step, every tool call, every artifact is visible, auditable, and
-> reproducible. No "black box" — the opposite of OpenClaw-style closed
-> agents.
->
-> **License:** Dual-licensed under **SSPL v1** + commercial alternatives.
-> The Bytedance-derived portion remains under **MIT** (see [`NOTICE.md`](NOTICE.md)).
-> Full terms: [`LICENSE`](LICENSE) · contribution policy: [`CONTRIBUTING.md`](CONTRIBUTING.md).
->
-> **Contact / 商务联系 / お問い合わせ:** **zillafan80@gmail.com**
->
-> **Commercial License FAQ:** [`docs/COMMERCIAL_LICENSE_FAQ.md`](docs/COMMERCIAL_LICENSE_FAQ.md)
-> — TL;DR: free **only** for personal non-commercial use; every
-> other use (SaaS, internal enterprise, OEM, redistribution) requires
-> a commercial license.
->
-> **Docs index:** [`docs/INDEX.md`](docs/INDEX.md) ·
-> **Module ownership map:** [`docs/MODULE_OWNERS.md`](docs/MODULE_OWNERS.md)
+# OctoAgent
 
-<p align="center">
-  <a href="https://github.com/sievepub-2000/octoagent/actions/workflows/ci.yml"><img alt="ci" src="https://img.shields.io/badge/ci-passing-brightgreen"></a>
-  <a href="https://github.com/sievepub-2000/octoagent/actions/workflows/license-check.yml"><img alt="license-check" src="https://img.shields.io/badge/licenses-scanned-blue"></a>
-  <a href="LICENSE"><img alt="license" src="https://img.shields.io/badge/license-SSPLv1%20%2B%20commercial-orange"></a>
-  <a href="#"><img alt="python" src="https://img.shields.io/badge/python-3.12%2B-blue"></a>
-  <a href="#"><img alt="node" src="https://img.shields.io/badge/node-22%2B-blue"></a>
-</p>
+OctoAgent 是一个可审计、自托管的通用 Agent 系统。当前版本只保留一条
+生产执行链：LangGraph Agent Runtime 负责模型回合与运行状态，Harness
+负责能力发现、权限、工具执行、产物和记忆。
 
----
+当前版本：`20260724.1.0`
 
-## Table of contents
-
-- [English — Getting started](#english--getting-started)
-- [Docker installation](#docker-installation-default)
-- [日本語 — はじめに](#日本語--はじめに)
-- [Project facts (canonical)](#project-facts-canonical)
-
----
-
-## Writing and Publishing Workflows
-
-OctoAgent includes an optional managed writing and publishing suite for articles, novels, papers, and web serials. It wraps browser-use/browser-use, microsoft/playwright, wp-cli/wp-cli, microsoft/presidio, jgm/pandoc, textlint/textlint, and vale-cli/vale behind guarded tools for project storage, drafting, review, export, human approval, browser/WordPress publishing, and publication audit. See [docs/writing-publishing-tools.md](docs/writing-publishing-tools.md).
-
-## English — Getting started
-
-### What OctoAgent does
-
-OctoAgent is a **task-centric agent platform** that runs locally
-(or on your own server) and turns a single English / Chinese / Japanese
-instruction into:
-
-- a sequence of inspectable tool calls (web search, file I/O, code
-  execution in a sandbox, browser automation, database queries, …),
-- a streaming chain-of-action visible in the WebUI,
-- a final artifact (a Markdown report, an Excel spreadsheet, a PPT, a
-  rewritten Word file, a refactored codebase, an audit report, …).
-
-Typical verticals shipped today:
-
-| Vertical | Example task |
-|----------|--------------|
-| Business research | "Compare top-10 EV charging vendors in Germany on price, network coverage, and 2025 funding." |
-| Academic research | "Survey 30 papers on retrieval-augmented generation since 2024; produce a literature review with citations." |
-| Office automation | "Take this PDF, extract every table, write me an Excel with consolidated KPIs and a 1-page PPT summary." |
-| System operations | "SSH into host3, audit `/etc/systemd/system/*.service`, find units missing `Restart=on-failure`, propose a patch." |
-| Web data scraping | "Crawl 200 product pages on this site, normalize to JSON, store in the local RAG, and answer questions about the catalog." |
-| Code work | "Refactor `backend/src/agents/middlewares/` for clarity; add tests; keep all imports passing import-linter." |
-
-Current architecture: [`docs/architecture.md`](docs/architecture.md).
+## 架构
 
 ```text
-WebUI -> nginx -> app-server (Agent Runtime + Harness) -> PostgreSQL/pgvector
-                                   |
-                                   +-> authenticated system-executor
+Browser
+  |
+Nginx :19800
+  |------------------------------|
+  v                              v
+Next.js WebUI :19806       app-server :19802
+                              |
+                Agent Runtime + Harness
+                   |              |
+                   v              v
+          PostgreSQL/pgvector   Executors
+                             /      |       \
+                        sandbox    MCP    system-executor
+                                             |
+                                             v
+                                      Docker host / Internet
 ```
 
-### Prerequisites
+Docker Compose 启动五个服务：
 
-The default installation path is now **Docker Compose** on all supported desktop/server platforms:
+| 服务 | 职责 |
+| --- | --- |
+| `nginx` | WebUI 与 API 的唯一入口 |
+| `frontend` | Next.js WebUI |
+| `app-server` | FastAPI、LangGraph、Harness、记忆 |
+| `system-executor` | 经过认证的主机 root 执行边界 |
+| `postgres` | checkpoint、项目、配置、trace、pgvector 索引 |
 
-- Linux with Docker Engine 24+ and Compose v2.
-- Windows 11 with Docker Desktop using Linux containers.
-- macOS with Docker Desktop, OrbStack, or another Docker-compatible engine.
-- Git is needed only when the installer has to clone the repository.
+Redis、独立 Gateway、独立 LangGraph、Tools Hub、Brain Core、Local Work
+Bus 和第二套 Task/Run/Event 状态机均不在当前生产架构中。
 
-You do **not** need host Python, Node.js, pnpm, Nginx, or PostgreSQL for the Docker profile. They are packaged as containers or image dependencies.
+## 安装
 
-### Docker Installation (default)
+生产环境只支持 Docker Compose。主机不需要安装 Python、Node.js、
+pnpm、Nginx 或 PostgreSQL。
 
-Linux and macOS:
+Linux / macOS：
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.sh | bash
 ```
 
-Windows PowerShell:
+Windows PowerShell：
 
 ```powershell
 iwr https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.ps1 -UseBasicParsing | iex
 ```
 
-From an existing checkout:
+已有仓库：
 
 ```bash
-git clone https://github.com/sievepub-2000/octoagent.git
-cd octoagent
-./scripts/install-docker.sh --prefix "$PWD"
+cp .env.docker.example .env.docker
+# 填写 .env.docker 中的密钥
+docker compose --env-file .env.docker up -d --build --remove-orphans
 ```
 
-Open the WebUI after the health check passes:
+打开 `http://127.0.0.1:19800`。完整安装、升级、停止和卸载说明见
+[Docker 部署文档](docs/docker-install.md)。
 
-```text
-http://127.0.0.1:19800
-```
+## 权限模式
 
-The Docker profile starts five services: nginx, the production WebUI, the
-unified app-server, PostgreSQL/pgvector, and the authenticated system executor.
-See [docs/docker-install.md](docs/docker-install.md) for operations,
-configuration, migration, and verification.
+对话栏中的 Permission Mode 是真实的服务端执行策略，不是 UI 标签：
 
-### Source development stack
+- `directory`：只允许项目目录和沙箱执行。
+- `approval`：敏感动作需要确认，且仍受项目权限上限约束。
+- `system`：Harness 才能把请求转交给独立的 `system-executor`；该容器以
+  root 身份访问主机 Docker socket 和授权挂载。
 
-The supported source-development baseline is Python 3.12, Node.js 22, and
-pnpm 11.12.0. Keep the repository-pinned versions aligned instead of using an
-older system interpreter or package manager:
+前端不能绕过服务端策略。项目权限上限、对话选择和执行适配器会在
+Harness 分发时再次校验。
 
-```bash
-cd backend
-uv sync --python 3.12 --frozen --group dev
+## 记忆
 
-cd ../frontend
-corepack prepare pnpm@11.12.0 --activate
-pnpm install --frozen-lockfile
-```
+- Markdown 是可读、可迁移、可重建的唯一原始记忆。
+- 每个已完成回合自动提取精简信息并原子写入 Markdown。
+- PostgreSQL `pgvector` 保存派生向量和 HNSW 索引，用于回忆。
+- Harness 启动时扫描 Markdown 并补齐缺失索引。
+- 删除向量索引不会丢失原始记忆；可从 Markdown 完整重建。
 
-On Windows, `llama-cpp-python` 0.3.23 should be installed from its published
-CPU wheel before the frozen sync so Visual C++ does not rebuild it from source:
+## 模型
 
-```powershell
-cd backend
-uv python install 3.12
-uv pip install --python .\.venv\Scripts\python.exe --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu llama-cpp-python==0.3.23
-uv sync --python 3.12 --frozen --group dev --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
-```
+OctoAgent 不在应用容器中嵌入模型权重。任何 OpenAI-compatible 服务、
+Google GenAI、NVIDIA NIM、OpenRouter 等均作为普通 Provider 配置。
+本地 llama.cpp 也在应用容器之外运行。
 
-### First-run configuration (default models)
+模型和 Provider 在 WebUI 的 Models 页面管理，运行时配置保存在挂载的
+`runtime/config` 中。不要把密钥提交到 Git。
 
-OctoAgent ships preconfigured for **OpenRouter free tier**:
-
-| Slot | Default model | Use |
-|------|---------------|-----|
-| Flash dialogue | `openrouter/openai/gpt-oss-20b:free` | WebUI typeahead, quick replies |
-| Long-context reasoning | `openrouter/qwen/qwen3-next-free` | Subagent planning, RAG synthesis |
-| Code | `openrouter/openai/gpt-oss-120b:free` | Code generation / refactor |
-
-To use the defaults:
-
-```bash
-./scripts/octoagent configure
-# Paste your free OpenRouter API key when prompted.
-```
-
-The CLI writes it to `runtime/config/model_auth.env` (mode 0600, also
-gitignored). You can edit the file manually:
-
-```bash
-OCTOAGENT_MODEL_AUTH_OPENROUTER=sk-or-v1-...
-# Optional — replace any slot with your own provider key:
-OCTOAGENT_MODEL_AUTH_OPENAI=sk-...
-OCTOAGENT_MODEL_AUTH_ANTHROPIC=sk-ant-...
-OCTOAGENT_MODEL_AUTH_DEEPSEEK=...
-
-# Optional OpenRouter app attribution. Usage accounting is enabled by default.
-OCTOAGENT_OPENROUTER_APP_URL=https://github.com/sievepub-2000/octoagent
-OCTOAGENT_OPENROUTER_APP_TITLE=OctoAgent
-OCTOAGENT_OPENROUTER_USAGE_INCLUDE=true
-```
-
-To **change the default model assignments**, edit
-`runtime/config/models.yaml` (a starter copy is generated on first
-configure) — the schema mirrors `backend/src/governance/model_auth/`.
-
-#### Unified System-Level Model Configuration (v2026.7.4+)
-
-Starting from v2026.7.4, OctoAgent uses a **single entry point** for system-level model configuration:
-
-- **`runtime/config/config.yaml`** — the canonical source for `system.default_model`
-- All backend services read default model from this file via `load_setup_state()` in `backend/src/runtime/config/paths.py`
-- Priority: `config.yaml` > `setup_state.json` (fallback)
-
-This eliminates configuration drift between multiple config files. The workspace-level setup (`workspace/env/setup.json`) remains independent for per-project overrides.
-
-```yaml
-# runtime/config/config.yaml
-system:
-  default_model: "ornith-1.0-35b-nvfp4"  # Single source of truth
-
-models:
-- name: ornith-1.0-35b-nvfp4
-  priority: 120
-  ...
-```
-
-### Start the service
-
-Foreground (development):
-
-```bash
-make dev                      # backend + frontend, hot reload
-# WebUI: http://127.0.0.1:19800
-```
-
-Background (systemd, production-style):
-
-```bash
-sudo cp deploy/system/octoagent-local.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now octoagent-local
-journalctl -u octoagent-local -f
-```
-
-### Verifying the install
-
-```bash
-make smoke-chat-regression    # browser-level smoke (Playwright)
-make release-readiness        # full evidence gate
-```
-
-A green `release-readiness` run means: compile + lint + build pass,
-doctor / API contract smoke pass, real-browser smoke pass, system-
-execution guard pass, RAG live-validation pass.
-
-### The About panel (in-product contact)
-
-Open the WebUI → **Settings (top-right gear) → About**. The panel leads
-with the **license summary** (SSPL v1 default + commercial alternatives;
-the Bytedance-derived portion remains under MIT — see
-[`NOTICE.md`](NOTICE.md)), immediately followed by the **contact email**.
-Both blocks are **hard-coded** in `backend/src/governance/about.py` and
-protected by a SHA-256 integrity fingerprint. Editing them without
-resealing breaks startup; even with resealing, the email is the HKDF
-salt for every internal credential, so changing it requires re-keying
-all internal databases. This is intentional (see LICENSE Addendum A).
-
-### Updating the Docker deployment
+## 更新
 
 ```bash
 git pull --ff-only
-docker compose --env-file .env.docker -f compose.yaml up -d --build --remove-orphans
+docker compose --env-file .env.docker up -d --build --remove-orphans
 ```
 
-### Reporting bugs / commercial inquiries
+数据卷与 `runtime/` 配置在镜像更新时保留。更新前仍建议对 PostgreSQL
+卷和运行时配置做常规备份。
 
-- **Bugs / features:** open a GitHub issue.
-- **Security:** email `zillafan80@gmail.com` subject
-  `[octoagent-security]`.
-- **Commercial license:** use the
-  [`Commercial inquiry`](.github/ISSUE_TEMPLATE/commercial_inquiry.md)
-  template or email directly.
-
----
-
-## 日本語 — はじめに
-
-### OctoAgent とは
-
-OctoAgent は **タスク中心のマルチエージェントプラットフォーム** です。
-ローカル（または自社サーバ）で動作し、日本語 / 英語 / 中国語の指示文を
-以下のような出力に変換します：
-
-- 検証可能なツール呼び出しの連続（Web 検索、ファイル I/O、サンドボックス
-  上のコード実行、ブラウザ自動化、データベース問い合わせなど）
-- WebUI 上でストリーミング表示される行動ログ
-- 最終成果物（Markdown レポート、Excel、PPT、書き換えた Word、リファクタ
-  済みコード、監査レポートなど）
-
-すべての推論ステップ、ツール呼び出し、生成物は **可視・監査可能・再現
-可能** です。OpenClaw のような閉じたブラックボックスエージェントとは
-対照的に、OctoAgent は **ホワイトボックス** の運用思想を貫いています。
-
-### 必要環境
-
-- **OS:** Linux (Ubuntu 22.04+ / Debian 12 / RHEL 9) または WSL2 上の
-  Windows 11。
-- **Python 3.12+**、**Node.js 22+**、**pnpm 11.12.0**。
-- **2 GB の空きディスク**、**8 GB RAM（推奨 16 GB）**。
-- 任意で **PostgreSQL 15+**、**CUDA 12** + NVIDIA ドライバ。
-
-### インストール（Docker 推奨）
-
-Linux / macOS:
+## 验证
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.sh | bash
+docker compose --env-file .env.docker ps
+curl -fsS http://127.0.0.1:19800/health
+curl -fsS http://127.0.0.1:19800/api/runtime/doctor
+
+cd backend
+uv run --frozen pytest -q
+uvx ruff check src scripts tests
+python -m compileall -q src scripts
+cd ..
+
+backend/.venv/bin/python scripts/verify-module-lifecycles.py \
+  --base-url http://127.0.0.1:19800 \
+  --env-file .env.docker
 ```
 
-Windows PowerShell:
-
-```powershell
-iwr https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.ps1 -UseBasicParsing | iex
-```
-
-起動後、WebUI を開きます：
-
-```text
-http://127.0.0.1:19800
-```
-
-詳しい日本語ガイドは [`docs/ja/README.md`](docs/ja/README.md)、詳細な英語版 Docker 手順は [`docs/docker-install.md`](docs/docker-install.md) を参照してください。
-3. `runtime/`（logs / pids / cache / secrets）を安全な権限で作成。
-4. 初回起動時に `runtime/secrets/octoagent_internal_master.key`
-   （64 バイト乱数）を生成。内部 DB パスワードや内部 API トークンの
-   HKDF IKM として使用されます。**gitignore 対象です。永続化データを
-   暗号化している場合は必ずバックアップしてください。**
-
-### 初回設定（既定モデル）
-
-OctoAgent は **OpenRouter 無料枠** を既定で使うように事前設定されて
-います。
-
-| 用途 | 既定モデル |
-|------|------------|
-| Flash 対話 | `openrouter/openai/gpt-oss-20b:free` |
-| 長文・推論 | `openrouter/qwen/qwen3-next-free` |
-| コード | `openrouter/openai/gpt-oss-120b:free` |
-
-設定コマンド：
+前端：
 
 ```bash
-./scripts/octoagent configure
-# 無料 OpenRouter API キーを貼り付けてください。
+cd frontend
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm build
 ```
 
-`runtime/config/model_auth.env`（mode 0600、gitignore 対象）に保存されます。
-独自プロバイダの鍵を使いたい場合は、同ファイルを直接編集してください。
+## 目录
 
-### 起動
-
-開発用（ホットリロード）：
-
-```bash
-make dev
-# WebUI: http://127.0.0.1:19800
-```
-
-本番風（systemd）：
-
-```bash
-sudo cp deploy/system/octoagent-local.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now octoagent-local
-journalctl -u octoagent-local -f
-```
-
-### About パネル
-
-WebUI 右上の歯車 → **Settings → About** を開くとまず **ライセンス概要**
-（既定: SSPL v1 / 商用代替あり / Bytedance 由来部分は MIT 継続 — 詳細は
-[`NOTICE.md`](NOTICE.md)）が表示され、その直後に **連絡先メール
-アドレス** が続きます。両ブロックとも `backend/src/governance/about.py`
-に **ハードコード** されており、SHA-256 のフィンガープリントで改ざん
-が検出されます。改ざんすると起動失敗、もしくは内部認証情報が再導出
-されて DB 接続が壊れます（LICENSE Addendum A 参照）。
-
-### 商用ライセンス / お問い合わせ
-
-- **バグ / 機能要望:** GitHub Issue を起票してください。
-- **セキュリティ:** `zillafan80@gmail.com` 件名
-  `[octoagent-security]` に直接ご連絡ください。
-- **商用ライセンス:**
-  [`Commercial inquiry`](.github/ISSUE_TEMPLATE/commercial_inquiry.md)
-  テンプレートをご利用いただくか、`zillafan80@gmail.com` 宛に
-  直接メールください。
-
----
-
-## Project facts (canonical)
-
-
-
-## Canonical Project Path
-
-The only active OctoAgent project root on this host is `/home/sieve-pub/public-workspace/octoagent`. Do not use `/home/sieve-pub/codex/octoagent` or `/home/sieve-pub/public-workspace/octoagent-module1-webui-only` as project roots; branch and worktree content should be merged into the canonical project root.
-
-OctoAgent is a task-centric agent platform built around one runtime path:
-WebUI -> nginx -> app-server (Agent Runtime + Harness).
-
-Current repository truth:
-
-- active execution provider: LangGraph through the unified app-server
-- backend architecture modules: Agent Runtime and Harness
-- capability truth source: Harness dynamic inventory and dispatcher
-- memory truth source: Markdown with PostgreSQL pgvector retrieval
-- unified local entrypoint: http://127.0.0.1:19800
-- production distribution: five-service Docker Compose profile
-- runtime version: `20260721.1.0`
-- repository-scoped tools and maintenance scripts live under `scripts/` and `runtime/`; host-level helper copies under `/usr/local/bin` are not part of the active deployment
-
-Canonical documentation:
-
-- project index: [project_docs/README.md](project_docs/README.md)
-- current status: [project_docs/docs/PROJECT_STATUS.md](project_docs/docs/PROJECT_STATUS.md)
-- current progress: [project_docs/docs/PROJECT_PROGRESS.md](project_docs/docs/PROJECT_PROGRESS.md)
-- P18 full repair and verification: [project_docs/docs/P18_FULL_SYSTEM_REPAIR_AND_VERIFICATION_2026-05-11.md](project_docs/docs/P18_FULL_SYSTEM_REPAIR_AND_VERIFICATION_2026-05-11.md)
-- P19 system linkage and long execution repair: [project_docs/docs/P19_SYSTEM_LINKAGE_AND_LONG_EXECUTION_REPAIR_2026-05-12.md](project_docs/docs/P19_SYSTEM_LINKAGE_AND_LONG_EXECUTION_REPAIR_2026-05-12.md)
-- P21 context/runtime/repository sync: [project_docs/docs/P21_CONTEXT_RUNTIME_AND_REPOSITORY_SYNC_2026-05-15.md](project_docs/docs/P21_CONTEXT_RUNTIME_AND_REPOSITORY_SYNC_2026-05-15.md)
-- P24 autonomous capability enhancement: [project_docs/docs/P24_AUTONOMOUS_AGENT_CAPABILITY_ENHANCEMENT_2026-05-16.md](project_docs/docs/P24_AUTONOMOUS_AGENT_CAPABILITY_ENHANCEMENT_2026-05-16.md)
-- P25 confirmation and Letta memory integration: [project_docs/docs/P25_CONFIRMATION_AND_LETTA_MEMORY_INTEGRATION_2026-05-16.md](project_docs/docs/P25_CONFIRMATION_AND_LETTA_MEMORY_INTEGRATION_2026-05-16.md)
-- P15 Hermes Gemini/WebUI readiness: [project_docs/docs/P15_HERMES_GEMINI_WEBUI_AND_95_LOCAL_READINESS_2026-05-06.md](project_docs/docs/P15_HERMES_GEMINI_WEBUI_AND_95_LOCAL_READINESS_2026-05-06.md)
-- architecture: [project_docs/docs/ARCHITECTURE.md](project_docs/docs/ARCHITECTURE.md)
-- module owners (Phase 0 frozen): [project_docs/docs/MODULE_OWNERS.md](project_docs/docs/MODULE_OWNERS.md)
-- topology freeze (2026-05-26): [project_docs/docs/TOPOLOGY_FREEZE_2026-05-26.md](project_docs/docs/TOPOLOGY_FREEZE_2026-05-26.md)
-- P0 closure and cleanup: [project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md](project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md)
-- channel bridge deployment: [project_docs/docs/CHANNEL_BRIDGE_DEPLOYMENT_GUIDE.md](project_docs/docs/CHANNEL_BRIDGE_DEPLOYMENT_GUIDE.md)
-
-## Production Hardening Before Launch
-
-Set these environment variables before exposing the service beyond a trusted local network:
-
-- `OCTO_OPERATOR_TOKEN`: required shared token for operator/admin governance endpoints when configured.
-- `OCTO_EXECUTION_WORKER_TOKEN`: required shared token for distributed worker dispatch and callbacks when configured.
-- `OCTO_OPERATOR_AUDIT_SECRET`: HMAC key for signed governance audit events. Without it, audit signatures are plain SHA-256 checksums.
-- `OCTO_RUNTIME_MAX_RUNNING_RUN_AGE_SECONDS`: stale LangGraph run ledger timeout, default `3600`. Runtime maintenance marks older abandoned running records as `timeout` so long-running soak checks can settle.
-- `OCTO_SMTP_HOST`, `OCTO_SMTP_PORT`, `OCTO_SMTP_USERNAME`, `OCTO_SMTP_PASSWORD`, `OCTO_SMTP_FROM`, `OCTO_SMTP_TLS`: SMTP settings for the built-in user email verification flow. Without SMTP, verification codes are logged for local development only.
-- `OCTO_AUTH_DEV_EXPOSE_CODES`: keep unset or `0` in production. Setting `1` returns verification codes in API responses for local smoke tests only.
-
-The repository keeps local development compatible when the tokens are unset, but production deployments should set all production secrets and rotate any values that have been exposed in local `.env` files.
-
-## Runtime Governance Notes (2026-05-22)
-
-The 2026-05-22 governance pass keeps the 2号机 deployment and the Git repository aligned around one startup and environment stack:
-
-- systemd owns only `octoagent-local.service`; the unit delegates startup and shutdown to `scripts/start-octoagent.sh` without separate `ExecStartPre` helper scripts or drop-ins
-- `scripts/start-octoagent.sh run` performs repository-owned runtime preparation, then starts every OctoAgent component through `scripts/start-daemon.sh`
-- Python entrypoints use `backend/.venv/bin/python` through `OCTOAGENT_PYTHON_BIN`; LangGraph, Gateway, nginx config rendering, and frontend build helpers share that same backend environment
-- former host helper scripts `octoagent-monitor.sh` and `octoagent-cleanup.sh` live under `scripts/` and are repository-scoped
-- cleanup removes repository caches, pyc files, temporary files, and stale `/tmp/octoagent*` probes while preserving required dependency/runtime stores such as `backend/.venv`, `frontend/node_modules`, and production `.next` assets
-
-## Full Repair And Verification Notes (2026-05-11)
-
-## Autonomous Capability Enhancement Notes (2026-05-16)
-
-The 2026-05-16 pass adds a built-in system operations tool layer for autonomous
-agent work: runtime health reports, masked security scanning, configuration
-drift snapshots/checks, and local media metadata probing. These tools complement
-the existing cron, hook, memory, subagent, workflow, Codex CLI, image processing,
-document conversion, and web acquisition surfaces without adding another runtime
-service or external daemon.
-
-See [project_docs/docs/P24_AUTONOMOUS_AGENT_CAPABILITY_ENHANCEMENT_2026-05-16.md](project_docs/docs/P24_AUTONOMOUS_AGENT_CAPABILITY_ENHANCEMENT_2026-05-16.md).
-
-## Confirmation And Letta Memory Notes (2026-05-16)
-
-Dangerous host-level abilities are now available through explicit user
-confirmation rather than being globally unavailable. Letta-style core memory
-blocks and archival memory are integrated into the existing OctoAgent memory
-stack without adding a separate Letta service.
-
-See [project_docs/docs/P25_CONFIRMATION_AND_LETTA_MEMORY_INTEGRATION_2026-05-16.md](project_docs/docs/P25_CONFIRMATION_AND_LETTA_MEMORY_INTEGRATION_2026-05-16.md).
-
-## Context Runtime And Repository Sync Notes (2026-05-15)
-
-The 2026-05-15 pass repaired the long-context local-model failure mode found in
-the latest historical LangGraph thread, normalised runtime identity and writable
-path ownership for the `sieve-pub` daemon user, configured Google provider
-credentials in local ignored `.env`, and cleared the backend Ruff/PEP8 baseline.
-
-Source and tests remain tracked for repository sync; local runtime state under
-`backend/runtime/` and `workspace/self_evolution/` is intentionally ignored.
-See [project_docs/docs/P21_CONTEXT_RUNTIME_AND_REPOSITORY_SYNC_2026-05-15.md](project_docs/docs/P21_CONTEXT_RUNTIME_AND_REPOSITORY_SYNC_2026-05-15.md).
-
-The 2026-05-11 repair pass hardens the local production path and records a fresh validation baseline:
-
-- model fallback, subagent/workflow wiring, and tool recovery were repaired and covered by backend tests
-- SSRF-safe web fetch behavior now validates private/internal network addresses and redirects fail closed
-- sidebar width cookie handling no longer causes hydration mismatch on first client render
-- root layout includes stale Next chunk recovery for failed `/_next/static/` script or CSS loads
-- CLI and Makefile smoke entrypoints now expose safe help output and run their documented checks
-- `run_webui_smoke.py` honors configured navigation timeout for cold Next.js dev compiles
-- `/workspace/agents/new` form controls now have accessible names and non-interactive status indicators are no longer focusable buttons
-- real WebUI verification covered chat, configuration, agent, workflow, management, 320px reflow, skip link, hydration, chunk recovery, and forced-colors mode
-
-See [project_docs/docs/P18_FULL_SYSTEM_REPAIR_AND_VERIFICATION_2026-05-11.md](project_docs/docs/P18_FULL_SYSTEM_REPAIR_AND_VERIFICATION_2026-05-11.md) for the validation matrix.
-
-## System Linkage And Long Execution Notes (2026-05-12)
-
-The 2026-05-12 pass connects management surfaces to real runtime inventory and
-improves long-running task continuity:
-
-- `/workspace/agents` now shows custom agents and installed skill-exported
-	agent templates; templates create custom copies before chat or workflow use.
-- MCP add/update/delete uses single-server APIs, and unresolved environment
-	variables are surfaced in readiness status.- Plugin cards no longer expose a fake edit action; the real supported actions
-	are install, enable, disable, and uninstall.
-- Workflow agent selectors use executable custom agents only.
-- Session compaction stores a runtime checkpoint and injects it into later turns
-	so long tasks can continue after older dialogue is compressed.
-
-See [project_docs/docs/P19_SYSTEM_LINKAGE_AND_LONG_EXECUTION_REPAIR_2026-05-12.md](project_docs/docs/P19_SYSTEM_LINKAGE_AND_LONG_EXECUTION_REPAIR_2026-05-12.md) for the repair report and verification snapshot.
-
-## Runtime Speed And Stability Notes (2026-05-07)
-
-The 2026-05-07 pass makes WebUI dialogue cheaper to render and cheaper to answer:
-
-- Flash-mode simple turns skip the extra client pre-planning request unless execution, file, repository, or system work is detected.
-- Flash-mode dialogue is pinned to the fast free model path and ignores stale slow-model browser overrides such as `nemotron-3-super-free`.
-- Dialogue routing now classifies each turn as `direct_answer`, `current_snapshot`, `current_research`, `tool_action`, or `deep_agent`. The route controls model choice, prompt depth, tool binding, and memory writes.
-- Short flash-mode turns skip heavy memory summarisation unless the user explicitly asks the system to remember a preference or fact.
-- Current weather and X/Twitter trend requests use compact server snapshots; weather snapshots are resolved per city with Open-Meteo retries and a `wttr.in` fallback.
-- Snapshot-backed turns can now answer directly from the structured runtime payload without making an LLM call. This keeps simple weather/trend tasks bounded by data-fetch latency instead of model latency.
-- Long chat histories render a bounded active window by default, with an explicit "show earlier messages" control for old turns. This keeps browser DOM, markdown, and streaming work bounded during long sessions.
-- Stream watchdog timers are cleared both when server messages arrive and when the SDK reports the run is no longer loading.
-- Model routing keeps failed or quota-exhausted models on a short persistent cooldown and falls back automatically.
-- `make stop` drains local nginx, gateway, frontend, LangGraph, stale port listeners, and stale `backend/.langgraph_api` state before a clean restart.
-
-## Runtime Stability Notes (2026-04-29)
-
-The current chat runtime hardening pass focuses on long-running conversation stability, context-window safety, and real-browser regression coverage.
-
-### Chat And Context Safety
-
-| Area | Current behavior |
+| 路径 | 内容 |
 | --- | --- |
-| Tool registry | `web_search` is registered as a first-class tool alias and duplicate tool names are rejected before execution. |
-| Context guard | Oversized tool, human, and assistant messages are safely truncated before model calls that would exceed context limits. |
-| UI observability | Host memory pressure and context-window trimming are reported separately so context truncation is not shown as a memory-guard failure. |
-| Subtask state | Ordinary tools no longer write into the subtask store; only `task` tool calls are mirrored as subtasks. |
-| Long conversation rendering | The message list uses ordinary scrolling plus `content-visibility` containment. A 520-message browser scroll regression is passing, so no virtual list is currently required. |
+| `backend/src/agents` | LangGraph Agent Runtime |
+| `backend/src/harness` | 能力、权限、执行、trace、产物、记忆 |
+| `backend/src/gateway` | 同进程 FastAPI 控制接口 |
+| `frontend` | WebUI |
+| `runtime` | 挂载的配置、工具目录和 Markdown 记忆 |
+| `skills` | 内置 Skill |
+| `compose.yaml` | 唯一生产拓扑 |
 
-### Runtime Persistence And Permissions
+## 许可证与联系
 
-| Area | Current behavior |
-| --- | --- |
-| LangGraph checkpointer | PostgreSQL is authoritative and exposes delete/copy/prune maintenance hooks. |
-| Maintenance telemetry | Checkpointer maintenance calls now log and expose per-operation counters through the wrapper. |
-| Runtime directories | App-server startup repairs writable bind mounts and validates their effective owner. |
-| nginx | The production container uses one app-server upstream and a read-only template mount. |
+项目采用 SSPL v1 与商业许可双重授权；Bytedance 派生部分继续遵循
+MIT，详情见 [LICENSE](LICENSE)、[NOTICE.md](NOTICE.md) 和
+[商业许可 FAQ](docs/COMMERCIAL_LICENSE_FAQ.md)。
 
-### Web Fetch TLS Handling
-
-`web_fetch` (`backend/src/community/ddg/tools.py`) and `scrapling_fetch`
-(`backend/src/community/scrapling/tools.py`) verify TLS certificates by default.
-For `web_fetch`, OctoAgent builds an explicit verification context using
-`truststore` when available and falls back to `certifi`; this follows HTTPX's
-official `verify=<SSLContext>` path. For Scrapling/curl-cffi, the tool uses
-the official requests-style `verify` option.
-
-Some public sites serve an incomplete certificate chain. When the first request
-fails specifically with certificate verification errors, OctoAgent retries the
-same public URL with certificate verification disabled, matching the documented
-HTTPX/curl-cffi `verify=False` escape hatch. Results are marked so the model and
-user can see the downgrade: `web_fetch` prepends a TLS warning, and
-`scrapling_fetch` returns `tls_verification=disabled_after_certificate_error`.
-
-Operators can disable the insecure retry with
-`OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY=0` or
-`OCTO_SCRAPLING_ALLOW_INSECURE_SSL_RETRY=0`. `OCTO_WEB_FETCH_SSL_VERIFY=0`
-disables the initial verified HTTPX context entirely and should only be used for
-controlled local debugging.
-
-### Browser Regression Coverage
-
-`make smoke-chat-regression` now exercises the real WebUI through nginx and LangGraph:
-
-- new chat shell
-- stale thread route recovery
-- continuation route shell
-- ordinary tool-call history
-- `web_search -> web_fetch/read_webpage` history
-- context guard visible notice
-- multi-turn and continuation history
-- 520-message long-scroll pressure
-- right-side Artifact and execution panel desktop/mobile screenshots
-
-The command writes local-only artifacts that are intentionally ignored by Git:
-
-- `backend/reports/chat-regression-trends.jsonl`
-- `backend/screenshots/right-panel-visual/`
-
-## Local Verification Commands
-
-Project pages now use a server-owned execution contract. See [Projects](docs/PROJECTS.md) for workspace mapping, model precedence, permission ceilings, SQLite migration, and lifecycle rules.
-
-Use these commands before merging runtime or UI changes:
-
-```bash
-cd backend && make lint
-cd backend && .venv/bin/python -m compileall -q src scripts
-cd backend && .venv/bin/python scripts/run_system_doctor.py --skip-git
-cd backend && .venv/bin/python scripts/run_system_execution_security_smoke.py
-cd backend && .venv/bin/python scripts/run_operator_module_closure_smoke.py
-cd backend && .venv/bin/python scripts/run_release_readiness_contract_smoke.py
-
-cd frontend && pnpm lint
-cd frontend && pnpm typecheck
-cd frontend && pnpm build
-
-make clean-stale-logs
-make smoke-chat-regression
-cd backend && .venv/bin/python scripts/run_webui_smoke.py --frontend-url http://127.0.0.1:19800 --gateway-url http://127.0.0.1:19800 --timeout-seconds 180
-make operator-release
-make release-readiness
-```
-
-Source-level test trees were intentionally removed by operator policy. Release confidence now relies on compile/lint/build, doctor/API contract smoke, real browser smoke, bounded or long soak, system-execution security smoke, release-readiness contract smoke, and the strict `make release-readiness` evidence gate. CI also runs `chat-regression` and uploads browser screenshots, trend JSONL, and runtime logs as the `chat-regression-artifacts` artifact.
-
-## Operational Notes
-
-System log rotation is managed by logrotate via [deploy/system/logrotate.d/octoagent](deploy/system/logrotate.d/octoagent). Install it once with:
-
-```bash
-sudo install -o root -g root -m 0644 deploy/system/logrotate.d/octoagent /etc/logrotate.d/octoagent
-sudo logrotate -d /etc/logrotate.d/octoagent
-```
-
-For local verification, `make clean-stale-logs` truncates old runtime logs so current scans are not polluted by historical errors.
-
-— Updated 2026-05-22
+- Bug 与功能建议：GitHub Issues
+- 安全问题与商业许可：`zillafan80@gmail.com`

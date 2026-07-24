@@ -85,8 +85,6 @@ def test_effective_fallbacks_add_non_paid_matching_candidates(monkeypatch) -> No
         "get_app_config",
         lambda: _FakeConfig([primary, paid_candidate, non_thinking_candidate, free_candidate]),
     )
-    monkeypatch.setattr(factory, "_embedded_backup_enabled", lambda: False)
-
     fallbacks = factory.resolve_effective_fallback_model_names(
         "gemini-3.1-pro-preview",
         thinking_enabled=True,

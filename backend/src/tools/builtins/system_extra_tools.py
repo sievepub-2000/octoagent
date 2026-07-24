@@ -1059,7 +1059,7 @@ def awesome_selfhosted_tool(query: str = "", category: str = "", max_results: in
 
 @tool("octo_doctor", parse_docstring=True)
 def octo_doctor_tool(include_repairs: bool = False) -> str:
-    """Unified OctoAgent doctor for MCP, skills, hooks, plugins, RAG, tools, and services.
+    """Unified OctoAgent doctor for Harness capabilities, memory, and services.
 
     Args:
         include_repairs: If true, perform safe repair checks only; destructive repairs still require separate system approval tools.
@@ -1085,7 +1085,11 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
         checks["skills"] = {"configured": len(data.get("skills", {})), "enabled": sum(1 for v in data.get("skills", {}).values() if v.get("enabled", True))}
         checks["hooks"] = {"configured": len(data.get("hooks", {})), "enabled": sum(1 for v in data.get("hooks", {}).values() if v.get("enabled", True))}
     checks["harness_api"] = _run(_cmd("curl") + ["-sS", "--max-time", "5", "http://127.0.0.1:19802/api/harness"], timeout=8, tool_name="octo_doctor", artifact=False)
-    checks["rag_dirs"] = {"runtime": str(_REPO_ROOT / "runtime"), "storage_exists": (_REPO_ROOT / "backend" / "src" / "storage" / "rag").exists()}
+    checks["memory"] = {
+        "markdown_root": str(_REPO_ROOT / "runtime" / "memory"),
+        "source_format": "markdown",
+        "retrieval_index": "postgres-pgvector",
+    }
     if include_repairs:
         checks["repair_note"] = "Safe checks completed. Use specific system tools with chat approval for service restarts, installs, Docker/SSH/Git writes, or database migrations."
     return _json({"generated_at": _now(), "checks": checks})

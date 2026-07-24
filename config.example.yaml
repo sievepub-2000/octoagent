@@ -490,39 +490,6 @@ memory:
 #             - shutdown
 
 # ============================================================================
-# Embedded Tiny-Model Bootstrap Runtime
-# ============================================================================
-# Recommended for ARM/CPU-first local deployment.
-# This embeds a tiny GGUF model inside OctoAgent for:
-# - first-run onboarding guidance
-# - lightweight semantic retrieval
-# - offline-safe startup assistance
-#
-# Recommended profile:
-# - framework: llama_cpp
-# - repo_id: lmstudio-community/gemma-3-270m-it-GGUF
-# - filename: gemma-3-270m-it-Q4_K_M.gguf
-#
-# embedded_model:
-#   project_managed: true
-#   enabled: true
-#   framework: llama_cpp
-#   repo_id: lmstudio-community/gemma-3-270m-it-GGUF
-#   filename: gemma-3-270m-it-Q4_K_M.gguf
-#   cache_dir: deploy/system/bootstrap/models
-#   vector_store_path: deploy/system/bootstrap/bootstrap_vectors.duckdb
-#   onboarding_enabled: true
-#   use_for_embeddings: true
-#   auto_download: false
-#   n_ctx: 8192
-#   n_batch: 256
-#   n_threads: 8
-#   max_tokens: 256
-#   temperature: 0.2
-#   top_p: 0.9
-#   retrieval_top_k: 4
-
-# ============================================================================
 # System Guard (Startup Self-Check / Self-Repair / Lifecycle Persistence)
 # ============================================================================
 # Persists startup/shutdown snapshots into a DuckDB-backed vector store,

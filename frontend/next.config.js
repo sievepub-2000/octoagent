@@ -13,6 +13,7 @@ const allowedDevOrigins = (process.env.NEXT_ALLOWED_DEV_ORIGINS || "192.168.110.
 const config = {
   devIndicators: false,
   distDir: process.env.NEXT_DIST_DIR || ".next",
+  output: "standalone",
   allowedDevOrigins,
 };
 

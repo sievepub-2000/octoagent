@@ -121,7 +121,6 @@ class OctoAgentClient:
         thinking_enabled: bool = False,
         subagent_enabled: bool = False,
         plan_mode: bool = False,
-        agent_runtime_provider: str | None = None,
     ):
         """Initialize the client.
 
@@ -136,9 +135,6 @@ class OctoAgentClient:
             thinking_enabled: Enable model's extended thinking.
             subagent_enabled: Enable subagent delegation.
             plan_mode: Enable TodoList middleware for plan mode.
-            agent_runtime_provider: Runtime provider name. Legacy values are
-                normalized to the LangGraph path; LangGraph is the only active
-                runtime provider.
         """
         if config_path is not None:
             reload_app_config(config_path)
@@ -149,7 +145,6 @@ class OctoAgentClient:
         self._thinking_enabled = thinking_enabled
         self._subagent_enabled = subagent_enabled
         self._plan_mode = plan_mode
-        self._agent_runtime_provider = None if agent_runtime_provider in {None, "", "langgraph"} else "langgraph"
 
         # Lazy agent — created on first call, recreated when config changes.
         self._agent = None
@@ -462,7 +457,6 @@ class OctoAgentClient:
                     "supports_vision": _as_bool(getattr(model, "supports_vision", False)),
                     "fallback_models": _as_str_list(getattr(model, "fallback_models", [])),
                     "max_context_tokens": _as_optional_int(getattr(model, "max_context_tokens", None)),
-                    "is_embedded_backup": False,
                 }
                 for model in self._app_config.models
             ]
@@ -521,7 +515,6 @@ class OctoAgentClient:
             "supports_vision": _as_bool(getattr(model, "supports_vision", False)),
             "fallback_models": _as_str_list(getattr(model, "fallback_models", [])),
             "max_context_tokens": _as_optional_int(getattr(model, "max_context_tokens", None)),
-            "is_embedded_backup": False,
         }
 
     # ------------------------------------------------------------------

@@ -81,7 +81,6 @@ export OCTOAGENT_MANAGE_TTYD="${OCTOAGENT_MANAGE_TTYD:-0}"
 # Set to 1 to pre-initialize the backend at daemon startup.
 # When unset (default: 0), the corresponding backend loads lazily on first use.
 # ---------------------------------------------------------------------------
-export OCTOAGENT_EMBEDDING_ENABLED="${OCTOAGENT_EMBEDDING_ENABLED:-0}"
 export OCTOAGENT_STT_ENABLED="${OCTOAGENT_STT_ENABLED:-0}"
 export OCTOAGENT_SEARCH_ENABLED="${OCTOAGENT_SEARCH_ENABLED:-0}"
 
@@ -667,17 +666,10 @@ fi
 
 # ── On-demand optional service initialization ─────────────────────────────
 #
-# These backends are lazy-loaded by default (see OCTOAGENT_EMBEDDING_ENABLED,
-# OCTOAGENT_STT_ENABLED, OCTOAGENT_SEARCH_ENABLED). When set to 1, we trigger
+# These backends are lazy-loaded by default (see OCTOAGENT_STT_ENABLED and
+# OCTOAGENT_SEARCH_ENABLED). When set to 1, we trigger
 # an eager init here so the first user request does not pay the cold-start cost.
 #
-if [ "${OCTOAGENT_EMBEDDING_ENABLED}" = "1" ]; then
-    echo "Eager-init: embedding backend (OCTOAGENT_EMBEDDING_ENABLED=1)"
-    "$OCTOAGENT_PYTHON_BIN" -c "from src.models.embedding_service import get_embedding_service; _ = get_embedding_service()" 2>/dev/null || true
-else
-    echo "Skipping eager embedding init (set OCTOAGENT_EMBEDDING_ENABLED=1 to enable)."
-fi
-
 if [ "${OCTOAGENT_STT_ENABLED}" = "1" ]; then
     echo "Eager-init: whisper STT backend (OCTOAGENT_STT_ENABLED=1)"
     "$OCTOAGENT_PYTHON_BIN" -c "from src.gateway.routers.transcription import router as _t" 2>/dev/null || true

@@ -144,21 +144,11 @@ L3_MCP_PLUGIN_TOOLS: dict[str, list[BaseTool]] = {
 }
 
 
-def _load_dynamic_tools() -> list[BaseTool]:
-    """Sprint-3: include any self-evolution-promoted dynamic tools."""
-    try:
-        from src.storage.self_evolution.dynamic_tools import list_dynamic_tools
-
-        return list(list_dynamic_tools())
-    except Exception:  # pragma: no cover — never block boot on dynamic tools
-        return []
-
-
 # ---------------------------------------------------------------------------
 # Backwards-compat alias
 # ---------------------------------------------------------------------------
 
-BUILTIN_TOOLS: list[BaseTool] = BUILTIN_TOOLS_CORE + (OPENHARNESS_COMPAT_TOOLS if _openharness_compat_enabled() else []) + _load_dynamic_tools()
+BUILTIN_TOOLS: list[BaseTool] = BUILTIN_TOOLS_CORE + (OPENHARNESS_COMPAT_TOOLS if _openharness_compat_enabled() else [])
 
 SUBAGENT_TOOLS: list[BaseTool] = [task_tool]
 

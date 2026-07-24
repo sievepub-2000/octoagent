@@ -33,7 +33,6 @@ import {
   useExecuteWorkspaceCliCommand,
   usePlanSystemExecution,
   useRuntimeDoctor,
-  useRuntimeProviderHealth,
   useSystemExecutionAudit,
   useSystemExecutionCapabilities,
   useSystemExecutionConfig,
@@ -58,7 +57,6 @@ export function SystemExecutionSettingsPage() {
   const { capability, isLoading, error } = useSystemExecutionCapabilities();
   const { config } = useSystemExecutionConfig();
   const { doctor } = useRuntimeDoctor();
-  const { providerHealth } = useRuntimeProviderHealth();
   const planMutation = usePlanSystemExecution();
   const sessionMutation = useCreateSystemExecutionSession();
   const workspaceCliMutation = useExecuteWorkspaceCliCommand();
@@ -350,47 +348,6 @@ export function SystemExecutionSettingsPage() {
                     {check.recommendation ? <p className="mt-1 text-[11px] text-foreground">{check.recommendation}</p> : null}
                   </div>
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Runtime Provider Health */}
-          <Card variant="compact">
-            <CardHeader>
-              <CardTitle>Agent Runtime Providers</CardTitle>
-              <CardDescription>SDK installation and availability status for each registered agent runtime provider.</CardDescription>
-              <CardAction>
-                {providerHealth ? (
-                  <Badge
-                    variant={Object.values(providerHealth.providers).every((p) => p.available) ? "default" : "secondary"}
-                    className="text-xs"
-                  >
-                    {Object.values(providerHealth.providers).filter((p) => p.available).length}/{Object.keys(providerHealth.providers).length} available
-                  </Badge>
-                ) : null}
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {providerHealth
-                  ? Object.entries(providerHealth.providers).map(([name, info]) => (
-                      <div key={name} className="rounded-lg bg-muted/20 p-2.5">
-                        <div className="flex items-center justify-between gap-2">
-                          <div className="text-xs font-medium">{name === "langgraph" ? "LangGraph" : name}</div>
-                          <Badge variant={info.available ? "default" : "destructive"} className="text-[10px]">{info.available ? "available" : info.detail}</Badge>
-                        </div>
-                        {info.sdk_info && typeof info.sdk_info === "object" ? (
-                          <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                            {Object.entries(info.sdk_info).map(([k, v]) => (
-                              <span key={k}>{k}: <span className="font-mono text-foreground">{String(v)}</span></span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="mt-1 text-xs text-muted-foreground">{info.detail}</p>
-                        )}
-                      </div>
-                    ))
-                  : <p className="text-xs text-muted-foreground">Loading provider health…</p>}
               </div>
             </CardContent>
           </Card>

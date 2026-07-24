@@ -30,7 +30,6 @@ from .kernel import OctoLeadAgentKernel
 from .prompt import apply_prompt_template
 from .runtime import (
     LeadAgentRuntimeResolver,
-    embedded_backup_system_prompt,
     runtime_config_value,
 )
 
@@ -52,8 +51,7 @@ def _resolve_model_name(requested_model_name: str | None = None) -> str:
     app_config = get_app_config()
     default_model_name = resolve_configured_default_model_name(model.name for model in app_config.models)
     if default_model_name is None:
-        logger.warning("No configured chat model found; embedded bootstrap model will be used as emergency default.")
-        return "__embedded_bootstrap__"
+        raise ValueError("No chat model is configured")
 
     if requested_model_name and app_config.get_model_config(requested_model_name):
         return requested_model_name
@@ -203,7 +201,6 @@ def _build_middlewares(config: RunnableConfig, model_name: str | None, agent_nam
 
     _SKIP_FOR_FAST = {
         SessionCompactionMiddleware,
-        MemoryMiddleware,
         ToolExecutionGuardMiddleware,
         TitleMiddleware,
     }
@@ -301,7 +298,6 @@ def make_lead_agent(config: RunnableConfig):
             apply_prompt_template_fn=apply_prompt_template,
             state_schema=ThreadState,
             setup_agent_tool=setup_agent,
-            embedded_backup_prompt_fn=embedded_backup_system_prompt,
         ),
     )
     return kernel.build(config)

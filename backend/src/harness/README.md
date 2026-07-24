@@ -17,7 +17,6 @@ Active parts:
 - `reflection/`: import/class resolution used by plugins and model providers.
 - `budget.py`: model-turn and wall-clock limits.
 - `artifact_governance.py`: runtime artifact retention and cleanup.
-- `work_bus.py`: live event fan-out plus PostgreSQL terminal trace archive.
 
 There is no separate Tools Hub, Brain, QueryEngine, TaskWorkspace planner,
 generic maintenance agent, Redis event bus, or second memory writer.

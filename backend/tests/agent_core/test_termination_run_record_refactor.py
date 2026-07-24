@@ -9,21 +9,11 @@ import pytest
 
 from src.agents.core import termination as termination_module
 from src.agents.core.run_record_store import append_run_record, list_run_records
-from src.agents.middlewares import skill_evolution_middleware
 
 
 def test_public_continuation_detector_is_re_exported():
     assert hasattr(termination_module, "is_continuation_announcement")
     assert callable(termination_module.is_continuation_announcement)
-    # Skill-evolution wrapper must delegate to the central detector.
-    assert (
-        skill_evolution_middleware._looks_like_unfinished_action_announcement.__wrapped__  # type: ignore[attr-defined]
-        if hasattr(
-            skill_evolution_middleware._looks_like_unfinished_action_announcement,
-            "__wrapped__",
-        )
-        else True
-    )
 
 
 @pytest.mark.parametrize(
@@ -37,8 +27,6 @@ def test_public_continuation_detector_is_re_exported():
 )
 def test_central_detector_matches_legacy(text: str, expected: bool):
     assert termination_module.is_continuation_announcement(text) is expected
-    # Skill-evolution module-local wrapper must agree.
-    assert skill_evolution_middleware._looks_like_unfinished_action_announcement(text) is expected
 
 
 def test_append_run_record_persists_run_id(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

@@ -13,7 +13,6 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.runtime.config.checkpointer_config import CheckpointerConfig, load_checkpointer_config_from_dict
-from src.runtime.config.embedded_model_config import load_embedded_model_config_from_dict
 from src.runtime.config.extensions_config import ExtensionsConfig
 from src.runtime.config.integrations_config import load_integrations_config_from_dict
 from src.runtime.config.memory_config import load_memory_config_from_dict
@@ -101,7 +100,6 @@ SUBCONFIG_LOADERS = {
     "summarization": load_summarization_config_from_dict,
     "memory": load_memory_config_from_dict,
     "integrations": load_integrations_config_from_dict,
-    "embedded_model": load_embedded_model_config_from_dict,
     "subagents": load_subagents_config_from_dict,
     "system_guard": load_system_guard_config_from_dict,
     "checkpointer": load_checkpointer_config_from_dict,

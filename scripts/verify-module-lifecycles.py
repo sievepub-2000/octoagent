@@ -85,7 +85,6 @@ def main() -> int:
         "skill": f"codex-audit-skill-{suffix}",
         "mcp": f"codex-audit-mcp-{suffix}",
         "agent": f"codex-audit-agent-{suffix}",
-        "tenant": f"codex-audit-tenant-{suffix}",
     }
     created: dict[str, str] = {}
     passed: list[str] = []
@@ -283,43 +282,6 @@ def main() -> int:
         api.call("GET", f"/api/projects/{project_id}", expected=(404,))
         passed.append("projects")
 
-        # Multi-tenant governance.
-        policy = {
-            "workspace_isolation": "directory",
-            "data_isolation": "tenant",
-            "skill_sharing": "private",
-            "max_concurrent_workspaces": 2,
-            "max_agents_per_workspace": 3,
-        }
-        api.call(
-            "POST",
-            "/api/tenants",
-            {
-                "tenant_id": names["tenant"],
-                "display_name": "CRUD audit",
-                "tier": "free",
-            },
-            expected=(201,),
-        )
-        created["tenant"] = names["tenant"]
-        assert (
-            api.call("GET", f"/api/tenants/{names['tenant']}")["tenant"]["tenant_id"]
-            == names["tenant"]
-        )
-        api.call("PUT", f"/api/tenants/{names['tenant']}/policy", policy)
-        assert (
-            api.call("GET", f"/api/tenants/{names['tenant']}")["policy"][
-                "max_agents_per_workspace"
-            ]
-            == 3
-        )
-        api.headers["X-OctoAgent-Confirmation"] = "CONFIRM DELETE TENANT"
-        api.call("DELETE", f"/api/tenants/{names['tenant']}", expected=(204,))
-        api.headers.pop("X-OctoAgent-Confirmation", None)
-        created.pop("tenant")
-        api.call("GET", f"/api/tenants/{names['tenant']}", expected=(404,))
-        passed.append("tenants")
-
         # Built-in plugin registry lifecycle, with exact original state restored.
         manifests = api.call("GET", "/api/plugins/manifests")["manifests"]
         registry = api.call("GET", "/api/plugins/registry")["entries"]
@@ -416,15 +378,6 @@ def main() -> int:
                 api.headers.pop("X-OctoAgent-Confirmation", None)
             except Exception as exc:  # noqa: BLE001
                 print(f"cleanup warning: project: {exc}", file=sys.stderr)
-        if "tenant" in created:
-            try:
-                api.headers["X-OctoAgent-Confirmation"] = "CONFIRM DELETE TENANT"
-                api.call(
-                    "DELETE", f"/api/tenants/{names['tenant']}", expected=(204, 404)
-                )
-            except Exception as exc:  # noqa: BLE001
-                print(f"cleanup warning: tenant: {exc}", file=sys.stderr)
-
     print(
         json.dumps({"ok": True, "passed": passed, "suffix": suffix}, ensure_ascii=False)
     )

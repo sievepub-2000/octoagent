@@ -176,8 +176,4 @@ def _setup_default_metrics(reg: MetricsRegistry) -> None:
     reg.counter("octoagent_requests_total", "Total HTTP requests processed")
     reg.counter("octoagent_task_completed_total", "Total tasks completed")
     reg.counter("octoagent_task_failed_total", "Total tasks failed")
-    reg.gauge("octoagent_active_workspaces", "Number of active task workspaces")
-    reg.gauge("octoagent_active_agents", "Number of agents currently running")
     reg.histogram("octoagent_request_duration_seconds", "HTTP request duration in seconds")
-    reg.counter("octoagent_skill_evolutions_total", "Total skill evolutions performed")
-    reg.counter("octoagent_reflection_observations_total", "Total reflection observations recorded")

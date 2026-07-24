@@ -1,14 +1,18 @@
 # OctoAgent Domain Context
 
 OctoAgent is a self-hosted agent system with two public Modules. Agent Runtime
-owns model turns and durable Project/Task/Run/RunEvent data. Harness owns every
-capability and execution concern. The Docker-only deployment keeps the root
+owns model turns and native LangGraph thread/run/checkpoint/stream state.
+Harness owns every capability and execution concern. Projects are lightweight
+PostgreSQL metadata attached to those native threads; OctoAgent does not keep a
+second Task/Run/Event state machine. The Docker-only deployment keeps the root
 System Executor physically isolated from the unprivileged application process.
 
 ## Core terms
 
-- **Agent Runtime** is the deep Interface for model execution, LangGraph state,
-  streams, and Project/Task/Run/RunEvent data.
+- **Agent Runtime** is the deep Interface for model execution and native
+  LangGraph thread, run, checkpoint, and stream state.
+- **Project** is PostgreSQL-backed organization and permission metadata. A
+  conversation is a LangGraph thread and an execution is a LangGraph run.
 - **Harness** is the deep Interface for dynamic capability discovery,
   permission dispatch, execution adapters, tracing, artifacts, and memory.
 - **Capability Registry** is a private Harness dictionary rebuilt from live

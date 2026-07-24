@@ -23,18 +23,15 @@ export async function loadRuntimeMaintenanceStatus() {
   return getJSON<RuntimeMaintenanceStatus>("/api/runtime/maintenance/status");
 }
 
+export async function runRuntimeMaintenance() {
+  return postJSON<RuntimeMaintenanceStatus>("/api/runtime/maintenance/run", {});
+}
+
 export async function loadRuntimeRunRecords(input: {
   limit?: number;
   thread_id?: string;
 } = {}) {
   return getJSON<RuntimeRunRecordsResponse>("/api/runtime/run-records", input);
-}
-
-export async function runRuntimeMaintenance(input: {
-  max_checkpoints_per_thread?: number;
-  max_runs_per_thread?: number;
-} = {}) {
-  return postJSON<Record<string, unknown>>("/api/runtime/maintenance/run", input);
 }
 
 export async function loadSystemGuardStatus(limit = 10) {

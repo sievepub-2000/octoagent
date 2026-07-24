@@ -42,26 +42,6 @@ def _hash_file(path: Path | None) -> str | None:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _stable_embedding_from_text(text: str, dim: int = 64) -> list[float]:
-    """Generate an embedding vector for the given text.
-
-    Uses the unified EmbeddingService when available (sentence-transformers / llama.cpp),
-    falling back to SHA-256 deterministic pseudo-embedding otherwise.
-    """
-    try:
-        from src.models.embedding_service import get_embedding_service
-
-        return get_embedding_service().embed_one(text)
-    except Exception:
-        # Fallback: SHA-256 deterministic pseudo-embedding
-        digest = hashlib.sha256(text.encode("utf-8")).digest()
-        vector: list[float] = []
-        for index in range(dim):
-            value = digest[index % len(digest)]
-            vector.append((float(value) / 255.0) * 2 - 1)
-        return vector
-
-
 def _pseudo_embedding_from_text(text: str, dim: int = 64) -> list[float]:
     """Generate a deterministic local-only pseudo embedding.
 
@@ -363,17 +343,7 @@ class SystemGuardService:
 
     def _embedding_for_state(self, state: dict[str, Any]) -> tuple[str, list[float]]:
         content = f"phase={state.get('phase')} default_model={(state.get('config_overview') or {}).get('default_model')} issues={json.dumps(state.get('issues', []), ensure_ascii=False)}"
-        if not self._config.runtime_embeddings_enabled:
-            return content, _pseudo_embedding_from_text(content)
-        try:
-            from src.runtime.bootstrap.runtime import get_embedded_bootstrap_runtime
-
-            runtime = get_embedded_bootstrap_runtime()
-            if runtime.config.enabled and runtime.config.use_for_embeddings and runtime.is_installed():
-                return content, runtime.embed_text(content)
-        except Exception:
-            pass
-        return content, _stable_embedding_from_text(content)
+        return content, _pseudo_embedding_from_text(content)
 
     def _persist_snapshot(self, *, phase: str, state: dict[str, Any]) -> dict[str, Any]:
         content, embedding = self._embedding_for_state(state)

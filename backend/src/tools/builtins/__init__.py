@@ -4,7 +4,6 @@ from ..capability_tools import (
     list_capabilities_tool,
     load_skill_tool,
 )
-from ..self_evolution_tools import propose_self_evolution_tool
 from .bytebot_compat_tools import BYTEBOT_COMPAT_TOOLS
 from .clarification_tool import ask_clarification_tool
 from .codex_cli_tool import codex_cli_tool
@@ -45,7 +44,6 @@ __all__ = [
     "inspect_octoagent_runtime_tool",
     "load_skill_tool",
     "get_plugin_command_tool",
-    "propose_self_evolution_tool",
     "ECOSYSTEM_WORKFLOW_TOOLS",
     "integrated_project_catalog_tool",
     "integrated_workflow_run_tool",

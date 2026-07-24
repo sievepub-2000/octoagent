@@ -23,7 +23,6 @@ export interface Model {
   supports_vision?: boolean;
   fallback_models?: string[];
   max_context_tokens?: number | null;
-  is_embedded_backup?: boolean;
   is_default?: boolean;
 }
 

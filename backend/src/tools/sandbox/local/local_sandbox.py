@@ -189,8 +189,8 @@ class LocalSandbox(Sandbox):
                 await asyncio.to_thread(record_exception_trace, "local_sandbox.execute_command", exc, command=resolved_command, sandbox_id=self.id)
                 raise TimeoutError("Command execution timed out after 600 seconds") from exc
 
-        stdout_text = (stdout or b"").decode().strip("\n")
-        stderr_text = (stderr or b"").decode().strip("\n")
+        stdout_text = (stdout or b"").decode().rstrip("\r\n")
+        stderr_text = (stderr or b"").decode().rstrip("\r\n")
         output = stdout_text
         if stderr_text:
             output += f"\nStd Error:\n{stderr_text}" if output else stderr_text

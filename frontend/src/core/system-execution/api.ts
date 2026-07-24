@@ -120,17 +120,3 @@ export function loadSystemExecutionAudit(sessionId: string) {
 export function loadRuntimeDoctor() {
   return getJSON<RuntimeDoctorResponse>("/api/runtime/doctor");
 }
-
-export interface RuntimeProviderHealthEntry {
-  available: boolean;
-  detail: string;
-  sdk_info?: Record<string, unknown>;
-}
-
-export interface RuntimeProviderHealthResponse {
-  providers: Record<string, RuntimeProviderHealthEntry>;
-}
-
-export function loadRuntimeProviderHealth() {
-  return getJSON<RuntimeProviderHealthResponse>("/api/runtime/provider-health");
-}

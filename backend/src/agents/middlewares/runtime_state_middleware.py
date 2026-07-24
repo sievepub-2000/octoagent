@@ -15,10 +15,6 @@ from langgraph.runtime import Runtime
 from src.agents.subagents.executor import get_subagent_runtime_snapshot
 from src.agents.subagents.policy import is_host_memory_oom_critical
 from src.agents.thread_state import merge_runtime_state
-from src.models.factory import (
-    EMBEDDED_BACKUP_MODEL_NAME,
-    embedded_backup_enabled,
-)
 from src.models.runtime_telemetry import (
     begin_model_runtime_telemetry,
     clear_model_runtime_telemetry,
@@ -320,12 +316,7 @@ class RuntimeStateMiddleware(AgentMiddleware[RuntimeStateMiddlewareState]):
         workflows = state.get("workflows") or []
         _ctx = runtime.context or {}
         continuation_active = bool(continuation) or _ctx.get("continue_trigger") == "continue"
-        fallback_chain = _dedupe(
-            [
-                *self.fallback_models,
-                *([EMBEDDED_BACKUP_MODEL_NAME] if embedded_backup_enabled() else []),
-            ]
-        )
+        fallback_chain = _dedupe(self.fallback_models)
 
         if workflows:
             workflow_resume_state = "resumed" if continuation_active else "loaded"
@@ -344,7 +335,6 @@ class RuntimeStateMiddleware(AgentMiddleware[RuntimeStateMiddlewareState]):
                 "primary_model": self.model_name,
                 "fallback_chain": fallback_chain,
                 "fallback_ready": bool(fallback_chain),
-                "embedded_backup_enabled": embedded_backup_enabled(),
                 "continuation_source": continuation_source,
                 "workflow_resume_state": workflow_resume_state,
                 "memory_guard_state": _compute_memory_guard_state(),

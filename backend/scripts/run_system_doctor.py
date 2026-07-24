@@ -128,19 +128,12 @@ def _contract_checks(*, include_git: bool) -> list[DoctorCheck]:
     )
     checks.append(_timed("channels-api", lambda: _check_channels(client)))
     checks.append(_timed("models-api", lambda: _check_models(client)))
-    checks.append(_timed("task-workspaces-api", lambda: _check_task_workspaces(client)))
     checks.append(_timed("memory-api", lambda: _check_memory(client)))
     checks.append(_timed("capability-policy-api", lambda: _check_capability_policy(client)))
     checks.append(_timed("capability-policy-export-api", lambda: _check_capability_policy_export(client)))
     checks.append(_timed("capability-policy-precheck-api", lambda: _check_capability_policy_precheck(client)))
-    checks.append(_timed("runtime-provider-contract-api", lambda: _check_provider_contract(client)))
     checks.append(_timed("runtime-long-running-health-api", lambda: _check_long_running_health(client)))
     checks.append(_timed("runtime-maintenance-api", lambda: _check_runtime_maintenance(client)))
-    checks.append(_timed("langgraph-contract-api", lambda: _check_langgraph_contract(client)))
-    checks.append(_timed("workflow-langgraph-contract-smoke", lambda: _check_workflow_langgraph_contract_smoke()))
-    checks.append(_timed("query-engine-maintenance-api", lambda: _check_query_engine_maintenance(client)))
-    checks.append(_timed("distributed-execution-api", lambda: _check_distributed_execution(client)))
-    checks.append(_timed("multi-tenant-api", lambda: _check_multi_tenant(client)))
     return checks
 
 
@@ -154,7 +147,7 @@ def _check_runtime_doctor(client: TestClient) -> str:
     payload = _json(client, "/api/runtime/doctor")
     checks = payload.get("checks") or []
     ids = {item.get("id") for item in checks if isinstance(item, dict)}
-    required = {"config", "models", "capability-registry", "capability-binding-contract", "channels", "runtime-provider"}
+    required = {"config", "models", "capability-registry", "capability-binding-contract", "channels", "langgraph-state"}
     missing = sorted(required - ids)
     _expect(not missing, f"runtime doctor missing checks: {missing}")
     _expect(payload.get("overall_status") in {"ok", "warn", "fail"}, f"invalid doctor status: {payload}")
@@ -199,13 +192,6 @@ def _check_models(client: TestClient) -> str:
     return f"models={len(models)}"
 
 
-def _check_task_workspaces(client: TestClient) -> str:
-    payload = _json(client, "/api/task-workspaces")
-    workspaces = payload.get("workspaces")
-    _expect(isinstance(workspaces, list), "task workspaces payload must contain workspaces list")
-    return f"workspaces={len(workspaces)}"
-
-
 def _check_memory(client: TestClient) -> str:
     payload = _json(client, "/api/memory/status")
     _expect(isinstance(payload, dict), "memory status must be an object")
@@ -235,25 +221,17 @@ def _check_capability_policy_precheck(client: TestClient) -> str:
     return f"policies={payload.get('policy_count')}, deny={payload.get('deny_count')}, audit_only={payload.get('audit_only_count')}"
 
 
-def _check_provider_contract(client: TestClient) -> str:
-    payload = _json(client, "/api/runtime/provider-contracts")
-    providers = payload.get("providers") or {}
-    _expect(isinstance(providers, dict), "providers must be a mapping")
-    _expect(payload.get("default_provider"), "default provider missing")
-    return f"default={payload.get('default_provider')}, providers={list(providers.keys())}"
-
-
 def _check_long_running_health(client: TestClient) -> str:
     payload = _json(client, "/api/runtime/long-running-health")
     snapshot = payload.get("snapshot") or {}
     _expect("memory" in snapshot, "memory metrics missing")
     _expect("disk" in snapshot, "disk metrics missing")
     _expect("worker_isolation" in snapshot, "worker isolation metrics missing")
-    _expect("langgraph_contract" in snapshot, "langgraph contract metrics missing")
+    _expect("langgraph_state" in snapshot, "LangGraph PostgreSQL state metrics missing")
     return (
         f"disk_free_gb={(snapshot.get('disk') or {}).get('free_gb')}, "
         f"queue={(snapshot.get('worker_isolation') or {}).get('total_queued')}, "
-        f"checkpoints={(snapshot.get('langgraph_contract') or {}).get('checkpoint_count')}, "
+        f"checkpoints={(snapshot.get('langgraph_state') or {}).get('checkpoint_count')}, "
         f"alerts={len(snapshot.get('alerts') or [])}"
     )
 
@@ -261,57 +239,7 @@ def _check_long_running_health(client: TestClient) -> str:
 def _check_runtime_maintenance(client: TestClient) -> str:
     payload = _json(client, "/api/runtime/maintenance/status")
     _expect("interval_seconds" in payload, "maintenance interval missing")
-    _expect("max_checkpoints_per_thread" in payload, "maintenance checkpoint cap missing")
     return f"running={payload.get('running')}, interval={payload.get('interval_seconds')}"
-
-
-def _check_langgraph_contract(client: TestClient) -> str:
-    payload = _json(client, "/api/runtime/langgraph-contract")
-    _expect("threads" in payload, "contract state missing threads")
-    remote = payload.get("remote_capabilities") or {}
-    threads = remote.get("threads") if isinstance(remote, dict) else {}
-    _expect(isinstance(threads, dict), "remote thread capabilities must be a mapping")
-    return f"threads={len(payload.get('threads') or {})}, remote={threads}"
-
-
-def _check_query_engine_maintenance(client: TestClient) -> str:
-    payload = _json(client, "/api/query-engine/maintenance")
-    _expect("session_count" in payload, "query maintenance snapshot missing session_count")
-    _expect("budgets" in payload, "query maintenance snapshot missing budgets")
-    return f"sessions={payload.get('session_count')}, turns={payload.get('turn_count')}"
-
-
-def _check_workflow_langgraph_contract_smoke() -> str:
-    import asyncio
-
-    from scripts.run_workflow_langgraph_contract_smoke import run
-
-    report = asyncio.run(run(require_remote=False))
-    _expect(report.ok, "workflow LangGraph contract smoke failed")
-    actions = [item["id"] for item in report.checks if str(item.get("id", "")).startswith("lifecycle-")]
-    _expect(len(actions) == 5, f"missing lifecycle actions: {actions}")
-    return f"remote_available={report.remote_available}, actions={actions}"
-
-
-def _check_distributed_execution(client: TestClient) -> str:
-    payload = _json(client, "/api/execution-nodes")
-    _expect(isinstance(payload.get("nodes"), list), "execution nodes must be a list")
-    route = client.post("/api/execution-nodes/route", json={"task_id": "doctor-smoke"})
-    route.raise_for_status()
-    route_payload = route.json()
-    _expect("strategy" in route_payload, "routing response missing strategy")
-    return f"nodes={payload.get('total')}, healthy={payload.get('healthy_count')}, route={route_payload.get('strategy')}"
-
-
-def _check_multi_tenant(client: TestClient) -> str:
-    payload = _json(client, "/api/tenants")
-    _expect(isinstance(payload.get("tenants"), list), "tenants must be a list")
-    governance = _json(client, "/api/tenants/governance")
-    _expect("tenant_count" in governance, "tenant governance missing tenant_count")
-    limit = client.get("/api/tenants/default/limits/workspaces", params={"current_count": 0})
-    limit.raise_for_status()
-    _expect("allowed" in limit.json(), "tenant limit response missing allowed")
-    return f"tenants={payload.get('total')}, audit={len(governance.get('audit_events') or [])}"
 
 
 def _parse_args() -> argparse.Namespace:

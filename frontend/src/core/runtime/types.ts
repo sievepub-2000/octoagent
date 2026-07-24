@@ -6,7 +6,6 @@ export interface RuntimeModelCapability {
   fallback_models: string[];
   max_context_tokens?: number | null;
   effective_fallback_models: string[];
-  embedded_backup_available: boolean;
   degraded_mode_supported: boolean;
 }
 
@@ -35,8 +34,6 @@ export interface RuntimeStatus {
 
 export interface RuntimeCapabilities {
   default_model?: string | null;
-  embedded_backup_model?: string | null;
-  embedded_backup_enabled: boolean;
   models: RuntimeModelCapability[];
   agent_limits: RuntimeAgentLimits;
   runtime_status: RuntimeStatus;
@@ -124,14 +121,11 @@ export interface RuntimeLongRunningHealth {
         avg_wait_ms: number;
       }>;
     };
-    langgraph_contract?: {
+    langgraph_state?: {
+      backend?: string;
       thread_count?: number;
-      task_count?: number;
       checkpoint_count?: number;
-      active_runs?: number;
-      failed_runs?: number;
-      audit_event_count?: number;
-      updated_at?: string;
+      error?: string;
     };
     event_loop?: {
       latency_ms?: number | null;
@@ -143,8 +137,6 @@ export interface RuntimeLongRunningHealth {
 export interface RuntimeMaintenanceStatus {
   running: boolean;
   interval_seconds: number;
-  max_checkpoints_per_thread: number;
-  max_runs_per_thread: number;
   last_run?: Record<string, unknown> | null;
 }
 

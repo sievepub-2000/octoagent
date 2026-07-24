@@ -3,10 +3,14 @@
 from __future__ import annotations
 
 import asyncio
+import os
 from pathlib import Path
 from typing import Any
 
 import pytest
+
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+os.environ.setdefault("OCTO_AGENT_CONFIG_PATH", str(_REPO_ROOT / "config.example.yaml"))
 
 
 @pytest.fixture

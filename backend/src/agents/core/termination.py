@@ -316,7 +316,7 @@ def classify_run_outcome(
 def is_continuation_announcement(text: str) -> bool:
     """Public alias for the continuation-announcement detector.
 
-    Other modules (e.g. ``skill_evolution_middleware``) tag mid-task narration
+    Other middleware may tag mid-task narration
     messages for downstream evolution analysis. They share the exact same
     vocabulary as ``classify_run_outcome``; routing them through this single
     entry point keeps the detector definition in one place.

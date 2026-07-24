@@ -138,46 +138,6 @@ def main() -> int:
 
     steps.append(
         _run_step(
-            name="workflow LangGraph contract lifecycle smoke",
-            command=[str(python_bin), "scripts/run_workflow_langgraph_contract_smoke.py"],
-            cwd=backend_root,
-        )
-    )
-
-    steps.append(
-        _run_step(
-            name="multi-tenant persistence and tenant binding smoke",
-            command=[str(python_bin), "scripts/run_multi_tenant_persistence_smoke.py"],
-            cwd=backend_root,
-        )
-    )
-
-    steps.append(
-        _run_step(
-            name="distributed execution dispatch smoke",
-            command=[str(python_bin), "scripts/run_distributed_dispatch_smoke.py"],
-            cwd=backend_root,
-        )
-    )
-
-    steps.append(
-        _run_step(
-            name="tools hub registration smoke",
-            command=[str(python_bin), "scripts/run_tools_hub_registration_smoke.py"],
-            cwd=backend_root,
-        )
-    )
-
-    steps.append(
-        _run_step(
-            name="query engine replay golden smoke",
-            command=[str(python_bin), "scripts/run_query_engine_replay_golden.py"],
-            cwd=backend_root,
-        )
-    )
-
-    steps.append(
-        _run_step(
             name="bounded long-running runtime soak",
             command=[
                 str(python_bin),
@@ -213,14 +173,6 @@ def main() -> int:
         _run_step(
             name="release readiness evidence manifest contract smoke",
             command=[str(python_bin), "scripts/run_release_readiness_contract_smoke.py"],
-            cwd=backend_root,
-        )
-    )
-
-    steps.append(
-        _run_step(
-            name="operator module closure smoke",
-            command=[str(python_bin), "scripts/run_operator_module_closure_smoke.py"],
             cwd=backend_root,
         )
     )

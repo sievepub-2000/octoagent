@@ -28,7 +28,7 @@ x-backend-env: &backend-env
   OCTOAGENT_OPENAPI_SPEC_URL: http://app-server:${OCTO_APP_SERVER_PORT:-19802}/openapi.json
   OCTO_LANGGRAPH_BASE_URL: http://app-server:${OCTO_APP_SERVER_PORT:-19802}
   OCTOAGENT_SYSTEM_EXECUTOR_URL: http://system-executor:19808
-  OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env}
+  OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env.docker}
   OCTOAGENT_HOST_REPO_ROOT: ${OCTOAGENT_HOST_REPO_ROOT:-/}
   OCTOAGENT_OPENROUTER_APP_URL: ${OCTOAGENT_OPENROUTER_APP_URL:-https://github.com/sievepub-2000/octoagent}
   OCTOAGENT_OPENROUTER_APP_TITLE: ${OCTOAGENT_OPENROUTER_APP_TITLE:-OctoAgent}
@@ -82,7 +82,7 @@ services:
     env_file:
       - .env.docker
     environment:
-      OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env}
+      OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env.docker}
       OCTOAGENT_BACKEND_IMAGE: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -102,14 +102,16 @@ services:
       context: .
       dockerfile: docker/Dockerfile.backend-prod
       network: ${OCTOAGENT_BUILD_NETWORK:-default}
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
       args:
         PYTHON_BASE_IMAGE: ${OCTOAGENT_PYTHON_BASE_IMAGE:-python:3.12-slim}
         NODE_RUNTIME_IMAGE: ${OCTOAGENT_NODE_RUNTIME_IMAGE:-node:22-bookworm-slim}
         DOCKER_CLI_IMAGE: ${OCTOAGENT_DOCKER_CLI_IMAGE:-docker:cli}
         UV_IMAGE: ${OCTOAGENT_UV_IMAGE:-ghcr.io/astral-sh/uv:0.7.20}
-        HTTP_PROXY: ${OCTOAGENT_BUILD_HTTP_PROXY:-}
-        HTTPS_PROXY: ${OCTOAGENT_BUILD_HTTPS_PROXY:-}
-        NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-}
+        HTTP_PROXY: ${OCTOAGENT_BUILD_HTTP_PROXY:-${HTTP_PROXY:-}}
+        HTTPS_PROXY: ${OCTOAGENT_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-}}
+        NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-${NO_PROXY:-}}
         OCTOAGENT_UID: ${OCTOAGENT_UID:-1000}
         OCTOAGENT_GID: ${OCTOAGENT_GID:-1000}
     image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
@@ -145,12 +147,14 @@ services:
       context: .
       dockerfile: docker/Dockerfile.frontend-prod
       network: ${OCTOAGENT_BUILD_NETWORK:-default}
+      extra_hosts:
+        - "host.docker.internal:host-gateway"
       args:
         NODE_FRONTEND_IMAGE: ${OCTOAGENT_NODE_FRONTEND_IMAGE:-node:22-alpine}
         NPM_REGISTRY: ${OCTOAGENT_NPM_REGISTRY:-https://registry.npmjs.org}
-        HTTP_PROXY: ${OCTOAGENT_BUILD_HTTP_PROXY:-}
-        HTTPS_PROXY: ${OCTOAGENT_BUILD_HTTPS_PROXY:-}
-        NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-}
+        HTTP_PROXY: ${OCTOAGENT_BUILD_HTTP_PROXY:-${HTTP_PROXY:-}}
+        HTTPS_PROXY: ${OCTOAGENT_BUILD_HTTPS_PROXY:-${HTTPS_PROXY:-}}
+        NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-${NO_PROXY:-}}
     image: octoagent/frontend:${OCTOAGENT_IMAGE_TAG:-local}
     restart: unless-stopped
     env_file:

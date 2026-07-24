@@ -18,6 +18,7 @@ These tests guard against the regression by asserting:
 from __future__ import annotations
 
 import inspect
+import os
 import threading
 from types import SimpleNamespace
 
@@ -78,14 +79,16 @@ async def test_local_shell_detection_runs_off_event_loop(monkeypatch) -> None:
     """Async command execution must not probe shell permissions on the ASGI loop."""
     event_loop_thread = threading.get_ident()
     shell_threads: list[int] = []
+    expected_shell = os.environ.get("COMSPEC", "cmd.exe") if os.name == "nt" else "/bin/sh"
+    command = "echo ok" if os.name == "nt" else "printf ok"
 
     def get_shell() -> str:
         shell_threads.append(threading.get_ident())
-        return "/bin/sh"
+        return expected_shell
 
     monkeypatch.setattr(LocalSandbox, "_get_shell", staticmethod(get_shell))
     monkeypatch.setattr("src.tools.sandbox.local.local_sandbox.record_tool_trace", lambda *args, **kwargs: None)
     sandbox = LocalSandbox("test")
 
-    assert (await sandbox.execute_command("printf ok")) == "ok"
+    assert (await sandbox.execute_command(command)) == "ok"
     assert shell_threads and shell_threads[0] != event_loop_thread

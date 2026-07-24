@@ -210,17 +210,8 @@ def _save_setup_state(*, workspace_path: str, default_model: str, sandbox_mode: 
 
 
 def _embedding_runtime_hint() -> tuple[str, int]:
-    """Return embedding status without eagerly initializing heavy models."""
-    try:
-        from src.models.embedding_service import get_embedding_service
-
-        service = get_embedding_service()
-        backend = getattr(service, "_backend", None)
-        if backend is None:
-            return "lazy", 0
-        return type(backend).__name__, int(getattr(backend, "dim", 0) or 0)
-    except Exception:
-        return "unavailable", 0
+    """Report the dependency-free Harness memory vectorizer."""
+    return "feature-hash-v1", 384
 
 
 def _save_workspace_env_state(

@@ -122,7 +122,6 @@ def main() -> int:
         endpoints = [
             ("GET", "/api/auth/me", {"headers": headers}),
             ("GET", "/api/models", {"headers": headers}),
-            ("GET", "/api/bootstrap/status", {"headers": headers}),
             ("GET", "/api/mcp/config", {"headers": headers}),
             ("GET", "/api/plugins/registry", {"headers": headers}),
             ("GET", "/api/plugins/manifests", {"headers": headers}),
@@ -130,10 +129,7 @@ def main() -> int:
             ("GET", "/api/tools/registry", {"headers": headers}),
             ("GET", "/api/channels/", {"headers": headers}),
             ("GET", "/api/memory/system/stats", {"headers": headers}),
-            ("GET", "/api/skill-evolution/config", {"headers": headers}),
             ("GET", "/api/metrics/memory-health", {"headers": headers}),
-            ("GET", "/api/tenants", {"headers": headers}),
-            ("GET", "/api/execution-nodes", {"headers": headers}),
         ]
         for method, path, kwargs in endpoints:
             item = _api_check(client, method, f"{args.gateway_url}{path}", **kwargs)

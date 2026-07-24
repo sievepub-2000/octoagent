@@ -59,6 +59,6 @@ def test_permission_mode_does_not_bypass_intent_loading() -> None:
     assert names.isdisjoint(SYSTEM_TOOL_NAMES)
 
 
-def test_tools_hub_catalog_includes_lazy_lifecycle_tools() -> None:
+def test_harness_catalog_includes_lazy_lifecycle_tools() -> None:
     names = {item.name for item in ToolRegistryBuiltinCatalog(get_available_tools_fn=get_available_tools).list_items()}
     assert {"github_tool_install", "managed_tool_list", "managed_tool_execute", "managed_tool_uninstall", "artifact_cleanup"} <= names

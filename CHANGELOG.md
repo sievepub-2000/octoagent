@@ -1,4 +1,4 @@
-## [20260721.1.0] - 2026-07-24
+## [20260724.1.0] - 2026-07-24
 
 ### Agent Runtime + Harness architecture
 
@@ -6,7 +6,8 @@
   `app-server` process. LangGraph's protocol and OctoAgent's custom FastAPI
   routes now share one port and one lifecycle.
 - Reduced the public backend architecture to two deep Modules: Agent Runtime
-  owns model turns and Project/Task/Run/RunEvent state; Harness owns live
+  owns model turns and native LangGraph thread/run/checkpoint/stream state;
+  Harness owns live
   capability scanning, permission dispatch, execution adapters, traces,
   artifacts, and memory. System Executor remains a physically isolated root
   boundary and is not a third application Module.
@@ -27,13 +28,16 @@
   A dependency-free 384-dimensional word/CJK n-gram feature hash avoids
   loading a 0.6B embedding model on every request. The index can be rebuilt
   entirely from Markdown and is never the sole copy.
-- Added an idempotent migration for legacy JSON and DuckDB memories. Changed
-  Markdown is embedded in one batch and stable content hashes are skipped, so
-  cold restarts do not repeatedly spend CPU rebuilding unchanged vectors.
-- Removed the Redis service and Redis work-bus mirror. A single-process live
-  bus now archives terminal traces directly to PostgreSQL.
+- Removed the boot-time legacy JSON/DuckDB scan. Stable Markdown content hashes
+  skip unchanged rows, so cold restarts do not repeatedly rebuild vectors.
+- Removed the Redis service, Redis work-bus mirror, and the remaining local
+  work-bus abstraction. Native LangGraph streams and checkpoints are the only
+  run/event state path.
 - Reduced the default Compose topology to frontend, app-server,
   system-executor, PostgreSQL/pgvector, and Nginx.
+- Converted both application images to multi-stage production builds. The
+  backend no longer ships compilers and headers; the frontend ships only
+  Next.js standalone output instead of pnpm and the full development tree.
 - Removed the obsolete Redis MCP package, runtime override, active
   configuration entry, and persistent Redis volume.
 
@@ -41,6 +45,16 @@
 
 - Removed obsolete Tools Hub, Brain, QueryEngine, TaskWorkspace, capability,
   orchestration, and legacy memory management pages and public router files.
+- Removed the duplicate runtime-provider/workflow-contract state machine,
+  embedded bootstrap model, FAISS/BM25 RAG stack, sentence-transformer and
+  reranker services, skill/self-evolution pipeline, and their heavy model
+  dependencies. Harness Markdown plus PostgreSQL pgvector is the sole memory
+  path.
+- Moved Project persistence from an implicit SQLite production default to
+  PostgreSQL, retaining SQLite only as an explicit test adapter and preserving
+  an idempotent one-time import for existing project records.
+- Removed MTP speculative-decoding flags from the host llama.cpp service and
+  restarted it with ordinary decoding.
 - Updated self-inspection, generated tool guidance, runtime architecture
   metadata, health identity, Nginx routing, Docker configuration, and release
   documentation to the same two-Module vocabulary.

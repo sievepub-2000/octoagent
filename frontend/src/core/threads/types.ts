@@ -43,7 +43,6 @@ export interface ThreadRuntimeState {
     reason: string;
   }> | null;
   fallback_ready?: boolean | null;
-  embedded_backup_enabled?: boolean | null;
   instruction_profile_id?: string | null;
   instruction_profile_title?: string | null;
   instruction_source?: string | null;
@@ -76,8 +75,6 @@ export interface ThreadRuntimeState {
   client_command_target?: string | null;
   planned_operation_id?: string | null;
   instruction_contract?: Record<string, unknown> | null;
-  skill_evolution_hints?: Array<Record<string, unknown>> | null;
-  skill_evolution_suggestions?: Array<Record<string, unknown>> | null;
   memory_write?: Record<string, unknown> | null;
   last_run_record?: Record<string, unknown> | null;
   compaction_strategy?: string | null;
