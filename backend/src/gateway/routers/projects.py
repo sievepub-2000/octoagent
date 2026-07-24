@@ -14,6 +14,12 @@ from src.storage.project.service import get_project_service
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
+def _call_project_service(method: str, *args, **kwargs):
+    """Construct and call the project service entirely off the event loop."""
+    service = get_project_service()
+    return getattr(service, method)(*args, **kwargs)
+
+
 def _validate_default_model(model_name: str | None) -> None:
     if model_name and get_app_config().get_model_config(model_name) is None:
         raise HTTPException(status_code=400, detail=f"Unknown default model: {model_name}")
@@ -41,7 +47,8 @@ class ProjectUpdateRequest(BaseModel):
 @router.get("")
 async def list_projects(include_archived: bool = Query(default=False)) -> list[dict]:
     return await asyncio.to_thread(
-        get_project_service().list_projects,
+        _call_project_service,
+        "list_projects",
         include_archived=include_archived,
     )
 
@@ -51,7 +58,8 @@ async def create_project(body: ProjectCreateRequest) -> dict:
     _validate_default_model(body.default_model)
     try:
         return await asyncio.to_thread(
-            get_project_service().create_project,
+            _call_project_service,
+            "create_project",
             **body.model_dump(),
         )
     except ValueError as exc:
@@ -61,14 +69,15 @@ async def create_project(body: ProjectCreateRequest) -> dict:
 @router.get("/system/summaries")
 async def list_all_project_summaries() -> list[dict]:
     return await asyncio.to_thread(
-        get_project_service().list_projects,
+        _call_project_service,
+        "list_projects",
         include_archived=True,
     )
 
 
 @router.get("/{project_id}")
 async def get_project(project_id: str) -> dict:
-    project = await asyncio.to_thread(get_project_service().get_project, project_id)
+    project = await asyncio.to_thread(_call_project_service, "get_project", project_id)
     if project is None:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
@@ -79,7 +88,8 @@ async def update_project(project_id: str, body: ProjectUpdateRequest) -> dict:
     _validate_default_model(body.default_model)
     try:
         project = await asyncio.to_thread(
-            get_project_service().update_project,
+            _call_project_service,
+            "update_project",
             project_id,
             **body.model_dump(exclude_unset=True),
         )
@@ -98,7 +108,7 @@ async def delete_project(
     if x_octoagent_confirmation != "CONFIRM DELETE PROJECT":
         raise HTTPException(status_code=409, detail="Archive the project and confirm permanent deletion")
     try:
-        deleted = await asyncio.to_thread(get_project_service().delete_project, project_id)
+        deleted = await asyncio.to_thread(_call_project_service, "delete_project", project_id)
     except ValueError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     if not deleted:
@@ -110,7 +120,8 @@ async def delete_project(
 async def get_project_context(project_id: str) -> dict:
     try:
         context = await asyncio.to_thread(
-            get_project_service().resolve_execution_context,
+            _call_project_service,
+            "resolve_execution_context",
             project_id,
         )
     except ValueError as exc:
