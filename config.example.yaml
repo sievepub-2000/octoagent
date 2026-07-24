@@ -433,7 +433,7 @@ memory:
 # ============================================================================
 # Integrations Configuration
 # ============================================================================
-# External ingress plus browser/system execution capability settings
+# External ingress plus browser capability settings
 
 # integrations:
 #   browser:
@@ -445,50 +445,6 @@ memory:
 #     artifacts_dir: runtime/browser_runtime/artifacts
 #     supports_authenticated_sessions: false
 #     supports_remote_browser_pool: false
-#   system_execution:
-#     enabled: true
-#     engine: sandbox_exec
-#     supports_file_open_handoffs: true
-#     system_cli_enabled: true
-#     permission_policy:
-#       policy_id: octoagent-system-default
-#       title: OctoAgent System Execution Default Policy
-#       default_effect: ask
-#       rules:
-#         - rule_id: allow-safe-read
-#           scope: shell
-#           effect: allow
-#           match_prefixes:
-#             - pwd
-#             - ls
-#             - rg
-#             - cat
-#             - find
-#             - git status
-#             - git diff --stat
-#             - uname
-#             - whoami
-#             - id
-#             - env
-#             - printenv
-#             - which
-#             - command -v
-#             - python --version
-#             - python3 --version
-#             - go version
-#             - go env
-#             - node -v
-#             - npm -v
-#             - pnpm -v
-#         - rule_id: deny-destructive-shell
-#           scope: shell
-#           effect: deny
-#           match_prefixes:
-#             - rm -rf
-#             - git reset --hard
-#             - mkfs
-#             - shutdown
-
 # ============================================================================
 # System Guard (Startup Self-Check / Self-Repair / Lifecycle Persistence)
 # ============================================================================

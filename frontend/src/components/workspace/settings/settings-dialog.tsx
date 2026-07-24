@@ -1,6 +1,6 @@
 "use client";
 
-import { ActivityIcon, BellIcon, BoxesIcon, InfoIcon, LaptopIcon, PaletteIcon, SparklesIcon } from "lucide-react";
+import { ActivityIcon, BellIcon, BoxesIcon, InfoIcon, PaletteIcon, SparklesIcon } from "lucide-react";
 import dynamic from "next/dynamic";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -13,7 +13,6 @@ const RuntimeHealthSettingsPage = dynamic(() => import("./runtime-health-setting
 const AppearanceSettingsPage = dynamic(() => import("./appearance-settings-page").then((module) => module.AppearanceSettingsPage));
 const ModelsConfigPage = dynamic(() => import("@/app/workspace/config/models/page"));
 const HarnessPage = dynamic(() => import("@/app/workspace/config/tools/page"));
-const SystemExecutionSettingsPage = dynamic(() => import("./system-execution-settings-page").then((module) => module.SystemExecutionSettingsPage));
 const NotificationSettingsPage = dynamic(() => import("./notification-settings-page").then((module) => module.NotificationSettingsPage));
 const AboutSettingsPage = dynamic(() => import("./about-settings-page").then((module) => module.AboutSettingsPage));
 
@@ -22,7 +21,6 @@ export type SettingsSectionId =
   | "appearance"
   | "models"
   | "harness"
-  | "permissions"
   | "notifications"
   | "about";
 
@@ -47,7 +45,6 @@ export function SettingsPanel({ defaultSection = "general", open, onOpenChange }
     { group: t.settings.sections.overview, id: "appearance", label: t.settings.sections.appearance, icon: PaletteIcon },
     { group: t.sidebar.configuration, id: "models", label: t.settings.sections.models, icon: SparklesIcon },
     { group: t.sidebar.configuration, id: "harness", label: "Harness", icon: BoxesIcon },
-    { group: t.settings.system.title, id: "permissions", label: t.settings.sections.systemExecution, icon: LaptopIcon },
     { group: t.settings.system.title, id: "notifications", label: t.settings.sections.notification, icon: BellIcon },
     { group: t.settings.system.title, id: "about", label: t.settings.sections.about, icon: InfoIcon },
   ] as const, [t]);
@@ -93,7 +90,6 @@ export function SettingsPanel({ defaultSection = "general", open, onOpenChange }
           {activeSection === "appearance" && <div className="p-5"><AppearanceSettingsPage /></div>}
           {activeSection === "models" && <ModelsConfigPage />}
           {activeSection === "harness" && <HarnessPage />}
-          {activeSection === "permissions" && <div className="p-5"><SystemExecutionSettingsPage /></div>}
           {activeSection === "notifications" && <div className="p-5"><NotificationSettingsPage /></div>}
           {activeSection === "about" && <div className="p-5"><AboutSettingsPage /></div>}
         </ScrollArea>

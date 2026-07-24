@@ -204,10 +204,6 @@ class Paths:
     def browser_runtime_dir(self) -> Path:
         return self.runtime_root / "browser_runtime"
 
-    @property
-    def system_execution_dir(self) -> Path:
-        return self.runtime_root / "system_execution"
-
     def agent_dir(self, name: str) -> Path:
         return self.agents_dir / name.lower()
 

@@ -20,7 +20,6 @@ type SettingsSectionId =
   | "appearance"
   | "models"
   | "harness"
-  | "permissions"
   | "notifications"
   | "about";
 
@@ -29,7 +28,6 @@ const SETTINGS_SECTIONS: SettingsSectionId[] = [
   "appearance",
   "models",
   "harness",
-  "permissions",
   "notifications",
   "about",
 ];

@@ -341,7 +341,6 @@ async def apply_setup(req: ApplySetupRequest) -> ApplySetupResponse:
         resolved / "runtime" / "browser_runtime",
         resolved / "runtime" / "channels",
         resolved / "runtime" / "plugins",
-        resolved / "runtime" / "system_execution",
     ]
 
     created: list[str] = []

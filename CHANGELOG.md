@@ -15,6 +15,9 @@
   `/api/harness` snapshot and refresh Interface. Removed stale Brain,
   QueryEngine, TaskWorkspace, Orchestration, and legacy memory control-plane
   APIs plus their unreferenced WebUI clients and inspector components.
+- Removed the remaining mock System Execution planner/session/snapshot API and
+  its WebUI settings page. Harness now gates the real `host_shell` adapter,
+  while Runtime Doctor probes the authenticated root executor directly.
 - Consolidated the settings UI around Agent Runtime, Harness, Models, and the
   real permission selector. Skills, MCP, plugins, hooks, tools, traces, and
   memory health are managed from the Harness surface.

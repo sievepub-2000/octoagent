@@ -58,11 +58,11 @@ _PLUGIN_REQUIREMENTS: dict[str, list[str]] = {
     "diagram-generation-toolkit": ["image_or_svg_output", "artifact_access"],
     "html-deck-generator": ["artifact_access", "webui_preview"],
     "ian-handdrawn-ppt": ["image_generation_model", "artifact_access"],
-    "mirage-vfs-bridge": ["task_workspace", "filesystem_policy"],
+    "mirage-vfs-bridge": ["project_context", "filesystem_policy"],
     "peekaboo-vision-mcp": ["mcp_loader", "screen_capture_runtime"],
     "lightseek-smg-gateway": ["model_gateway", "routing_policy"],
     "tokenspeed-model-benchmark": ["gpu_runtime", "model_benchmark_policy"],
-    "witr-runtime-diagnostics": ["process_snapshot", "system_execution_policy"],
+    "witr-runtime-diagnostics": ["process_snapshot", "harness_permission_policy"],
     "cloakbrowser-controlled-automation": ["browser_runtime", "user_authorization"],
     "lumibot-research-strategy": ["market_data_config", "paper_trading_only"],
 }
@@ -103,13 +103,13 @@ class PluginService:
             execution_mode = _PLUGIN_EXECUTION_MODE.get(manifest.plugin_id, "workflow")
             if category == "engineering":
                 permissions = ["task_review", "artifact_review", "policy_review"]
-                runtime_requirements = ["task_workspace", "agent_transcript", "artifact_access"]
+                runtime_requirements = ["project_context", "agent_transcript", "artifact_access"]
             elif category == "integration":
                 permissions = ["tool_invocation", "artifact_write", "policy_review"]
-                runtime_requirements = ["task_workspace", "tool_registry", "approval_policy"]
+                runtime_requirements = ["project_context", "harness_registry", "approval_policy"]
             else:
                 permissions = ["runtime_bind", "approval_review", "task_graph_access"]
-                runtime_requirements = ["task_workspace", "orchestration_graph", "system_execution_policy"]
+                runtime_requirements = ["project_context", "agent_runtime", "harness_permission_policy"]
             runtime_requirements.extend(_PLUGIN_REQUIREMENTS.get(manifest.plugin_id, []))
             plugins.append(
                 PluginCapability(

@@ -2,6 +2,8 @@ import asyncio
 import json
 import os
 import shutil
+import urllib.error
+import urllib.request
 from datetime import UTC
 from pathlib import Path
 from typing import Any
@@ -14,11 +16,22 @@ from src.agents.subagents.executor import get_subagent_runtime_snapshot
 from src.agents.subagents.policy import is_host_memory_oom_critical
 from src.models.factory import resolve_effective_fallback_model_names
 from src.runtime.config import get_app_config
-from src.runtime.config.integrations_config import get_integrations_config
 from src.runtime.config.paths import get_setup_state_file, resolve_configured_default_model_name
 from src.runtime.config.subagents_config import get_subagents_app_config
 from src.runtime.system_guard.service import get_system_guard_service
-from src.tools.system_execution import get_system_execution_service
+
+
+def _system_executor_health() -> tuple[bool, str]:
+    endpoint = os.getenv("OCTOAGENT_SYSTEM_EXECUTOR_URL", "http://system-executor:19808").rstrip("/")
+    request = urllib.request.Request(f"{endpoint}/health")
+    try:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(request, timeout=5) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        healthy = response.status == 200 and payload.get("status") == "healthy"
+        return healthy, f"{endpoint}/health"
+    except (OSError, ValueError, urllib.error.URLError) as exc:
+        return False, f"{endpoint}/health: {type(exc).__name__}"
 
 
 def _resolve_repo_root() -> Path:
@@ -306,12 +319,10 @@ async def export_system_guard_snapshots(limit: int = 20) -> SystemGuardExportRes
     "/doctor",
     response_model=RuntimeDoctorResponse,
     summary="Run Runtime Doctor",
-    description="Expose a lightweight operator preflight over setup, models, system-execution policy, and host binary availability.",
+    description="Expose a lightweight operator preflight over setup, models, Harness, the root executor, and host binaries.",
 )
 async def get_runtime_doctor() -> RuntimeDoctorResponse:
     app_config = get_app_config()
-    integrations = get_integrations_config()
-    policy = get_system_execution_service().get_permission_policy()
 
     checks: list[RuntimeDoctorCheck] = []
 
@@ -385,13 +396,14 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
             )
         )
 
+    executor_healthy, executor_detail = await asyncio.to_thread(_system_executor_health)
     checks.append(
         RuntimeDoctorCheck(
-            id="system-execution",
-            title="System execution",
-            status="ok" if integrations.system_execution.enabled else "warn",
-            detail=(f"engine={integrations.system_execution.engine}, system_cli_enabled={integrations.system_execution.system_cli_enabled}, rules={len(policy.rules)}"),
-            recommendation=None if integrations.system_execution.enabled else "Enable integrations.system_execution if operator CLI flows are required.",
+            id="system-executor",
+            title="Root system executor",
+            status="ok" if executor_healthy else "fail",
+            detail=executor_detail,
+            recommendation=None if executor_healthy else "Check the system-executor container, token, and internal network.",
         )
     )
 

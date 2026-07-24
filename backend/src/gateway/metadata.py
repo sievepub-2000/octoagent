@@ -9,7 +9,7 @@ API Gateway for OctoAgent - A LangGraph-based AI agent backend with sandbox exec
 
 - **Models Management**: Query and retrieve available AI models
 - **MCP Configuration**: Manage Model Context Protocol (MCP) server configurations
-- **Memory Management**: Access and manage global memory data for personalized conversations
+- **Harness Memory**: Automatic Markdown capture with pgvector recall
 - **Skills Management**: Query and manage skills and their enabled status
 - **Artifacts**: Access thread artifacts and generated files
 - **Health Monitoring**: System health check endpoints
@@ -25,7 +25,6 @@ OPENAPI_TAGS = [
     {"name": "harness", "description": "Capability discovery, permission dispatch, execution, artifacts, and memory"},
     {"name": "models", "description": "Operations for querying available AI models and their configurations"},
     {"name": "mcp", "description": "Manage Model Context Protocol (MCP) server configurations"},
-    {"name": "memory", "description": "Access and manage global memory data for personalized conversations"},
     {"name": "skills", "description": "Manage skills and their configurations"},
     {"name": "artifacts", "description": "Access and download thread artifacts and generated files"},
     {"name": "uploads", "description": "Upload and manage user files for threads"},
@@ -35,7 +34,6 @@ OPENAPI_TAGS = [
     {"name": "integrations", "description": "External webhook/API ingress, auth surface, email, and browser automation capability planning"},
     {"name": "health", "description": "Health check and system status endpoints"},
     {"name": "runtime", "description": "Runtime guardrails, model fallback chains, and subagent budget visibility"},
-    {"name": "system-execution", "description": "System-level execution capability discovery and dry-run planning for future desktop-agent support"},
     {"name": "plugins", "description": "Plugin capability registry for executable engineering workflows"},
     {"name": "browser-runtime", "description": "Browser execution capability discovery and session surfaces"},
     {"name": "transcription", "description": "Audio file speech-to-text transcription via Whisper"},
