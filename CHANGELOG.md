@@ -53,6 +53,9 @@
 - Increased the production `uv` download timeout for slow but healthy package
   links and removed the last unused `redis-tools` package from the backend
   image.
+- Made System Executor load the same runtime proxy file as the unprivileged
+  app-server, preventing a host shell's loopback proxy from being interpolated
+  into the container where it is unreachable.
 - Added `pytest-asyncio` to the development lock and aligned stale Redis,
   Tools Hub, and deleted TaskWorkspace OOM tests with the current runtime.
 

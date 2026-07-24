@@ -79,15 +79,11 @@ services:
     user: "0:0"
     command: >-
       bash -lc "cd /app/backend && /app/backend/.venv/bin/uvicorn src.system_executor.app:app --host 0.0.0.0 --port 19808"
+    env_file:
+      - .env.docker
     environment:
       OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env}
       OCTOAGENT_BACKEND_IMAGE: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
-      HTTP_PROXY: ${HTTP_PROXY:-}
-      HTTPS_PROXY: ${HTTPS_PROXY:-}
-      NO_PROXY: ${NO_PROXY:-}
-      http_proxy: ${HTTP_PROXY:-}
-      https_proxy: ${HTTPS_PROXY:-}
-      no_proxy: ${NO_PROXY:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     expose:
