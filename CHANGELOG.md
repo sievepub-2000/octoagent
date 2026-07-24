@@ -61,6 +61,9 @@
 - Moved Runtime Doctor filesystem probes, runtime governance collection, and
   Project Git/SQLite operations off the ASGI event loop. Doctor is green and
   Project CRUD now remains available under LangGraph's blocking-call detector.
+- Moved Model, Skill, MCP, custom Agent, and Plugin registry mutations into
+  FastAPI worker threads. Added live create/read/update/read-back/delete
+  lifecycle coverage for every retained management surface.
 - Removed the host-oriented in-product auto-update page and router. Immutable
   Docker deployments now upgrade only through the documented host-side
   `docker compose up -d --build --remove-orphans` lifecycle.
