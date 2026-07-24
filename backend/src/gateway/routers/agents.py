@@ -294,7 +294,7 @@ async def list_agents() -> AgentsListResponse:
     summary="Check Agent Name",
     description="Validate an agent name and check if it is available (case-insensitive).",
 )
-async def check_agent_name(name: str) -> dict:
+def check_agent_name(name: str) -> dict:
     """Check whether an agent name is valid and not yet taken.
 
     Args:
@@ -357,7 +357,7 @@ async def get_agent_template(skill_name: str, template_id: str) -> AgentTemplate
     summary="Get Custom Agent",
     description="Retrieve details and SOUL.md content for a specific custom agent.",
 )
-async def get_agent(name: str) -> AgentResponse:
+def get_agent(name: str) -> AgentResponse:
     """Get a specific custom agent by name.
 
     Args:
@@ -400,7 +400,7 @@ async def get_agent(name: str) -> AgentResponse:
     summary="Create Custom Agent",
     description="Create a new custom agent with its config and SOUL.md.",
 )
-async def create_agent_endpoint(request: AgentCreateRequest) -> AgentResponse:
+def create_agent_endpoint(request: AgentCreateRequest) -> AgentResponse:
     """Create a new custom agent.
 
     Args:
@@ -440,7 +440,7 @@ async def create_agent_endpoint(request: AgentCreateRequest) -> AgentResponse:
             soul_file = agent_dir / "SOUL.md"
             soul_file.write_text(request.soul, encoding="utf-8")
 
-        await asyncio.to_thread(_write_agent_files)
+        _write_agent_files()
 
         logger.info(f"Created agent '{normalized_name}' at {agent_dir}")
 
@@ -463,7 +463,7 @@ async def create_agent_endpoint(request: AgentCreateRequest) -> AgentResponse:
     summary="Update Custom Agent",
     description="Update an existing custom agent's config and/or SOUL.md.",
 )
-async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
+def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
     """Update an existing custom agent.
 
     Args:
@@ -500,7 +500,7 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
                     status_code=409,
                     detail=f"Agent '{new_name}' already exists — cannot rename.",
                 )
-            await asyncio.to_thread(agent_dir.rename, new_dir)
+            agent_dir.rename(new_dir)
             agent_dir = new_dir
             name = new_name
             logger.info(f"Renamed agent to '{name}'")
@@ -528,12 +528,12 @@ async def update_agent(name: str, request: AgentUpdateRequest) -> AgentResponse:
                 with open(config_file, "w", encoding="utf-8") as f:
                     yaml.dump(updated, f, default_flow_style=False, allow_unicode=True)
 
-            await asyncio.to_thread(_write_config)
+            _write_config()
 
         # Update SOUL.md if provided
         if request.soul is not None:
             soul_path = agent_dir / "SOUL.md"
-            await asyncio.to_thread(soul_path.write_text, request.soul, encoding="utf-8")
+            soul_path.write_text(request.soul, encoding="utf-8")
 
         logger.info(f"Updated agent '{name}'")
 
@@ -612,7 +612,7 @@ async def archive_agent_conversation(
     summary="Delete Custom Agent",
     description="Delete a custom agent and all its files (config, SOUL.md, memory).",
 )
-async def delete_agent(name: str) -> None:
+def delete_agent(name: str) -> None:
     """Delete a custom agent.
 
     Args:

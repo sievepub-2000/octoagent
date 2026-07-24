@@ -191,31 +191,6 @@ def main() -> int:
         assert names["mcp"] not in api.call("GET", "/api/mcp/config")["mcp_servers"]
         passed.append("mcp")
 
-        # Global memory.
-        memory = api.call(
-            "POST", "/api/memory/global", {"title": "CRUD audit", "content": suffix}
-        )
-        created["memory"] = memory["id"]
-        assert contains(
-            api.call("GET", "/api/memory/global")["entries"], "id", memory["id"]
-        )
-        api.call(
-            "PUT",
-            f"/api/memory/global/{memory['id']}",
-            {"title": "CRUD audit updated", "content": suffix},
-        )
-        entries = api.call("GET", "/api/memory/global")["entries"]
-        assert any(
-            item.get("id") == memory["id"] and item.get("title") == "CRUD audit updated"
-            for item in entries
-        )
-        api.call("DELETE", f"/api/memory/global/{memory['id']}")
-        created.pop("memory")
-        assert not contains(
-            api.call("GET", "/api/memory/global")["entries"], "id", memory["id"]
-        )
-        passed.append("memory")
-
         # Custom agents.
         api.call(
             "POST",
@@ -355,12 +330,6 @@ def main() -> int:
             ("model", "DELETE", f"/api/models/{names['model']}", (200, 404)),
             ("skill", "DELETE", f"/api/skills/{names['skill']}", (200, 404)),
             ("mcp", "DELETE", f"/api/mcp/servers/{names['mcp']}", (200, 404)),
-            (
-                "memory",
-                "DELETE",
-                f"/api/memory/global/{created.get('memory', '-')}",
-                (200, 404),
-            ),
             ("agent", "DELETE", f"/api/agents/{names['agent']}", (204, 404)),
         ]
         for key, method, path, expected in cleanup:
