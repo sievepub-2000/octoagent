@@ -125,6 +125,17 @@ interface DesktopControlStatusResponse {
 }
 
 interface ToolRegistryResponse {
+  module?: string;
+  architecture?: string;
+  scanned_at?: string;
+  memory?: {
+    source?: string;
+    index?: string;
+    markdown_sources?: number;
+    indexed?: number;
+    pending?: number;
+    healthy?: boolean;
+  };
   summary?: {
     mcp_total?: number;
     mcp_enabled?: number;
@@ -315,7 +326,7 @@ function ToolTracePanel() {
 
 async function fetchToolRegistry(): Promise<ToolRegistryResponse> {
   try {
-    return await getJSON<ToolRegistryResponse>("/api/tools/registry");
+    return await getJSON<ToolRegistryResponse>("/api/harness");
   } catch {
     return {};
   }
@@ -363,7 +374,7 @@ async function fetchHooks(): Promise<HooksListResponse> {
 
 async function fetchDesktopControl(): Promise<DesktopControlStatusResponse> {
   try {
-    return await getJSON<DesktopControlStatusResponse>("/api/tools/desktop-control/status");
+    return await getJSON<DesktopControlStatusResponse>("/api/harness/desktop-control/status");
   } catch {
     return {};
   }
@@ -510,7 +521,7 @@ function normalizeEntries(
   return entries;
 }
 
-export default function ToolsHubPage() {
+export default function HarnessPage() {
   const { t, locale } = useI18n();
   const categoryLabel = useCallback(
     (cat: ToolEntry["category"]) =>
@@ -525,14 +536,14 @@ export default function ToolsHubPage() {
   const [query, setQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState<"all" | ToolEntry["category"]>("all");
 
-  const skillsQuery = useQuery({ queryKey: ["tools-hub", "skills"], queryFn: fetchSkills });
-  const mcpQuery = useQuery({ queryKey: ["tools-hub", "mcp"], queryFn: fetchMcp });
-  const channelsQuery = useQuery({ queryKey: ["tools-hub", "channels"], queryFn: fetchChannels });
-  const pluginsQuery = useQuery({ queryKey: ["tools-hub", "plugins"], queryFn: fetchPlugins });
-  const hooksQuery = useQuery({ queryKey: ["tools-hub", "hooks"], queryFn: fetchHooks });
-  const registryQuery = useQuery({ queryKey: ["tools-hub", "registry"], queryFn: fetchToolRegistry });
+  const skillsQuery = useQuery({ queryKey: ["harness", "skills"], queryFn: fetchSkills });
+  const mcpQuery = useQuery({ queryKey: ["harness", "mcp"], queryFn: fetchMcp });
+  const channelsQuery = useQuery({ queryKey: ["harness", "channels"], queryFn: fetchChannels });
+  const pluginsQuery = useQuery({ queryKey: ["harness", "plugins"], queryFn: fetchPlugins });
+  const hooksQuery = useQuery({ queryKey: ["harness", "hooks"], queryFn: fetchHooks });
+  const registryQuery = useQuery({ queryKey: ["harness", "registry"], queryFn: fetchToolRegistry });
   const desktopQuery = useQuery({
-    queryKey: ["tools-hub", "desktop-control"],
+    queryKey: ["harness", "desktop-control"],
     queryFn: fetchDesktopControl,
   });
 
@@ -602,10 +613,9 @@ export default function ToolsHubPage() {
     return counts;
   }, [toolEntries]);
 
-  const hubTitle = t.settings?.tools?.title ?? "Tools Hub";
+  const hubTitle = "Harness";
   const hubDescription =
-    t.settings?.tools?.description ??
-    "Unified catalogue of every installed skill, MCP server, software interface, plugin, and hook.";
+    "One live control plane for capability discovery, dispatch, traces, plugins, hooks, and durable memory.";
 
   const tabDefs: { id: HubTab; label: string; icon: typeof WrenchIcon }[] = [
     { id: "tools", label: "Tools", icon: WrenchIcon },
@@ -623,7 +633,7 @@ export default function ToolsHubPage() {
           </div>
           <p className="mt-1 text-sm text-muted-foreground">{hubDescription}</p>
         </header>
-        <div role="tablist" aria-label="Tools Hub Sections" className="-mb-px flex flex-wrap gap-1">
+        <div role="tablist" aria-label="Harness sections" className="-mb-px flex flex-wrap gap-1">
           {tabDefs.map(({ id, label, icon: Icon }) => {
             const active = tab === id;
             return (
@@ -702,6 +712,9 @@ export default function ToolsHubPage() {
           <Badge variant="outline">Plugins {registrySummary.plugins_enabled ?? 0}/{registrySummary.plugins_total ?? 0}</Badge>
           <Badge variant="outline">Built-ins {registrySummary.builtin_tools_total ?? 0}</Badge>
           <Badge variant="outline">{categoryLabel("managed")} {registrySummary.managed_tools_callable ?? 0}/{registrySummary.managed_tools_total ?? 0}</Badge>
+          <Badge variant={registryQuery.data?.memory?.healthy ? "default" : "destructive"}>
+            Memory {registryQuery.data?.memory?.indexed ?? 0}/{registryQuery.data?.memory?.markdown_sources ?? 0}
+          </Badge>
           {runtimeSummary?.default_model ? (
             <Badge variant="secondary">Model {runtimeSummary.default_model}</Badge>
           ) : null}
@@ -731,7 +744,7 @@ export default function ToolsHubPage() {
                   {items.map((entry) => (
                     <li
                       key={entry.id}
-                      data-testid={`tools-hub-item-${entry.id}`}
+                      data-testid={`harness-item-${entry.id}`}
                       className="octo-management-card min-h-44 rounded-lg border border-border bg-card p-3 shadow-sm"
                       style={{ minHeight: "176px", overflow: "hidden" }}
                     >

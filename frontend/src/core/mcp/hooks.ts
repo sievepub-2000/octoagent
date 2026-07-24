@@ -35,7 +35,7 @@ export function useEnableMCPServer() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["mcpConfig"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }
@@ -54,7 +54,7 @@ export function useAddMCPServer() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["mcpConfig"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }
@@ -67,7 +67,7 @@ export function useRemoveMCPServer() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["mcpConfig"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }

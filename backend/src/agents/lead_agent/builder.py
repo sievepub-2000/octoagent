@@ -4,9 +4,8 @@ import logging
 from collections.abc import Callable
 from typing import TypedDict
 
-from pydantic import ConfigDict
-
 from langchain_core.runnables import RunnableConfig
+from pydantic import ConfigDict
 
 from src.models import is_embedded_backup_model_name
 
@@ -14,6 +13,7 @@ from ..dialogue_routing import FAST_ROUTES
 from .runtime import LeadAgentRuntimeOptions
 
 logger = logging.getLogger(__name__)
+
 
 # The API accepts a deliberately open per-run context (mode, sandbox_id,
 # routing hints, continuation data, and plugin-specific keys).  An empty

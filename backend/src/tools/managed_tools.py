@@ -1,7 +1,7 @@
 """Filesystem-backed lifecycle for operator-installed tools.
 
 Each managed tool owns exactly one directory under ``runtime/system_tools``.
-The manifest is the management seam used by Tools Hub, installers, callers,
+The manifest is the private management Interface used by Harness, installers, callers,
 and uninstall cleanup; directories without a manifest are never deleted.
 """
 

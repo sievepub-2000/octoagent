@@ -15,8 +15,8 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain_core.messages import SystemMessage
 from langgraph.runtime import Runtime
 
+from src.agents.runtime.goal_contract import GoalContract
 from src.models.embedding_service import get_embedding_service
-from src.storage.brain.goal_contract import GoalContract
 
 logger = logging.getLogger(__name__)
 

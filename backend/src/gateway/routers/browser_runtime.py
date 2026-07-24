@@ -1,8 +1,9 @@
 """Gateway router for browser runtime capabilities and seed sessions."""
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, HTTPException
 
-from src.storage.workflow import utc_now
 from src.tools.sandbox.browser import (
     BrowserActionExecutionRequest,
     BrowserActionExecutionResult,
@@ -16,6 +17,10 @@ from src.tools.sandbox.browser import (
 )
 
 router = APIRouter(prefix="/api/browser-runtime", tags=["browser-runtime"])
+
+
+def utc_now() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 @router.get("/capabilities", response_model=BrowserRuntimeCapability)

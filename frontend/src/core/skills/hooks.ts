@@ -26,7 +26,7 @@ export function useEnableSkill() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }
@@ -39,7 +39,7 @@ export function useDeleteSkill() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }
@@ -52,7 +52,7 @@ export function useCreateSkill() {
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }
@@ -69,7 +69,7 @@ export function useUpdateSkill() {
     }) => updateSkill(skillName, request),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }
@@ -80,7 +80,7 @@ export function useInstallAgencyAgents() {
     mutationFn: () => installAgencyAgents(),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["skills"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
       void queryClient.invalidateQueries({ queryKey: ["agent-templates"] });
     },
   });

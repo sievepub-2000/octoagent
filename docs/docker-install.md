@@ -1,45 +1,38 @@
 # Docker Installation And Deployment
 
-OctoAgent's default deployment path is Docker Compose. The same profile is used on Linux, Windows, and macOS so operators do not need to install Python, Node.js, pnpm, nginx, PostgreSQL, or Redis on the host.
+Docker Compose is the only supported OctoAgent production distribution. Host
+Python, Node.js, pnpm, nginx, PostgreSQL, and Redis are not required.
 
-## What The Packaged Profile Runs
+## Runtime Topology
 
-`compose.yaml` starts these containers:
+`compose.yaml` starts five services:
 
-| Service | Purpose | Default port |
+| Service | Purpose | Default exposure |
 | --- | --- | --- |
-| `nginx` | Single public entrypoint for WebUI and API | `19800` |
-| `frontend` | Production Next.js WebUI | internal `19806` |
-| `gateway` | FastAPI gateway and REST APIs | localhost `19802` |
-| `langgraph` | Agent runtime | localhost `19804` |
-| `system-executor` | Internal authenticated bridge for explicit system-mode host tools | internal `19808` |
-| `postgres` | Packaged PostgreSQL for conversations, checkpoints, and DB/MCP checks | internal `5432` |
-| `redis` | Packaged Redis sidecar for Redis MCP checks | internal `6379` |
+| `nginx` | Public WebUI and API ingress | `0.0.0.0:19800` |
+| `frontend` | Production Next.js WebUI | `127.0.0.1:19806` |
+| `app-server` | FastAPI, LangGraph agent runtime, Harness, memory | `127.0.0.1:19802` |
+| `system-executor` | Authenticated host/system execution adapter | internal `19808` |
+| `postgres` | Checkpoints, threads, projects, traces, pgvector memory | internal `5432` |
 
-The backend image also installs the reproducible MCP npm packages from `runtime/tools/mcp/package-lock.json`; it does not rely on runtime `npx` downloads.
+The `app-server` is the single model-facing backend. Harness dynamically scans
+and dispatches built-in tools, MCP servers, skills, plugins, hooks, container
+execution, host execution, and browser adapters. Redis and the former separate
+Gateway/LangGraph/Tools Hub services are not part of the current topology.
 
 ## Prerequisites
 
-Install Docker with Compose v2:
+- Linux: Docker Engine 24+ and Compose v2.
+- Windows 11: Docker Desktop using Linux containers.
+- macOS: Docker Desktop, OrbStack, or a compatible Docker Engine.
+- Git is needed only when the installer must clone the repository.
 
-- Linux: Docker Engine 24+ with the Compose plugin.
-- Windows: Docker Desktop with Linux containers enabled.
-- macOS: Docker Desktop, OrbStack, or another Docker-compatible engine.
-
-Git is required only when you run the installer from a URL and need it to clone the repository.
-
-## One-Command Install
+## One-Command Installation
 
 Linux and macOS:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.sh | bash
-```
-
-Install to a custom directory:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.sh | bash -s -- --prefix "$HOME/octoagent"
 ```
 
 Windows PowerShell:
@@ -48,20 +41,7 @@ Windows PowerShell:
 iwr https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.ps1 -UseBasicParsing | iex
 ```
 
-Windows with a custom checkout path:
-
-```powershell
-$env:OCTOAGENT_HOME="$HOME\octoagent"
-iwr https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-docker.ps1 -UseBasicParsing | iex
-```
-
-After the health check passes, open:
-
-```text
-http://127.0.0.1:19800
-```
-
-## Install From An Existing Checkout
+From an existing checkout:
 
 ```bash
 git clone https://github.com/sievepub-2000/octoagent.git
@@ -69,65 +49,107 @@ cd octoagent
 ./scripts/install-docker.sh --prefix "$PWD"
 ```
 
-The installer creates local runtime files if they do not exist:
+The installer creates ignored runtime state, generates authentication secrets,
+builds the images, starts the stack, and waits for:
 
-- `runtime/config/config.yaml`
-- `.env.docker`
-- `logs/`
-- `runtime/cache/`
-- `runtime/logs/`
-- `runtime/langgraph/`
-- `runtime/secrets/`
-- `runtime/system_tools/`
-- `skills/custom/`
-- `workspace/`
+```text
+http://127.0.0.1:19800/health
+```
 
-`.env.docker` is ignored by git. On first run the installer replaces the
-placeholder `BETTER_AUTH_SECRET` with a random 48-byte secret and the packaged
-PostgreSQL placeholder with a URL-safe random 24-byte hex password. It also
-generates a separate 48-byte bearer secret for the internal system executor
-and records the absolute installation directory for relative system-tool paths.
+## Authoritative Runtime State
+
+| Data | Host path / Docker volume | Container path |
+| --- | --- | --- |
+| Model and agent config | `runtime/config/config.yaml` | `/app/runtime/config/config.yaml` |
+| Harness extensions | `runtime/config/extensions_config.json` | `/app/runtime/config/extensions_config.json` |
+| Model secrets | `runtime/secrets/models.env` | `/app/runtime/secrets/models.env` |
+| Raw and compact memory | `runtime/memory/*.md` | `/app/runtime/memory` |
+| Checkpoints, threads, vectors | `octoagent_postgres-data` | `/var/lib/postgresql/data` |
+| Workspace and project state | `workspace/` | `/app/workspace` |
+| LangGraph local runtime index | `runtime/langgraph/` | `/app/backend/.langgraph_api` |
+
+Markdown is the durable human-readable memory source. Harness indexes it into
+PostgreSQL pgvector during initialization and after writes. Existing legacy
+JSON/DuckDB memory is imported idempotently; it is not queried as a competing
+live source.
 
 ## Daily Operations
 
-Start or update after pulling new code:
+Start or upgrade after pulling code:
 
 ```bash
+git pull --ff-only
 docker compose --env-file .env.docker -f compose.yaml up -d --build --remove-orphans
 ```
 
-Check service status:
+Check health:
 
 ```bash
 docker compose --env-file .env.docker -f compose.yaml ps
 curl -fsS http://127.0.0.1:19800/health
+curl -fsS http://127.0.0.1:19800/api/runtime/doctor
+curl -fsS http://127.0.0.1:19800/api/harness
 ```
 
 View logs:
 
 ```bash
-docker compose --env-file .env.docker -f compose.yaml logs -f nginx gateway langgraph frontend
+docker compose --env-file .env.docker -f compose.yaml logs -f \
+  nginx frontend app-server system-executor postgres
 ```
 
-Stop:
+Restart without deleting data:
+
+```bash
+docker compose --env-file .env.docker -f compose.yaml restart
+```
+
+Stop while preserving data:
 
 ```bash
 docker compose --env-file .env.docker -f compose.yaml down
 ```
 
-Remove packaged database volumes as well:
+Remove containers and the PostgreSQL volume:
 
 ```bash
 docker compose --env-file .env.docker -f compose.yaml down -v
 ```
 
-## Base Image Mirrors
+The final command permanently deletes database-backed conversations, projects,
+checkpoints, traces, and vector memory. Markdown memory and workspace bind
+mounts remain until their host directories are explicitly removed.
 
-If Docker Hub or CloudFront is slow or blocked, keep `compose.yaml` unchanged and override image names in `.env.docker`:
+## Permissions
+
+The normal `app-server` runs as the non-root `octoagent` user. It has read/write
+access only to the declared bind mounts and full outbound Internet access.
+
+`system-executor` runs as root, is reachable only on the Compose network,
+requires the generated bearer token, and alone mounts `/var/run/docker.sock`.
+The chat permission selector enforces:
+
+- `container`: container/directory tools only; host tools are absent.
+- `system`: adds host shell, filesystem, network, process, and Docker tools.
+
+System-mode commands are traced. Never publish port `19808` or share
+`OCTOAGENT_SYSTEM_EXECUTOR_TOKEN`.
+
+## Configuration And Network
+
+Edit `.env.docker` for ports, provider keys, build mirrors, and proxy settings.
+Edit `runtime/config/config.yaml` for model cards. Harness-managed MCP, skill,
+plugin, and hook configuration lives in
+`runtime/config/extensions_config.json`.
+
+Internal service names `app-server`, `postgres`, `system-executor`, and
+`host.docker.internal` must bypass any outbound proxy. A host proxy bound to
+`127.0.0.1` must be addressed as `host.docker.internal` from containers.
+
+Common image mirror overrides:
 
 ```dotenv
-OCTOAGENT_POSTGRES_IMAGE=mirror.example.com/library/postgres:16-alpine
-OCTOAGENT_REDIS_IMAGE=mirror.example.com/library/redis:7-alpine
+OCTOAGENT_POSTGRES_IMAGE=mirror.example.com/pgvector/pgvector:pg16-bookworm
 OCTOAGENT_NGINX_IMAGE=mirror.example.com/library/nginx:1.27-alpine
 OCTOAGENT_PYTHON_BASE_IMAGE=mirror.example.com/library/python:3.12-slim
 OCTOAGENT_NODE_RUNTIME_IMAGE=mirror.example.com/library/node:22-bookworm-slim
@@ -137,150 +159,44 @@ OCTOAGENT_UV_IMAGE=mirror.example.com/astral-sh/uv:0.7.20
 OCTOAGENT_NPM_REGISTRY=https://registry.npmmirror.com
 ```
 
-This is useful for China-region networks, enterprise registries, and offline registry mirrors.
+## Migration And Backup
 
-The installers pre-pull the five build-stage images through the Docker daemon
-before invoking BuildKit. They derive the Docker server platform (or use
-`OCTOAGENT_BUILD_PLATFORM`) and pass it explicitly, which avoids flaky
-multi-architecture manifest/TLS requests on ARM64 hosts. This is deliberate: a
-daemon proxy can pull an image successfully even when BuildKit's anonymous
-Docker Hub token request times out. If a pre-pull fails, installation stops and
-reports the exact image and the override key; it no longer ignores the failure
-with `|| true`.
-
-BuildKit does not automatically inherit a Docker daemon's systemd proxy. The
-Linux installer forwards `HTTP_PROXY`, `HTTPS_PROXY`, and `NO_PROXY` from the
-daemon into build-only arguments when available; on Windows or custom setups,
-set `OCTOAGENT_BUILD_HTTP_PROXY`, `OCTOAGENT_BUILD_HTTPS_PROXY`, and
-`OCTOAGENT_BUILD_NO_PROXY` in `.env.docker`. These values are kept separate from
-runtime proxy variables so a host-loopback proxy is not accidentally used by
-containers at runtime.
-
-When the Linux installer discovers a loopback-bound Docker daemon proxy, it
-also selects `OCTOAGENT_BUILD_NETWORK=host` for the build only, because the
-default BuildKit network cannot reach host `127.0.0.1`. Override this explicitly
-when using a non-loopback proxy or Docker Desktop.
-
-## Configuration
-
-Edit `.env.docker` for ports, provider keys, and runtime tokens. Common values:
-
-```dotenv
-OCTO_NGINX_PORT=19800
-OCTOAGENT_MODEL_AUTH_OPENROUTER=sk-or-v1-...
-TAVILY_API_KEY=...
-POSTGRES_PASSWORD=change-this-before-shared-use
-
-# OpenRouter attribution and usage accounting opt-in.
-OCTOAGENT_OPENROUTER_APP_URL=https://github.com/sievepub-2000/octoagent
-OCTOAGENT_OPENROUTER_APP_TITLE=OctoAgent
-OCTOAGENT_OPENROUTER_USAGE_INCLUDE=true
-```
-
-Edit `runtime/config/config.yaml` for model cards and agent behavior. The container profile
-mounts the containing directory read/write into `/app/runtime/config` because model and channel settings
-use atomic file replacement when persisted by the WebUI. `runtime/config/extensions_config.json` is also read/write so MCP,
-skills, hooks, and plugin lifecycle changes survive a restart.
-
-If the host needs an outbound proxy to reach model or search providers, copy
-its `HTTP_PROXY`, `HTTPS_PROXY`, lowercase variants, and `NO_PROXY` values into
-`.env.docker`. A proxy listening on host `127.0.0.1` must be written as
-`host.docker.internal` from inside the containers. Keep `gateway`, `langgraph`, `postgres`, `redis`, and
-`system-executor`, `host.docker.internal` in `NO_PROXY`. Avoid defining both `GOOGLE_API_KEY` and
-`GEMINI_API_KEY`; Google GenAI warns when both are present and chooses one by
-SDK precedence.
-
-The Compose profile explicitly points the checkpointer at its PostgreSQL
-service through `OCTOAGENT_CHECKPOINTER_DSN`. This runtime override prevents a
-preserved host configuration from accidentally using a container-local SQLite
-file or a host-only `127.0.0.1` PostgreSQL address; it does not rewrite the
-operator's YAML file.
-
-### Migrating An Existing Native Installation
-
-Stop the native gateway and LangGraph processes before taking the final backup.
-An existing self-hosted LangGraph installation has two persistence surfaces:
-
-- PostgreSQL stores checkpoints, writes, and channel blobs.
-- `backend/.langgraph_api/` stores the local development runtime's thread and
-  run index.
-
-Restore the PostgreSQL dump into the Compose PostgreSQL volume and copy the
-contents of `backend/.langgraph_api/` into `runtime/langgraph/` before starting
-the Docker `langgraph` service. Back up both locations first. Copying only the
-database preserves checkpoint rows but leaves the thread search/history API
-without its index, so old conversations appear missing even though their data
-still exists. After migration, verify an old thread through `/threads/search`
-and `/threads/{thread_id}/history`, then perform a full Compose restart and
-verify it again.
-
-Backend containers run as the invoking user's UID/GID on Linux/macOS. The
-install script records these values in `.env.docker`, preventing root-owned
-files in bind-mounted configuration and workspace directories. When invoked
-through `sudo`, the original user's UID/GID is retained; a direct root install
-uses the non-root container default `1000:1000` and transfers only mutable bind
-mounts to that identity.
-
-Built-in skills are packaged in the backend image. User-installed and
-user-created skills are stored separately in the `skills/custom/` bind mount,
-so image rebuilds and upgrades do not remove them.
-
-## MCP And System Tools
-
-The Docker profile resolves the packaged filesystem, PostgreSQL, OpenAPI,
-Docker Compose, Redis, and Docker MCP commands through runtime environment
-overrides. Existing descriptions, enabled state, permission scopes, smoke
-tests, headers, and credentials remain in the single writable
-`runtime/config/extensions_config.json`; host-only executable paths and localhost sidecar
-addresses are mapped in memory to their container equivalents. The default
-packaged sidecars make Redis and PostgreSQL MCP smoke checks available without
-extra host services.
-
-Ordinary agent containers never receive `/var/run/docker.sock` and continue to
-run as the configured non-root UID/GID. System mode exposes `host_shell` and
-`host_file_manage` through a dedicated, internal-only `system-executor` service.
-That service alone mounts the Docker socket, authenticates every request with a
-generated bearer secret, and launches a short-lived privileged helper in the
-host namespaces. This is an intentional root-equivalent capability: do not
-publish port `19808` or share `OCTOAGENT_SYSTEM_EXECUTOR_TOKEN`.
-
-## Packaging A Release Bundle
-
-From a clean checkout:
+Before an upgrade, back up both state surfaces:
 
 ```bash
-./scripts/package-docker.sh
+docker exec octoagent-postgres-1 pg_dump -U octoagent -Fc octoagent \
+  > octoagent-postgres.dump
+tar -czf octoagent-runtime-state.tgz runtime/config runtime/memory \
+  runtime/secrets runtime/langgraph workspace
 ```
 
-The script writes `dist/octoagent-docker-<version>.tar.gz` plus a SHA-256 file. The archive contains the source tree and Docker installation assets; extract it and run `./scripts/install-docker.sh --prefix "$PWD"` from the extracted directory.
+Restore PostgreSQL into `octoagent_postgres-data` and restore the bind-mounted
+directories before starting the stack. Verify an existing thread and memory
+search both before and after a full restart.
 
-## Verification Checklist
+## Verification
 
-A healthy Docker deployment should pass:
+The acceptance baseline is:
 
 ```bash
 curl -fsS http://127.0.0.1:19800/health
-curl -fsS http://127.0.0.1:19800/api/tools/registry
-curl -fsS http://127.0.0.1:19800/api/mcp/smoke
+curl -fsS http://127.0.0.1:19800/api/runtime/doctor
+curl -fsS http://127.0.0.1:19800/api/harness
+docker compose --env-file .env.docker -f compose.yaml config --quiet
 ```
 
-Also verify that directory mode has no Docker socket, while an isolated system
-mode test can read/write/delete a temporary host file and reach the Internet.
+Then verify:
 
-Run the isolated lifecycle verifier from the checkout to validate create,
-read, update, archive/confirmed delete, and post-delete visibility for the configurable
-modules:
+1. All five services are healthy.
+2. A model run replies and a self-check calls
+   `inspect_octoagent_runtime`/`list_capabilities` without web search.
+3. Thread and project create/read/update/delete lifecycles close cleanly.
+4. Markdown memory remains searchable after `app-server` restart.
+5. Container mode excludes `host_shell`; system mode exposes it and can access
+   the host, Docker socket, and Internet.
+6. The WebUI Harness counts match `/api/harness`.
 
-```bash
-python3 scripts/verify-module-lifecycles.py \
-  --base-url http://127.0.0.1:19800 \
-  --env-file .env.docker
-```
-
-Add `--include-channel` only on a clean installation; it temporarily configures
-one previously unconfigured channel and then clears it.
-
-The Tools Hub is available at:
+The Harness management surface is available in Settings → Harness and at:
 
 ```text
 http://127.0.0.1:19800/workspace/config/tools

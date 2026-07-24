@@ -4,7 +4,6 @@ from ..capability_tools import (
     list_capabilities_tool,
     load_skill_tool,
 )
-from ..memory_tools import archival_memory_insert_tool, archival_memory_search_tool, memory_block_list_tool, memory_block_upsert_tool, search_memory_tool
 from ..self_evolution_tools import propose_self_evolution_tool
 from .bytebot_compat_tools import BYTEBOT_COMPAT_TOOLS
 from .clarification_tool import ask_clarification_tool
@@ -46,11 +45,6 @@ __all__ = [
     "inspect_octoagent_runtime_tool",
     "load_skill_tool",
     "get_plugin_command_tool",
-    "search_memory_tool",
-    "memory_block_upsert_tool",
-    "memory_block_list_tool",
-    "archival_memory_insert_tool",
-    "archival_memory_search_tool",
     "propose_self_evolution_tool",
     "ECOSYSTEM_WORKFLOW_TOOLS",
     "integrated_project_catalog_tool",

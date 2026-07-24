@@ -175,36 +175,11 @@ class LangGraphRuntimeProvider:
             run_config["configurable"]["model_name"] = request.model_override
             run_context["model_name"] = request.model_override
 
-        planned_execution_target: str | None = None
+        # The Agent Runtime is the only planner.  query_session_id remains an
+        # opaque compatibility identifier; it must not invoke a second planner.
+        planned_execution_target: str | None = graph_id or assistant_id
         if request.query_session_id:
-            # Lazy import to break circular cycle:
-            # query_engine.contracts -> agent_runtime -> providers.langgraph -> query_engine.
-            from src.storage.query import QueryOperationPlanRequest, get_query_engine_service
-
-            session = get_query_engine_service().get_session(request.query_session_id)
-            if session is not None:
-                permission_mode = str(session.metadata.get("permission_mode") or "workspace")
-                run_context["permission_mode"] = permission_mode
-                run_config["metadata"]["permission_mode"] = permission_mode
-                run_config["configurable"]["permission_mode"] = permission_mode
-                operation_plan = get_query_engine_service().plan_operation(
-                    QueryOperationPlanRequest(
-                        user_message=request.prompt,
-                        current_goal=session.current_goal,
-                        permission_mode=permission_mode,
-                        archived_turn_count=session.memory_profile.archived_turn_count,
-                    )
-                )
-                planned_execution_target = operation_plan.command.execution_target
-                run_context.update(
-                    {
-                        "query_session_id": session.session_id,
-                        "current_goal": session.current_goal,
-                        "prompt_stack_profile_id": session.prompt_stack_profile_id,
-                        "client_command": operation_plan.command.model_dump(mode="json"),
-                        "session_governance": operation_plan.governance.model_dump(mode="json"),
-                    }
-                )
+            run_context["query_session_id"] = request.query_session_id
 
         run_config, run_context = normalize_remote_run_payload(run_config, run_context)
 

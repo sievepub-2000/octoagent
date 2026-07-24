@@ -33,7 +33,7 @@ def create_app() -> FastAPI:
     app = FastAPI(
         title="OctoAgent API Gateway",
         description=API_DESCRIPTION,
-        version="20260721.0.0",
+        version="20260721.1.0",
         lifespan=gateway_lifespan,
         docs_url="/docs",
         redoc_url="/redoc",
@@ -114,7 +114,7 @@ def create_app() -> FastAPI:
         persistence = await asyncio.to_thread(_probe_persistence)
         payload = {
             "status": "healthy" if persistence.get("ok") else "unhealthy",
-            "service": "octoagent-gateway",
+            "service": "octoagent-app-server",
             "persistence": persistence,
         }
         if not persistence.get("ok"):

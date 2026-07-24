@@ -156,6 +156,7 @@ runtime/tools/writing-node/*
 !runtime/tools/writing-node/.textlintrc.json
 runtime/logs/
 runtime/langgraph/
+runtime/memory/
 runtime/pids/
 runtime/system_tools/
 runtime/model_cooldowns.json

@@ -448,7 +448,7 @@ def docker_runtime_audit(runner: Runner) -> dict[str, Any]:
             continue
         if isinstance(item, dict):
             containers.append(item)
-    expected = {"gateway", "langgraph", "frontend", "nginx", "postgres", "redis"}
+    expected = {"app-server", "frontend", "nginx", "postgres", "system-executor"}
     by_service = {str(item.get("Service") or item.get("service") or ""): item for item in containers}
     missing = sorted(expected - set(by_service))
     unhealthy = sorted(

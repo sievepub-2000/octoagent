@@ -37,7 +37,7 @@ def test_compose_packages_every_required_runtime_module() -> None:
 
 def test_mutable_settings_are_persistent_and_writable() -> None:
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
-    gateway_volumes = compose["services"]["gateway"]["volumes"]
+    gateway_volumes = compose["services"]["app-server"]["volumes"]
 
     assert "./runtime/config:/app/runtime/config" in gateway_volumes
     assert "./backend/runtime:/app/backend/runtime" in gateway_volumes
@@ -45,21 +45,24 @@ def test_mutable_settings_are_persistent_and_writable() -> None:
     assert "./tmp:/app/tmp" in gateway_volumes
     assert "./runtime/secrets:/app/runtime/secrets" in gateway_volumes
     assert "./runtime/langgraph:/app/backend/.langgraph_api" in gateway_volumes
+    assert "./runtime/memory:/app/runtime/memory" in gateway_volumes
     assert all(not volume.endswith(":ro") for volume in gateway_volumes if "/app/runtime/config" in volume)
 
 
 def test_packaged_profile_has_health_checks_and_persistent_databases() -> None:
     compose = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
-    expected = {"postgres", "redis", "gateway", "langgraph", "frontend", "nginx"}
+    expected = {"postgres", "app-server", "system-executor", "frontend", "nginx"}
 
     assert expected <= compose["services"].keys()
     assert all("healthcheck" in compose["services"][name] for name in expected)
     assert compose["services"]["postgres"]["volumes"] == ["postgres-data:/var/lib/postgresql/data"]
-    assert compose["services"]["redis"]["volumes"] == ["redis-data:/data"]
-    assert "uv run" not in compose["services"]["gateway"]["command"]
-    assert "uv run" not in compose["services"]["langgraph"]["command"]
-    assert "/app/backend/.venv/bin/uvicorn" in compose["services"]["gateway"]["command"]
-    assert "/app/backend/.venv/bin/langgraph" in compose["services"]["langgraph"]["command"]
+    assert "pgvector/pgvector:pg16-bookworm" in compose["services"]["postgres"]["image"]
+    assert "redis" not in compose["services"]
+    assert "gateway" not in compose["services"]
+    assert "langgraph" not in compose["services"]
+    assert "uv run" not in compose["services"]["app-server"]["command"]
+    assert "/app/backend/.venv/bin/langgraph" in compose["services"]["app-server"]["command"]
+    assert compose["services"]["system-executor"]["user"] == "0:0"
 
 
 def test_all_supported_platform_installers_are_shipped() -> None:

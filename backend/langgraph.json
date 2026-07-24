@@ -7,6 +7,9 @@
   "graphs": {
     "lead_agent": "src.agents:make_lead_agent"
   },
+  "http": {
+    "app": "./src/gateway/app.py:app"
+  },
   "checkpointer": {
     "path": "./src/agents/checkpointer/async_provider.py:make_checkpointer"
   }

@@ -186,8 +186,6 @@ type WorkspaceLocaleCopy = {
   agentWelcome: AgentWelcomeCopy;
   setupWizard: SetupWizardCopy;
   modelsPage: ModelsPageCopy;
-  taskWorkspace: TaskWorkspaceCopy;
-  taskRuntime: TaskRuntimeCopy;
   projectsPage: ProjectsPageCopy;
 };
 
@@ -1295,8 +1293,6 @@ export function getWorkspaceLocaleCopy(locale: Locale): WorkspaceLocaleCopy {
     agentWelcome: agentWelcomeCopy[locale] ?? agentWelcomeCopy["en-US"],
     setupWizard: setupWizardCopy[locale] ?? setupWizardCopy["en-US"],
     modelsPage: modelsPageCopy[locale] ?? modelsPageCopy["en-US"],
-    taskWorkspace: taskWorkspaceCopy[locale] ?? taskWorkspaceCopy["en-US"],
-    taskRuntime: taskRuntimeCopy[locale] ?? taskRuntimeCopy["en-US"],
     projectsPage: projectsPageCopy[locale] ?? projectsPageCopy["en-US"],
   };
 }

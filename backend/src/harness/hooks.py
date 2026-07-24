@@ -8,13 +8,11 @@ LangGraph + ``langchain.agents.AgentMiddleware`` world:
 * The hook lifecycle is anchored to ``AgentMiddleware`` lifecycle points
   (``before_model`` / ``after_model`` / ``before_tool`` / ``after_tool``)
   rather than OpenHarness's bespoke `query` engine events.
-* Results carry a ``block`` flag: a single blocking hook short-circuits the
-  current step and surfaces the reason to the operator (via a SystemMessage
-  written by :mod:`src.harness.hook_middleware`).
+* Results carry a ``block`` flag: a blocking hook short-circuits the current
+  step and returns its reason to the caller.
 
-This module contains **only data types + registry + executor**. Wiring lives
-in :mod:`src.harness.hook_middleware`. Default hook implementations live in
-:mod:`src.harness.hook_adapters`.
+This module contains only the data types, registry and executor. Tool and
+plugin registration is owned by ``hook_core``.
 """
 
 from __future__ import annotations

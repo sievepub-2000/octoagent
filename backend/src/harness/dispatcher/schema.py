@@ -1,8 +1,7 @@
 """Shared schema + connection-pool + DSN resolution for the dispatcher.
 
-Mirrors the pattern of :mod:`src.harness.run_journal` exactly so the two
-modules share the same operational shape (DSN resolution priority, lazy
-pool, ``CREATE TABLE IF NOT EXISTS`` idempotent bootstrap).
+Uses lazy connection pooling, predictable DSN priority and idempotent schema
+bootstrap.
 """
 
 from __future__ import annotations

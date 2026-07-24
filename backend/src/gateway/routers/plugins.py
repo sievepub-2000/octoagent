@@ -1,8 +1,9 @@
 """Gateway router for plugin capability discovery."""
 
+from datetime import UTC, datetime
+
 from fastapi import APIRouter, HTTPException
 
-from src.storage.workflow import utc_now
 from src.tools.plugins import (
     PluginCapabilityListResponse,
     PluginInstallRequest,
@@ -17,6 +18,10 @@ from src.tools.plugins import (
 from src.utils.agent_tool_guide import async_refresh_agent_tool_guide
 
 router = APIRouter(prefix="/api/plugins", tags=["plugins"])
+
+
+def utc_now() -> str:
+    return datetime.now(UTC).isoformat()
 
 
 @router.get("/capabilities", response_model=PluginCapabilityListResponse)

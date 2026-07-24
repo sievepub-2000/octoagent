@@ -74,67 +74,6 @@ def _get_human_collaboration_section() -> str:
 </collaboration>"""
 
 
-def _format_system_memory_context(max_items: int = 8) -> str:
-    try:
-        from src.agents.memory.system_rag_store import get_system_rag_store
-
-        store = get_system_rag_store()
-        entries = []
-        for namespace, limit in (
-            ("conversation_summary", max_items),
-            ("archival_memory", 4),
-            ("skill_evolution", 4),
-            ("system_insight", 4),
-        ):
-            for entry in store.list_entries(namespace=namespace, limit=limit):
-                content = str(entry.content).strip()
-                if content:
-                    entries.append(f"- [{entry.namespace}] {content[:800]}")
-        if not entries:
-            return ""
-        return "Long-term and self-evolution memory:\n" + "\n".join(entries[:max_items])
-    except Exception as e:
-        logger.warning("Failed to load system memory context: %s", e)
-        return ""
-
-
-def _get_memory_context(agent_name: str | None = None) -> str:
-    """Get memory context for injection into system prompt.
-
-    Args:
-        agent_name: If provided, loads per-agent memory. If None, loads global memory.
-
-    Returns:
-        Formatted memory context string wrapped in XML tags, or empty string if disabled.
-    """
-    try:
-        from src.agents.memory import get_memory_layer_accessor
-        from src.runtime.config.memory_config import get_memory_config
-
-        config = get_memory_config()
-        if not config.enabled or not config.injection_enabled:
-            return ""
-
-        working_memory_content = get_memory_layer_accessor().format_working_memory_context(
-            agent_name,
-            max_tokens=config.max_injection_tokens,
-        )
-        # Global archival and self-evolution entries are not injected wholesale:
-        # unrelated historical lessons can overpower the current user turn.
-        memory_content = working_memory_content
-
-        if not memory_content.strip():
-            return ""
-
-        return f"""<memory>
-{memory_content}
-</memory>
-"""
-    except Exception as e:
-        logger.warning("Failed to load memory context: %s", e)
-        return ""
-
-
 def get_skills_prompt_section(available_skills: set[str] | None = None) -> str:
     """Generate the skills prompt section with available skills list.
 
@@ -184,7 +123,7 @@ def get_capability_guide_prompt_section() -> str:
 A runtime capability guide is available at {guide_path}. Consult it or call
 `list_capabilities` when you need to discover a capability that is not already
 visible. For an OctoAgent self-check, call `inspect_octoagent_runtime` and use
-its authoritative service, model, and Tools Hub sources. Do not substitute raw
+its authoritative Agent Runtime, model, and Harness sources. Do not substitute raw
 environment dumps, filesystem listings, process scans, or guessed API routes
 for these two tools. Tool permission scopes are enforced by the server at
 execution time.

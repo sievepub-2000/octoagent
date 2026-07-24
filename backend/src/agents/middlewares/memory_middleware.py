@@ -1,11 +1,7 @@
 """Middleware for memory mechanism with goal-anchoring and source-tagged recall."""
 
-import asyncio
 import logging
-import os
 import re
-import threading
-from concurrent.futures import ThreadPoolExecutor
 from typing import Any, override
 
 from langchain.agents import AgentState
@@ -13,65 +9,11 @@ from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import ModelRequest
 from langgraph.runtime import Runtime
 
-from src.agents.memory.queue import get_memory_queue
+from src.harness.memory import get_harness_memory
 from src.runtime.config.memory_config import get_memory_config
 from src.utils.messages import message_text as _message_text
 
 logger = logging.getLogger(__name__)
-_simplemem_write_lock = threading.Lock()
-_simplemem_executor = ThreadPoolExecutor(
-    max_workers=os.cpu_count() or 4,
-    thread_name_prefix="simplemem-writer",
-)
-
-
-def _dispatch_simplemem_worker(worker, thread_id: str) -> None:
-    def _log_failure(done) -> None:
-        try:
-            done.result()
-        except Exception as exc:
-            logger.debug("SimpleMem async write skipped for thread %s: %s", thread_id, exc)
-
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        future = _simplemem_executor.submit(worker)
-        future.add_done_callback(_log_failure)
-        return
-
-    future = loop.run_in_executor(_simplemem_executor, worker)
-    future.add_done_callback(_log_failure)
-
-
-def _store_simplemem_conversation_async(
-    *,
-    messages: list[Any],
-    thread_id: str,
-    agent_name: str | None,
-    metadata: dict[str, Any],
-) -> None:
-    messages_snapshot = list(messages)
-
-    def _worker() -> None:
-        try:
-            with _simplemem_write_lock:
-                from src.agents.memory.simplemem_bridge import get_simplemem_bridge
-
-                bridge = get_simplemem_bridge()
-                bridge.store_conversation(
-                    messages_snapshot,
-                    namespace="conversation_summary",
-                    agent_name=agent_name,
-                    thread_id=thread_id,
-                    metadata=metadata,
-                    enable_synthesis=True,
-                )
-        except Exception as exc:
-            logger.debug("SimpleMem async write skipped for thread %s: %s", thread_id, exc)
-
-    _dispatch_simplemem_worker(_worker, thread_id)
-
-
 def _extract_user_query_from_messages(messages: list) -> str | None:
     for msg in reversed(messages):
         if getattr(msg, "type", None) == "human":
@@ -99,22 +41,18 @@ def _extract_goal_from_context(request: ModelRequest) -> str | None:
 
 
 def _build_semantic_recall_block(query: str, current_goal: str | None = None) -> str | None:
-    """Search SystemRAG semantically and return a compact recall block with source tags.
+    """Search the Harness pgvector index and return a compact recall block.
 
     Threshold raised to 0.75 to only inject highly relevant memories.
     Each recalled memory includes its source namespace and project context.
     If a current goal is provided, it's injected as a reminder at the top.
     """
     try:
-        from src.agents.memory.system_rag_store import get_system_rag_store
-
-        store = get_system_rag_store()
-
-        collected: list[tuple[float, str, str]] = []
-        for namespace in ("conversation_summary", "archival_memory", "skill_evolution"):
-            for entry in store.search(query, namespace=namespace, top_k=4):
-                if entry.score >= 0.75:
-                    collected.append((entry.score, namespace, str(entry.content).strip()))
+        collected = [
+            (entry.score, entry.source_path, entry.content.strip())
+            for entry in get_harness_memory().search(query, top_k=6)
+            if entry.score >= 0.55
+        ]
 
         if not collected and not current_goal:
             return None
@@ -126,8 +64,8 @@ def _build_semantic_recall_block(query: str, current_goal: str | None = None) ->
         if current_goal:
             lines.append(f"  Current task reminder: {current_goal[:300]}")
 
-        for _score, ns, content in collected[:6]:
-            lines.append(f"- [{ns}] {content[:600]}")
+        for _score, source, content in collected[:6]:
+            lines.append(f"- [{source}] {content[:600]}")
 
         lines.append("</recalled_memories>")
         return "\n".join(lines)
@@ -289,7 +227,9 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
 
     @override
     async def amodify_model_request(self, request: ModelRequest, state: MemoryMiddlewareState, runtime: Runtime) -> ModelRequest:
-        return self._inject_semantic_memory(request)
+        import asyncio
+
+        return await asyncio.to_thread(self._inject_semantic_memory, request)
 
     @override
     def after_agent(self, state: MemoryMiddlewareState, runtime: Runtime) -> dict | None:
@@ -340,21 +280,24 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
             memory_metadata["task_steps_completed"] = len(task_state.get("completed_steps", []))
             memory_metadata["memory_scope"] = "task_completion_long_term"
 
-        queue = get_memory_queue()
-        queue.add(thread_id=thread_id, messages=filtered_messages, agent_name=self._agent_name, metadata=memory_metadata)
+        write = get_harness_memory().capture(
+            thread_id=thread_id,
+            messages=filtered_messages,
+            agent_name=self._agent_name,
+            metadata=memory_metadata,
+        )
         runtime_state["memory_write"] = {
-            "status": "queued",
+            **write,
             "message_count": len(filtered_messages),
             "thread_id": thread_id,
             "agent_name": self._agent_name,
             "metadata": memory_metadata,
         }
 
-        _store_simplemem_conversation_async(
-            messages=filtered_messages,
-            thread_id=thread_id,
-            agent_name=self._agent_name,
-            metadata=memory_metadata,
-        )
-
         return {"runtime": runtime_state}
+
+    @override
+    async def aafter_agent(self, state: MemoryMiddlewareState, runtime: Runtime) -> dict | None:
+        import asyncio
+
+        return await asyncio.to_thread(self.after_agent, state, runtime)

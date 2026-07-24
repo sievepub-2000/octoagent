@@ -24,13 +24,14 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     https_proxy=${HTTPS_PROXY} \
     no_proxy=${NO_PROXY} \
     UV_LINK_MODE=copy \
+    UV_HTTP_TIMEOUT=300 \
     UV_PROJECT_ENVIRONMENT=/app/backend/.venv \
     HOME=/tmp \
     PATH=/app/backend/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 RUN set -eux; \
     export DEBIAN_FRONTEND=noninteractive; \
-    packages="bash ca-certificates curl git build-essential passwd postgresql-client redis-tools"; \
+    packages="bash ca-certificates curl git build-essential passwd postgresql-client"; \
     for attempt in 1 2 3 4 5; do \
       apt-get update -o Acquire::Retries=5 -o Acquire::http::Pipeline-Depth=0 && \
       apt-get install -y --download-only --no-install-recommends \

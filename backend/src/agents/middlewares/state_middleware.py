@@ -3,9 +3,7 @@
 from __future__ import annotations
 
 import logging
-import os
 import re
-import threading
 from html import unescape
 from pathlib import Path
 from typing import Annotated, Any, NotRequired, override
@@ -297,44 +295,6 @@ def _runtime_update_for_task(task_state: dict[str, Any]) -> dict[str, Any]:
     return runtime_update
 
 
-def _generate_task_completion_summary(task_state: dict[str, Any]) -> str:
-    goal = task_state.get("goal", "unknown")
-    status = task_state.get("status", "unknown")
-    completed = task_state.get("completed_steps", [])
-    failed = task_state.get("failed_attempts", [])
-    evidence = task_state.get("evidence", [])
-    lines = ["## Task Completion Summary", f"Goal: {str(goal)[:500]}", f"Status: {status}", f"Completed steps ({len(completed)}):"]
-    for step in completed[:10]:
-        lines.append(f"  - {str(step)[:200]}")
-    if failed:
-        lines.append(f"Failed attempts ({len(failed)}):")
-        for attempt in failed[:5]:
-            lines.append(f"  - {str(attempt)[:200]}")
-    if evidence:
-        lines.append(f"Key evidence ({len(evidence)}):")
-        for ev in evidence[:5]:
-            lines.append(f"  - {str(ev)[:200]}")
-    return "\n".join(lines)
-
-
-def _persist_task_summary_async(summary: str, thread_id: str) -> None:
-    if os.environ.get("PYTEST_CURRENT_TEST"):
-        return
-
-    def _worker():
-        try:
-            from src.agents.memory.simplemem_bridge import get_simplemem_bridge
-
-            bridge = get_simplemem_bridge()
-            bridge.store_fact(summary, namespace="conversation_summary", metadata={"thread_id": thread_id, "type": "task_summary"})
-            logger.info("Task completion summary persisted for thread %s", thread_id[:8])
-        except Exception as exc:
-            logger.debug("Failed to persist task summary: %s", exc)
-
-    thread = threading.Thread(target=_worker, name=f"task-summary-{thread_id[:8]}", daemon=True)
-    thread.start()
-
-
 class StateMiddlewareState(AgentState):
     runtime: Annotated[dict[str, Any] | None, merge_runtime_state]
     task_state: NotRequired[dict[str, Any] | None]
@@ -485,9 +445,6 @@ class StateMiddleware(AgentMiddleware[StateMiddlewareState]):
         runtime_state.update(_runtime_update_for_task(next_state))
 
         if status == "completed" and str(task_state.get("status")) != "completed":
-            runtime_context = runtime.context or {} if runtime else {}
-            thread_id = runtime_context.get("thread_id", "unknown")
-            _persist_task_summary_async(_generate_task_completion_summary(next_state), thread_id)
             runtime_state["task_summary_persisted"] = True
 
         return {"task_state": next_state, "runtime": runtime_state}

@@ -25,7 +25,7 @@ goal below.
   comparison, OctoAgent memory layers, and durable preference policy.
 * **Tool install/uninstall and artifact harness**:
   [`docs/tool-lifecycle-and-harness.md`](./tool-lifecycle-and-harness.md).
-  Tools Hub-first resolution, real permissions, managed directories, Office
+  Harness-first resolution, real permissions, managed directories, Office
   generation, and retention policy.
 * **Japanese quick guide** — [`docs/ja/README.md`](./ja/README.md).
   Project overview, installation, usage, and verification in Japanese.

@@ -10,7 +10,7 @@ import logging
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 
-from src.harness.work_bus_redis import get_work_bus
+from src.harness.work_bus import get_work_bus
 
 logger = logging.getLogger(__name__)
 

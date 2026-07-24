@@ -7,7 +7,7 @@ Seven core tools are loaded into every tool-capable system prompt by default:
     3. present_file       - Present file contents to the user
     4. setup_agent        - Agent configuration / role setup
     5. read_webpage       - Web content reading
-    6. list_capabilities  - Authoritative Tools Hub discovery
+    6. list_capabilities  - Authoritative Harness discovery
     7. inspect_octoagent_runtime - Sanitized deployment self-check
 
 All other tools are registered in ``LAZY_LOAD_REGISTRY`` and loaded on
@@ -45,12 +45,12 @@ from src.tools.builtins import (
     ask_clarification_tool,
     codex_cli_tool,
     convert_document_tool,
+    inspect_octoagent_runtime_tool,
+    list_capabilities_tool,
     present_file_tool,
     process_image_tool,
     read_webpage_tool,
     setup_agent,
-    inspect_octoagent_runtime_tool,
-    list_capabilities_tool,
     task_tool,
     view_image_tool,
 )

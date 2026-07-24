@@ -20,7 +20,7 @@ export function useUpdateRepoHook() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["repo-hooks"] });
       void queryClient.invalidateQueries({ queryKey: ["capability-inventory"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 }

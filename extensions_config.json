@@ -80,26 +80,6 @@
         "expected": {}
       }
     },
-    "redis": {
-      "enabled": true,
-      "type": "stdio",
-      "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-redis",
-      "args": [
-        "redis://localhost:6379"
-      ],
-      "env": {},
-      "headers": {},
-      "description": "Redis MCP package connected to local Redis for cache/session key inspection.",
-      "permission_scope": "system",
-      "smoke_test": {
-        "enabled": true,
-        "tool": "get",
-        "args": {
-          "key": "__octoagent_smoke__"
-        },
-        "expected": {}
-      }
-    },
     "docker": {
       "enabled": true,
       "type": "stdio",

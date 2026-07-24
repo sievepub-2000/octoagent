@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import socket
 import tomllib
 from pathlib import Path
 from typing import Literal
@@ -50,8 +49,8 @@ def _read_internal_json(url: str) -> dict | None:
         return None
 
 
-def _tools_hub_items() -> tuple[dict, list[dict]]:
-    """Build the same authoritative inventory used by the Tools Hub UI."""
+def _harness_items() -> tuple[dict, list[dict]]:
+    """Build the authoritative inventory owned by the Harness."""
 
     from src.harness.hook_core import get_hook_core_service
     from src.harness.hooks import get_hook_registry
@@ -128,7 +127,7 @@ def _tools_hub_items() -> tuple[dict, list[dict]]:
             "display_name": item.name,
             "description": item.description,
             "enabled": True,
-            "source": "/api/tools/registry",
+            "source": "/api/harness",
             "metadata": {
                 "category": item.category,
                 "permission_scope": item.permission_scope,
@@ -148,7 +147,7 @@ def _tools_hub_items() -> tuple[dict, list[dict]]:
             "display_name": item.name,
             "description": item.description,
             "enabled": item.installed and item.callable,
-            "source": "/api/tools/registry",
+            "source": "/api/harness",
             "metadata": {
                 "source_type": item.source_type,
                 "version": item.version,
@@ -189,7 +188,7 @@ def _tools_hub_items() -> tuple[dict, list[dict]]:
         if row.get("name")
     )
 
-    desktop_payload = _read_internal_json(f"{gateway_base}/api/tools/desktop-control/status") if gateway_base else None
+    desktop_payload = _read_internal_json(f"{gateway_base}/api/harness/desktop-control/status") if gateway_base else None
     if desktop_payload is not None and isinstance(desktop_payload.get("tools"), list):
         desktop_enabled = bool(desktop_payload.get("enabled"))
         desktop_rows = [row for row in desktop_payload["tools"] if isinstance(row, dict) and row.get("name")]
@@ -208,7 +207,7 @@ def _tools_hub_items() -> tuple[dict, list[dict]]:
             "display_name": str(row["name"]),
             "description": str(row.get("description", "")),
             "enabled": desktop_enabled,
-            "source": "/api/tools/desktop-control/status",
+            "source": "/api/harness/desktop-control/status",
             "metadata": {"driver_available": desktop_enabled},
         }
         for row in desktop_rows
@@ -221,7 +220,7 @@ def _tools_hub_items() -> tuple[dict, list[dict]]:
             "hooks_enabled": sum(1 for row in hook_rows if row.get("enabled", True)),
             "desktop_tools_total": len(desktop_rows),
             "desktop_tools_enabled": len(desktop_rows) if desktop_enabled else 0,
-            "tools_hub_total": len(items),
+            "harness_total": len(items),
         }
     )
     return {"summary": summary, "runtime": registry.runtime.model_dump()}, items
@@ -263,7 +262,7 @@ def list_capabilities_tool(
     """
 
     normalized_kind = _normalize_capability_kind(kind)
-    registry, items = _tools_hub_items()
+    registry, items = _harness_items()
     if normalized_kind:
         items = [item for item in items if item["kind"] == normalized_kind]
     if enabled_only:
@@ -271,7 +270,7 @@ def list_capabilities_tool(
 
     limited_items = items[: max(1, min(max_items, 200))]
     payload = {
-        "source": "/api/tools/registry",
+        "source": "/api/harness",
         "summary": registry["summary"],
         "runtime": registry["runtime"],
         "returned": len(limited_items),
@@ -291,7 +290,7 @@ def _public_url(url: str) -> str:
 def _sanitize_probe_body(name: str, body: object) -> object:
     if not isinstance(body, dict):
         return body if isinstance(body, (str, int, float, bool)) else None
-    if name == "gateway":
+    if name == "app_server":
         persistence = body.get("persistence") if isinstance(body.get("persistence"), dict) else {}
         return {
             "status": body.get("status"),
@@ -348,26 +347,6 @@ def _probe_json(name: str, url: str, *, expected_status: str | None = None) -> d
         }
 
 
-def _probe_redis() -> dict:
-    parsed = urlparse(os.getenv("OCTOAGENT_REDIS_URL", "redis://redis:6379"))
-    host = parsed.hostname or "redis"
-    port = parsed.port or 6379
-    result = {"name": "redis", "url": f"redis://{host}:{port}"}
-    try:
-        with socket.create_connection((host, port), timeout=4) as connection:
-            if parsed.password:
-                password = parsed.password.encode()
-                connection.sendall(b"*2\r\n$4\r\nAUTH\r\n$" + str(len(password)).encode() + b"\r\n" + password + b"\r\n")
-                if not connection.recv(1024).startswith(b"+OK"):
-                    raise ConnectionError("Redis AUTH failed")
-            connection.sendall(b"*1\r\n$4\r\nPING\r\n")
-            healthy = connection.recv(1024).startswith(b"+PONG")
-        result.update({"reachable": True, "healthy": healthy, "response": "PONG" if healthy else "unexpected"})
-    except Exception as exc:
-        result.update({"reachable": False, "healthy": False, "error_type": type(exc).__name__})
-    return result
-
-
 def _project_version() -> str:
     candidates = [
         Path(os.getenv("OCTOAGENT_BACKEND_PATH", "/app/backend")) / "pyproject.toml",
@@ -393,15 +372,12 @@ def inspect_octoagent_runtime_tool() -> str:
     from src.runtime.config.app_config import AppConfig
 
     app_config = get_app_config()
-    registry, _items = _tools_hub_items()
-    gateway_base = os.getenv("OCTOAGENT_GATEWAY_INTERNAL_URL", "http://gateway:19802").rstrip("/")
-    langgraph_base = os.getenv("OCTO_LANGGRAPH_BASE_URL", "http://langgraph:19804").rstrip("/")
+    registry, _items = _harness_items()
+    gateway_base = os.getenv("OCTOAGENT_GATEWAY_INTERNAL_URL", "http://app-server:19802").rstrip("/")
     executor_base = os.getenv("OCTOAGENT_SYSTEM_EXECUTOR_URL", "http://system-executor:19808").rstrip("/")
     probes = {
-        "gateway": _probe_json("gateway", f"{gateway_base}/health", expected_status="healthy"),
-        "langgraph": _probe_json("langgraph", f"{langgraph_base}/ok"),
+        "app_server": _probe_json("app_server", f"{gateway_base}/health", expected_status="healthy"),
         "system_executor": _probe_json("system_executor", f"{executor_base}/health", expected_status="healthy"),
-        "redis": _probe_redis(),
     }
     doctor = _probe_json("runtime_doctor", f"{gateway_base}/api/runtime/doctor")
     payload = {
@@ -410,7 +386,7 @@ def inspect_octoagent_runtime_tool() -> str:
         "runtime_profile": os.getenv("OCTOAGENT_RUNTIME_PROFILE", "unknown"),
         "authoritative_sources": {
             "config": str(AppConfig.resolve_config_path()),
-            "tools": "/api/tools/registry",
+            "harness": "/api/harness",
             "hooks": "/api/hooks",
             "runtime_doctor": "/api/runtime/doctor",
             "langgraph_health": "/ok",
@@ -418,13 +394,12 @@ def inspect_octoagent_runtime_tool() -> str:
         },
         "services": probes,
         "runtime_doctor": doctor,
-        "tools_hub": registry,
+        "harness": registry,
         "inventory_semantics": {
-            "tools_hub_total": registry["summary"]["tools_hub_total"],
+            "harness_total": registry["summary"]["harness_total"],
             "note": (
-                "Tools Hub is the full user-visible inventory. The runtime doctor's managed capability "
-                "activation registry is a smaller skills/plugins/MCP/channels binding subset and must not "
-                "be reported as the total tool count."
+                "Harness is the live inventory and dispatcher. Its private capability registry is the "
+                "single source for model and operator capability discovery."
             ),
         },
         "models": [

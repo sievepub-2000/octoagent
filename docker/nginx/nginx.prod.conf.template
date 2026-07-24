@@ -20,14 +20,9 @@ http {
         '' close;
     }
 
-    upstream gateway {
-        zone gateway 64k;
-        server gateway:${OCTO_GATEWAY_PORT} resolve;
-    }
-
-    upstream langgraph {
-        zone langgraph 64k;
-        server langgraph:${OCTO_LANGGRAPH_PORT} resolve;
+    upstream app_server {
+        zone app_server 64k;
+        server app-server:${OCTO_APP_SERVER_PORT} resolve;
     }
 
     upstream frontend {
@@ -54,7 +49,7 @@ http {
 
         location /api/langgraph/ {
             rewrite ^/api/langgraph/(.*) /$1 break;
-            proxy_pass http://langgraph;
+            proxy_pass http://app_server;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -71,7 +66,7 @@ http {
         }
 
         location /api/ {
-            proxy_pass http://gateway;
+            proxy_pass http://app_server;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -83,7 +78,7 @@ http {
         }
 
         location /docs {
-            proxy_pass http://gateway;
+            proxy_pass http://app_server;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -92,7 +87,7 @@ http {
         }
 
         location /redoc {
-            proxy_pass http://gateway;
+            proxy_pass http://app_server;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -101,7 +96,7 @@ http {
         }
 
         location /openapi.json {
-            proxy_pass http://gateway;
+            proxy_pass http://app_server;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;
@@ -110,7 +105,7 @@ http {
         }
 
         location /health {
-            proxy_pass http://gateway;
+            proxy_pass http://app_server;
             proxy_http_version 1.1;
             proxy_set_header Host $host;
             proxy_set_header X-Real-IP $remote_addr;

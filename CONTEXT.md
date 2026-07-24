@@ -1,13 +1,18 @@
 # OctoAgent Domain Context
 
-OctoAgent is a self-hosted agent runtime whose WebUI, Gateway, LangGraph runtime,
-Skills, MCP servers, built-in tools, and operator-installed tools form one
-capability system.
+OctoAgent is a self-hosted agent system with two public Modules. Agent Runtime
+owns model turns and durable Project/Task/Run/RunEvent data. Harness owns every
+capability and execution concern. The Docker-only deployment keeps the root
+System Executor physically isolated from the unprivileged application process.
 
 ## Core terms
 
-- **Tools Hub** is the read model for every usable capability. It is not a
-  second installer or database.
+- **Agent Runtime** is the deep Interface for model execution, LangGraph state,
+  streams, and Project/Task/Run/RunEvent data.
+- **Harness** is the deep Interface for dynamic capability discovery,
+  permission dispatch, execution adapters, tracing, artifacts, and memory.
+- **Capability Registry** is a private Harness dictionary rebuilt from live
+  sources. It is not a Module, database, or separate UI.
 - **Managed Tool** is an operator-approved standalone tool owned by exactly one
   directory at `runtime/system_tools/<name>/` and exactly one `manifest.json`.
 - **Bundled Skill** is versioned application capability under `skills/public`;
@@ -17,15 +22,15 @@ capability system.
 - **User artifact** is a deliverable under a conversation `outputs/` directory;
   it is presented in the Files panel and is never removed by automatic
   retention.
-- **Harness** is the runtime contract that governs permissions, invocation,
-  tracing, verification, artifact ownership, retention, and cleanup.
+- **Memory Markdown** is the durable source of truth; pgvector is a derived,
+  rebuildable retrieval index initialized by Harness.
 
 ## Invariants
 
-1. Search Tools Hub before installing anything; try existing suitable tools in
+1. Search Harness before installing anything; try existing suitable tools in
    least-privilege order.
 2. GitHub fallback requires a pinned source, user approval, managed directory,
-   smoke verification, manifest registration, and automatic Tools Hub refresh.
+   smoke verification, manifest registration, and automatic Harness refresh.
 3. System permission is required for install and delete. Directory/approval
    modes cannot receive those tools. Delete is manifest-owned and path-guarded.
 4. Automatic cleanup may touch only policy-owned disposable roots. It cannot

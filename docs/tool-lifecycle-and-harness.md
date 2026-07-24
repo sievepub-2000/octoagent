@@ -2,7 +2,7 @@
 
 ## Resolution order
 
-For each specialized task, OctoAgent must query Tools Hub first. It tries
+For each specialized task, OctoAgent discovers capabilities through Harness. It tries
 installed candidates in least-privilege order until one produces a verified
 result. Only when no registered capability is suitable may it research an
 established GitHub project and propose a pinned tag or branch, source URL,
@@ -19,7 +19,7 @@ commands, permissions, and target directory for approval.
 | Uninstall | `managed_tool_uninstall` | system | exact-name confirmation and valid manifest |
 
 Successful installs create `manifest.json`, `artifacts/`, `cache/`, and `logs/`
-under `runtime/system_tools/<name>/`. Tools Hub and the generated agent guide
+under `runtime/system_tools/<name>/`. Harness and the generated agent guide
 read that manifest immediately. Successful uninstall removes only that
 manifest-owned directory and performs a post-delete visibility check.
 

@@ -1,8 +1,8 @@
 """Host memory OOM guard for long-running agent work.
 
 This is the one hard execution guard: when host memory reaches the cleanup
-threshold we release process memory; when it reaches the stop threshold we stop
-currently running task workspaces and cancel busy LangGraph runs.
+threshold we release process memory; when it reaches the stop threshold we
+cancel busy LangGraph runs.
 """
 
 from __future__ import annotations
@@ -107,68 +107,16 @@ def _malloc_trim() -> bool:
 def cleanup_memory(snapshot: MemoryPressureSnapshot, *, reason: str) -> dict[str, Any]:
     collected = gc.collect()
     malloc_trimmed = _malloc_trim()
-    memory_cleanup: dict[str, Any] | None = None
-    try:
-        from src.agents.memory.cleanup import get_cleanup_scheduler
-
-        scheduler = get_cleanup_scheduler()
-        if scheduler is not None and hasattr(scheduler, "_cleanup"):
-            memory_cleanup = scheduler._cleanup()  # noqa: SLF001
-    except Exception:
-        logger.exception("OOMGuard: memory cleanup scheduler run failed")
 
     report = {
         "reason": reason,
         "snapshot": snapshot.to_dict(),
         "gc_collected": collected,
         "malloc_trimmed": malloc_trimmed,
-        "memory_cleanup": memory_cleanup,
         "created_at": datetime.now(UTC).isoformat(),
     }
     logger.warning("OOMGuard cleanup: %s", report)
     return report
-
-
-def _hardware_status_message(snapshot: MemoryPressureSnapshot) -> str:
-    available = "unknown" if snapshot.available_gb is None else f"{snapshot.available_gb:.1f} GiB"
-    total = "unknown" if snapshot.total_gb is None else f"{snapshot.total_gb:.1f} GiB"
-    cpu = "unknown" if snapshot.cpu_percent is None else f"{snapshot.cpu_percent:.1f}%"
-    return (
-        "内存 OOM 保护已触发硬停止："
-        f"当前内存使用率 {snapshot.used_percent:.1f}%（阈值 {snapshot.stop_threshold_percent:.0f}%），"
-        f"可用内存 {available} / 总内存 {total}，CPU {cpu}。"
-        "系统已停止当前运行任务以保护主机；请释放内存或扩容后再恢复执行。"
-    )
-
-
-def terminate_running_task_workspaces(snapshot: MemoryPressureSnapshot) -> dict[str, Any]:
-    from src.agents.core.service import get_agent_core_service
-    from src.storage.task_workspaces.service import get_task_workspace_service
-
-    service = get_task_workspace_service()
-    agent_core = get_agent_core_service()
-    stopped: list[str] = []
-    message = _hardware_status_message(snapshot)
-    for workspace in service.list_workspaces():
-        if workspace.status not in {"queued", "running", "paused"}:
-            continue
-        try:
-            service.merge_workspace_metadata(
-                workspace.task_id,
-                oom_guard={
-                    "action": "hard_stop",
-                    "snapshot": snapshot.to_dict(),
-                    "message": message,
-                    "stopped_at": datetime.now(UTC).isoformat(),
-                },
-            )
-            agent_core.terminate_workspace_execution(workspace.task_id, task_service=service)
-            if hasattr(service, "_append_run_log"):
-                service._append_run_log(workspace.task_id, "OOM guard hard stop", message)  # noqa: SLF001
-            stopped.append(workspace.task_id)
-        except Exception:
-            logger.exception("OOMGuard: failed to terminate workspace %s", workspace.task_id)
-    return {"stopped_task_ids": stopped, "message": message}
 
 
 async def cancel_busy_langgraph_runs(snapshot: MemoryPressureSnapshot) -> dict[str, Any]:
@@ -238,7 +186,6 @@ class OOMGuard:
             report["action"] = "hard_stop"
             report["cleanup"] = cleanup_memory(snapshot, reason="oom_stop_threshold")
             report["langgraph"] = await cancel_busy_langgraph_runs(snapshot)
-            report["tasks"] = terminate_running_task_workspaces(snapshot)
             logger.critical("OOMGuard hard stop report: %s", report)
             return report
         if snapshot.used_percent >= self.cleanup_threshold_percent:
@@ -304,5 +251,4 @@ __all__ = [
     "get_memory_pressure_snapshot",
     "start_oom_guard_task",
     "stop_oom_guard_task",
-    "terminate_running_task_workspaces",
 ]

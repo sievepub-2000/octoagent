@@ -229,9 +229,9 @@ class IntentRecognizer:
         if self._initialized:
             return
 
-        from src.agents.memory.embedding_service import get_text_embedding_service
+        from src.models.embedding_service import get_embedding_service
 
-        self._embedding_service = get_text_embedding_service()
+        self._embedding_service = get_embedding_service()
 
         for name, template in _DEFAULT_INTENTS.items():
             self.register_intent(name, template.description, template.template)
@@ -242,9 +242,9 @@ class IntentRecognizer:
     def register_intent(self, name: str, description: str, template: str = "") -> None:
         """Register a new intent with its embedding."""
         if not self._embedding_service:
-            from src.agents.memory.embedding_service import get_text_embedding_service
+            from src.models.embedding_service import get_embedding_service
 
-            self._embedding_service = get_text_embedding_service()
+            self._embedding_service = get_embedding_service()
 
         keywords = _extract_keywords(description)
         template_obj = IntentTemplate(name=name, description=description, template=template, keywords=keywords)
@@ -253,7 +253,7 @@ class IntentRecognizer:
         # Build embedding from description + keywords
         embed_text = f"{description} {' '.join(keywords)}"
         try:
-            self._embeddings[name] = self._embedding_service.encode(embed_text)
+            self._embeddings[name] = self._embedding_service.embed_one(embed_text)
         except Exception as exc:
             logger.warning("Failed to embed intent '%s': %s", name, exc)
 

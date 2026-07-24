@@ -55,7 +55,7 @@ export default function PluginsConfigPage() {
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["plugin-capabilities"] });
       void queryClient.invalidateQueries({ queryKey: ["plugin-registry"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
   });
 
@@ -65,7 +65,7 @@ export default function PluginsConfigPage() {
       toast.success("Plugin uninstalled.");
       void queryClient.invalidateQueries({ queryKey: ["plugin-capabilities"] });
       void queryClient.invalidateQueries({ queryKey: ["plugin-registry"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : "Failed to uninstall plugin.");
@@ -82,7 +82,7 @@ export default function PluginsConfigPage() {
       setIsInstallOpen(false);
       void queryClient.invalidateQueries({ queryKey: ["plugin-capabilities"] });
       void queryClient.invalidateQueries({ queryKey: ["plugin-registry"] });
-      void queryClient.invalidateQueries({ queryKey: ["tools-hub"] });
+      void queryClient.invalidateQueries({ queryKey: ["harness"] });
     },
     onError: (err) => {
       toast.error(err instanceof Error ? err.message : "Failed to install plugin.");

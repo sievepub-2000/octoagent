@@ -143,65 +143,17 @@ class MemoryHealthResponse(BaseModel):
     cleanup_scheduler: dict = Field(default_factory=dict)
     queue_stats: dict = Field(default_factory=dict)
     degradation: dict = Field(default_factory=dict)
-    generic_agent: dict = Field(default_factory=dict)
 
 
 @router.get("/api/metrics/memory-health", response_model=MemoryHealthResponse)
 async def memory_health() -> MemoryHealthResponse:
-    """Return memory system health metrics.
-
-    Combines:
-    - SystemRAGStore entry counts per namespace
-    - Cleanup scheduler last-run timestamp and cycle stats
-    - In-flight memory update queue depth
-    - Auto-degradation level
-    """
-    # Store stats
-    store_data: dict = {}
+    """Return the Harness-owned Markdown/pgvector memory health."""
     try:
-        from src.agents.memory.system_rag_store import get_system_rag_store
+        from src.harness.memory import get_harness_memory
 
-        store = get_system_rag_store()
-        store_data = store.stats()
+        store_data = get_harness_memory().stats()
     except Exception as exc:
         store_data = {"error": str(exc)}
-
-    # Cleanup scheduler stats
-    scheduler_data: dict = {}
-    try:
-        from src.agents.memory.cleanup import get_cleanup_scheduler
-
-        sched = get_cleanup_scheduler()
-        if sched is not None:
-            scheduler_data = {
-                "running": sched._thread is not None and sched._thread.is_alive(),  # noqa: SLF001
-                "last_run": sched.last_run.isoformat() if sched.last_run else None,
-                "last_cycle_stats": sched.stats,
-                "interval_seconds": sched._interval,  # noqa: SLF001
-            }
-        else:
-            scheduler_data = {"running": False}
-    except Exception as exc:
-        scheduler_data = {"error": str(exc)}
-
-    # Memory update queue stats
-    queue_data: dict = {}
-    try:
-        from src.agents.memory.queue import MemoryUpdateQueue
-
-        queue_data = {"in_flight_threads": len(MemoryUpdateQueue._timers)}  # type: ignore[attr-defined]  # noqa: SLF001
-    except Exception:
-        queue_data = {"in_flight_threads": "unavailable"}
-
-    # Generic silent maintenance agent status
-    generic_agent_data: dict = {}
-    try:
-        from src.agents.generic import generic_agent_enabled, get_generic_agent
-
-        agent = get_generic_agent()
-        generic_agent_data = agent.status() if agent is not None else {"running": False, "enabled": generic_agent_enabled()}
-    except Exception as exc:
-        generic_agent_data = {"error": str(exc)}
 
     # Degradation level
     degradation_data: dict = {}
@@ -218,10 +170,9 @@ async def memory_health() -> MemoryHealthResponse:
 
     return MemoryHealthResponse(
         store_stats=store_data,
-        cleanup_scheduler=scheduler_data,
-        queue_stats=queue_data,
+        cleanup_scheduler={"owner": "harness", "running": False},
+        queue_stats={"pending_index": store_data.get("pending", 0)},
         degradation=degradation_data,
-        generic_agent=generic_agent_data,
     )
 
 

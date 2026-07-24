@@ -219,20 +219,16 @@ prepare_files() {
     ensure_env_csv_value "NO_PROXY" "localhost"
     ensure_env_csv_value "NO_PROXY" "127.0.0.1"
     ensure_env_csv_value "NO_PROXY" "::1"
-    ensure_env_csv_value "NO_PROXY" "gateway"
-    ensure_env_csv_value "NO_PROXY" "langgraph"
+    ensure_env_csv_value "NO_PROXY" "app-server"
     ensure_env_csv_value "NO_PROXY" "system-executor"
     ensure_env_csv_value "NO_PROXY" "postgres"
-    ensure_env_csv_value "NO_PROXY" "redis"
     ensure_env_csv_value "NO_PROXY" "host.docker.internal"
     ensure_env_csv_value "no_proxy" "localhost"
     ensure_env_csv_value "no_proxy" "127.0.0.1"
     ensure_env_csv_value "no_proxy" "::1"
-    ensure_env_csv_value "no_proxy" "gateway"
-    ensure_env_csv_value "no_proxy" "langgraph"
+    ensure_env_csv_value "no_proxy" "app-server"
     ensure_env_csv_value "no_proxy" "system-executor"
     ensure_env_csv_value "no_proxy" "postgres"
-    ensure_env_csv_value "no_proxy" "redis"
     ensure_env_csv_value "no_proxy" "host.docker.internal"
     if grep -q 'replace-with-a-long-random-secret' .env.docker; then
         secret="$(random_secret)"
@@ -260,7 +256,7 @@ prepare_files() {
             sed -i '' "s#^POSTGRES_PASSWORD=octoagent-change-me#POSTGRES_PASSWORD=$postgres_secret#" .env.docker
         fi
     fi
-    mkdir -p logs runtime/cache runtime/langgraph runtime/logs runtime/secrets runtime/system_tools skills/custom workspace/env workspace/default tmp
+    mkdir -p logs runtime/cache runtime/langgraph runtime/logs runtime/memory runtime/secrets runtime/system_tools skills/custom workspace/env workspace/default tmp
     touch runtime/secrets/models.env
     chmod 600 .env.docker runtime/secrets/models.env
 }
@@ -318,7 +314,7 @@ wait_for_http() {
     done
     echo "Timed out waiting for $url" >&2
     compose ps >&2 || true
-    compose logs --tail=120 nginx gateway langgraph frontend >&2 || true
+    compose logs --tail=120 nginx frontend app-server system-executor postgres >&2 || true
     return 1
 }
 

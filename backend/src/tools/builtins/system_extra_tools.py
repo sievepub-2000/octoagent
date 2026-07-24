@@ -77,7 +77,6 @@ _MCP_COMMAND_DEFAULTS = {
     "OCTOAGENT_MCP_FILESYSTEM_BIN": str(_MCP_NODE_BIN / "mcp-server-filesystem"),
     "OCTOAGENT_MCP_POSTGRES_BIN": str(_MCP_NODE_BIN / "mcp-server-postgres"),
     "OCTOAGENT_MCP_OPENAPI_BIN": str(_MCP_NODE_BIN / "openapi-mcp-server"),
-    "OCTOAGENT_MCP_REDIS_BIN": str(_MCP_NODE_BIN / "mcp-server-redis"),
     "OCTOAGENT_MCP_KUBERNETES_BIN": str(_MCP_NODE_BIN / "mcp-server-kubernetes"),
     "OCTOAGENT_MCP_DOCKER_BIN": str(_MCP_NODE_BIN / "docker-mcp"),
 }
@@ -1085,7 +1084,7 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
         }
         checks["skills"] = {"configured": len(data.get("skills", {})), "enabled": sum(1 for v in data.get("skills", {}).values() if v.get("enabled", True))}
         checks["hooks"] = {"configured": len(data.get("hooks", {})), "enabled": sum(1 for v in data.get("hooks", {}).values() if v.get("enabled", True))}
-    checks["plugins_api"] = _run(_cmd("curl") + ["-sS", "--max-time", "5", "http://127.0.0.1:19802/api/tools/registry"], timeout=8, tool_name="octo_doctor", artifact=False)
+    checks["harness_api"] = _run(_cmd("curl") + ["-sS", "--max-time", "5", "http://127.0.0.1:19802/api/harness"], timeout=8, tool_name="octo_doctor", artifact=False)
     checks["rag_dirs"] = {"runtime": str(_REPO_ROOT / "runtime"), "storage_exists": (_REPO_ROOT / "backend" / "src" / "storage" / "rag").exists()}
     if include_repairs:
         checks["repair_note"] = "Safe checks completed. Use specific system tools with chat approval for service restarts, installs, Docker/SSH/Git writes, or database migrations."

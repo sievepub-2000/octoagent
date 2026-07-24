@@ -6,25 +6,12 @@ import json
 from collections import deque
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Query
 from pydantic import BaseModel, Field
 
 from src.runtime.config.paths import get_paths
-from src.storage.workflow import get_workflow_core_service
-from src.storage.workflow.observation import parse_run_log_timeline
 
 router = APIRouter(prefix="/api/observation", tags=["observation"])
-
-
-class ObservationTimelineEvent(BaseModel):
-    timestamp: str
-    title: str
-    details: list[str] = Field(default_factory=list)
-
-
-class TaskObservationTimelineResponse(BaseModel):
-    task_id: str
-    events: list[ObservationTimelineEvent] = Field(default_factory=list)
 
 
 class ToolTraceEntry(BaseModel):
@@ -77,25 +64,6 @@ def _load_tool_trace_tail(*, limit: int, event: str | None) -> tuple[list[ToolTr
                 )
             )
     return list(retained), matched_count > len(retained)
-
-
-@router.get("/tasks/{task_id}/timeline", response_model=TaskObservationTimelineResponse)
-async def get_task_observation_timeline(task_id: str) -> TaskObservationTimelineResponse:
-    workspace = get_workflow_core_service().get_workspace(task_id)
-    if workspace is None:
-        raise HTTPException(status_code=404, detail=f"Task workspace '{task_id}' not found")
-    run_log = get_workflow_core_service().read_run_log(task_id) or ""
-    return TaskObservationTimelineResponse(
-        task_id=workspace.task_id,
-        events=[
-            ObservationTimelineEvent(
-                timestamp=str(event.get("created_at") or ""),
-                title=str(event.get("title") or "Run log event"),
-                details=[str(item) for item in event.get("details", []) if str(item).strip()],
-            )
-            for event in parse_run_log_timeline(run_log)
-        ],
-    )
 
 
 @router.get("/tool-trace", response_model=ToolTraceResponse)

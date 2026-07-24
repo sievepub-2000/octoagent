@@ -1,3 +1,4 @@
+import asyncio
 import json
 import os
 import shutil
@@ -444,7 +445,7 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
                 id="capability-registry",
                 title="Managed capability activation registry",
                 status="ok" if registry_total > 0 else "fail",
-                detail=f"managed_items={registry_total}, kinds={by_kind}; this is the activation subset, not the full Tools Hub inventory",
+                detail=f"managed_items={registry_total}, kinds={by_kind}; Harness performs full live discovery",
                 recommendation=None if registry_total > 0 else "Capability registry returned no items; check skills/plugins/MCP/channel loading.",
             )
         )
@@ -603,8 +604,8 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
         )
 
     runtime_profile = os.getenv("OCTOAGENT_RUNTIME_PROFILE", "development").strip().lower()
-    for binary in ("git", "node", "pnpm", "python3"):
-        location = shutil.which(binary)
+    binary_locations = await asyncio.to_thread(lambda: {binary: shutil.which(binary) for binary in ("git", "node", "pnpm", "python3")})
+    for binary, location in binary_locations.items():
         production_optional = binary == "pnpm" and runtime_profile == "production" and not location
         checks.append(
             RuntimeDoctorCheck(

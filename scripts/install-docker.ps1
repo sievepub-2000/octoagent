@@ -143,20 +143,16 @@ $envText = Get-Content .env.docker -Raw
 $envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "localhost"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "127.0.0.1"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "::1"
-$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "gateway"
-$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "langgraph"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "app-server"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "system-executor"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "postgres"
-$envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "redis"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "NO_PROXY" -Value "host.docker.internal"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "localhost"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "127.0.0.1"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "::1"
-$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "gateway"
-$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "langgraph"
+$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "app-server"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "system-executor"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "postgres"
-$envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "redis"
 $envText = Ensure-EnvCsvValue -Text $envText -Key "no_proxy" -Value "host.docker.internal"
 if ($envText.Contains("replace-with-a-long-random-secret")) {
     $envText = $envText.Replace("replace-with-a-long-random-secret", (New-Secret))
@@ -178,7 +174,7 @@ if ($envText -match '(?m)^OCTOAGENT_HOST_REPO_ROOT=') {
 Set-Content -Encoding utf8 -NoNewline -Path .env.docker -Value $envText
 Set-BuildProxyEnvironment
 
-foreach ($dir in @("logs", "runtime/cache", "runtime/langgraph", "runtime/logs", "runtime/secrets", "runtime/system_tools", "skills/custom", "workspace/env", "workspace/default", "tmp")) {
+foreach ($dir in @("logs", "runtime/cache", "runtime/langgraph", "runtime/logs", "runtime/memory", "runtime/secrets", "runtime/system_tools", "skills/custom", "workspace/env", "workspace/default", "tmp")) {
     New-Item -ItemType Directory -Force -Path $dir | Out-Null
 }
 if (-not (Test-Path "runtime/secrets/models.env")) {
@@ -206,7 +202,7 @@ if (-not $NoStart) {
         }
     } while ((Get-Date) -lt $deadline)
     Invoke-Compose @("ps")
-    Invoke-Compose @("logs", "--tail=120", "nginx", "gateway", "langgraph", "frontend")
+    Invoke-Compose @("logs", "--tail=120", "nginx", "frontend", "app-server", "system-executor", "postgres")
     throw "Timed out waiting for http://127.0.0.1:$port/health"
 }
 

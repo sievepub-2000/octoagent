@@ -1,3 +1,61 @@
+## [20260721.1.0] - 2026-07-24
+
+### Agent Runtime + Harness architecture
+
+- Collapsed Gateway and the separate LangGraph container into one unprivileged
+  `app-server` process. LangGraph's protocol and OctoAgent's custom FastAPI
+  routes now share one port and one lifecycle.
+- Reduced the public backend architecture to two deep Modules: Agent Runtime
+  owns model turns and Project/Task/Run/RunEvent state; Harness owns live
+  capability scanning, permission dispatch, execution adapters, traces,
+  artifacts, and memory. System Executor remains a physically isolated root
+  boundary and is not a third application Module.
+- Replaced Tools Hub and the duplicate public Capability Registry with one
+  `/api/harness` snapshot and refresh Interface. Removed stale Brain,
+  QueryEngine, TaskWorkspace, Orchestration, and legacy memory control-plane
+  APIs plus their unreferenced WebUI clients and inspector components.
+- Consolidated the settings UI around Agent Runtime, Harness, Models, and the
+  real permission selector. Skills, MCP, plugins, hooks, tools, traces, and
+  memory health are managed from the Harness surface.
+
+### Durable memory and smaller deployment
+
+- Made raw run transcripts and extracted memory Markdown the authoritative
+  source under `runtime/memory/`. Each completed run writes atomically before
+  indexing; missing pgvector rows are recovered at Harness initialization.
+- Added a PostgreSQL pgvector/HNSW derived index for automatic vector recall.
+  A dependency-free 384-dimensional word/CJK n-gram feature hash avoids
+  loading a 0.6B embedding model on every request. The index can be rebuilt
+  entirely from Markdown and is never the sole copy.
+- Added an idempotent migration for legacy JSON and DuckDB memories. Changed
+  Markdown is embedded in one batch and stable content hashes are skipped, so
+  cold restarts do not repeatedly spend CPU rebuilding unchanged vectors.
+- Removed the Redis service and Redis work-bus mirror. A single-process live
+  bus now archives terminal traces directly to PostgreSQL.
+- Reduced the default Compose topology to frontend, app-server,
+  system-executor, PostgreSQL/pgvector, and Nginx.
+- Removed the obsolete Redis MCP package, runtime override, active
+  configuration entry, and persistent Redis volume.
+
+### Compatibility and cleanup
+
+- Removed obsolete Tools Hub, Brain, QueryEngine, TaskWorkspace, capability,
+  orchestration, and legacy memory management pages and public router files.
+- Updated self-inspection, generated tool guidance, runtime architecture
+  metadata, health identity, Nginx routing, Docker configuration, and release
+  documentation to the same two-Module vocabulary.
+- Moved Runtime Doctor filesystem probes, runtime governance collection, and
+  Project Git/SQLite operations off the ASGI event loop. Doctor is green and
+  Project CRUD now remains available under LangGraph's blocking-call detector.
+- Removed the host-oriented in-product auto-update page and router. Immutable
+  Docker deployments now upgrade only through the documented host-side
+  `docker compose up -d --build --remove-orphans` lifecycle.
+- Increased the production `uv` download timeout for slow but healthy package
+  links and removed the last unused `redis-tools` package from the backend
+  image.
+- Added `pytest-asyncio` to the development lock and aligned stale Redis,
+  Tools Hub, and deleted TaskWorkspace OOM tests with the current runtime.
+
 ## [20260721.0.0] - 2026-07-21
 
 ### Cold-start capability truthfulness

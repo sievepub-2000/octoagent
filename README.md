@@ -66,16 +66,12 @@ Typical verticals shipped today:
 | Web data scraping | "Crawl 200 product pages on this site, normalize to JSON, store in the local RAG, and answer questions about the catalog." |
 | Code work | "Refactor `backend/src/agents/middlewares/` for clarity; add tests; keep all imports passing import-linter." |
 
-Architecture (high level):
+Current architecture: [`docs/architecture.md`](docs/architecture.md).
 
-```
-Next.js WebUI  ──HTTP──▶  FastAPI gateway  ──▶  LangGraph runtime
-                                              │
-                                              ├── Subagent orchestration
-                                              ├── Tool-budget middleware
-                                              ├── RAG store (FAISS)
-                                              ├── System-execution guard
-                                              └── Model-auth (multi-tenant)
+```text
+WebUI -> nginx -> app-server (Agent Runtime + Harness) -> PostgreSQL/pgvector
+                                   |
+                                   +-> authenticated system-executor
 ```
 
 ### Prerequisites
@@ -87,7 +83,7 @@ The default installation path is now **Docker Compose** on all supported desktop
 - macOS with Docker Desktop, OrbStack, or another Docker-compatible engine.
 - Git is needed only when the installer has to clone the repository.
 
-You do **not** need host Python, Node.js, pnpm, nginx, PostgreSQL, or Redis for the Docker profile. They are packaged as containers or image dependencies.
+You do **not** need host Python, Node.js, pnpm, Nginx, or PostgreSQL for the Docker profile. They are packaged as containers or image dependencies.
 
 ### Docker Installation (default)
 
@@ -117,17 +113,10 @@ Open the WebUI after the health check passes:
 http://127.0.0.1:19800
 ```
 
-The Docker profile starts nginx, the production WebUI, the FastAPI gateway, LangGraph, PostgreSQL, Redis, and the packaged MCP tool dependencies. See [docs/docker-install.md](docs/docker-install.md) for operations, configuration, packaging, and verification.
-
-### Host Installation (advanced)
-
-The legacy host installer remains available for Linux service deployments that intentionally manage Python, Node.js, nginx, and systemd on the host:
-
-```bash
-git clone https://github.com/sievepub-2000/octoagent.git
-cd octoagent
-./scripts/install-octoagent.sh
-```
+The Docker profile starts five services: nginx, the production WebUI, the
+unified app-server, PostgreSQL/pgvector, and the authenticated system executor.
+See [docs/docker-install.md](docs/docker-install.md) for operations,
+configuration, migration, and verification.
 
 ### Source development stack
 
@@ -253,12 +242,11 @@ resealing breaks startup; even with resealing, the email is the HKDF
 salt for every internal credential, so changing it requires re-keying
 all internal databases. This is intentional (see LICENSE Addendum A).
 
-### Updating
+### Updating the Docker deployment
 
 ```bash
-git pull
-./scripts/install-octoagent.sh    # idempotent — updates deps in place
-sudo systemctl restart octoagent-local
+git pull --ff-only
+docker compose --env-file .env.docker -f compose.yaml up -d --build --remove-orphans
 ```
 
 ### Reporting bugs / commercial inquiries
@@ -394,20 +382,18 @@ WebUI 右上の歯車 → **Settings → About** を開くとまず **ライセ�
 
 The only active OctoAgent project root on this host is `/home/sieve-pub/public-workspace/octoagent`. Do not use `/home/sieve-pub/codex/octoagent` or `/home/sieve-pub/public-workspace/octoagent-module1-webui-only` as project roots; branch and worktree content should be merged into the canonical project root.
 
-OctoAgent is a task-centric multi-agent platform built around a single active runtime path:
-Next.js WebUI -> FastAPI gateway -> LangGraph runtime.
+OctoAgent is a task-centric agent platform built around one runtime path:
+WebUI -> nginx -> app-server (Agent Runtime + Harness).
 
 Current repository truth:
 
-- active execution provider: LangGraph-only
-- backend top-level modules: 45
-- gateway router groups: 38 registered groups (41 router files)
-- primary workflow truth source: task_workspaces + workflow_core projections
+- active execution provider: LangGraph through the unified app-server
+- backend architecture modules: Agent Runtime and Harness
+- capability truth source: Harness dynamic inventory and dispatcher
+- memory truth source: Markdown with PostgreSQL pgvector retrieval
 - unified local entrypoint: http://127.0.0.1:19800
-- local default model: `openrouter-free-openai-gpt-oss-20b` for flash WebUI dialogue, with quota/cooldown-aware fallback for live WebUI dialogue
-- runtime governance version: `2026.6.1`
-- systemd startup owner: `/etc/systemd/system/octoagent-local.service` calls only `scripts/start-octoagent.sh`; all OctoAgent child processes are launched and stopped by repository scripts under `scripts/`
-- backend Python runtime: one repository venv at `backend/.venv`, exposed to scripts as `OCTOAGENT_PYTHON_BIN`
+- production distribution: five-service Docker Compose profile
+- runtime version: `20260721.1.0`
 - repository-scoped tools and maintenance scripts live under `scripts/` and `runtime/`; host-level helper copies under `/usr/local/bin` are not part of the active deployment
 
 Canonical documentation:
@@ -425,20 +411,7 @@ Canonical documentation:
 - module owners (Phase 0 frozen): [project_docs/docs/MODULE_OWNERS.md](project_docs/docs/MODULE_OWNERS.md)
 - topology freeze (2026-05-26): [project_docs/docs/TOPOLOGY_FREEZE_2026-05-26.md](project_docs/docs/TOPOLOGY_FREEZE_2026-05-26.md)
 - P0 closure and cleanup: [project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md](project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md)
-- local FAISS RAG and semgrep scan workflow: [docs/faiss-rag-and-semgrep-scan.md](docs/faiss-rag-and-semgrep-scan.md)
-- one-line install and CLI: [docs/one-line-install-and-cli.md](docs/one-line-install-and-cli.md)
 - channel bridge deployment: [project_docs/docs/CHANNEL_BRIDGE_DEPLOYMENT_GUIDE.md](project_docs/docs/CHANNEL_BRIDGE_DEPLOYMENT_GUIDE.md)
-
-
-## One-Line Install And CLI
-
-From a Linux host with network access, the service install path can be bootstrapped with:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/sievepub-2000/octoagent/main/scripts/install-octoagent.sh | bash -s -- --prefix /home/sieve-pub/public-workspace/octoagent --user sieve-pub --mode service --yes --start
-```
-
-After installation, `octoagent` starts the full stack. `octoagent configure` updates the repository setup state for the default model, and `octoagent ports` prints the active port map. See [docs/one-line-install-and-cli.md](docs/one-line-install-and-cli.md).
 
 ## Production Hardening Before Launch
 
@@ -558,10 +531,10 @@ The current chat runtime hardening pass focuses on long-running conversation sta
 
 | Area | Current behavior |
 | --- | --- |
-| LangGraph checkpointer | SQLite async saver is wrapped with `adelete_for_runs`, `acopy_thread`, and `aprune` maintenance hooks. |
+| LangGraph checkpointer | PostgreSQL is authoritative and exposes delete/copy/prune maintenance hooks. |
 | Maintenance telemetry | Checkpointer maintenance calls now log and expose per-operation counters through the wrapper. |
-| Runtime directories | Gateway startup repairs writable runtime paths such as `backend/.octoagent`, `workspace/runtime`, `workspace/env`, and workflow state directories. |
-| nginx local temp files | Local nginx uses repository-owned `tmp/nginx/*` temp paths instead of system `/var/lib/nginx/*` paths. |
+| Runtime directories | App-server startup repairs writable bind mounts and validates their effective owner. |
+| nginx | The production container uses one app-server upstream and a read-only template mount. |
 
 ### Web Fetch TLS Handling
 

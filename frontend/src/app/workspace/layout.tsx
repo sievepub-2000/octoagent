@@ -19,30 +19,18 @@ type SettingsSectionId =
   | "general"
   | "appearance"
   | "models"
-  | "skills"
-  | "mcp"
-  | "plugins"
-  | "hooks"
-  | "tools"
-  | "memory"
+  | "harness"
   | "permissions"
   | "notifications"
-  | "update"
   | "about";
 
 const SETTINGS_SECTIONS: SettingsSectionId[] = [
   "general",
   "appearance",
   "models",
-  "skills",
-  "mcp",
-  "plugins",
-  "hooks",
-  "tools",
-  "memory",
+  "harness",
   "permissions",
   "notifications",
-  "update",
   "about",
 ];
 

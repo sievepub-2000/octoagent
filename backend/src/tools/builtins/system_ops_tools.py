@@ -136,7 +136,7 @@ def _ensure_tool_python_env(tool_name: str) -> Path:
     # Keep the registered entrypoint physically inside the managed root.  On
     # POSIX, venv otherwise symlinks ``bin/python`` to the system interpreter,
     # which correctly fails our no-path-escape check and makes the tool
-    # non-callable in Tools Hub.
+    # non-callable in Harness.
     result = subprocess.run(
         [sys.executable, "-m", "venv", "--copies", str(venv_dir)],
         cwd=str(tool_root),
@@ -1278,7 +1278,7 @@ def python_package_install_tool(
             "stderr": result.stderr[-8000:],
             "verification": verification,
             "manifest": manifest,
-            "tools_hub": "Updated automatically after successful installation.",
+            "harness": "Updated automatically after successful installation.",
         }
     )
 
@@ -1303,7 +1303,7 @@ def github_tool_install_tool(
         entrypoint: Relative executable path inside the cloned repository.
         install_command: Optional argv-style setup command executed without a shell.
         verification_command: Required argv-style smoke command executed without a shell.
-        description: Tools Hub usage description.
+        description: Harness usage description.
         confirmed_by_user: True only after the user approves source, ref, directory, and commands.
     """
 
@@ -1356,12 +1356,12 @@ def github_tool_install_tool(
         verification={"command": verification_command, "exit_code": 0, "stdout": verify.stdout[-2000:]},
     )
     generate_agent_tool_guide()
-    return _json({"ok": True, "manifest": manifest, "tools_hub": "Updated automatically."})
+    return _json({"ok": True, "manifest": manifest, "harness": "Updated automatically."})
 
 
 @tool("managed_tool_list", parse_docstring=True)
 def managed_tool_list_tool() -> str:
-    """List operator-installed tools from the same manifest source used by Tools Hub."""
+    """List operator-installed tools from the same manifest source used by Harness."""
 
     return _json({"tools": list_managed_tools(root=_SYSTEM_TOOL_ARTIFACT_ROOT)})
 
@@ -1371,7 +1371,7 @@ def managed_tool_execute_tool(name: str, arguments: str = "", timeout_seconds: i
     """Execute the registered entrypoint of one callable managed tool.
 
     Args:
-        name: Managed tool name shown in Tools Hub.
+        name: Managed tool name shown in Harness.
         arguments: Optional argv-style arguments passed without a shell.
         timeout_seconds: Bounded execution timeout from 1 to 1800 seconds.
     """
@@ -1411,7 +1411,7 @@ def managed_tool_uninstall_tool(name: str, confirmed_by_user: bool = False) -> s
     """Uninstall one manifest-owned tool and remove its artifacts/cache/logs.
 
     Args:
-        name: Managed tool name shown in Tools Hub.
+        name: Managed tool name shown in Harness.
         confirmed_by_user: True only after the user approves deletion of the exact managed root.
     """
 
@@ -1420,7 +1420,7 @@ def managed_tool_uninstall_tool(name: str, confirmed_by_user: bool = False) -> s
     result = uninstall_managed_tool(name, root=_SYSTEM_TOOL_ARTIFACT_ROOT)
     if result.get("ok"):
         generate_agent_tool_guide()
-    return _json({**result, "tools_hub": "Updated automatically." if result.get("ok") else "unchanged"})
+    return _json({**result, "harness": "Updated automatically." if result.get("ok") else "unchanged"})
 
 
 @tool("artifact_governance_status", parse_docstring=True)

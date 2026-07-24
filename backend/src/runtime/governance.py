@@ -11,6 +11,7 @@ import time
 from collections.abc import Iterator
 from contextlib import asynccontextmanager, contextmanager
 from dataclasses import dataclass, field
+from datetime import UTC, datetime
 from typing import Any
 
 from src.runtime.config.paths import get_paths
@@ -212,7 +213,10 @@ async def collect_runtime_governance_snapshot_async() -> dict[str, Any]:
     started = loop.time()
     await asyncio.sleep(0)
     latency_ms = round((loop.time() - started) * 1000, 3)
-    return collect_runtime_governance_snapshot(event_loop_latency_ms=latency_ms)
+    return await asyncio.to_thread(
+        collect_runtime_governance_snapshot,
+        event_loop_latency_ms=latency_ms,
+    )
 
 
 def evaluate_runtime_alerts(snapshot: dict[str, Any]) -> list[dict[str, Any]]:
@@ -359,10 +363,7 @@ class RuntimeMaintenanceScheduler:
     def run_once(self) -> dict[str, Any]:
         from src.agents.runtime import get_langgraph_workflow_contract_service
         from src.runtime.artifact_lifecycle import run_artifact_lifecycle
-        from src.storage.query import get_query_engine_service
-        from src.storage.workflow import utc_now
 
-        query = get_query_engine_service().run_maintenance(created_at=utc_now())
         contract_service = get_langgraph_workflow_contract_service()
         stale_runs = contract_service.recover_stale_running_runs(
             max_age_seconds=self.max_running_run_age_seconds,
@@ -373,8 +374,7 @@ class RuntimeMaintenanceScheduler:
         )
         artifact_lifecycle = run_artifact_lifecycle()
         self._last_run = {
-            "ran_at": utc_now(),
-            "query_engine": query,
+            "ran_at": datetime.now(UTC).isoformat(),
             "langgraph_contract": contract,
             "langgraph_stale_runs": stale_runs,
             "artifact_lifecycle": artifact_lifecycle,

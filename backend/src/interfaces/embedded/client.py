@@ -494,14 +494,10 @@ class OctoAgentClient:
         }
 
     def get_memory(self) -> dict:
-        """Get current memory data.
+        """Get Harness-owned Markdown/pgvector memory status."""
+        from src.harness.memory import get_harness_memory
 
-        Returns:
-            Memory data dict (see src/agents/memory/updater.py for structure).
-        """
-        from src.agents.memory.updater import get_memory_data
-
-        return get_memory_data()
+        return get_harness_memory().stats()
 
     def get_model(self, name: str) -> dict | None:
         """Get a specific model's configuration by name.
@@ -715,14 +711,10 @@ class OctoAgentClient:
     # ------------------------------------------------------------------
 
     def reload_memory(self) -> dict:
-        """Reload memory data from file, forcing cache invalidation.
+        """Rebuild the derived pgvector index from Markdown sources."""
+        from src.harness.memory import get_harness_memory
 
-        Returns:
-            The reloaded memory data dict.
-        """
-        from src.agents.memory.updater import reload_memory_data
-
-        return reload_memory_data()
+        return get_harness_memory().initialize()
 
     def get_memory_config(self) -> dict:
         """Get memory system configuration.

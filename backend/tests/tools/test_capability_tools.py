@@ -32,10 +32,10 @@ def test_runtime_discovery_tools_are_always_visible() -> None:
     assert {"list_capabilities", "inspect_octoagent_runtime"} <= names
 
 
-def test_list_capabilities_uses_tools_hub_registry() -> None:
+def test_list_capabilities_uses_harness_registry() -> None:
     payload = json.loads(list_capabilities_tool.invoke({"kind": "builtin_tool", "max_items": 1}))
 
-    assert payload["source"] == "/api/tools/registry"
+    assert payload["source"] == "/api/harness"
     assert payload["summary"]["builtin_tools_total"] > 0
     assert payload["items"][0]["kind"] == "builtin_tool"
 
@@ -53,7 +53,7 @@ def test_runtime_inspection_is_sanitized_and_uses_authoritative_sources(monkeypa
     payload = json.loads(inspect_octoagent_runtime_tool.invoke({}))
     serialized = json.dumps(payload)
 
-    assert payload["authoritative_sources"]["tools"] == "/api/tools/registry"
+    assert payload["authoritative_sources"]["harness"] == "/api/harness"
     assert payload["services"]["system_executor"]["reachable"] is True
     assert "api_key" not in serialized.lower()
     assert "authorization" not in serialized.lower()

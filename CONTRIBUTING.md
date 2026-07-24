@@ -9,9 +9,9 @@ please read this entire document — by submitting a PR you agree to the
 ```bash
 git clone git@github.com:sievepub-2000/octoagent.git
 cd octoagent
-./scripts/install-octoagent.sh        # bootstraps venv + pnpm + runtime dirs
-./scripts/octoagent configure         # interactive model & provider setup
-make smoke-chat-regression            # quick browser-level smoke
+./scripts/install-docker.sh --prefix "$PWD"
+docker compose ps
+curl -fsS http://127.0.0.1:19800/health
 ```
 
 The canonical development handbook is
@@ -145,4 +145,3 @@ The active runtime configuration file lives at
 If you migrate from the legacy root layout, just `mkdir -p
 runtime/config && mv config.yaml runtime/config/config.yaml`. The
 loader picks up the new location automatically.
-

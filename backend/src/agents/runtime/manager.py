@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import Any
 
 from .contracts import (
     AgentExecutionRequest,
@@ -13,9 +13,6 @@ from .contracts import (
     AgentRuntimeProviderName,
 )
 from .providers import LangGraphRuntimeProvider
-
-if TYPE_CHECKING:
-    from src.storage.task_workspaces.contracts import TaskWorkspace
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +40,7 @@ class AgentRuntimeManager:
     def resolve_provider_name(
         self,
         *,
-        workspace: TaskWorkspace | None = None,
+        workspace: Any | None = None,
         preferred: str | None = None,
     ) -> AgentRuntimeProviderName:
         candidate = preferred
@@ -67,7 +64,7 @@ class AgentRuntimeManager:
         self,
         request: AgentExecutionRequest,
         *,
-        workspace: TaskWorkspace | None = None,
+        workspace: Any | None = None,
         preferred_provider: str | None = None,
     ) -> AgentExecutionResult:
         # Legacy overrides are normalized to the sole provider.

@@ -111,7 +111,7 @@ curl -fsS http://127.0.0.1:19800/api/tools/registry
 curl -fsS http://127.0.0.1:19800/api/mcp/smoke
 ```
 
-ツール状態は WebUI の Tools Hub で確認できます。
+ツール状態は WebUI の Harness で確認できます。
 
 ```text
 http://127.0.0.1:19800/workspace/config/tools
