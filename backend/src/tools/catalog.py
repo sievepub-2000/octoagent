@@ -30,7 +30,7 @@ from collections.abc import Iterable
 
 from langchain.tools import BaseTool
 
-from src.harness.reflection import resolve_variable
+from src.harness.dynamic_import import resolve_variable
 from src.runtime.config import get_app_config
 from src.tools.builtins import (
     BYTEBOT_COMPAT_TOOLS,

@@ -85,8 +85,8 @@ _MCP_COMMAND_DEFAULTS = {
 def _resolve_mcp_command(raw: str) -> str:
     """Resolve an MCP command field, expanding a leading $ENV placeholder.
 
-    Mirrors scripts/start-daemon.sh defaults so the doctor reports accurately
-    even when the MCP bin env vars are not exported in the current process.
+    Mirrors the Docker image defaults so the doctor reports accurately even
+    when the MCP bin env vars are not exported in the current process.
     """
     raw = (raw or "").strip()
     if not raw.startswith("$"):
@@ -1065,7 +1065,18 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
         include_repairs: If true, perform safe repair checks only; destructive repairs still require separate system approval tools.
     """
     checks: dict[str, Any] = {}
-    checks["services"] = {svc: _run(["systemctl", "is-active", svc], timeout=5, tool_name="octo_doctor", artifact=False) for svc in ("octoagent-local.service", "llamacpp.service", "mihomo.service")}
+    checks["runtime_doctor"] = _run(
+        _cmd("curl") + ["-sS", "--max-time", "8", "http://127.0.0.1:19802/api/runtime/doctor"],
+        timeout=10,
+        tool_name="octo_doctor",
+        artifact=False,
+    )
+    checks["system_executor"] = _run(
+        _cmd("curl") + ["-sS", "--max-time", "8", "http://system-executor:19808/health"],
+        timeout=10,
+        tool_name="octo_doctor",
+        artifact=False,
+    )
     checks["binaries"] = {name: _which(name) for name in ("npx", "node", "docker", "git", "ssh", "psql", "sqlite3", "pytest", "ruff", "bandit", "trivy")}
     checks["tool_policy"] = {"backend_venv": str(_BACKEND_VENV_BIN), "managed_bin": str(_MANAGED_BIN), "node_tools_bin": str(_NODE_TOOLS_BIN)}
     cfg_path = _REPO_ROOT / "extensions_config.json"
@@ -1084,7 +1095,12 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
         }
         checks["skills"] = {"configured": len(data.get("skills", {})), "enabled": sum(1 for v in data.get("skills", {}).values() if v.get("enabled", True))}
         checks["hooks"] = {"configured": len(data.get("hooks", {})), "enabled": sum(1 for v in data.get("hooks", {}).values() if v.get("enabled", True))}
-    checks["harness_api"] = _run(_cmd("curl") + ["-sS", "--max-time", "5", "http://127.0.0.1:19802/api/harness"], timeout=8, tool_name="octo_doctor", artifact=False)
+    checks["harness_api"] = _run(
+        _cmd("curl") + ["-sS", "--max-time", "8", "http://127.0.0.1:19802/api/harness"],
+        timeout=10,
+        tool_name="octo_doctor",
+        artifact=False,
+    )
     checks["memory"] = {
         "markdown_root": str(_REPO_ROOT / "runtime" / "memory"),
         "source_format": "markdown",

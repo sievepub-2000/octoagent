@@ -14,7 +14,7 @@ from langchain_core.outputs import ChatGenerationChunk, ChatResult
 from langchain_core.runnables import Runnable
 from pydantic import ConfigDict, Field
 
-from src.harness.reflection import resolve_class
+from src.harness.dynamic_import import resolve_class
 from src.models.error_contracts import NormalizedModelError
 from src.models.openrouter import (
     apply_openrouter_request_options,

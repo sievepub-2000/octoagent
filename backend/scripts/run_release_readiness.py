@@ -455,7 +455,7 @@ def build_report(*, run_doctor: bool, evidence_manifest: Path | None = None) -> 
                 _path_evidence("release_precheck", "backend/scripts/run_release_precheck.py", "release precheck script exists"),
                 _path_evidence("release_materials", "project_docs/docs/RELEASE_PACKAGING_AND_MATERIALS.md", "release packaging document exists"),
                 _path_evidence("docker_installer", "scripts/install-docker.sh", "single Docker installation path exists"),
-                _path_evidence("logrotate", "deploy/system/logrotate.d/octoagent", "logrotate material exists"),
+                _path_evidence("container_logs", "compose.yaml", "container log lifecycle is owned by the Docker deployment"),
                 soak_monitor,
                 secrets_rotation,
             ],

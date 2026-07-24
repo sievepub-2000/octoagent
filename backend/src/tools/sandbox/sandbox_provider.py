@@ -1,7 +1,7 @@
 import asyncio
 from abc import ABC, abstractmethod
 
-from src.harness.reflection import resolve_class
+from src.harness.dynamic_import import resolve_class
 from src.runtime.config import get_app_config
 from src.tools.sandbox.sandbox import Sandbox
 

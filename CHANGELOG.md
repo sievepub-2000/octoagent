@@ -21,6 +21,9 @@
 - Removed the orphan independent execution-worker daemon, systemd/env
   templates, runbook, and obsolete release smoke. Release gates now test the
   authenticated Docker `system-executor` boundary directly.
+- Removed the second, host-venv/systemd deployment path, its installers,
+  supervisor/watchdog scripts, timers, and logrotate material. Docker Compose
+  is now the only supported install and service lifecycle.
 - Consolidated the settings UI around Agent Runtime, Harness, Models, and the
   real permission selector. Skills, MCP, plugins, hooks, tools, traces, and
   memory health are managed from the Harness surface.
@@ -66,6 +69,9 @@
   documentation to the same two-Module vocabulary.
 - Replaced the stale project-status inventory and broken Make targets with the
   deployed Agent Runtime + Harness topology and current verification commands.
+- Replaced container-side `systemctl` self-checks with the live Runtime Doctor,
+  Harness, and authenticated executor health contracts so model-visible
+  diagnostics cannot report retired host services.
 - Moved Runtime Doctor filesystem probes, runtime governance collection, and
   Project Git/SQLite operations off the ASGI event loop. Doctor is green and
   Project CRUD now remains available under LangGraph's blocking-call detector.

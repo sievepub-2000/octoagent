@@ -160,7 +160,7 @@ def _system_agents_root() -> Path:
     ``/api/agents`` endpoint to surface zero preset agents in the WebUI even
     though dozens of ``.agent.md`` files were checked into ``.github/agents/``.
     The ``Path.cwd()`` fallback never compensated because the uvicorn process
-    runs with cwd set to ``backend/`` (start-daemon launches python from there).
+    runs with cwd set to ``backend/`` inside the app-server container.
     """
     here = Path(__file__).resolve()
     repo_root = here.parents[4] if len(here.parents) > 4 else here.parents[-1]

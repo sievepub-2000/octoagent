@@ -393,7 +393,7 @@ class ChannelService:
             return False
 
         try:
-            from src.harness.reflection import resolve_class
+            from src.harness.dynamic_import import resolve_class
 
             channel_cls = resolve_class(import_path, base_class=None)
         except Exception:

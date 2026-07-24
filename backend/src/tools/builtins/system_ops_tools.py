@@ -101,10 +101,10 @@ def _ensure_artifact_tool_root(tool_name: str) -> Path:
         root.mkdir(parents=True, exist_ok=True)
     except PermissionError as exc:
         user = os.environ.get("USER") or str(os.geteuid())
-        raise PermissionError(f"system tool artifact root is not writable by {user}: {root}; run scripts/repair-runtime-permissions.sh as root or restart octoagent-local.service") from exc
+        raise PermissionError(f"system tool artifact root is not writable by {user}: {root}; repair the Docker volume ownership") from exc
     if not os.access(root, os.W_OK | os.X_OK):
         user = os.environ.get("USER") or str(os.geteuid())
-        raise PermissionError(f"system tool artifact root is not writable by {user}: {root}; run scripts/repair-runtime-permissions.sh as root or restart octoagent-local.service")
+        raise PermissionError(f"system tool artifact root is not writable by {user}: {root}; repair the Docker volume ownership")
     return root
 
 
@@ -408,14 +408,15 @@ def _process_snapshot(name_filter: str, *, max_processes: int) -> list[dict[str,
 
 @tool("runtime_health_report", parse_docstring=True)
 def runtime_health_report_tool(
-    service_name: str = "octoagent-local.service",
+    service_name: str = "",
     process_filter: str = "octoagent",
     max_processes: int = 20,
 ) -> str:
     """Return a compact OctoAgent host/runtime health report.
 
     Args:
-        service_name: Optional systemd service name to inspect.
+        service_name: Optional host systemd service name to inspect. OctoAgent
+            itself is Docker-only and has no systemd unit.
         process_filter: Process name or command substring to include.
         max_processes: Maximum matching processes returned.
     """

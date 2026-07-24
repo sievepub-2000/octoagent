@@ -18,6 +18,8 @@ import subprocess
 import threading
 import time
 import traceback
+import urllib.error
+import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -83,17 +85,18 @@ def _gpu_status() -> dict[str, Any] | None:
 
 
 def _service_status(name: str) -> dict[str, str]:
-    try:
-        result = subprocess.run(
-            ["systemctl", "is-active", name],
-            capture_output=True,
-            check=False,
-            encoding="utf-8",
-            timeout=2,
-        )
-    except (OSError, subprocess.TimeoutExpired):
+    if name == "app-server":
+        return {"name": name, "status": "active"}
+    url = {"system-executor": "http://system-executor:19808/health"}.get(name)
+    if url is None:
         return {"name": name, "status": "unknown"}
-    return {"name": name, "status": result.stdout.strip() or "inactive"}
+    try:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(url, timeout=2) as response:
+            status = "active" if response.status == 200 else "inactive"
+    except (OSError, urllib.error.URLError):
+        status = "inactive"
+    return {"name": name, "status": status}
 
 
 @router.get("/overview")
@@ -119,7 +122,7 @@ def system_overview() -> dict[str, Any]:
 def _build_system_overview() -> dict[str, Any]:
     memory = psutil.virtual_memory()
     disk = psutil.disk_usage("/")
-    services = [_service_status(name) for name in ("octoagent-local.service", "clash-verge-service.service")]
+    services = [_service_status(name) for name in ("app-server", "system-executor")]
     temperatures = _thermal_sensors()
     gpu = _gpu_status()
     overall = "ok" if all(item["status"] == "active" for item in services) else "degraded"
