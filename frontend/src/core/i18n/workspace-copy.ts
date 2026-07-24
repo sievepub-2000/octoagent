@@ -365,7 +365,7 @@ const setupWizardCopy: Record<Locale, SetupWizardCopy> = {
     progressBadge: "1 / 1 Model Configuration",
     workspaceLayoutDefault: "default/ : everyday chats, threads, and user context",
     workspaceLayoutEnv: "env/ : initialization settings and environment snapshots",
-    workspaceLayoutTaskwork: "workflow/taskwork/ : all workflow task directories",
+    workspaceLayoutTaskwork: "default/code/ : per-conversation working directories",
     modelOnlyStepDesc:
       "Keep exactly one onboarding step: pick the default chat model, and use the same model as the workflow execution default.",
     defaultModelNotice:
@@ -405,7 +405,7 @@ const setupWizardCopy: Record<Locale, SetupWizardCopy> = {
     progressBadge: "1 / 1 モデル設定",
     workspaceLayoutDefault: "default/ : 日常会話、スレッド、ユーザーコンテキスト",
     workspaceLayoutEnv: "env/ : 初期設定と環境スナップショット",
-    workspaceLayoutTaskwork: "workflow/taskwork/ : すべてのワークフロータスクディレクトリ",
+    workspaceLayoutTaskwork: "default/code/ : 会話ごとの作業ディレクトリ",
     modelOnlyStepDesc:
       "初期設定は 1 ステップだけに絞ります。既定の会話モデルを選び、そのままワークフロー実行の既定モデルとして使います。",
     defaultModelNotice:
@@ -445,7 +445,7 @@ const setupWizardCopy: Record<Locale, SetupWizardCopy> = {
     progressBadge: "1 / 1 모델 구성",
     workspaceLayoutDefault: "default/ : 일상 대화, 스레드, 사용자 컨텍스트",
     workspaceLayoutEnv: "env/ : 초기화 설정 및 환경 스냅샷",
-    workspaceLayoutTaskwork: "workflow/taskwork/ : 모든 워크플로 작업 디렉터리",
+    workspaceLayoutTaskwork: "default/code/ : 대화별 작업 디렉터리",
     modelOnlyStepDesc:
       "초기화는 한 단계만 남깁니다. 기본 대화 모델을 고르고, 같은 모델을 워크플로 실행 기본값으로 사용합니다.",
     defaultModelNotice:
@@ -485,7 +485,7 @@ const setupWizardCopy: Record<Locale, SetupWizardCopy> = {
     progressBadge: "1 / 1 模型配置",
     workspaceLayoutDefault: "default/ : 日常对话、线程、用户上下文",
     workspaceLayoutEnv: "env/ : 初始化设置与环境快照",
-    workspaceLayoutTaskwork: "workflow/taskwork/ : 所有 workflow 任务目录",
+    workspaceLayoutTaskwork: "default/code/：每个对话的工作目录",
     modelOnlyStepDesc:
       "初始化只保留一个步骤：选择默认对话模型，并同时作为工作流执行默认模型。",
     defaultModelNotice:
@@ -525,7 +525,7 @@ const setupWizardCopy: Record<Locale, SetupWizardCopy> = {
     progressBadge: "1 / 1 模型設定",
     workspaceLayoutDefault: "default/ : 日常對話、執行緒、使用者上下文",
     workspaceLayoutEnv: "env/ : 初始化設定與環境快照",
-    workspaceLayoutTaskwork: "workflow/taskwork/ : 所有 workflow 任務目錄",
+    workspaceLayoutTaskwork: "default/code/：每個對話的工作目錄",
     modelOnlyStepDesc:
       "初始化只保留一個步驟：選擇預設對話模型，並同時作為工作流執行預設模型。",
     defaultModelNotice:
