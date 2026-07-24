@@ -163,8 +163,8 @@ def main() -> int:
 
     steps.append(
         _run_step(
-            name="system execution operator auth smoke",
-            command=[str(python_bin), "scripts/run_system_execution_security_smoke.py"],
+            name="root system executor auth boundary",
+            command=[str(python_bin), "-m", "pytest", "-q", "tests/system_executor/test_app.py"],
             cwd=backend_root,
         )
     )

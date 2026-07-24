@@ -1,204 +1,98 @@
 # OctoAgent Project Status
 
-**Last Updated**: 2026-07-14
+**Last verified:** 2026-07-24
+**Version:** 20260724.1.0
 
-## What The Project Is
+## Product truth
 
-OctoAgent is a task-centric agent platform built around the active topology below:
+OctoAgent has one agent runtime and one capability boundary:
 
-## 2026-07-14 verified configuration truth
+- **Agent Runtime (LangGraph)** owns the model loop, thread/run lifecycle,
+  checkpoint persistence, streaming, and post-run hooks.
+- **Harness** owns live capability discovery, permission filtering, tool
+  binding and dispatch, artifacts, and Markdown memory with pgvector recall.
+- **FastAPI** exposes control/configuration APIs from the same `app-server`
+  process as the Agent Runtime. It is not a second execution engine.
+- **system-executor** is the only root boundary. It is an authenticated Docker
+  adapter used by Harness in `system` permission mode.
+- **PostgreSQL + pgvector** is the authoritative durable store for LangGraph
+  state, projects, and the derived memory index.
 
-- Settings is the only public configuration center. It exposes General,
-  Appearance, Models, Skills, MCP, Plugins, Hooks, Memory, Permissions,
-  Notifications, Update, and About.
-- The default deployment resolves one model: `ornith-1.0-35b-nvfp4`. Additional
-  local, open-source, or commercial API models are configured by users through
-  a provider-neutral model form and environment-variable secret references.
-- Default MCP configuration is empty. Local stdio and remote HTTP/SSE servers
-  can be added explicitly; remote headers and environment placeholders are
-  supported.
-- Built-in delegation is limited to `general-purpose` and `bash`. Repository
-  system-agent packs and implicit Agency Agents templates are not shipped.
-- Evolution, Tools Hub, model-provider OAuth imports, automatic free fallback
-  pools, and public workflow-builder configuration have been removed.
-- Production verification: 623 backend tests, focused Ruff, frontend ESLint +
-  TypeScript, production build, browser interaction, gateway/PostgreSQL health,
-  and live Ornith connection test.
+Tools Hub, Brain Core, Query Engine, Task Workspace, Local Work Bus, Redis,
+the mock System Execution control plane, and the independent execution worker
+are not part of the active architecture.
 
-- Next.js workspace UI
-- FastAPI gateway and projection layer
-- LangGraph runtime as the only active execution backend
+## Production services
 
-The repository still contains transitional and operator-oriented surfaces, but the current product truth is no longer “dual runtime”. Older provider labels are compatibility aliases only.
+`compose.yaml` defines five services:
 
-## Current Verified Truth
+| Service | Identity | Responsibility |
+| --- | --- | --- |
+| `nginx` | unprivileged image user | Single public HTTP entrypoint |
+| `frontend` | `node` | Next.js workspace UI |
+| `app-server` | uid/gid `1000:1000` | FastAPI, LangGraph, Harness |
+| `system-executor` | `0:0` | Authenticated host/root command adapter |
+| `postgres` | PostgreSQL image user | Checkpoints, projects, pgvector memory |
 
-- Backend top-level module inventory: **45** directories under `backend/src`
-- Gateway router groups: **38** registered groups (**41** router files)
-- Active execution provider: **`langgraph`**
-- Primary workflow truth source: **`task_workspaces` + `workflow_core` projections**
-- Main workflow lifecycle endpoints: **`/api/task-workspaces/{task_id}/compile|run|pause|resume|terminate`**
-- Main workflow runtime read model: **`/api/task-workspaces/{task_id}/studio-runtime`**
-- Public external runtime projection: **`/api/runtime/workflows/*`**
-- Unified local entrypoint: **`http://127.0.0.1:19800`**
-- Built-in account store: **`workspace/runtime/octoagent_users.db`** with email-code registration, trusted-device sessions, and tenant binding through `/api/auth/*`
-- Repo-owned workspace default now takes precedence when explicit setup state is absent and `workspace/` already exists
-- Real-browser chat regression is now part of CI and covers ordinary tools, web search/fetch/read-webpage history, continuation, context-guard visibility, 520-message scrolling, and right-side Artifact/execution panel screenshots.
-- SQLite async checkpointer is wrapped with native maintenance hooks for `adelete_for_runs`, `acopy_thread`, and `aprune`.
-- Gateway startup repairs writable runtime directories and local nginx uses repository-owned temp paths under `tmp/nginx/*`.
-- Chat regression trend reporting is available through `make chat-regression-report` with a 5000 ms long-scroll render threshold.
-- Long-running soak baselines are started through `make soak-baseline-suite`; completed monitor artifacts are expected under `workspace/runtime/soak_reports/` and are now checked by release readiness.
-- Distributed execution prefers independent worker daemons before the gateway-local fallback when healthy capacity exists.
-- Destructive operator actions now require explicit confirmation headers before execution.
-- Operator Surfaces E2E verifies summary, dispatch history, and destructive confirmation headers.
-- Independent execution worker production deployment materials are available under `deploy/octoagent-execution-worker.service`, `deploy/system/execution-worker.env.example`, and `project_docs/docs/EXECUTION_WORKER_DAEMON_RUNBOOK.md`.
-- Release readiness evidence is generated by `backend/scripts/run_release_readiness.py` and `make release-readiness`; the default target score is 95 and the current local evidence report is written to `workspace/runtime/release_readiness/release-readiness.{json,md}`.
-- Staging/prod release evidence can be supplied to readiness through an external manifest, and the manifest contract is covered by `backend/scripts/run_release_readiness_contract_smoke.py`.
-- System-execution mutating and CLI routes enforce operator/admin headers when `OCTO_OPERATOR_TOKEN` is configured; the release lane checks this through `backend/scripts/run_system_execution_security_smoke.py`.
-- `capability_core`, `hook_core`, `distributed_execution`, `multi_tenant`, `monitoring`, `reflection`, `self_evolution`, and `operator_governance` now share a closed operator contract verified by `backend/scripts/run_operator_module_closure_smoke.py` and `make smoke-operator-module-closure`.
-- 2号机 WebUI/API default model is now configured from 3号机 Hermes metadata as `hermes-gemini-3.1-pro`; local daemon startup preserves HTTP(S) proxy egress so Gemini metadata calls work through mihomo, and live WebUI dialogue falls back correctly when Gemini generation quota returns 429.
-- The 2026-05-11 full repair pass verified model fallback, subagent/workflow wiring, tool recovery, SSRF-safe web fetch redirects, sidebar hydration stability, stale Next chunk recovery, CLI help safety, mock/real WebUI smoke, management routes, New Agent form accessibility, 320px reflow, and forced-colors behavior.
-- The 2026-05-15 context/runtime pass verified bounded context trimming for long
-  local-model sessions, correct `sieve-pub` runtime identity, runtime permission
-  repair without stale sudo ownership targets, Google provider key loading from
-  ignored local `.env`, and a clean backend Ruff/PEP8 baseline.
-- The 2026-05-29 work-bus pass adds a live work-bus projection for DeepAgent
-  execution, Redis-backed event transport, frontend orchestration rendering,
-  and safe self-solidification capture for successful multi-step plans.
-- The 2026-05-29 repository sync also revalidates the current local service
-  entrypoint (`19800`), system doctor, WebUI smoke, and first-turn chat
-  regression paths before committing the synchronized workspace.
+The authoritative deployment environment is `.env.docker`. Runtime
+configuration is mounted at `/app/runtime/config/config.yaml`; user workspaces
+are mounted at `/app/workspace`.
 
-## Runtime Surface Truth
+## Execution flow
 
-### Product surface
+1. The WebUI submits messages and the selected model/permission context.
+2. LangGraph resolves the project/thread context and enters the model loop.
+3. Harness scans enabled built-ins, skills, plugins, and MCP servers.
+4. Harness filters tools by `directory` or `system` permission mode.
+5. The model chooses whether and how to call an exposed tool.
+6. Harness dispatches to its container, MCP/browser, or root-executor adapter.
+7. Tool results return to the model loop; LangGraph streams and checkpoints
+   the final state.
+8. The post-run memory hook writes raw and compacted Markdown and updates the
+   pgvector index. Markdown remains the source of truth.
 
-- The workflow pages in the frontend use the `task_workspaces` contract for compile/run/pause/resume/terminate.
-- Studio runtime data shown in the UI is read through the task-workspace projection endpoints, not through the standalone `/api/studio/*` builder router.
-- `agent_core` now owns most task-level and agent-level lifecycle transitions that used to leak through router-local or workflow-local status writes.
+The chat-bar permission selector changes the context submitted with the next
+run. `directory` excludes `host_shell`; `system` exposes it through the
+authenticated root executor.
 
-### Transitional surface
+## Verified production baseline
 
-- The historical `studio_runtime` sandbox implementation remains in the repository, but `/api/studio/*` is no longer registered in the default gateway surface.
-- It is not the workflow product truth used by `TaskWorkspaceBoard`.
-- The near-term rule is to keep task-workspace lifecycle and public runtime projections as the only default workflow-facing surfaces.
+- Five Compose services healthy on Linux ARM64 Docker Engine.
+- PostgreSQL restart persistence retained 25 threads and 2594 checkpoints.
+- Live module CRUD closure passed for models, skills, MCP, agents, projects,
+  and plugins.
+- Native LangGraph local-model run returned `FINAL_RUNTIME_OK`.
+- Harness inventory: MCP 5/5, skills 32/32, plugins 16/16, built-ins 102.
+- Memory: 117 Markdown sources, 117 pgvector rows, zero pending.
+- Root execution: unauthenticated requests rejected; authenticated
+  `host_shell` ran as uid 0, reached Docker Engine, and reached the Internet.
+- Backend: 507 tests, Ruff, and compileall passed before the final executor
+  boundary test was added.
+- Frontend: Next.js production build and TypeScript checks passed.
+- Clean Docker installation lifecycle passed health, restart, persistence,
+  upgrade, stop/start, and removal.
 
-## Landed Capabilities
+## Release verification
 
-### Runtime and orchestration
+Run these gates before release:
 
-- `agent_runtime` normalizes older provider aliases to `langgraph` and routes real execution through the LangGraph provider.
-- `workflow_core` owns studio/public runtime projections, builder preview/history, and artifact/runtime summaries.
-- `task_workspaces` remains the durable execution source for task workflow state, cards, checkpoints, and runtime metadata.
-- `agent_core` owns lifecycle/event/status transitions, handoff session compatibility, and task/agent execution facades.
+```bash
+cd backend
+.venv/bin/python -m compileall -q src scripts
+.venv/bin/python -m ruff check src scripts tests
+.venv/bin/python -m pytest -q
+.venv/bin/python scripts/run_release_readiness_contract_smoke.py
+.venv/bin/python -m pytest -q tests/system_executor/test_app.py
 
-### Operator and integration surfaces
+cd ../frontend
+pnpm lint
+pnpm typecheck
+pnpm build
 
-- Capability binding contract endpoint: `/api/capabilities/binding-contract` exposes bindable targets, dispatch contracts, blockers, and audit metadata across skills, plugins, MCP servers, hooks, channels, and compatibility items.
-- Public runtime APIs under `/api/runtime/workflows/*` are landed.
-- System update APIs are available under `/api/system/update/*`.
-- System memory read APIs are available for search/list/stats.
-- Hook and capability service boundaries are real and already wired into runtime flows, but still need deeper product closure.
+cd ..
+python3 scripts/verify-module-lifecycles.py
+```
 
-### Frontend surfaces
-
-- Workflow overview and workflow detail pages are live and use task-workspace APIs.
-- Workflow result cards support markdown, attachments, and failure analysis.
-- Models, Skills, MCP, Plugins, Hooks, Memory, Permissions, Notifications,
-  Update, Appearance, and runtime health are available in Settings.
-- The chat shell keeps the right-side inspector visible while preserving the main conversation path; mobile inspector sizing is adjusted so Artifact preview remains readable.
-- Context guard truncation is visible in runtime telemetry rather than being a silent backend-only action.
-
-## Module Maturity Summary
-
-### Stable enough for continued integration
-
-- gateway
-- workflow_core
-- task_workspaces
-- agent_core
-- agent_runtime
-- agents
-- tools / tools_registry
-- browser_runtime
-- query_engine
-- config / bootstrap / models
-
-### Active closure track
-
-- hook_core
-- capability_core
-- studio runtime product boundary
-- workflow builder / runtime contract alignment
-- repository hygiene around workspace runtime state
-
-### Operator contract closed; production evidence still gated
-
-- capability_core
-- hook_core
-- distributed_execution
-- multi_tenant
-- monitoring
-- reflection
-- self_evolution
-- operator_governance
-
-These modules now have a shared operator contract rather than separate ad hoc closure claims.
-
-- Mutating/export surfaces enforce operator/admin headers when `OCTO_OPERATOR_TOKEN` is configured.
-- Shared governance helpers provide role checks, token checks, confirmation strings, secret redaction, and signed audit events.
-- `monitoring` now exposes `/api/metrics/governance` with registry coverage and signed audit metadata.
-- `reflection` and `self_evolution` exports/lifecycle writes are now operator-gated.
-- `distributed_execution` and `multi_tenant` remain backed by their existing dispatch, registry, confirmation, and export contracts.
-- `backend/scripts/run_operator_module_closure_smoke.py` verifies the full group in one repeatable smoke and is part of `make operator-release`.
-
-Production promotion still depends on external release-readiness evidence: real auth-claim binding, staging/prod role mapping, signed audit export evidence, rollback drill output, retained run records, and long soak artifacts.
-
-## Repository Hygiene Truth
-
-- `workspace/runtime/*`, `workspace/workflow/task/*`, and `workspace/env/setup.json` are local runtime state, not source code.
-- `backend/runtime/*` and `workspace/self_evolution/*` are local runtime state,
-  not source code.
-- They should not remain tracked in git.
-- CI should fail if these runtime-state files re-enter version control.
-- Browser regression outputs are local/CI artifacts only: `backend/reports/`, `backend/screenshots/`, `frontend/test-results/`, `logs/`, and `tmp/` stay untracked.
-
-## Current Verification Baseline
-
-Use the current verification baseline before claiming runtime stability:
-
-- backend compile: `cd backend && .venv/bin/python -m compileall -q src scripts`
-- backend lint: `cd backend && make lint`
-- frontend lint/typecheck/build: `pnpm lint`, `pnpm typecheck`, `pnpm build` from `frontend/`
-- system doctor/API contracts: `cd backend && .venv/bin/python scripts/run_system_doctor.py --skip-git --json`
-- system-execution operator auth: `cd backend && .venv/bin/python scripts/run_system_execution_security_smoke.py`
-- operator module closure: `cd backend && .venv/bin/python scripts/run_operator_module_closure_smoke.py`
-- release readiness manifest contract: `cd backend && .venv/bin/python scripts/run_release_readiness_contract_smoke.py`
-- release readiness evidence: `make release-readiness`
-- real browser chat regression: `make smoke-chat-regression`
-- chat regression trend report: `make chat-regression-report`
-- long soak monitor: `make soak-monitor SOAK_MONITOR_MANIFEST=<suite.json>`
-- real WebUI/API smoke: `cd backend && .venv/bin/python scripts/run_webui_smoke.py --frontend-url http://127.0.0.1:19880 --gateway-url http://127.0.0.1:19880 --timeout-seconds 180`
-- current local WebUI/API smoke: `cd backend && .venv/bin/python scripts/run_webui_smoke.py --frontend-url http://127.0.0.1:19800 --gateway-url http://127.0.0.1:19800 --timeout-seconds 60`
-- local full repair baseline: backend compile, backend ruff, backend pytest, frontend lint, frontend typecheck, frontend build, release-readiness contract smoke, system-execution security smoke, operator-module closure smoke, mock/real WebUI smoke, management menu smoke, and browser accessibility checks as recorded in `P18_FULL_SYSTEM_REPAIR_AND_VERIFICATION_2026-05-11.md`
-
-Source test trees are intentionally absent by operator policy; release confidence is therefore based on compile/lint/build/doctor/smoke/soak/readiness evidence rather than pytest/frontend source test suites.
-
-## Recommended Read Order
-
-1. `README.md`
-2. `project_docs/README.md`
-3. `project_docs/docs/PROJECT_STATUS.md`
-4. `project_docs/docs/PROJECT_PROGRESS.md`
-5. `project_docs/docs/P18_FULL_SYSTEM_REPAIR_AND_VERIFICATION_2026-05-11.md`
-6. `project_docs/docs/P0_COMPLETION_AND_REPOSITORY_CLEANUP_REPORT.md`
-7. `project_docs/docs/P1_P5_COMPLETION_AND_FULL_CODE_ASSESSMENT_REPORT.md`
-8. `project_docs/docs/ARCHITECTURE.md`
-9. `project_docs/backend/README.md`
-
-## Boundary Rules
-
-- `config.example.yaml` remains the tracked baseline template.
-- Local `config.yaml`, runtime stores, task artifacts, and setup snapshots remain deployment-local state.
-- Historical numbered stage reports were consolidated during P0 cleanup; use Git history for forensic review only.
-- Claims about runtime behavior should be anchored to the active router/service/frontend code paths, not to old transition narratives.
+Historical reports under `project_docs/docs/` describe earlier architectures
+and are not runtime authority. Use this file, `README.md`, `compose.yaml`, and
+the live `/api/runtime/doctor` and `/api/harness` responses for current truth.

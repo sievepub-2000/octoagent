@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
+
 from src.system_executor import app as executor_app
 
 
@@ -7,6 +9,34 @@ class _Result:
     returncode = 0
     stdout = "ok"
     stderr = ""
+
+
+def test_execute_requires_bearer_token_and_accepts_configured_token(monkeypatch) -> None:
+    token = "system-executor-test-token-000000000000"
+    monkeypatch.setenv("OCTOAGENT_SYSTEM_EXECUTOR_TOKEN", token)
+    monkeypatch.setattr(
+        executor_app,
+        "_execute_on_host",
+        lambda request: {
+            "exit_code": 0,
+            "stdout": "ok",
+            "stderr": "",
+            "duration_ms": 0.1,
+            "cwd": request.cwd,
+        },
+    )
+    client = TestClient(executor_app.app)
+    payload = {"command": "true", "cwd": "/", "timeout_seconds": 5}
+
+    assert client.post("/execute", json=payload).status_code == 401
+    response = client.post(
+        "/execute",
+        json=payload,
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["stdout"] == "ok"
 
 
 def test_host_helper_inherits_proxy_environment(monkeypatch) -> None:

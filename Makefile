@@ -1,6 +1,6 @@
 # OctoAgent - Unified Development Environment
 
-.PHONY: help config check install install-service ports cli dev dev-daemon start start-daemon stop clean clean-stale-logs execution-worker smoke-real soak-smoke soak-baseline-suite soak-monitor smoke-mock smoke-ui migrate-memory release-readiness release-readiness-contract smoke-system-execution-security smoke-operator-module-closure release-precheck operator-release sync-check sync-align sync-references docker-init docker-install docker-prod-start docker-prod-stop docker-prod-logs docker-package docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway clean-workspace
+.PHONY: help config check install install-service ports cli dev dev-daemon start start-daemon stop clean clean-stale-logs smoke-real soak-smoke soak-baseline-suite soak-monitor smoke-mock smoke-ui migrate-memory release-readiness release-readiness-contract smoke-system-executor-security smoke-operator-module-closure release-precheck operator-release sync-check sync-align sync-references docker-init docker-install docker-prod-start docker-prod-stop docker-prod-logs docker-package docker-start docker-stop docker-logs docker-logs-frontend docker-logs-gateway clean-workspace
 
 SMOKE_FRONTEND_URL ?= http://127.0.0.1:$(or $(OCTO_NGINX_PORT),19800)
 SMOKE_GATEWAY_URL ?= http://127.0.0.1:$(or $(OCTO_NGINX_PORT),19800)
@@ -28,7 +28,6 @@ help:
 	@echo "  make start           - Start all services in production mode (optimized, no hot-reloading)"
 	@echo "  make stop            - Stop all running services"
 	@echo "  make clean-stale-logs - Truncate stale local runtime logs"
-	@echo "  make execution-worker - Start an independent distributed execution worker"
 	@echo "  make smoke-real      - Run real-route WebUI/API smoke checks"
 	@echo "  make soak-smoke      - Run short bounded long-running soak smoke"
 	@echo "  make soak-baseline-suite - Start 2h/8h/24h soak baselines in background"
@@ -36,7 +35,7 @@ help:
 	@echo "  make smoke-mock      - Run mock-route WebUI/API smoke checks"
 	@echo "  make release-readiness - Generate release readiness/audit evidence report"
 	@echo "  make release-readiness-contract - Validate release readiness manifest contract"
-	@echo "  make smoke-system-execution-security - Validate operator auth on system execution writes"
+	@echo "  make smoke-system-executor-security - Validate the root executor auth boundary"
 	@echo "  make smoke-operator-module-closure - Validate closure contracts for operator substrate modules"
 	@echo "  make release-precheck - Run release precheck (compile/lint/build + smoke)"
 	@echo "  make operator-release - Fixed operator release gate (precheck without live smoke)"
@@ -152,14 +151,6 @@ clean-stale-logs:
 clean-workspace:
 	@./scripts/cleanup-workspace.sh
 
-execution-worker:
-	@cd backend && .venv/bin/python scripts/run_execution_worker.py \
-		--host $${OCTO_EXECUTION_WORKER_HOST:-127.0.0.1} \
-		--port $${OCTO_EXECUTION_WORKER_PORT:-19812} \
-		--node-id $${OCTO_EXECUTION_WORKER_NODE_ID:-worker-local} \
-		--token "$${OCTO_EXECUTION_WORKER_TOKEN:-}" \
-		--capacity $${OCTO_EXECUTION_WORKER_CAPACITY:-4}
-
 smoke-real:
 	@cd backend && .venv/bin/python scripts/run_webui_smoke.py \
 		--frontend-url $(SMOKE_FRONTEND_URL) \
@@ -220,8 +211,8 @@ release-readiness:
 release-readiness-contract:
 	@cd backend && .venv/bin/python scripts/run_release_readiness_contract_smoke.py
 
-smoke-system-execution-security:
-	@cd backend && .venv/bin/python scripts/run_system_execution_security_smoke.py
+smoke-system-executor-security:
+	@cd backend && .venv/bin/python -m pytest -q tests/system_executor/test_app.py
 
 smoke-operator-module-closure:
 	@backend/.venv/bin/python scripts/verify-module-lifecycles.py \

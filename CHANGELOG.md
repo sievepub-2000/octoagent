@@ -18,6 +18,9 @@
 - Removed the remaining mock System Execution planner/session/snapshot API and
   its WebUI settings page. Harness now gates the real `host_shell` adapter,
   while Runtime Doctor probes the authenticated root executor directly.
+- Removed the orphan independent execution-worker daemon, systemd/env
+  templates, runbook, and obsolete release smoke. Release gates now test the
+  authenticated Docker `system-executor` boundary directly.
 - Consolidated the settings UI around Agent Runtime, Harness, Models, and the
   real permission selector. Skills, MCP, plugins, hooks, tools, traces, and
   memory health are managed from the Harness surface.
@@ -61,6 +64,8 @@
 - Updated self-inspection, generated tool guidance, runtime architecture
   metadata, health identity, Nginx routing, Docker configuration, and release
   documentation to the same two-Module vocabulary.
+- Replaced the stale project-status inventory and broken Make targets with the
+  deployed Agent Runtime + Harness topology and current verification commands.
 - Moved Runtime Doctor filesystem probes, runtime governance collection, and
   Project Git/SQLite operations off the ASGI event loop. Doctor is green and
   Project CRUD now remains available under LangGraph's blocking-call detector.
