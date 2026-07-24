@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 from src.runtime.config.extensions_config import ExtensionsConfig, McpServerConfig, get_extensions_config, reload_extensions_config
 from src.tools.mcp.smoke import load_mcp_smoke_snapshot, run_mcp_smoke_tests
-from src.utils.agent_tool_guide import async_refresh_agent_tool_guide
+from src.utils.agent_tool_guide import generate_agent_tool_guide
 from src.utils.json_atomic import write_json_atomic
 
 logger = logging.getLogger(__name__)
@@ -140,7 +140,7 @@ async def get_mcp_configuration() -> McpConfigResponse:
     summary="Update MCP Configuration",
     description="Update Model Context Protocol (MCP) server configurations and save to file.",
 )
-async def update_mcp_configuration(request: McpConfigUpdateRequest) -> McpConfigResponse:
+def update_mcp_configuration(request: McpConfigUpdateRequest) -> McpConfigResponse:
     """Update the MCP configuration.
 
     This will:
@@ -197,7 +197,7 @@ async def update_mcp_configuration(request: McpConfigUpdateRequest) -> McpConfig
 
         # Reload the configuration and update the global cache
         reloaded_config = reload_extensions_config()
-        await async_refresh_agent_tool_guide()
+        generate_agent_tool_guide()
         return McpConfigResponse(mcp_servers={name: _mcp_server_response(server) for name, server in reloaded_config.mcp_servers.items()})
 
     except Exception as e:
@@ -259,7 +259,7 @@ def _persist_mcp_servers(servers: dict[str, McpServerConfig]) -> dict[str, McpSe
     response_model=McpServerMutationResponse,
     summary="Add or update a single MCP server",
 )
-async def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutationResponse:
+def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutationResponse:
     name = (request.name or "").strip()
     if not name:
         raise HTTPException(status_code=400, detail="MCP server name is required")
@@ -270,7 +270,7 @@ async def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutatio
 
     try:
         refreshed = _persist_mcp_servers(servers)
-        await async_refresh_agent_tool_guide()
+        generate_agent_tool_guide()
     except Exception as exc:  # noqa: BLE001 - surface in API
         logger.error("Failed to upsert MCP server %s: %s", name, exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -287,7 +287,7 @@ async def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutatio
     response_model=McpServerMutationResponse,
     summary="Remove a single MCP server",
 )
-async def delete_mcp_server(name: str) -> McpServerMutationResponse:
+def delete_mcp_server(name: str) -> McpServerMutationResponse:
     config = get_extensions_config()
     servers = dict(config.mcp_servers)
     if name not in servers:
@@ -296,7 +296,7 @@ async def delete_mcp_server(name: str) -> McpServerMutationResponse:
 
     try:
         refreshed = _persist_mcp_servers(servers)
-        await async_refresh_agent_tool_guide()
+        generate_agent_tool_guide()
     except Exception as exc:  # noqa: BLE001 - surface in API
         logger.error("Failed to delete MCP server %s: %s", name, exc, exc_info=True)
         raise HTTPException(status_code=500, detail=str(exc))
