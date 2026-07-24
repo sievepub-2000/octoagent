@@ -553,7 +553,7 @@ async def get_model(model_name: str) -> ModelResponse:
     description="Set an existing configured model as the system default.",
 )
 async def set_default_model(model_name: str) -> ModelResponse:
-    return _set_default_model_in_config(model_name)
+    return await asyncio.to_thread(_set_default_model_in_config, model_name)
 
 
 @router.post(
@@ -594,7 +594,7 @@ async def test_model_connection(model_name: str) -> ModelConnectionTestResponse:
     description="Create a configured AI model entry in config.yaml and reload application config.",
 )
 async def create_model(request: ModelCreateRequest) -> ModelResponse:
-    return _create_model_in_config(request)
+    return await asyncio.to_thread(_create_model_in_config, request)
 
 
 @router.put(
@@ -604,7 +604,7 @@ async def create_model(request: ModelCreateRequest) -> ModelResponse:
     description="Update a configured AI model entry in config.yaml and reload application config.",
 )
 async def update_model(model_name: str, request: ModelUpdateRequest) -> ModelResponse:
-    return _update_model_in_config(model_name, request)
+    return await asyncio.to_thread(_update_model_in_config, model_name, request)
 
 
 @router.delete(
@@ -614,7 +614,7 @@ async def update_model(model_name: str, request: ModelUpdateRequest) -> ModelRes
     description="Delete a configured AI model from config.yaml and reload application config.",
 )
 async def delete_model(model_name: str) -> DeleteModelResponse:
-    deleted = _delete_model_from_config(model_name)
+    deleted = await asyncio.to_thread(_delete_model_from_config, model_name)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Model '{model_name}' not found")
     return DeleteModelResponse(model_name=model_name)

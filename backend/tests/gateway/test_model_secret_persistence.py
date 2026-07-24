@@ -1,9 +1,30 @@
+import asyncio
 import os
+import threading
 
 import pytest
 from fastapi import HTTPException
 
 from src.gateway.routers import models
+
+
+def test_model_mutation_runs_outside_event_loop(monkeypatch) -> None:
+    caller_thread = threading.get_ident()
+    worker_thread: int | None = None
+    expected = object()
+
+    def fake_create(_request):
+        nonlocal worker_thread
+        worker_thread = threading.get_ident()
+        return expected
+
+    monkeypatch.setattr(models, "_create_model_in_config", fake_create)
+    request = models.ModelCreateRequest(name="audit-model", model="audit/model")
+    result = asyncio.run(models.create_model(request))
+
+    assert result is expected
+    assert worker_thread is not None
+    assert worker_thread != caller_thread
 
 
 def test_managed_secret_path_can_be_explicitly_configured(monkeypatch, tmp_path):
