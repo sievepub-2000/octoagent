@@ -1760,3 +1760,5 @@ slices for traceability:
 - Deleted the 1,700-line legacy CapabilityCore/agent-skills compatibility
   registry. Runtime Doctor and the generated model guide now use the same
   public Harness registry as `/api/harness` and `list_capabilities`.
+- Fixed strict TypeScript narrowing in model verification cards so the WebUI
+  completes a clean Next.js production build.

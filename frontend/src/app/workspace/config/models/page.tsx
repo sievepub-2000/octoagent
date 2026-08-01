@@ -184,7 +184,7 @@ export default function ModelsConfigPage() {
                 <div className="mt-3 flex flex-wrap gap-1.5">
                   <Badge variant="outline">{model.provider_name || t.common.custom}</Badge>
                   <Badge variant="secondary">{model.interface_type ?? model.resolved_interface_type}</Badge>
-                  <Badge variant={probeStatus[model.name]?.ok ? "secondary" : "outline"}>{probeStatus[model.name]?.ok ? `Verified ${probeStatus[model.name].latency} ms` : "Not verified"}</Badge>
+                  <Badge variant={probeStatus[model.name]?.ok ? "secondary" : "outline"}>{probeStatus[model.name]?.ok ? `Verified ${probeStatus[model.name]?.latency ?? 0} ms` : "Not verified"}</Badge>
                   {model.supports_thinking ? <Badge variant="outline"><ZapIcon className="mr-1 size-3" />{copy.thinkingLabel}</Badge> : null}
                   {model.supports_vision ? <Badge variant="outline"><EyeIcon className="mr-1 size-3" />{copy.visionLabel}</Badge> : null}
                 </div>
