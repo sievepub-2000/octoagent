@@ -362,14 +362,6 @@ async def apply_setup(req: ApplySetupRequest) -> ApplySetupResponse:
             error=f"Failed to create directories: {e}",
         )
 
-    # Initialize memory.json if not present
-    memory_file = resolved / "default" / "memory.json"
-    if not memory_file.exists():
-        try:
-            memory_file.write_text('{"user_context": "", "facts": [], "history": []}')
-        except OSError:
-            pass
-
     # Initialize USER.md if not present
     user_md = resolved / "default" / "USER.md"
     if not user_md.exists():

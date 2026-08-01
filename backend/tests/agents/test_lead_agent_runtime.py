@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.agents.lead_agent.runtime import (
     FAST_FLASH_MODEL_NAME,
+    LeadAgentRuntimeOptions,
     LeadAgentRuntimeResolver,
     resolve_flash_model_name,
 )
@@ -262,3 +263,51 @@ def test_resume_always_keeps_tools_attached() -> None:
 
     assert options.dialogue_route == "tool_action"
     assert options.dialogue_needs_tools is True
+
+
+def test_fast_tool_route_keeps_enabled_mcp_tools_attached() -> None:
+    from src.agents.lead_agent.builder import LeadAgentBuilder
+
+    calls: list[dict] = []
+
+    def available_tools(**kwargs):
+        calls.append(kwargs)
+        return []
+
+    builder = LeadAgentBuilder(
+        create_agent_fn=lambda **kwargs: kwargs,
+        create_chat_model_fn=lambda **_kwargs: object(),
+        get_available_tools_fn=available_tools,
+        build_middlewares_fn=lambda *_args, **_kwargs: [],
+        apply_prompt_template_fn=lambda **_kwargs: "system",
+        state_schema=dict,
+        setup_agent_tool=object(),
+    )
+    options = LeadAgentRuntimeOptions(
+        thinking_enabled=False,
+        reasoning_effort=None,
+        requested_model_name=None,
+        is_plan_mode=False,
+        subagent_enabled=False,
+        max_concurrent_subagents=1,
+        is_bootstrap=False,
+        agent_name=None,
+        conversation_language="zh",
+        model_name="local-model",
+        agent_tool_groups=None,
+        ml_intern_profile="default",
+        ml_intern_defaults={},
+        permission_mode="system",
+        dialogue_route="tool_action",
+        dialogue_route_reason="test",
+        dialogue_needs_tools=True,
+        dialogue_needs_memory=True,
+        dialogue_text="检查系统工具",
+        project_id=None,
+        project_root_path=None,
+        project_prompt="",
+    )
+
+    builder.build({}, options)
+
+    assert calls[0]["include_mcp"] is True

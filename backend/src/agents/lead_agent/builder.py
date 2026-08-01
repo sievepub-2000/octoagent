@@ -94,7 +94,10 @@ class LeadAgentBuilder:
             tools = self._get_available_tools_fn(
                 model_name=options.model_name,
                 groups=options.agent_tool_groups,
-                include_mcp=not compact_tool_mode,
+                # Enabled MCP tools are part of the Harness tool surface.  A
+                # fast non-thinking route may use a compact prompt, but must
+                # never silently lose callable tools.
+                include_mcp=True,
                 permission_mode=options.permission_mode,
                 subagent_enabled=options.subagent_enabled,
             )

@@ -134,7 +134,7 @@ class MemoryMiddleware(AgentMiddleware[MemoryMiddlewareState]):
                 else:
                     break
             messages.insert(insert_at, _SystemMessage(content="\n\n".join(blocks)))
-            request.messages = messages
+            return request.override(messages=messages)
         except Exception as exc:
             logger.debug("Semantic memory injection skipped: %s", exc)
         return request

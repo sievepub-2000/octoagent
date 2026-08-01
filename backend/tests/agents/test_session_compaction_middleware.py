@@ -54,6 +54,8 @@ def test_compaction_result_is_trimmed_to_model_budget() -> None:
     assert not any("OctoAgent context guard" in message.content for message in update["messages"] if message.type == "system")
     assert len(update["messages"]) < len(messages)
     assert sum(_message_estimated_tokens(message) for message in update["messages"]) <= 850
+    assert "context_handoff_required" not in update["runtime"]
+    assert "context_handoff" not in update["runtime"]
 
 
 def test_compaction_persists_runtime_checkpoint_summary() -> None:
@@ -192,6 +194,12 @@ def test_compaction_preserves_tool_message_role_and_identity() -> None:
     middleware = SessionCompactionMiddleware(max_context_tokens=500, keep_recent_turns=1)
     messages = [SystemMessage(content="System prompt")]
     messages.extend(HumanMessage(content=f"old user {index} " + "x" * 300) for index in range(8))
+    messages.append(
+        AIMessage(
+            content="",
+            tool_calls=[{"name": "bash", "args": {"command": "pwd"}, "id": "call-preserve", "type": "tool_call"}],
+        )
+    )
     messages.append(ToolMessage(content="trusted tool output", name="bash", tool_call_id="call-preserve"))
     messages.extend([HumanMessage(content="latest user"), AIMessage(content="latest assistant")])
 
@@ -202,6 +210,43 @@ def test_compaction_preserves_tool_message_role_and_identity() -> None:
     assert len(tool_messages) == 1
     assert tool_messages[0].name == "bash"
     assert tool_messages[0].tool_call_id == "call-preserve"
+    ai_tool_call_ids = {
+        call["id"]
+        for message in update["messages"]
+        if isinstance(message, AIMessage)
+        for call in message.tool_calls
+    }
+    assert ai_tool_call_ids == {"call-preserve"}
+
+
+def test_budget_trim_drops_orphan_tool_results() -> None:
+    middleware = SessionCompactionMiddleware(max_context_tokens=300, keep_recent_turns=1)
+    messages = [SystemMessage(content="System prompt")]
+    messages.extend(HumanMessage(content=f"old user {index} " + "x" * 400) for index in range(8))
+    messages.append(ToolMessage(content="orphan result", name="bash", tool_call_id="orphan-call"))
+    messages.extend([HumanMessage(content="latest user"), AIMessage(content="latest assistant")])
+
+    update = middleware.before_model({"messages": messages, "runtime": {}}, None)
+
+    assert update is not None
+    assert not any(isinstance(message, ToolMessage) and message.tool_call_id == "orphan-call" for message in update["messages"])
+
+
+def test_coalescing_keeps_unique_tool_call_results() -> None:
+    from src.agents.middlewares.session_compaction_middleware import _coalesce_identical_tool_messages
+
+    messages = [
+        ToolMessage(content="same payload", name="read", tool_call_id=f"call-{index}")
+        for index in range(4)
+    ]
+
+    compacted, count = _coalesce_identical_tool_messages(messages)
+
+    assert count == 3
+    assert len(compacted) == 4
+    assert [message.tool_call_id for message in compacted] == ["call-0", "call-1", "call-2", "call-3"]
+    assert compacted[0].content == "same payload"
+    assert all("coalesced" in str(message.content) for message in compacted[1:])
 
 
 def test_continuation_cycle_context_is_persisted_to_runtime() -> None:

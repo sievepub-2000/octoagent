@@ -51,10 +51,15 @@ class HarnessMemory:
         indexed = 0
         failed = 0
         recovered = 0
-        for raw in self.root.glob("*/*.raw.md"):
-            memory_source = raw.with_name(raw.name.removesuffix(".raw.md") + ".memory.md")
+        pruned = 0
+        for directory in (path for path in self.root.iterdir() if path.is_dir()):
+            memory_source = directory / "current.memory.md"
             if memory_source.exists():
                 continue
+            raw_sources = sorted(directory.glob("*.raw.md"))
+            if not raw_sources:
+                continue
+            raw = raw_sources[-1]
             try:
                 transcript = raw.read_text(encoding="utf-8")
                 self._atomic_write(
@@ -68,6 +73,7 @@ class HarnessMemory:
         sources = list(self.root.glob("*/*.memory.md"))
         try:
             indexed = self._index_sources(sources)
+            pruned = self._prune_missing_sources(sources)
         except Exception:
             failed += len(sources)
             logger.exception("Memory batch reindex failed")
@@ -75,6 +81,7 @@ class HarnessMemory:
             "root": str(self.root),
             "recovered": recovered,
             "indexed_on_startup": indexed,
+            "pruned_on_startup": pruned,
             "failed": failed,
             **self.stats(),
         }
@@ -95,9 +102,11 @@ class HarnessMemory:
         directory.mkdir(parents=True, exist_ok=True)
         turns = self._turns(messages)
         raw_path = directory / f"{run_id}.raw.md"
-        memory_path = directory / f"{run_id}.memory.md"
+        memory_path = directory / "current.memory.md"
         raw_body = self._raw_markdown(thread_id, run_id, now, agent_name, metadata or {}, turns)
         summary = self._compact(turns)
+        if memory_path.exists():
+            summary = self._merge_summaries(memory_path.read_text(encoding="utf-8"), summary)
         memory_body = self._memory_markdown(thread_id, run_id, now, raw_path.name, summary)
 
         with self._lock:
@@ -135,13 +144,19 @@ class HarnessMemory:
             return [MemoryHit(str(row[0]), float(row[1]), str(row[2])) for row in cur.fetchall()]
 
     def stats(self) -> dict[str, Any]:
-        markdown_sources = len(list(self.root.glob("*/*.memory.md"))) if self.root.exists() else 0
+        source_paths = {
+            path.relative_to(self.root).as_posix()
+            for path in self.root.glob("*/*.memory.md")
+        } if self.root.exists() else set()
+        markdown_sources = len(source_paths)
         indexed = 0
+        indexed_paths: set[str] = set()
         try:
             self._ensure_schema()
             with self._connect() as conn, conn.cursor() as cur:
-                cur.execute("SELECT count(*) FROM harness_memories")
-                indexed = int(cur.fetchone()[0])
+                cur.execute("SELECT source_path FROM harness_memories")
+                indexed_paths = {str(row[0]) for row in cur.fetchall()}
+                indexed = len(indexed_paths)
         except Exception as exc:
             return {
                 "source": "markdown",
@@ -152,13 +167,16 @@ class HarnessMemory:
                 "healthy": False,
                 "error": str(exc)[:200],
             }
+        missing = source_paths - indexed_paths
+        stale = indexed_paths - source_paths
         return {
             "source": "markdown",
             "index": "pgvector",
             "markdown_sources": markdown_sources,
             "indexed": indexed,
-            "pending": max(0, markdown_sources - indexed),
-            "healthy": True,
+            "pending": len(missing),
+            "stale": len(stale),
+            "healthy": not missing and not stale,
         }
 
     def _ensure_schema(self) -> None:
@@ -195,6 +213,8 @@ class HarnessMemory:
         records: list[tuple[str, str, str, str, str]] = []
         for source in sources:
             content = source.read_text(encoding="utf-8").strip()
+            if not content:
+                continue
             digest = hashlib.sha256(f"{_EMBEDDING_VERSION}\0{content}".encode()).hexdigest()
             relative = source.relative_to(self.root).as_posix()
             memory_id = hashlib.sha256(f"{relative}:{digest}".encode()).hexdigest()[:32]
@@ -227,6 +247,20 @@ class HarnessMemory:
                 [(*item, self._vector_literal(vector)) for item, vector in zip(changed, vectors, strict=True)],
             )
         return len(changed)
+
+    def _prune_missing_sources(self, sources: list[Path]) -> int:
+        """Remove derived rows whose Markdown source no longer exists."""
+        self._ensure_schema()
+        paths = [source.relative_to(self.root).as_posix() for source in sources]
+        with self._connect() as conn, conn.cursor() as cur:
+            if paths:
+                cur.execute(
+                    "DELETE FROM harness_memories WHERE NOT (source_path = ANY(%s)) RETURNING source_path",
+                    (paths,),
+                )
+            else:
+                cur.execute("DELETE FROM harness_memories RETURNING source_path")
+            return len(cur.fetchall())
 
     @staticmethod
     def _turns(messages: list[Any]) -> list[tuple[str, str]]:
@@ -261,6 +295,20 @@ class HarnessMemory:
             if last_assistant:
                 selected.append(f"- outcome: {last_assistant[:1400]}")
         return "\n".join(selected)[-4000:]
+
+    @staticmethod
+    def _merge_summaries(existing_memory: str, current_summary: str) -> str:
+        """Merge durable bullets into one canonical per-thread memory source."""
+        existing_body = existing_memory.split("# Extracted memory", 1)[-1]
+        lines: list[str] = []
+        seen: set[str] = set()
+        for line in [*existing_body.splitlines(), *current_summary.splitlines()]:
+            normalized = " ".join(line.strip().split())
+            if not normalized or normalized in seen:
+                continue
+            seen.add(normalized)
+            lines.append(line.strip())
+        return "\n".join(lines)[-8000:]
 
     @staticmethod
     def _raw_markdown(thread_id: str, run_id: str, now: datetime, agent_name: str | None, metadata: dict[str, Any], turns: list[tuple[str, str]]) -> str:

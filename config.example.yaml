@@ -413,22 +413,10 @@ summarization:
 # ============================================================================
 # Memory Configuration
 # ============================================================================
-# Global memory mechanism
-# Stores user context and conversation history for personalized responses
+# Harness-owned Markdown source with a rebuildable pgvector recall index.
 memory:
   enabled: true
-  storage_path: memory.json # Path relative to backend directory
-  debounce_seconds: 30 # Wait time before processing queued updates
-  model_name: null # Use default model
-  max_facts: 100 # Maximum number of facts to store
-  fact_confidence_threshold: 0.7 # Minimum confidence for storing facts
-  injection_enabled: true # Whether to inject memory into system prompt
-  max_injection_tokens: 2000 # Maximum tokens for memory injection
-  write_governance_enabled: true # Evaluate long-term/permanent writes through governance rules
-  write_governance_mode: enforce # audit | enforce
-  long_term_retention_days: 180 # Default retention window for conversation_summary memory
-  permanent_retention_days: 3650 # Used when a permanent namespace is given an explicit TTL
-  permanent_memory_immutable: true # Mark permanent namespaces as immutable in governance metadata
+  injection_enabled: true
 
 # ============================================================================
 # Integrations Configuration

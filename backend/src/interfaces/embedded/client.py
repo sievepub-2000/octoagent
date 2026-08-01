@@ -720,12 +720,9 @@ class OctoAgentClient:
         config = get_memory_config()
         return {
             "enabled": config.enabled,
-            "storage_path": config.storage_path,
-            "debounce_seconds": config.debounce_seconds,
-            "max_facts": config.max_facts,
-            "fact_confidence_threshold": config.fact_confidence_threshold,
             "injection_enabled": config.injection_enabled,
-            "max_injection_tokens": config.max_injection_tokens,
+            "source": "markdown",
+            "index": "pgvector",
         }
 
     def get_memory_status(self) -> dict:

@@ -8,7 +8,7 @@ from typing import Any, override
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
 from langchain.agents.middleware.types import ModelCallResult, ModelRequest, ModelResponse
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from src.agents.core.continuation_contract import normalize_continuation_contract, render_active_contract
 
@@ -110,35 +110,6 @@ class ContinuationMiddleware(AgentMiddleware[AgentState]):
 
         return _cap_continuation_message(SystemMessage(content="\n".join(lines), name="workflow_continue"))
 
-    @staticmethod
-    def _completed_continuation_answer(context: dict[str, Any]) -> str | None:
-        if context.get("continue_trigger") != "continue":
-            return None
-        contract = normalize_continuation_contract(context)
-        if contract is None:
-            return None
-        status = str(contract.get("status") or "").strip().lower()
-        pending_steps = list(contract.get("pending_steps") or [])
-        todos = context.get("continue_todos") or []
-        pending_todos = [str(todo.get("content") or "").strip() for todo in todos if isinstance(todo, dict) and str(todo.get("status") or "").strip().lower() in {"pending", "in_progress"} and str(todo.get("content") or "").strip()]
-        if status != "completed" or pending_steps or pending_todos:
-            return None
-        goal = str(contract.get("objective") or "previous task").strip()
-        completed_steps = list(contract.get("completed_steps") or [])
-        evidence = list(contract.get("evidence") or [])
-        lines = [
-            "This task is already completed, and there are no pending continuation steps.",
-            f"Goal: {_truncate_text(goal, 500)}",
-        ]
-        if completed_steps:
-            lines.append("Completed:")
-            lines.extend(f"- {_truncate_text(item, 260)}" for item in completed_steps[:5])
-        if evidence:
-            lines.append("Completion evidence:")
-            lines.extend(f"- {_truncate_text(item, 260)}" for item in evidence[:4])
-        lines.append("Tell me the new goal or extension direction when you want to continue from here.")
-        return "\n".join(lines)
-
     def _inject(self, messages: list[Any], context: dict[str, Any]) -> list[Any] | None:
         continuation = self._build_message(context)
         if continuation is None:
@@ -162,9 +133,6 @@ class ContinuationMiddleware(AgentMiddleware[AgentState]):
         request: ModelRequest,
         handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelCallResult:
-        completed_answer = self._completed_continuation_answer(request.runtime.context or {})
-        if completed_answer is not None:
-            return ModelResponse(result=[AIMessage(content=completed_answer)])
         patched = self._inject(list(request.messages), request.runtime.context or {})
         if patched is not None:
             request = request.override(messages=patched)
@@ -176,9 +144,6 @@ class ContinuationMiddleware(AgentMiddleware[AgentState]):
         request: ModelRequest,
         handler: Callable[[ModelRequest], Awaitable[ModelResponse]],
     ) -> ModelCallResult:
-        completed_answer = self._completed_continuation_answer(request.runtime.context or {})
-        if completed_answer is not None:
-            return ModelResponse(result=[AIMessage(content=completed_answer)])
         patched = self._inject(list(request.messages), request.runtime.context or {})
         if patched is not None:
             request = request.override(messages=patched)

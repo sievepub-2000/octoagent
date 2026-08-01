@@ -330,30 +330,39 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
     )
 
     try:
-        from src.tools.capability import get_capability_core_service
+        from src.tools.registry.service import ToolRegistryService
 
-        capability_service = get_capability_core_service()
-        registry = capability_service.build_registry_snapshot()
-        contract = capability_service.build_binding_contract()
-        registry_total = int((registry.get("summary") or {}).get("total_items") or 0)
-        contract_total = int((contract.get("summary") or {}).get("total_items") or 0)
-        by_kind = (registry.get("summary") or {}).get("by_kind") or {}
+        registry = ToolRegistryService().build_registry()
+        summary = registry.summary
+        registry_total = (
+            summary.builtin_tools_total
+            + summary.mcp_total
+            + summary.skills_total
+            + summary.plugins_total
+            + summary.channels_total
+            + summary.managed_tools_total
+        )
+        enabled_mcp_failures = [
+            item.name
+            for item in registry.mcp
+            if item.enabled and item.status in {"failed", "error", "unhealthy"}
+        ]
         checks.append(
             RuntimeDoctorCheck(
                 id="capability-registry",
-                title="Managed capability activation registry",
+                title="Harness capability registry",
                 status="ok" if registry_total > 0 else "fail",
-                detail=f"managed_items={registry_total}, kinds={by_kind}; Harness performs full live discovery",
-                recommendation=None if registry_total > 0 else "Capability registry returned no items; check skills/plugins/MCP/channel loading.",
+                detail=f"items={registry_total}, builtins={summary.builtin_tools_total}, skills={summary.skills_total}, mcp={summary.mcp_total}, plugins={summary.plugins_total}",
+                recommendation=None if registry_total > 0 else "Harness returned no capabilities; check tool and extension loading.",
             )
         )
         checks.append(
             RuntimeDoctorCheck(
-                id="capability-binding-contract",
-                title="Managed capability binding contract",
-                status="ok" if contract_total == registry_total and contract_total > 0 else "fail",
-                detail=f"contract_items={contract_total}, registry_items={registry_total}",
-                recommendation=None if contract_total == registry_total and contract_total > 0 else "Binding contract should cover every registry item.",
+                id="mcp-bindings",
+                title="Enabled MCP tool bindings",
+                status="ok" if not enabled_mcp_failures else "fail",
+                detail=f"enabled={summary.mcp_enabled}, failed={enabled_mcp_failures}",
+                recommendation=None if not enabled_mcp_failures else "Repair or disable failed MCP servers, then refresh Harness.",
             )
         )
     except Exception as exc:
@@ -363,7 +372,7 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
                 title="Managed capability activation registry",
                 status="fail",
                 detail=str(exc),
-                recommendation="Inspect CapabilityCore registry construction and extension config loading.",
+                recommendation="Inspect Harness registry construction and extension config loading.",
             )
         )
 

@@ -38,6 +38,13 @@ def test_system_intent_loads_system_tools_on_demand() -> None:
     assert {"host_shell", "process_manage"} <= names
 
 
+def test_chinese_system_intent_loads_system_tools_on_demand() -> None:
+    clear_session_cache("chinese-system-policy-test")
+    tools = load_tools_for_intent("检查并修复服务器容器和系统进程", session_id="chinese-system-policy-test")
+    names = {tool.name for tool in tools}
+    assert {"host_shell", "process_manage"} <= names
+
+
 def test_install_and_delete_require_system_permission() -> None:
     clear_session_cache("tool-permission-test")
     directory_names = {

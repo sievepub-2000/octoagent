@@ -286,8 +286,9 @@ def _coalesce_identical_tool_messages(messages: list[Any]) -> tuple[list[Any], i
 
     Reflects mature "tool noise reduction" pattern from Claude-code / Cursor:
     if the same tool returns the same content N consecutive times we keep one
-    representative and replace the rest with a tiny placeholder. The model is
-    informed via the trailing summary so it doesn't think it lost information.
+    representative and replace each repeated payload with a tiny placeholder.
+    Every ToolMessage is retained because every tool_call_id must still have a
+    matching result when the compacted history is sent back to the model.
 
     Returns (new_messages, coalesced_count).
     """
@@ -306,17 +307,14 @@ def _coalesce_identical_tool_messages(messages: list[Any]) -> tuple[list[Any], i
             run_signature = None
             run_count = 0
             return
-        # Keep first occurrence and drop the rest; append one placeholder.
-        first = messages[run_start_index]
+        # Keep the first payload and shrink later payloads without changing
+        # their tool_call_id. Dropping results would leave dangling AI calls.
         placeholder_text = f"(coalesced: previous tool output repeated {run_count - 1} more times with identical content — duplicates dropped)"
-        # Replace already-appended duplicates after the first with the placeholder.
-        # Walk back through `out` and remove the trailing (run_count-1) entries that
-        # belong to this run; then append the placeholder.
-        for _ in range(run_count - 1):
-            out.pop()
-        # We need to also drop the original first if user wanted; we keep first.
-        placeholder = first.model_copy(update={"content": placeholder_text}) if isinstance(first, BaseMessage) else first
-        out.append(placeholder)
+        start = len(out) - run_count + 1
+        for index in range(start, len(out)):
+            duplicate = out[index]
+            if isinstance(duplicate, BaseMessage):
+                out[index] = duplicate.model_copy(update={"content": placeholder_text})
         coalesced += run_count - 1
         run_start_index = None
         run_signature = None
@@ -344,6 +342,42 @@ def _coalesce_identical_tool_messages(messages: list[Any]) -> tuple[list[Any], i
     return out, coalesced
 
 
+def _repair_tool_call_boundaries(messages: list[Any]) -> tuple[list[Any], int]:
+    """Remove dangling tool calls/results created by budget trimming."""
+    tool_result_ids = {
+        str(getattr(message, "tool_call_id", "") or "")
+        for message in messages
+        if getattr(message, "type", "") == "tool" and getattr(message, "tool_call_id", None)
+    }
+    repaired: list[Any] = []
+    referenced_ids: set[str] = set()
+    changed = 0
+    for message in messages:
+        if getattr(message, "type", "") != "ai" or not getattr(message, "tool_calls", None):
+            repaired.append(message)
+            continue
+        calls = list(getattr(message, "tool_calls", None) or [])
+        valid_calls = [call for call in calls if str(call.get("id") or "") in tool_result_ids]
+        changed += len(calls) - len(valid_calls)
+        referenced_ids.update(str(call.get("id") or "") for call in valid_calls)
+        if valid_calls:
+            repaired.append(message.model_copy(update={"tool_calls": valid_calls}))
+        elif _content_to_text(getattr(message, "content", "")).strip():
+            repaired.append(message.model_copy(update={"tool_calls": []}))
+        else:
+            changed += 1
+
+    final_messages: list[Any] = []
+    for message in repaired:
+        if getattr(message, "type", "") == "tool":
+            tool_call_id = str(getattr(message, "tool_call_id", "") or "")
+            if not tool_call_id or tool_call_id not in referenced_ids:
+                changed += 1
+                continue
+        final_messages.append(message)
+    return final_messages, changed
+
+
 def _trim_messages_to_token_budget(messages: list[Any], max_tokens: int) -> tuple[list[Any], bool, int]:
     result = trim_messages_to_budget(
         messages,
@@ -351,7 +385,8 @@ def _trim_messages_to_token_budget(messages: list[Any], max_tokens: int) -> tupl
         keep_recent_messages=None,
         system_budget_ratio=0.35,
     )
-    return result.messages, result.changed, result.dropped_count
+    repaired, repaired_count = _repair_tool_call_boundaries(result.messages)
+    return repaired, result.changed or bool(repaired_count), result.dropped_count + repaired_count
 
 
 def _state_messages_to_compactor(messages: list[Any]) -> list[Message]:
@@ -622,8 +657,9 @@ class SessionCompactionMiddleware(AgentMiddleware):
         if summary_message:
             runtime_state["compaction_summary"] = summary_message
             runtime_state["compaction_saved_tokens"] = result.tokens_saved
-        # 2026-05-16: Check if compaction was insufficient — trigger context handoff
-        post_compaction_tokens = sum(m.token_count for m in result.messages)
+        # Handoff is based on the final model input, not the stale intermediate
+        # compactor result that was trimmed again above.
+        post_compaction_tokens = sum(_message_estimated_tokens(message) for message in rebuilt)
         if post_compaction_tokens > budget * 0.95:
             runtime_state["context_handoff_required"] = True
             runtime_state["context_handoff_reason"] = "post_compaction_still_over_budget"
@@ -648,6 +684,18 @@ class SessionCompactionMiddleware(AgentMiddleware):
                 "pre_tokens": total_tokens,
                 "post_tokens": post_compaction_tokens,
             }
+        else:
+            for key in (
+                "context_handoff_required",
+                "context_handoff_reason",
+                "context_handoff_pre_tokens",
+                "context_handoff_post_tokens",
+                "memory_flush_required",
+                "thread_archive_at",
+                "gc_trigger",
+                "context_handoff",
+            ):
+                runtime_state.pop(key, None)
         runtime_state["updated_at"] = datetime.now(UTC).isoformat()
         update = {"messages": rebuilt, "runtime": runtime_state}
         if merged_task_state is not None and merged_task_state != state.get("task_state"):

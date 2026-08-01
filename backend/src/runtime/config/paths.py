@@ -177,10 +177,6 @@ class Paths:
         return self.base_dir / "runtime"
 
     @property
-    def memory_file(self) -> Path:
-        return self.default_workspace_dir / "memory.json"
-
-    @property
     def user_md_file(self) -> Path:
         return self.default_workspace_dir / "USER.md"
 
@@ -206,9 +202,6 @@ class Paths:
 
     def agent_dir(self, name: str) -> Path:
         return self.agents_dir / name.lower()
-
-    def agent_memory_file(self, name: str) -> Path:
-        return self.agent_dir(name) / "memory.json"
 
     def thread_dir(self, thread_id: str) -> Path:
         if not _SAFE_THREAD_ID_RE.match(thread_id):

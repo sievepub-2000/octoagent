@@ -80,39 +80,6 @@ class HookStateConfig(BaseModel):
     enabled: bool = Field(default=True, description="Whether this hook is enabled")
 
 
-class CompatCapabilityStateConfig(BaseModel):
-    """Configuration for a single agent-skills compatibility item."""
-
-    enabled: bool = Field(default=True, description="Whether this compat capability is configured as enabled")
-
-
-class AgentSkillsCompatConfig(BaseModel):
-    """Configuration for scanning upstream agent-skills style capability packs."""
-
-    enabled: bool = Field(default=False, description="Whether agent-skills compatibility import is enabled")
-    source_root: str | None = Field(
-        default=None,
-        description="Optional root path containing an upstream agent-skills style pack",
-        alias="sourceRoot",
-    )
-    include_skills: bool = Field(default=True, description="Whether to import skills from the compat source")
-    include_commands: bool = Field(default=True, description="Whether to import .claude/commands assets")
-    include_agents: bool = Field(default=True, description="Whether to import agent persona markdown assets")
-    include_references: bool = Field(default=True, description="Whether to import reference markdown assets")
-    include_hooks: bool = Field(default=True, description="Whether to import hook scripts")
-    trust_level: Literal["untrusted", "trusted"] = Field(
-        default="untrusted",
-        description="Trust level applied to compat items that can execute or hook into runtime behavior",
-        alias="trustLevel",
-    )
-    item_states: dict[str, CompatCapabilityStateConfig] = Field(
-        default_factory=dict,
-        description="Per-capability enabled state for discovered compat items",
-        alias="itemStates",
-    )
-    model_config = ConfigDict(extra="allow", populate_by_name=True)
-
-
 class ExtensionsConfig(BaseModel):
     """Unified configuration for MCP servers, skills, and repository hooks."""
 
@@ -128,11 +95,6 @@ class ExtensionsConfig(BaseModel):
     hooks: dict[str, HookStateConfig] = Field(
         default_factory=dict,
         description="Map of repository hook name to state configuration",
-    )
-    agent_skills_compat: AgentSkillsCompatConfig = Field(
-        default_factory=AgentSkillsCompatConfig,
-        description="Compatibility importer for upstream agent-skills style packs",
-        alias="agentSkillsCompat",
     )
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
@@ -208,7 +170,7 @@ class ExtensionsConfig(BaseModel):
         resolved_path = cls.resolve_config_path(config_path)
         if resolved_path is None:
             # Return empty config if extensions config file is not found
-            return cls(mcp_servers={}, skills={}, hooks={}, agent_skills_compat=AgentSkillsCompatConfig())
+            return cls(mcp_servers={}, skills={}, hooks={})
 
         try:
             with open(resolved_path, encoding="utf-8") as f:
@@ -342,51 +304,12 @@ class ExtensionsConfig(BaseModel):
             return True
         return hook_config.enabled
 
-    @staticmethod
-    def compat_item_requires_trust(kind: str) -> bool:
-        """Return whether a compat capability kind needs a trusted source."""
-
-        return kind in {"command", "hook"}
-
-    @staticmethod
-    def compat_item_default_enabled(kind: str) -> bool:
-        """Return the default configured state for compat capability kinds."""
-
-        return kind in {"skill", "agent_persona", "reference"}
-
-    def get_agent_skills_item_state(self, capability_id: str) -> CompatCapabilityStateConfig | None:
-        """Return the persisted compat state for a projected capability, if present."""
-
-        return self.agent_skills_compat.item_states.get(capability_id)
-
-    def get_agent_skills_item_configured_enabled(self, capability_id: str, kind: str) -> bool:
-        """Return the configured enabled flag for a compat capability before trust/conflict gating."""
-
-        state = self.get_agent_skills_item_state(capability_id)
-        if state is None:
-            return self.compat_item_default_enabled(kind)
-        return state.enabled
-
-    def is_agent_skills_kind_trusted(self, kind: str) -> bool:
-        """Return whether the current compat trust policy allows a capability kind to activate."""
-
-        if not self.compat_item_requires_trust(kind):
-            return True
-        return self.agent_skills_compat.trust_level == "trusted"
-
-    def is_agent_skills_item_enabled(self, capability_id: str, kind: str) -> bool:
-        """Return the effective enabled state for a compat capability."""
-
-        configured_enabled = self.get_agent_skills_item_configured_enabled(capability_id, kind)
-        return configured_enabled and self.is_agent_skills_kind_trusted(kind)
-
     def to_serializable_dict(self) -> dict[str, Any]:
         """Convert config to the persisted JSON structure."""
         return {
             "mcpServers": {name: server.model_dump(exclude_none=True) for name, server in self.mcp_servers.items()},
             "skills": {name: {"enabled": skill.enabled} for name, skill in self.skills.items()},
             "hooks": {name: {"enabled": hook.enabled} for name, hook in self.hooks.items()},
-            "agentSkillsCompat": self.agent_skills_compat.model_dump(by_alias=True, exclude_none=True),
         }
 
 

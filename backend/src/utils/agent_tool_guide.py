@@ -2,12 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import os
-from collections import defaultdict
 from pathlib import Path
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from src.tools.capability.registry import UnifiedCapabilityItem
 
 
 def _repo_root() -> Path:
@@ -20,201 +15,68 @@ def get_agent_tool_guide_path() -> Path:
     return _repo_root() / ".github" / "copilot-instructions.md"
 
 
-def _kind_title(kind: str) -> str:
-    return {
-        "skill": "Skills",
-        "plugin": "Plugins",
-        "mcp_server": "MCP Servers",
-        "hook": "Hooks",
-        "command": "Commands",
-        "agent_persona": "Agent Personas",
-        "reference": "References",
-    }.get(kind, kind.replace("_", " ").title())
-
-
-def _format_state(item: UnifiedCapabilityItem) -> str:
-    installed = "installed" if item.installed else "not-installed"
-    enabled = "enabled" if item.enabled else "disabled"
-    return f"{installed}, {enabled}"
-
-
-def _format_metadata_lines(item: UnifiedCapabilityItem) -> list[str]:
-    metadata = item.metadata or {}
-    lines: list[str] = []
-    if item.kind == "skill":
-        if metadata.get("category"):
-            lines.append(f"Category: {metadata['category']}")
-        if metadata.get("relative_path"):
-            lines.append(f"Skill file: {metadata['relative_path']}")
-    elif item.kind == "plugin":
-        if metadata.get("category"):
-            lines.append(f"Category: {metadata['category']}")
-        if metadata.get("execution_mode"):
-            lines.append(f"Execution mode: {metadata['execution_mode']}")
-        review_flow = metadata.get("review_flow") or []
-        if review_flow:
-            lines.append(f"Review flow: {', '.join(str(step) for step in review_flow)}")
-    elif item.kind == "mcp_server":
-        if metadata.get("transport"):
-            lines.append(f"Transport: {metadata['transport']}")
-        if metadata.get("command"):
-            lines.append(f"Command: {metadata['command']}")
-        if metadata.get("url"):
-            lines.append(f"URL: {metadata['url']}")
-        if metadata.get("oauth_enabled"):
-            lines.append("OAuth: enabled")
-    elif item.kind == "hook":
-        if metadata.get("runtime_binding_count"):
-            lines.append(f"Runtime bindings: {metadata['runtime_binding_count']}")
-        if metadata.get("webhook_registered"):
-            lines.append("Webhook registration: present")
-        if metadata.get("installed_in_repo"):
-            lines.append("Repository package: installed")
-    blockers = item.activation_blockers or []
-    if blockers:
-        lines.append(f"Activation blockers: {', '.join(blockers)}")
-    return lines
-
-
-def _format_usage_lines(item: UnifiedCapabilityItem) -> list[str]:
-    provides = ", ".join(item.provides) if item.provides else "none"
-    requires = ", ".join(item.requires) if item.requires else "none"
-    lines = [f"Provides: {provides}", f"Requires: {requires}"]
-    if item.kind == "skill":
-        lines.extend(
-            [
-                "When to use: the user task clearly matches this domain or workflow.",
-                "How to use: read the skill SKILL.md file first, then follow its workflow before using generic tools.",
-            ]
-        )
-    elif item.kind == "plugin":
-        lines.extend(
-            [
-                "When to use: the requested capability already exists as an installed plugin or command set.",
-                "How to use: prefer the plugin command IDs listed in Provides before recreating the behavior manually.",
-            ]
-        )
-    elif item.kind == "mcp_server":
-        lines.extend(
-            [
-                "When to use: external systems, hosted tools, or remote resources are required.",
-                "How to use: verify server is enabled, authenticate if required, then call the server's tools/resources instead of ad-hoc HTTP requests.",
-            ]
-        )
-    elif item.kind == "hook":
-        lines.extend(
-            [
-                "When to use: event-driven automation, webhooks, or runtime listener orchestration is needed.",
-                "How to use: manage via hook runtime APIs and keep hook state synchronized with repository/runtime configuration.",
-            ]
-        )
-    return lines
-
-
-def _format_capability_item(item: UnifiedCapabilityItem) -> list[str]:
-    lines = [f"- {item.display_name} ({item.capability_id})"]
-    lines.append(f"  State: {_format_state(item)}")
-    if item.description:
-        lines.append(f"  Description: {item.description}")
-    lines.append(f"  Source: {item.source or 'builtin'}")
-    for meta_line in _format_metadata_lines(item):
-        lines.append(f"  {meta_line}")
-    for usage_line in _format_usage_lines(item):
-        lines.append(f"  {usage_line}")
-    return lines
-
-
 def generate_agent_tool_guide() -> Path:
-    from src.tools.capability.registry import build_capability_registry_snapshot
-    from src.tools.managed_tools import list_managed_tools
+    """Generate the model-facing guide from the one public Harness registry."""
+    from src.tools.registry.service import ToolRegistryService
 
     guide_path = get_agent_tool_guide_path()
     guide_path.parent.mkdir(parents=True, exist_ok=True)
-
-    snapshot = build_capability_registry_snapshot()
-    grouped_items: dict[str, list[UnifiedCapabilityItem]] = defaultdict(list)
-    for item in snapshot.items:
-        grouped_items[item.kind].append(item)
-
+    snapshot = ToolRegistryService().build_registry()
+    summary = snapshot.summary
     lines = [
-        "# OctoAgent System Tool Guide",
+        "# OctoAgent Harness Tool Guide",
         "",
-        "This file is auto-generated from the current OctoAgent runtime state.",
-        "Whenever skills, plugins, MCP servers, or hooks are added, removed, enabled, disabled, or reconfigured, this file must be regenerated immediately.",
+        "This file is generated from the same live registry exposed by `/api/harness` and `list_capabilities`.",
         "",
-        "## System Rules",
+        "## Operating contract",
         "",
-        "- Before a specialized action, inspect the Harness (`/api/harness` or `list_capabilities`) and use an installed, enabled, callable capability.",
-        "- When several installed capabilities plausibly match, try them in least-privilege order and continue to the next candidate only when the prior result is unusable.",
-        "- Search GitHub only after Harness has no suitable capability; install only a reviewed HTTPS GitHub source pinned to a tag/branch under `runtime/system_tools/<tool>`.",
-        "- Never run ad-hoc pip/npm installs in the backend environment or user site-packages. Every operator-installed tool needs `manifest.json`, verification, and a Harness entry.",
-        "- Uninstall through the owning Skills/MCP/Plugins/Managed Tools lifecycle. Confirm the exact root, remove it, refresh this guide, and verify post-delete invisibility.",
-        "- If a capability depends on runtime state, check installed/enabled state and activation blockers first.",
-        "- Before using a managed capability category, read the relevant section in this file and follow the listed interface contract.",
-        "- After any change to skills/plugins/MCP/hooks, regenerate this guide.",
+        "- Prefer an enabled Harness capability over an ad-hoc external search or installation.",
+        "- Permission mode is enforced by the server at tool dispatch; unavailable tools are not callable.",
+        "- Refresh Harness after adding, removing, enabling, disabling, or updating a tool source.",
+        "- Install and remove operator-managed tools only through their lifecycle tools.",
         "",
-        "## Registry Summary",
+        "## Summary",
         "",
-        f"- Generated at: {snapshot.generated_at}",
-        f"- Total capabilities: {snapshot.summary.total_items}",
-        f"- Enabled capabilities: {snapshot.summary.enabled_items}",
-        f"- Installed capabilities: {snapshot.summary.installed_items}",
+        f"- Built-in tools: {summary.builtin_tools_total}",
+        f"- MCP servers: {summary.mcp_total} total, {summary.mcp_enabled} enabled",
+        f"- Skills: {summary.skills_total} total, {summary.skills_enabled} enabled",
+        f"- Plugins: {summary.plugins_total} total, {summary.plugins_enabled} enabled",
+        f"- Channels: {summary.channels_total} total, {summary.channels_enabled} enabled",
+        f"- Managed tools: {summary.managed_tools_total} total, {summary.managed_tools_callable} callable",
+        "",
+        "## Built-in tools",
+        "",
     ]
+    for item in snapshot.builtin_tools:
+        lines.append(f"- `{item.name}` [{item.permission_scope}/{item.category}]: {item.description}")
 
-    for kind, count in sorted(snapshot.summary.by_kind.items()):
-        enabled_count = snapshot.summary.enabled_by_kind.get(kind, 0)
-        lines.append(f"- {_kind_title(kind)}: {count} total, {enabled_count} enabled")
+    lines.extend(["", "## MCP servers", ""])
+    for item in snapshot.mcp:
+        state = "enabled" if item.enabled else "disabled"
+        lines.append(f"- `{item.name}` [{state}, {item.status}, {item.permission_scope}]: {item.description}")
+        if item.tools:
+            lines.append(f"  Tools: {', '.join(item.tools)}")
 
-    lines.extend(
-        [
-            "",
-            "## Interface Contract",
-            "",
-            "- Skills: load the skill file first, then execute its prescribed workflow.",
-            "- Plugins: prefer provided command IDs over recreating the same action manually.",
-            "- MCP servers: verify server availability and authentication before using remote tools/resources.",
-            "- Hooks: treat them as event-driven integration points; update runtime and repository state together.",
-            "",
-        ]
-    )
+    lines.extend(["", "## Skills", ""])
+    for item in snapshot.skills:
+        state = "enabled" if item.enabled else "disabled"
+        lines.append(f"- `{item.name}` [{state}, {item.category}]: {item.description}")
 
-    for kind in sorted(grouped_items.keys()):
-        items = grouped_items[kind]
-        lines.extend(
-            [
-                f"## {_kind_title(kind)} ({len(items)})",
-                "",
-            ]
-        )
-        for item in items:
-            lines.extend(_format_capability_item(item))
-            lines.append("")
+    lines.extend(["", "## Plugins", ""])
+    for item in snapshot.plugins:
+        state = "enabled" if item.enabled else "disabled"
+        lines.append(f"- `{item.plugin_id}` [{state}, {item.category}]: {item.display_name}")
 
-    managed_tools = list_managed_tools()
-    lines.extend([f"## Managed Tools ({len(managed_tools)})", ""])
-    for item in managed_tools:
-        lines.extend(
-            [
-                f"- {item.get('name')}",
-                f"  State: installed, {'callable' if item.get('callable') else 'not-callable'}",
-                f"  Description: {item.get('description') or 'operator-installed tool'}",
-                f"  Source: {item.get('source_type')} {item.get('source')}",
-                f"  Version/ref: {item.get('version') or 'unspecified'}",
-                f"  Install root: {item.get('install_root')}",
-                f"  How to use: {item.get('invocation') or item.get('entrypoint') or 'consult the tool manifest'}",
-                "",
-            ]
-        )
+    lines.extend(["", "## Channels", ""])
+    for item in snapshot.channels:
+        state = "enabled" if item.enabled else "disabled"
+        lines.append(f"- `{item.name}` [{state}]: {item.description}")
 
-    lines.extend(
-        [
-            "## Maintenance",
-            "",
-            "- Regeneration source: `backend/src/utils/agent_tool_guide.py`.",
-            "- Snapshot sources: capability registry plus `runtime/system_tools/*/manifest.json`.",
-            "- Regenerate after install/uninstall/enable/disable/configuration changes of any managed capability.",
-        ]
-    )
+    lines.extend(["", "## Managed tools", ""])
+    for item in snapshot.managed_tools:
+        state = "callable" if item.callable else "not-callable"
+        lines.append(f"- `{item.name}` [{state}]: {item.description}")
+        lines.append(f"  Source: {item.source_type} {item.source}; invocation: {item.invocation or item.entrypoint}")
 
     guide_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
     return guide_path

@@ -94,8 +94,9 @@ def test_continuation_context_is_capped_before_injection() -> None:
     assert "continuation context shortened" in str(continuation.content)
 
 
-def test_completed_continuation_returns_stop_answer() -> None:
-    answer = ContinuationMiddleware._completed_continuation_answer(
+def test_completed_continuation_is_still_given_to_the_model() -> None:
+    patched = ContinuationMiddleware()._inject(
+        [HumanMessage(content="continue, and add a deployment report")],
         {
             "continue_trigger": "continue",
             "continue_task_state": {
@@ -106,29 +107,13 @@ def test_completed_continuation_returns_stop_answer() -> None:
                 "evidence": ["pytest passed"],
             },
             "continue_todos": [{"content": "Document result", "status": "completed"}],
-        }
+        },
     )
 
-    assert answer is not None
-    assert "already completed" in answer
-    assert "Fix the web UI" in answer
-    assert "Ran regression tests" in answer
-
-
-def test_completed_continuation_does_not_stop_when_pending_work_exists() -> None:
-    answer = ContinuationMiddleware._completed_continuation_answer(
-        {
-            "continue_trigger": "continue",
-            "continue_task_state": {
-                "goal": "Fix the web UI",
-                "status": "completed",
-                "completed_steps": ["Reproduced the issue"],
-                "pending_steps": ["Run browser verification"],
-            },
-        }
-    )
-
-    assert answer is None
+    assert patched is not None
+    assert isinstance(patched[0], SystemMessage)
+    assert patched[1].content == "continue, and add a deployment report"
+    assert "Status: completed" in str(patched[0].content)
 
 
 def test_v2_contract_is_authoritative_and_does_not_force_execution() -> None:

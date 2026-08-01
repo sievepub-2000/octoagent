@@ -1728,3 +1728,35 @@ slices for traceability:
 - Model cards expose the effective endpoint and show `Not verified` until the
   operator runs a real generation test; local model forms default to
   `host.docker.internal:8000`, which is reachable from Docker.
+
+## [20260802.0.0] - 2026-08-02
+
+### Context continuity
+
+- Fixed false context handoffs by measuring the final post-trim model input
+  instead of the compactor's stale intermediate token count.
+- Preserved complete AI tool-call/ToolMessage pairs across compaction and
+  removed orphaned results before model dispatch.
+- Removed the middleware-generated "already completed" answer so a continued
+  turn and its newest user instruction always reach the selected model.
+
+### Permanent Markdown and RAG memory
+
+- Kept raw Markdown transcripts while consolidating extracted memory into one
+  canonical Markdown/vector source per thread, reducing repeated embeddings.
+- Cold-start initialization now removes pgvector rows whose Markdown source no
+  longer exists and reports missing/stale index health truthfully.
+- Memory injection now uses an immutable model-request override rather than
+  mutating LangGraph request state in place.
+
+### Unified Harness tools
+
+- Fast non-thinking tool routes retain all enabled MCP tools; Chinese system,
+  container, deployment, test, database, desktop, document and media intents
+  now load their relevant tool groups.
+- Harness refresh now clears lazy-load caches, reloads skills and MCP tools,
+  rebuilds memory, regenerates the model tool guide and returns the refresh
+  evidence.
+- Deleted the 1,700-line legacy CapabilityCore/agent-skills compatibility
+  registry. Runtime Doctor and the generated model guide now use the same
+  public Harness registry as `/api/harness` and `list_capabilities`.
