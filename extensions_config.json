@@ -79,24 +79,6 @@
         "args": {},
         "expected": {}
       }
-    },
-    "docker": {
-      "enabled": true,
-      "type": "stdio",
-      "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/docker-mcp",
-      "args": [],
-      "env": {
-        "DOCKER_MCP_LOCAL": "true"
-      },
-      "headers": {},
-      "description": "Docker MCP package connected to the local Docker daemon; includes safe listing/version smoke checks.",
-      "permission_scope": "system",
-      "smoke_test": {
-        "enabled": true,
-        "tool": "docker_container_list",
-        "args": {},
-        "expected": {}
-      }
     }
   },
   "skills": {},

@@ -15,6 +15,10 @@ def get_agent_tool_guide_path() -> Path:
     return _repo_root() / ".github" / "copilot-instructions.md"
 
 
+def _one_line(value: str) -> str:
+    return " ".join((value or "").split())
+
+
 def generate_agent_tool_guide() -> Path:
     """Generate the model-facing guide from the one public Harness registry."""
     from src.tools.registry.service import ToolRegistryService
@@ -48,19 +52,19 @@ def generate_agent_tool_guide() -> Path:
         "",
     ]
     for item in snapshot.builtin_tools:
-        lines.append(f"- `{item.name}` [{item.permission_scope}/{item.category}]: {item.description}")
+        lines.append(f"- `{item.name}` [{item.permission_scope}/{item.category}]: {_one_line(item.description)}")
 
     lines.extend(["", "## MCP servers", ""])
     for item in snapshot.mcp:
         state = "enabled" if item.enabled else "disabled"
-        lines.append(f"- `{item.name}` [{state}, {item.status}, {item.permission_scope}]: {item.description}")
+        lines.append(f"- `{item.name}` [{state}, {item.status}, {item.permission_scope}]: {_one_line(item.description)}")
         if item.tools:
             lines.append(f"  Tools: {', '.join(item.tools)}")
 
     lines.extend(["", "## Skills", ""])
     for item in snapshot.skills:
         state = "enabled" if item.enabled else "disabled"
-        lines.append(f"- `{item.name}` [{state}, {item.category}]: {item.description}")
+        lines.append(f"- `{item.name}` [{state}, {item.category}]: {_one_line(item.description)}")
 
     lines.extend(["", "## Plugins", ""])
     for item in snapshot.plugins:
@@ -70,15 +74,15 @@ def generate_agent_tool_guide() -> Path:
     lines.extend(["", "## Channels", ""])
     for item in snapshot.channels:
         state = "enabled" if item.enabled else "disabled"
-        lines.append(f"- `{item.name}` [{state}]: {item.description}")
+        lines.append(f"- `{item.name}` [{state}]: {_one_line(item.description)}")
 
     lines.extend(["", "## Managed tools", ""])
     for item in snapshot.managed_tools:
         state = "callable" if item.callable else "not-callable"
-        lines.append(f"- `{item.name}` [{state}]: {item.description}")
+        lines.append(f"- `{item.name}` [{state}]: {_one_line(item.description)}")
         lines.append(f"  Source: {item.source_type} {item.source}; invocation: {item.invocation or item.entrypoint}")
 
-    guide_path.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+    guide_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8", newline="\n")
     return guide_path
 
 

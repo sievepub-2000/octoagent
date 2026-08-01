@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import posixpath
 import re
 import shlex
 import shutil
@@ -13,6 +14,7 @@ from typing import Any
 
 from langchain_core.tools import tool
 
+from src.tools.builtins.system_ops_tools import _run_host_shell
 from src.utils.serialization import fmt_json as _json
 
 _REPO_ROOT = Path(__file__).resolve().parents[4]
@@ -78,7 +80,6 @@ _MCP_COMMAND_DEFAULTS = {
     "OCTOAGENT_MCP_POSTGRES_BIN": str(_MCP_NODE_BIN / "mcp-server-postgres"),
     "OCTOAGENT_MCP_OPENAPI_BIN": str(_MCP_NODE_BIN / "openapi-mcp-server"),
     "OCTOAGENT_MCP_KUBERNETES_BIN": str(_MCP_NODE_BIN / "mcp-server-kubernetes"),
-    "OCTOAGENT_MCP_DOCKER_BIN": str(_MCP_NODE_BIN / "docker-mcp"),
 }
 
 
@@ -187,6 +188,12 @@ def _run(args: list[str], *, cwd: Path | None = None, timeout: int = 120, tool_n
         return {"available": True, "error": str(exc), "args": _safe_args(args), "cwd": str(cwd)}
 
 
+def _run_host(args: list[str], *, cwd: str | None = None, timeout: int = 120) -> dict[str, Any]:
+    """Route system-scoped commands through the authenticated root executor."""
+    host_root = os.getenv("OCTOAGENT_HOST_REPO_ROOT", "/").strip() or "/"
+    return _run_host_shell(shlex.join(args), cwd=cwd or host_root, timeout=timeout)
+
+
 def _resolve_path(path: str | None, *, default: Path = _REPO_ROOT, must_exist: bool = False) -> Path:
     p = Path(path).expanduser() if path else default
     if not p.is_absolute():
@@ -222,16 +229,8 @@ def docker_status_tool() -> str:
     return _json(
         {
             "generated_at": _now(),
-            "version": _run(
-                _cmd("docker") + ["version", "--format", "{{json .}}"],
-                timeout=10,
-                tool_name="docker_status",
-            ),
-            "info": _run(
-                _cmd("docker") + ["info", "--format", "{{json .}}"],
-                timeout=10,
-                tool_name="docker_status",
-            ),
+            "version": _run_host(["docker", "version", "--format", "{{json .}}"], timeout=10),
+            "info": _run_host(["docker", "info", "--format", "{{json .}}"], timeout=10),
         }
     )
 
@@ -243,16 +242,16 @@ def docker_ps_tool(all_containers: bool = False) -> str:
     Args:
         all_containers: Include stopped containers.
     """
-    args = _cmd("docker") + ["ps", "--format", "json"]
+    args = ["docker", "ps", "--format", "json"]
     if all_containers:
         args.insert(2, "--all")
-    return _json({"generated_at": _now(), "result": _run(args, timeout=20, tool_name="docker_ps")})
+    return _json({"generated_at": _now(), "result": _run_host(args, timeout=20)})
 
 
 @tool("docker_images", parse_docstring=True)
 def docker_images_tool() -> str:
     """List Docker images."""
-    return _json({"generated_at": _now(), "result": _run(_cmd("docker") + ["images", "--format", "json"], timeout=20, tool_name="docker_images")})
+    return _json({"generated_at": _now(), "result": _run_host(["docker", "images", "--format", "json"], timeout=20)})
 
 
 @tool("docker_logs", parse_docstring=True)
@@ -263,7 +262,7 @@ def docker_logs_tool(container: str, tail: int = 200) -> str:
         container: Container name or ID.
         tail: Number of log lines.
     """
-    return _json({"generated_at": _now(), "container": container, "result": _run(_cmd("docker") + ["logs", "--tail", str(max(1, min(int(tail), 2000))), container], timeout=30, tool_name="docker_logs")})
+    return _json({"generated_at": _now(), "container": container, "result": _run_host(["docker", "logs", "--tail", str(max(1, min(int(tail), 2000))), container], timeout=30)})
 
 
 @tool("docker_inspect", parse_docstring=True)
@@ -273,7 +272,7 @@ def docker_inspect_tool(target: str) -> str:
     Args:
         target: Container, image, volume, or network name/ID.
     """
-    return _json({"generated_at": _now(), "target": target, "result": _run(_cmd("docker") + ["inspect", target], timeout=30, tool_name="docker_inspect")})
+    return _json({"generated_at": _now(), "target": target, "result": _run_host(["docker", "inspect", target], timeout=30)})
 
 
 @tool("docker_compose_plan", parse_docstring=True)
@@ -285,7 +284,12 @@ def docker_compose_plan_tool(compose_file: str = "docker/docker-compose-dev.yaml
         project_name: Compose project name.
     """
     path = _resolve_path(compose_file, must_exist=True)
-    return _json({"generated_at": _now(), "compose_file": str(path), "result": _run(_cmd("docker") + ["compose", "-p", project_name, "-f", str(path), "config"], timeout=60, tool_name="docker_compose_plan")})
+    relative_path = path.relative_to(_REPO_ROOT)
+    host_path = posixpath.join(
+        os.getenv("OCTOAGENT_HOST_REPO_ROOT", "/"),
+        relative_path.as_posix(),
+    )
+    return _json({"generated_at": _now(), "compose_file": str(path), "result": _run_host(["docker", "compose", "-p", project_name, "-f", str(host_path), "config"], timeout=60)})
 
 
 @tool("docker_compose_apply", parse_docstring=True)
@@ -302,14 +306,19 @@ def docker_compose_apply_tool(compose_file: str = "docker/docker-compose-dev.yam
     if msg:
         return msg
     path = _resolve_path(compose_file, must_exist=True)
+    relative_path = path.relative_to(_REPO_ROOT)
+    host_path = posixpath.join(
+        os.getenv("OCTOAGENT_HOST_REPO_ROOT", "/"),
+        relative_path.as_posix(),
+    )
     action = action.strip().lower()
     if action == "up":
-        cmd = _cmd("docker") + ["compose", "-p", project_name, "-f", str(path), "up", "-d", "--remove-orphans"]
+        cmd = ["docker", "compose", "-p", project_name, "-f", str(host_path), "up", "-d", "--remove-orphans"]
     elif action in {"down", "restart", "pull", "build"}:
-        cmd = _cmd("docker") + ["compose", "-p", project_name, "-f", str(path), action]
+        cmd = ["docker", "compose", "-p", project_name, "-f", str(host_path), action]
     else:
         return _json({"error": "unsupported action", "allowed": ["up", "down", "restart", "pull", "build"]})
-    return _json({"generated_at": _now(), "result": _run(cmd, timeout=1800, tool_name="docker_compose_apply")})
+    return _json({"generated_at": _now(), "result": _run_host(cmd, timeout=1800)})
 
 
 @tool("ssh_hosts_list", parse_docstring=True)

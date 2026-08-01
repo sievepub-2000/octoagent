@@ -1760,6 +1760,11 @@ slices for traceability:
 - MCP smoke tests now move executable discovery, configuration reads, and
   snapshot writes off the ASGI event loop, preventing LangGraph's blocking-call
   guard from turning a real tool refresh into HTTP 500.
+- Removed the redundant Docker MCP package instead of mounting the Docker
+  socket into the unprivileged Agent Runtime. Docker tools now use the same
+  authenticated System Executor boundary as `host_shell`.
+- Regenerated the model-facing Harness guide from the live registry and removed
+  seven obsolete pre-Harness tool/MCP planning and repair reports.
 - Deleted the 1,700-line legacy CapabilityCore/agent-skills compatibility
   registry. Runtime Doctor and the generated model guide now use the same
   public Harness registry as `/api/harness` and `list_capabilities`.

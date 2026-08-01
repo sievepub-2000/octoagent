@@ -196,7 +196,6 @@ class ExtensionsConfig(BaseModel):
             "filesystem": "OCTOAGENT_MCP_FILESYSTEM_BIN",
             "postgres": "OCTOAGENT_MCP_POSTGRES_BIN",
             "openapi": "OCTOAGENT_MCP_OPENAPI_BIN",
-            "docker": "OCTOAGENT_MCP_DOCKER_BIN",
         }
         for server_name, env_name in command_overrides.items():
             server = self.mcp_servers.get(server_name)

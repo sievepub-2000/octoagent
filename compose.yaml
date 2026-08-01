@@ -19,7 +19,6 @@ x-backend-env: &backend-env
   OCTOAGENT_MCP_FILESYSTEM_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-filesystem
   OCTOAGENT_MCP_POSTGRES_BIN: /app/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres
   OCTOAGENT_MCP_OPENAPI_BIN: /app/runtime/tools/mcp/node_modules/.bin/openapi-mcp-server
-  OCTOAGENT_MCP_DOCKER_BIN: /app/runtime/tools/mcp/node_modules/.bin/docker-mcp
   OCTOAGENT_TOOL_GUIDE_PATH: /app/runtime/system_tools/copilot-instructions.md
   OCTOAGENT_POSTGRES_SUPERUSER_DSN: postgresql://octoagent:${POSTGRES_PASSWORD:-octoagent}@postgres:5432/${POSTGRES_DB:-octoagent}
   OCTOAGENT_CHECKPOINTER_DSN: postgresql://octoagent:${POSTGRES_PASSWORD:-octoagent}@postgres:5432/${POSTGRES_DB:-octoagent}?sslmode=disable
