@@ -193,13 +193,13 @@ def _load_setup_state() -> dict[str, str]:
 
 
 def _save_setup_state(*, workspace_path: str, default_model: str, sandbox_mode: str) -> None:
+    del default_model
     target = _setup_state_file()
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(
         json.dumps(
             {
                 "workspace_path": workspace_path,
-                "default_model": default_model,
                 "sandbox_mode": sandbox_mode,
             },
             ensure_ascii=False,
@@ -221,11 +221,11 @@ def _save_workspace_env_state(
     sandbox_mode: str,
     directories_created: list[str],
 ) -> None:
+    del default_model
     env_dir = workspace_root / "env"
     env_dir.mkdir(parents=True, exist_ok=True)
     setup_snapshot = {
         "workspace_path": str(workspace_root),
-        "default_model": default_model,
         "sandbox_mode": sandbox_mode,
         "created_at": datetime.now(UTC).isoformat(),
         "layout": {
@@ -371,6 +371,10 @@ async def apply_setup(req: ApplySetupRequest) -> ApplySetupResponse:
             pass
 
     try:
+        if req.default_model:
+            from src.gateway.routers.models import _set_default_model_in_config
+
+            await asyncio.to_thread(_set_default_model_in_config, req.default_model)
         _save_setup_state(
             workspace_path=str(resolved),
             default_model=req.default_model,

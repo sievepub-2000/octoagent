@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import re
 import tempfile
@@ -14,7 +13,6 @@ from src.models.interfaces import normalize_interface_type, resolve_model_interf
 from src.models.provider_adapter import resolve_provider_adapter_profile
 from src.runtime.config import get_app_config
 from src.runtime.config.app_config import AppConfig, reload_app_config
-from src.runtime.config.paths import get_setup_state_file
 
 router = APIRouter(prefix="/api", tags=["models"])
 _MODEL_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
@@ -298,28 +296,6 @@ def _clean_deleted_model_references(config_data: dict, deleted_model_name: str) 
         model["fallback_models"] = list(dict.fromkeys(fallbacks))
 
 
-def _repair_setup_default_model(deleted_model_name: str, remaining_models: list[dict]) -> None:
-    setup_state_file = get_setup_state_file()
-    if not setup_state_file.exists():
-        return
-    try:
-        state = json.loads(setup_state_file.read_text(encoding="utf-8"))
-    except Exception:
-        return
-    if not isinstance(state, dict) or state.get("default_model") != deleted_model_name:
-        return
-    replacement = next(
-        (str(model.get("name")) for model in remaining_models if isinstance(model, dict) and model.get("name")),
-        "",
-    )
-    if replacement:
-        state["default_model"] = replacement
-    else:
-        state.pop("default_model", None)
-    setup_state_file.parent.mkdir(parents=True, exist_ok=True)
-    setup_state_file.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
-
-
 def _serialize_model(model, *, default_model_name: str | None = None) -> ModelResponse:
     resolved_interface_type = None
     adapter_profile = None
@@ -414,7 +390,6 @@ def _delete_model_from_config(model_name: str) -> bool:
     if isinstance(removed, dict):
         managed_env_names = {str(value)[1:] for key, value in removed.items() if key in _SENSITIVE_MODEL_KEYS and isinstance(value, str) and value.startswith("$" + _MANAGED_SECRET_PREFIX)}
         _remove_managed_dotenv_secrets(managed_env_names)
-    _repair_setup_default_model(model_name, filtered)
     return True
 
 

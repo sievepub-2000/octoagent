@@ -1762,3 +1762,5 @@ slices for traceability:
   public Harness registry as `/api/harness` and `list_capabilities`.
 - Fixed strict TypeScript narrowing in model verification cards so the WebUI
   completes a clean Next.js production build.
+- Made `config.yaml` the single authoritative default-model source; setup state
+  can no longer override a model selected in WebUI or drift after deletion.

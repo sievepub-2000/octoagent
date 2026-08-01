@@ -75,8 +75,9 @@ def load_setup_state() -> dict[str, str]:
 
     result = {str(key): str(value) for key, value in payload.items() if value is not None}
 
-    # Override with config.yaml default_model if present and setup_state doesn't have explicit override
-    if system_default and "default_model" not in result:
+    # config.yaml is the only authoritative model source. Setup state retains
+    # workspace/sandbox preferences but can never override the runtime model.
+    if system_default:
         result["default_model"] = system_default
 
     return result

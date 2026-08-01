@@ -174,3 +174,4 @@ runtime/config/*.yaml
 backend/workspace/
 workspace/default/project_memories/*.bak*
 *.bak
+.codex-tmp/
