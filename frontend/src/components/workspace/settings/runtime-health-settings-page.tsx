@@ -10,6 +10,7 @@ import {
   RefreshCcwIcon,
   WorkflowIcon,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +45,12 @@ export function RuntimeHealthSettingsPage() {
   const snapshot = health?.snapshot;
   const alerts = snapshot?.alerts ?? [];
   const pools = Object.entries(snapshot?.worker_isolation?.pools ?? {});
+  const overviewCards: Array<{ label: string; value: string; icon: LucideIcon }> = [
+    { label: copy.memory, value: formatNumber(snapshot?.memory?.available_gb, " GB"), icon: MemoryStickIcon },
+    { label: copy.diskFree, value: formatNumber(snapshot?.disk?.free_gb, " GB"), icon: HardDriveIcon },
+    { label: copy.checkpoints, value: formatNumber(snapshot?.langgraph_state?.checkpoint_count), icon: WorkflowIcon },
+    { label: copy.loopLatency, value: formatNumber(snapshot?.event_loop?.latency_ms, " ms"), icon: ActivityIcon },
+  ];
 
   async function handleRunMaintenance() {
     try {
@@ -99,13 +106,8 @@ export function RuntimeHealthSettingsPage() {
           </div>
 
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {[
-              [copy.memory, formatNumber(snapshot.memory?.available_gb, " GB"), MemoryStickIcon],
-              [copy.diskFree, formatNumber(snapshot.disk?.free_gb, " GB"), HardDriveIcon],
-              [copy.checkpoints, formatNumber(snapshot.langgraph_state?.checkpoint_count), WorkflowIcon],
-              [copy.loopLatency, formatNumber(snapshot.event_loop?.latency_ms, " ms"), ActivityIcon],
-            ].map(([label, value, Icon]) => (
-              <Card variant="compact" key={String(label)}>
+            {overviewCards.map(({ label, value, icon: Icon }) => (
+              <Card variant="compact" key={label}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-sm">
                     <Icon className="size-4 text-primary" />
