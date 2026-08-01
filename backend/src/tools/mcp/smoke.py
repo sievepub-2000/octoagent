@@ -136,14 +136,21 @@ def _schema_check(name: str, config: McpServerConfig) -> dict[str, Any]:
     return checks
 
 
+def _persist_results(results: dict[str, Any]) -> None:
+    """Persist the derived smoke snapshot outside the ASGI event loop."""
+    _SMOKE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    _SMOKE_PATH.write_text(json.dumps(results, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+
+
 async def smoke_one_mcp_server(name: str, config: McpServerConfig) -> dict[str, Any]:
+    schema = await asyncio.to_thread(_schema_check, name, config)
     result: dict[str, Any] = {
         "name": name,
         "enabled": bool(config.enabled),
         "transport": config.type,
         "permission_scope": config.permission_scope,
         "checked_at": _now(),
-        "schema": _schema_check(name, config),
+        "schema": schema,
         "startup": {"ok": False, "skipped": True},
         "list_tools": {"ok": False, "skipped": True, "tool_count": 0, "tools": []},
         "minimal_call": {"ok": False, "skipped": True},
@@ -208,7 +215,7 @@ async def smoke_one_mcp_server(name: str, config: McpServerConfig) -> dict[str, 
 
 
 async def run_mcp_smoke_tests(config_path: str | None = None, *, include_disabled: bool = True, persist: bool = True) -> dict[str, Any]:
-    config = ExtensionsConfig.from_file(config_path)
+    config = await asyncio.to_thread(ExtensionsConfig.from_file, config_path)
     servers = config.mcp_servers if include_disabled else config.get_enabled_mcp_servers()
     results: dict[str, Any] = {"generated_at": _now(), "servers": {}}
     for name, server_config in sorted(servers.items()):
@@ -222,8 +229,7 @@ async def run_mcp_smoke_tests(config_path: str | None = None, *, include_disable
         "disabled": sum(1 for item in results["servers"].values() if item.get("overall_status") == "disabled"),
     }
     if persist:
-        _SMOKE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        _SMOKE_PATH.write_text(json.dumps(results, ensure_ascii=False, indent=2, sort_keys=True), encoding="utf-8")
+        await asyncio.to_thread(_persist_results, results)
     return results
 
 

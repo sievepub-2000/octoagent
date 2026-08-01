@@ -1757,6 +1757,9 @@ slices for traceability:
 - Harness refresh now clears lazy-load caches, reloads skills and MCP tools,
   rebuilds memory, regenerates the model tool guide and returns the refresh
   evidence.
+- MCP smoke tests now move executable discovery, configuration reads, and
+  snapshot writes off the ASGI event loop, preventing LangGraph's blocking-call
+  guard from turning a real tool refresh into HTTP 500.
 - Deleted the 1,700-line legacy CapabilityCore/agent-skills compatibility
   registry. Runtime Doctor and the generated model guide now use the same
   public Harness registry as `/api/harness` and `list_capabilities`.
