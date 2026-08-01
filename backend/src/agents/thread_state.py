@@ -44,7 +44,6 @@ class ThreadRuntimeState(TypedDict):
     planned_operation_id: NotRequired[str | None]
     instruction_contract: NotRequired[dict | None]
     memory_write: NotRequired[dict | None]
-    last_run_record: NotRequired[dict | None]
     compaction_strategy: NotRequired[str | None]
     compaction_trigger: NotRequired[str | None]
     compaction_summary: NotRequired[str | None]

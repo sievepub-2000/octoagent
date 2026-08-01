@@ -4,11 +4,6 @@ import type {
   RuntimeCapabilities,
   RuntimeLongRunningHealth,
   RuntimeMaintenanceStatus,
-  RuntimeRunRecordsResponse,
-  SystemGuardExportResponse,
-  SystemGuardRepairRequest,
-  SystemGuardRepairResponse,
-  SystemGuardStatus,
 } from "./types";
 
 export async function loadRuntimeCapabilities() {
@@ -25,31 +20,4 @@ export async function loadRuntimeMaintenanceStatus() {
 
 export async function runRuntimeMaintenance() {
   return postJSON<RuntimeMaintenanceStatus>("/api/runtime/maintenance/run", {});
-}
-
-export async function loadRuntimeRunRecords(input: {
-  limit?: number;
-  thread_id?: string;
-} = {}) {
-  return getJSON<RuntimeRunRecordsResponse>("/api/runtime/run-records", input);
-}
-
-export async function loadSystemGuardStatus(limit = 10) {
-  return getJSON<SystemGuardStatus>("/api/runtime/system-guard/status", { limit });
-}
-
-export async function runSystemGuardRepair(
-  input: SystemGuardRepairRequest = {},
-) {
-  return postJSON<SystemGuardRepairResponse>(
-    "/api/runtime/system-guard/repair",
-    input,
-  );
-}
-
-export async function exportSystemGuardSnapshots(limit = 20) {
-  return getJSON<SystemGuardExportResponse>(
-    "/api/runtime/system-guard/export",
-    { limit },
-  );
 }

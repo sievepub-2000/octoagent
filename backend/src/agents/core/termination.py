@@ -11,8 +11,8 @@ Three terminal states:
 
 The classifier is deliberately small and deterministic. It is the only
 place in the codebase that decides "did the long-running task finish?".
-All other code (run_records, task_state_middleware, frontend
-auto-continue) consumes its output.
+All other code (runtime state and frontend continuation handling) consumes its
+output.
 """
 
 from __future__ import annotations

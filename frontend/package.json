@@ -1,10 +1,9 @@
 {
   "name": "octoagent-frontend",
-  "version": "20260724.1.0",
+  "version": "20260801.1.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "demo:save": "node scripts/save-demo.js",
     "build": "next build",
     "check": "eslint . --ext .ts,.tsx && tsc --noEmit",
     "i18n:check": "node scripts/check-i18n-depth.mjs",

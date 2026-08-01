@@ -8,17 +8,15 @@ from datetime import UTC
 from pathlib import Path
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-from src.agents.core.run_record_store import build_run_record_summary, list_run_records
 from src.agents.subagents.executor import get_subagent_runtime_snapshot
 from src.agents.subagents.policy import is_host_memory_oom_critical
 from src.models.factory import resolve_effective_fallback_model_names
 from src.runtime.config import get_app_config
 from src.runtime.config.paths import get_setup_state_file, resolve_configured_default_model_name
 from src.runtime.config.subagents_config import get_subagents_app_config
-from src.runtime.system_guard.service import get_system_guard_service
 
 
 def _system_executor_health() -> tuple[bool, str]:
@@ -32,6 +30,22 @@ def _system_executor_health() -> tuple[bool, str]:
         return healthy, f"{endpoint}/health"
     except (OSError, ValueError, urllib.error.URLError) as exc:
         return False, f"{endpoint}/health: {type(exc).__name__}"
+
+
+def _default_model_endpoint_health(model: object) -> tuple[bool, str]:
+    base_url = str(getattr(model, "base_url", "") or "").rstrip("/")
+    if not base_url:
+        return False, "Default model has no base_url to probe"
+    endpoint = f"{base_url}/models"
+    request = urllib.request.Request(endpoint)
+    try:
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(request, timeout=5) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+        models = payload.get("data") if isinstance(payload, dict) else None
+        return response.status == 200 and isinstance(models, list), endpoint
+    except (OSError, ValueError, urllib.error.URLError) as exc:
+        return False, f"{endpoint}: {type(exc).__name__}"
 
 
 def _resolve_repo_root() -> Path:
@@ -119,38 +133,6 @@ class RuntimeCapabilitiesResponse(BaseModel):
     runtime_status: RuntimeStatus
 
 
-class SystemGuardStatusResponse(BaseModel):
-    latest_snapshot: dict | None = None
-    recent_snapshots: list[dict] = Field(default_factory=list)
-    retention: dict = Field(default_factory=dict)
-
-
-class SystemGuardRepairRequest(BaseModel):
-    advisory_only: bool = Field(
-        default=False,
-        description="When true, only generate the repair advisory without executing built-in repair actions.",
-    )
-
-
-class SystemGuardRepairResponse(BaseModel):
-    ok: bool
-    issues: list[dict] = Field(default_factory=list)
-    repair_report: dict = Field(default_factory=dict)
-    persisted: dict | None = None
-    session_id: str | None = None
-
-
-class SystemGuardExportResponse(BaseModel):
-    namespace: str
-    generated_at: str
-    latest_snapshot: dict | None = None
-    recent_snapshots: list[dict] = Field(default_factory=list)
-    retention: dict = Field(default_factory=dict)
-    signed: bool
-    signature_algorithm: str
-    signature: str
-
-
 class RuntimeDoctorCheck(BaseModel):
     id: str
     title: str
@@ -166,11 +148,6 @@ class RuntimeDoctorResponse(BaseModel):
 
 class RuntimeLongRunningHealthResponse(BaseModel):
     snapshot: dict[str, Any] = Field(default_factory=dict)
-
-
-class RuntimeRunRecordsResponse(BaseModel):
-    records: list[dict[str, Any]] = Field(default_factory=list)
-    summary: dict[str, Any] = Field(default_factory=dict)
 
 
 @router.get(
@@ -253,69 +230,6 @@ async def get_runtime_capabilities() -> RuntimeCapabilitiesResponse:
 
 
 @router.get(
-    "/run-records",
-    response_model=RuntimeRunRecordsResponse,
-    summary="List Runtime Run Records",
-    description="Return recent auditable agent run records for operator observability.",
-)
-async def get_runtime_run_records(
-    limit: int = 50,
-    thread_id: str | None = None,
-) -> RuntimeRunRecordsResponse:
-    bounded_limit = max(1, min(limit, 200))
-    records = list_run_records(limit=bounded_limit, thread_id=thread_id)
-    return RuntimeRunRecordsResponse(
-        records=records,
-        summary=build_run_record_summary(records),
-    )
-
-
-@router.get(
-    "/system-guard/status",
-    response_model=SystemGuardStatusResponse,
-    summary="Get System Guard Status",
-    description="Expose latest startup/shutdown self-check snapshots persisted by system guard.",
-)
-async def get_system_guard_status(limit: int = 10) -> SystemGuardStatusResponse:
-    service = get_system_guard_service()
-    bounded_limit = max(1, min(limit, 100))
-    return SystemGuardStatusResponse(
-        latest_snapshot=service.latest_snapshot(),
-        recent_snapshots=service.recent_snapshots(limit=bounded_limit),
-        retention=service.retention_summary(),
-    )
-
-
-@router.post(
-    "/system-guard/repair",
-    response_model=SystemGuardRepairResponse,
-    summary="Run System Guard Repair",
-    description="Trigger a manual system-guard repair pass and persist the resulting lifecycle snapshot.",
-)
-async def run_system_guard_repair(
-    request: SystemGuardRepairRequest,
-) -> SystemGuardRepairResponse:
-    service = get_system_guard_service()
-    result = service.run_manual_repair(advisory_only=request.advisory_only)
-    return SystemGuardRepairResponse(**result)
-
-
-@router.get(
-    "/system-guard/export",
-    response_model=SystemGuardExportResponse,
-    summary="Export System Guard Snapshots",
-    description="Export recent system-guard lifecycle snapshots with an integrity signature for offline analysis.",
-)
-async def export_system_guard_snapshots(limit: int = 20) -> SystemGuardExportResponse:
-    service = get_system_guard_service()
-    try:
-        result = service.export_snapshots(limit=limit)
-    except ValueError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
-    return SystemGuardExportResponse(**result)
-
-
-@router.get(
     "/doctor",
     response_model=RuntimeDoctorResponse,
     summary="Run Runtime Doctor",
@@ -377,12 +291,20 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
         )
 
     if app_config.models:
+        default_name = resolve_configured_default_model_name(model.name for model in app_config.models)
+        default_model = app_config.get_model_config(default_name) if default_name else None
+        model_healthy, model_detail = (
+            await asyncio.to_thread(_default_model_endpoint_health, default_model)
+            if default_model is not None
+            else (False, "Configured default model was not found")
+        )
         checks.append(
             RuntimeDoctorCheck(
                 id="models",
-                title="Configured models",
-                status="ok",
-                detail=f"{len(app_config.models)} model(s) configured.",
+                title="Default model endpoint",
+                status="ok" if model_healthy else "fail",
+                detail=f"default={default_name}, configured={len(app_config.models)}, probe={model_detail}",
+                recommendation=None if model_healthy else "Start the default model service or correct its container-reachable base_url.",
             )
         )
     else:
@@ -785,33 +707,3 @@ async def get_runtime_tool_trace(limit: int = 200) -> ToolTraceResponse:
         total_lines=len(events),
         events=events,
     )
-
-
-# ---------------------------------------------------------------------------
-# Phase 6: distributed dispatcher introspection (no-ops when disabled)
-# ---------------------------------------------------------------------------
-
-from src.harness.dispatcher import (  # noqa: E402
-    dispatch_queue_stats as _dispatch_queue_stats,
-)
-from src.harness.dispatcher import (  # noqa: E402
-    leader_status as _leader_status,
-)
-from src.harness.dispatcher import (  # noqa: E402
-    list_workers as _list_workers,
-)
-
-
-@router.get("/workers")
-async def get_workers():
-    return {"workers": await _list_workers()}
-
-
-@router.get("/dispatch")
-async def get_dispatch_queue():
-    return await _dispatch_queue_stats()
-
-
-@router.get("/leader")
-async def get_leader():
-    return _leader_status()

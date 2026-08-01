@@ -26,7 +26,6 @@ import {
   useSkills,
   useUpdateSkill,
 } from "@/core/skills/hooks";
-import { env } from "@/env";
 
 interface SkillFormState {
   name: string;
@@ -310,7 +309,6 @@ export default function SkillsConfigPage() {
                 <Switch
                   aria-label={`Enable ${skill.name}`}
                   checked={skill.enabled}
-                  disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
                   onCheckedChange={(checked) => enableSkill({ skillName: skill.name, enabled: checked })}
                 />
               </div>

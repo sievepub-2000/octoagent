@@ -26,7 +26,6 @@ import { buildContinuationContext } from "@/core/threads";
 import { useThreadState, useThreadStream } from "@/core/threads/hooks";
 import { textOfMessage } from "@/core/threads/utils";
 import { useWorkflows } from "@/core/workflows";
-import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
 type ArchivedConversationMessage =
@@ -488,17 +487,11 @@ function AgentChatThreadView({
                   status={thread.isLoading ? "streaming" : "ready"}
                   context={settings.context}
                   contextCycleBaseTokens={contextCycleBaseTokens}
-                  disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
                   onContextChange={handleContextChange}
                   onContextThreshold={handleContextThreshold}
                   onSubmit={handleSubmit}
                   onStop={handleStop}
                 />
-                {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" && (
-                  <div className="text-muted-foreground w-full translate-y-12 text-center text-xs">
-                    {t.common.notAvailableInDemoMode}
-                  </div>
-                )}
               </div>
             </div>
           </div>

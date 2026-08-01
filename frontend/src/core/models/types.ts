@@ -7,6 +7,7 @@ export interface Model {
   use?: string | null;
   interface_type?: string | null;
   provider_name?: string | null;
+  base_url?: string | null;
   resolved_interface_type?: string | null;
   resolved_provider_family?: string | null;
   resolved_use_path?: string | null;

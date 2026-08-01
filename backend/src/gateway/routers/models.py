@@ -41,6 +41,7 @@ class ModelResponse(BaseModel):
     use: str | None = Field(None, description="Raw provider class path, if configured")
     interface_type: str | None = Field(None, description="Configured normalized model interface type")
     provider_name: str | None = Field(None, description="Configured provider/vendor label")
+    base_url: str | None = Field(None, description="Configured provider endpoint; credentials are never exposed")
     resolved_interface_type: str | None = Field(None, description="Effective resolved model interface type")
     resolved_provider_family: str | None = Field(None, description="Effective normalized provider family")
     resolved_use_path: str | None = Field(None, description="Effective provider class path after interface inference")
@@ -355,6 +356,7 @@ def _serialize_model(model, *, default_model_name: str | None = None) -> ModelRe
         use=getattr(model, "use", None),
         interface_type=getattr(model, "interface_type", None),
         provider_name=getattr(model, "provider_name", None),
+        base_url=getattr(model, "base_url", None),
         resolved_interface_type=resolved_interface_type,
         resolved_provider_family=(adapter_profile.provider_family if adapter_profile is not None else None),
         resolved_use_path=resolved_use_path,

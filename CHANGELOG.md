@@ -1692,3 +1692,39 @@ slices for traceability:
 - Fixed proxy trust and TLS behavior for DDG, Scrapling, and webpage reading, with secure certificate verification enabled by default.
 - Standardized UTF-8 subprocess handling and corrected two invalid encoding arguments in system operations.
 - Frontend release gates now pass with zero ESLint warnings/errors, TypeScript success, and a clean Next.js production build.
+## [20260801.1.0] - 2026-08-01
+
+### Clean-slate runtime
+
+- Removed every stored LangGraph conversation/checkpoint, derived Harness
+  memory row, generated workspace skill, run log, legacy vector database, and
+  packaged demo conversation. New deployments now start without historical or
+  mock chat data.
+- Removed the unused System Guard self-repair agent, its DuckDB lifecycle
+  store and WebUI, the disabled PostgreSQL distributed dispatcher, JSONL run
+  records, duplicate workflow runtime tools, and six inactive middleware
+  implementations. This deletes the competing execution paths instead of
+  retaining compatibility shims.
+- Kept one execution architecture: LangGraph Agent Runtime for turns and
+  checkpoints, Harness for discovery/permissions/adapters/memory, Gateway API
+  as the operator interface, and the isolated root System Executor boundary.
+
+### Laguna and truthful health
+
+- Added the local Laguna S 2.1 NVFP4 llama.cpp model endpoint as the default
+  deployment model with a 65,536-token runtime context.
+- Repaired the host llama.cpp service model path and replaced the unsafe
+  262,144-token locked-memory startup with bounded mmap loading, systemd memory
+  limits, restart-rate limits, and MTP/speculative decoding disabled.
+- Runtime Doctor now probes the default model's container-reachable `/models`
+  endpoint. A configured model is no longer reported healthy merely because a
+  YAML entry exists.
+
+### WebUI alignment
+
+- Removed System Guard, run-record, static demo, and mock management surfaces.
+  Runtime health now represents the live Agent Runtime, while Harness remains
+  the single tool/plugin/MCP/hook/memory management surface.
+- Model cards expose the effective endpoint and show `Not verified` until the
+  operator runs a real generation test; local model forms default to
+  `host.docker.internal:8000`, which is reachable from Docker.

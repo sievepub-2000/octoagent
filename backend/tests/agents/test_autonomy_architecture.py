@@ -3,7 +3,6 @@ from __future__ import annotations
 from src.agents.core.instruction_contracts import detect_instruction_contract
 from src.agents.lead_agent import agent as agent_module
 from src.runtime.config.model_config import ModelConfig
-from src.runtime.config.system_guard_config import SystemGuardConfig
 
 
 class _AppConfig:
@@ -74,7 +73,3 @@ def test_code_task_with_recent_context_stays_a_code_task() -> None:
 
     assert contract.intent == "code_task"
     assert contract.required_tool_categories == ("filesystem", "tests")
-
-
-def test_startup_guard_does_not_ask_the_agent_to_repair_itself_by_default() -> None:
-    assert SystemGuardConfig().invoke_default_agent_on_issue is False

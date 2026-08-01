@@ -482,7 +482,6 @@ export function buildThreadRuntimeTelemetry(
     incomplete_state: threadState.runtime?.incomplete_state ?? null,
     instruction_contract: threadState.runtime?.instruction_contract ?? null,
     memory_write: threadState.runtime?.memory_write ?? null,
-    last_run_record: threadState.runtime?.last_run_record ?? null,
     compaction_strategy: threadState.runtime?.compaction_strategy ?? null,
     compaction_trigger: threadState.runtime?.compaction_trigger ?? null,
     pressure_ratio: threadState.runtime?.pressure_ratio ?? null,

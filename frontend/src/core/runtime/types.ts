@@ -39,52 +39,6 @@ export interface RuntimeCapabilities {
   runtime_status: RuntimeStatus;
 }
 
-export interface SystemGuardSnapshot {
-  id?: string;
-  session_id?: string;
-  namespace?: string;
-  phase?: string;
-  created_at?: string;
-  content?: string;
-  metadata?: Record<string, unknown>;
-  state?: Record<string, unknown>;
-}
-
-export interface SystemGuardRetention {
-  namespace?: string;
-  snapshot_count?: number;
-  retention_limit?: number;
-}
-
-export interface SystemGuardStatus {
-  latest_snapshot?: SystemGuardSnapshot | null;
-  recent_snapshots: SystemGuardSnapshot[];
-  retention: SystemGuardRetention;
-}
-
-export interface SystemGuardRepairRequest {
-  advisory_only?: boolean;
-}
-
-export interface SystemGuardRepairResponse {
-  ok: boolean;
-  issues: Array<Record<string, unknown>>;
-  repair_report: Record<string, unknown>;
-  persisted?: Record<string, unknown> | null;
-  session_id?: string | null;
-}
-
-export interface SystemGuardExportResponse {
-  namespace: string;
-  generated_at: string;
-  latest_snapshot?: SystemGuardSnapshot | null;
-  recent_snapshots: SystemGuardSnapshot[];
-  retention: SystemGuardRetention;
-  signed: boolean;
-  signature_algorithm: string;
-  signature: string;
-}
-
 export interface RuntimeLongRunningAlert {
   code: string;
   severity: "info" | "warning" | "critical" | string;
@@ -138,9 +92,4 @@ export interface RuntimeMaintenanceStatus {
   running: boolean;
   interval_seconds: number;
   last_run?: Record<string, unknown> | null;
-}
-
-export interface RuntimeRunRecordsResponse {
-  records: Array<Record<string, unknown>>;
-  summary: Record<string, unknown>;
 }

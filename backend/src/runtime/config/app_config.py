@@ -21,7 +21,6 @@ from src.runtime.config.sandbox_config import SandboxConfig
 from src.runtime.config.skills_config import SkillsConfig
 from src.runtime.config.subagents_config import load_subagents_config_from_dict
 from src.runtime.config.summarization_config import load_summarization_config_from_dict
-from src.runtime.config.system_guard_config import load_system_guard_config_from_dict
 from src.runtime.config.title_config import load_title_config_from_dict
 from src.runtime.config.tool_config import ToolConfig, ToolGroupConfig
 
@@ -101,7 +100,6 @@ SUBCONFIG_LOADERS = {
     "memory": load_memory_config_from_dict,
     "integrations": load_integrations_config_from_dict,
     "subagents": load_subagents_config_from_dict,
-    "system_guard": load_system_guard_config_from_dict,
     "checkpointer": load_checkpointer_config_from_dict,
 }
 

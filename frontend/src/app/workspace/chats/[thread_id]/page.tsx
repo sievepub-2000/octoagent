@@ -35,7 +35,6 @@ import { useThreadState, useThreadStream } from "@/core/threads/hooks";
 import type { AgentThreadContext, AgentThreadState } from "@/core/threads/types";
 import { textOfMessage } from "@/core/threads/utils";
 import { useWorkflows } from "@/core/workflows";
-import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
 function ChatRouteFallback() {
@@ -95,23 +94,16 @@ function resolveRunControlState({
   }
 
   const recoverable = runtime?.recoverable_failure ?? runtime?.incomplete_state ?? null;
-  const lastRunRecord = runtime?.last_run_record as
-    | { final_evaluation?: { status?: string; reason?: string } }
-    | null
-    | undefined;
-  const finalEvaluation = lastRunRecord?.final_evaluation;
-  const finalStatus = finalEvaluation?.status;
   const hasRuntimeError = Boolean(error || runtime?.final_error);
 
-  if (recoverable || finalStatus === "failed" || finalStatus === "incomplete" || hasRuntimeError) {
+  if (recoverable || hasRuntimeError) {
     const detail =
       (typeof recoverable?.reason === "string" ? recoverable.reason : undefined) ??
-      finalEvaluation?.reason ??
       runtime?.final_error ??
       (error instanceof Error ? error.message : undefined);
     return {
       visible: true,
-      label: finalStatus === "incomplete" || recoverable ? "Needs attention" : "Run failed",
+      label: recoverable ? "Needs attention" : "Run failed",
       detail,
       level: "error",
       canRetry: Boolean(lastUserText),
@@ -841,17 +833,11 @@ function ChatThreadView({
                   status={thread.isLoading ? "streaming" : "ready"}
                   context={settings.context}
                   contextCycleBaseTokens={contextCycleBaseTokens}
-                  disabled={env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true"}
                   onContextChange={handleContextChange}
                   onContextThreshold={handleContextThreshold}
                   onSubmit={handleSubmit}
                   onStop={handleStop}
                 />
-                {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" && (
-                  <div className="text-muted-foreground w-full translate-y-12 text-center text-xs">
-                    {t.common.notAvailableInDemoMode}
-                  </div>
-                )}
               </div>
             </div>
           </div>

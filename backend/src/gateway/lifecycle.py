@@ -11,9 +11,7 @@ from fastapi import FastAPI
 
 from src.gateway.config import get_gateway_config
 from src.governance.about import initialize_internal_secrets
-from src.harness.dispatcher import start_dispatcher_task, stop_dispatcher_task
 from src.runtime.config.app_config import get_app_config
-from src.runtime.system_guard.service import get_system_guard_service
 
 logger = logging.getLogger(__name__)
 
@@ -37,15 +35,6 @@ def _repair_runtime_permissions(app: FastAPI) -> None:
         app.state.runtime_permission_repair = repair_runtime_write_permissions()
     except Exception:
         logger.exception("Runtime permission repair failed")
-
-
-def _initialize_system_guard(app: FastAPI) -> None:
-    try:
-        system_guard = get_system_guard_service()
-        app.state.system_guard = system_guard
-        logger.info("System guard startup report: %s", system_guard.startup_check_and_repair())
-    except Exception:
-        logger.exception("System guard startup check failed")
 
 
 async def _start_channel_service() -> None:
@@ -99,27 +88,14 @@ async def _stop_oom_guard(app: FastAPI) -> None:
         logger.exception("OOM guard failed to stop")
 
 
-def _shutdown_system_guard(app: FastAPI) -> None:
-    try:
-        guard = getattr(app.state, "system_guard", None)
-        if guard is not None:
-            logger.info("System guard shutdown report: %s", guard.shutdown(reason="graceful_shutdown"))
-    except Exception:
-        logger.exception("System guard failed to shut down")
-
-
 @asynccontextmanager
 async def gateway_lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     _initialize_configuration()
     _repair_runtime_permissions(app)
-    _initialize_system_guard(app)
     await _start_channel_service()
     await _initialize_harness(app)
     _start_oom_guard(app)
-    await start_dispatcher_task(app)
     yield
-    await stop_dispatcher_task(app)
     await _stop_oom_guard(app)
     await _stop_channel_service()
-    _shutdown_system_guard(app)
     logger.info("OctoAgent app-server stopped")

@@ -32,8 +32,7 @@ export function Header() {
           <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">
             <GitHubLogoIcon className="size-4" />
             Star on GitHub
-            {env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true" &&
-              env.GITHUB_OAUTH_TOKEN && <StarCounter />}
+            {env.GITHUB_OAUTH_TOKEN && <StarCounter />}
           </a>
         </Button>
       </div>

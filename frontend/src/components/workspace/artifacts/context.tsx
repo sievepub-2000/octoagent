@@ -8,7 +8,6 @@ import {
 } from "react";
 
 import { useSidebar } from "@/components/ui/sidebar";
-import { env } from "@/env";
 
 export interface ArtifactsContextType {
   artifacts: string[];
@@ -36,9 +35,7 @@ export function ArtifactsProvider({ children }: ArtifactsProviderProps) {
   const [artifacts, setArtifacts] = useState<string[]>([]);
   const [selectedArtifact, setSelectedArtifact] = useState<string | null>(null);
   const [autoSelect, setAutoSelect] = useState(true);
-  const [open, setOpen] = useState(
-    env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true",
-  );
+  const [open, setOpen] = useState(false);
   const [autoOpen, setAutoOpen] = useState(true);
   const { setOpen: setSidebarOpen } = useSidebar();
 
@@ -46,7 +43,7 @@ export function ArtifactsProvider({ children }: ArtifactsProviderProps) {
     (artifact: string, autoSelect = false) => {
       setSelectedArtifact(artifact);
       // Only collapse sidebar on explicit user clicks, not auto-selection during streaming
-      if (env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY !== "true" && !autoSelect) {
+      if (!autoSelect) {
         setSidebarOpen(false);
       }
       if (!autoSelect) {

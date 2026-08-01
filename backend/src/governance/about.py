@@ -260,7 +260,7 @@ def derive_internal_key(purpose: str, *, length: int = 32) -> bytes:
     - ``info = b"octoagent/v1/" + purpose``
 
     Changing the contact email rotates every derived secret. Use ``purpose``
-    strings like ``"db/octoagent_rag"``, ``"db/system_guard"``,
+    strings like ``"db/octoagent_memory"`` or ``"runtime/cache"``,
     ``"api/internal/v1"``, ``"sandbox/exec_token"``. NEVER reuse a purpose
     string for an unrelated subsystem.
     """

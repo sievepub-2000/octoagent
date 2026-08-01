@@ -1,8 +1,7 @@
 """Canonical message-content extraction helper.
 
-Replaces 7 duplicated ``_message_text`` definitions across middlewares and
-run-record code. The implementation matches the *robust* variant previously
-duplicated in ``tool_budget_middleware`` / ``progress_stall_middleware``:
+Replaces duplicated ``_message_text`` definitions across middlewares. The
+implementation matches the robust historical variants:
 short-circuits on plain ``str`` content and preserves non-dict list items
 that the simpler variants silently dropped.
 """

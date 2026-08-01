@@ -76,7 +76,6 @@ export interface ThreadRuntimeState {
   planned_operation_id?: string | null;
   instruction_contract?: Record<string, unknown> | null;
   memory_write?: Record<string, unknown> | null;
-  last_run_record?: Record<string, unknown> | null;
   compaction_strategy?: string | null;
   compaction_trigger?: string | null;
   compaction_summary?: string | null;

@@ -23,7 +23,6 @@ import {
   useMCPConfig,
   useRemoveMCPServer,
 } from "@/core/mcp/hooks";
-import { env } from "@/env";
 
 interface MCPFormState {
   name: string;
@@ -86,7 +85,6 @@ export default function MCPConfigPage() {
   const [editingServer, setEditingServer] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
 
-  const isStatic = env.NEXT_PUBLIC_STATIC_WEBSITE_ONLY === "true";
   const servers = config?.mcp_servers ? Object.entries(config.mcp_servers) : [];
 
   function updateField<K extends keyof MCPFormState>(key: K, value: MCPFormState[K]) {
@@ -183,16 +181,16 @@ export default function MCPConfigPage() {
         <div className="grid gap-3 md:grid-cols-2">
           <label className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Server name</span>
-            <Input value={form.name} disabled={!!editingServer || isStatic} onChange={(e) => updateField("name", e.target.value)} placeholder="my-mcp-server" />
+            <Input value={form.name} disabled={!!editingServer} onChange={(e) => updateField("name", e.target.value)} placeholder="my-mcp-server" />
           </label>
           <label className="space-y-1">
             <span className="text-xs font-medium text-muted-foreground">Description</span>
-            <Input value={form.description} disabled={isStatic} onChange={(e) => updateField("description", e.target.value)} placeholder="Optional description" />
+            <Input value={form.description} onChange={(e) => updateField("description", e.target.value)} placeholder="Optional description" />
           </label>
           <div className="flex items-end gap-2 md:col-span-2">
             <span className="mb-2 text-xs font-medium text-muted-foreground">Type:</span>
             {(["stdio", "sse", "http"] as const).map((tp) => (
-              <Button key={tp} size="sm" variant={form.type === tp ? "default" : "outline"} disabled={isStatic} onClick={() => updateField("type", tp)}>
+              <Button key={tp} size="sm" variant={form.type === tp ? "default" : "outline"} onClick={() => updateField("type", tp)}>
                 {tp.toUpperCase()}
               </Button>
             ))}
@@ -201,24 +199,23 @@ export default function MCPConfigPage() {
             <>
               <label className="space-y-1">
                 <span className="text-xs font-medium text-muted-foreground">Command</span>
-                <Input value={form.command} disabled={isStatic} onChange={(e) => updateField("command", e.target.value)} placeholder="npx" />
+                <Input value={form.command} onChange={(e) => updateField("command", e.target.value)} placeholder="npx" />
               </label>
               <label className="space-y-1">
                 <span className="text-xs font-medium text-muted-foreground">Args (space-separated)</span>
-                <Input value={form.args} disabled={isStatic} onChange={(e) => updateField("args", e.target.value)} placeholder="-y @modelcontextprotocol/server-filesystem" />
+                <Input value={form.args} onChange={(e) => updateField("args", e.target.value)} placeholder="-y @modelcontextprotocol/server-filesystem" />
               </label>
             </>
           ) : (
             <label className="space-y-1 md:col-span-2">
               <span className="text-xs font-medium text-muted-foreground">URL</span>
-              <Input value={form.url} disabled={isStatic} onChange={(e) => updateField("url", e.target.value)} placeholder="http://localhost:3000/sse" />
+              <Input value={form.url} onChange={(e) => updateField("url", e.target.value)} placeholder="http://localhost:3000/sse" />
             </label>
           )}
           <label className="space-y-1 md:col-span-2">
             <span className="text-xs font-medium text-muted-foreground">Environment variables</span>
             <Textarea
               value={form.env}
-              disabled={isStatic}
               onChange={(e) => updateField("env", e.target.value)}
               placeholder={"KEY=value"}
               rows={3}
@@ -230,7 +227,6 @@ export default function MCPConfigPage() {
               <span className="text-xs font-medium text-muted-foreground">HTTP headers</span>
               <Textarea
                 value={form.headers}
-                disabled={isStatic}
                 onChange={(e) => updateField("headers", e.target.value)}
                 placeholder={"Authorization=Bearer $MCP_TOKEN\nX-Workspace=my-project"}
                 rows={3}
@@ -241,7 +237,7 @@ export default function MCPConfigPage() {
           ) : null}
         </div>
         <div className="mt-4 flex gap-2">
-          <Button size="sm" disabled={isStatic || addServer.isPending} onClick={handleSave}>
+          <Button size="sm" disabled={addServer.isPending} onClick={handleSave}>
             <SaveIcon className="size-4" />{editingServer ? "Save changes" : "Add server"}
           </Button>
           <Button size="sm" variant="outline" onClick={resetForm}>Close</Button>
@@ -324,7 +320,6 @@ export default function MCPConfigPage() {
                   <Switch
                     aria-label={`Enable ${name}`}
                     checked={srv.enabled}
-                    disabled={isStatic}
                     onCheckedChange={(checked) => enableMCPServer({ serverName: name, enabled: checked })}
                   />
                 </div>

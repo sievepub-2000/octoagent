@@ -132,16 +132,6 @@ _INTENT_TRIGGERS: dict[str, list[str]] = {
         "deploy site",
         "push to production",
     ],
-    "workflow_runtime": [
-        "checkpoint",
-        "subagent",
-        "spawn",
-        "workflow start",
-        "workflow status",
-        "resume",
-        "pause",
-        "handoff",
-    ],
     "document_convert": [
         "convert",
         "pdf",

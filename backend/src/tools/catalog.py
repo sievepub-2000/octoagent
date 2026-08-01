@@ -41,7 +41,6 @@ from src.tools.builtins import (
     SOFTWARE_INTERFACE_TOOLS,
     SYSTEM_EXTRA_TOOLS,
     SYSTEM_OPS_TOOLS,
-    WORKFLOW_RUNTIME_TOOLS,
     ask_clarification_tool,
     codex_cli_tool,
     convert_document_tool,
@@ -126,8 +125,6 @@ LAZY_LOAD_REGISTRY: dict[str, list[BaseTool]] = {
     "ecosystem_workflow": ECOSYSTEM_WORKFLOW_TOOLS,
     # L2: publishing workflow tools
     "publishing_workflow": PUBLISHING_WORKFLOW_TOOLS,
-    # L2: workflow runtime tools
-    "workflow_runtime": WORKFLOW_RUNTIME_TOOLS,
     # L2: document conversion
     "document_convert": [convert_document_tool],
     # L2: image processing
@@ -192,10 +189,6 @@ BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "process_manage": "system",
     "integrated_project_catalog": "sandbox",
     "integrated_workflow_run": "directory",
-    "workflow_start": "directory",
-    "workflow_status": "directory",
-    "spawn_subagent": "directory",
-    "checkpoint": "directory",
     "desktop_driver_status": "system",
     "desktop_screenshot": "system",
     "desktop_click": "system",

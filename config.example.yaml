@@ -446,22 +446,6 @@ memory:
 #     supports_authenticated_sessions: false
 #     supports_remote_browser_pool: false
 # ============================================================================
-# System Guard (Startup Self-Check / Self-Repair / Lifecycle Persistence)
-# ============================================================================
-# Persists startup/shutdown snapshots into a DuckDB-backed vector store,
-# detects unclean shutdowns, and can ask the default agent for repair plans.
-#
-# system_guard:
-#   enabled: true
-#   auto_repair: true
-#   invoke_default_agent_on_issue: false
-#   startup_agent_timeout_seconds: 20
-#   vector_store_path: system_guard_vectors.duckdb
-#   namespace: system_lifecycle
-#   register_signal_handlers: true
-#   capture_atexit: true
-
-# ============================================================================
 # Checkpointer Configuration
 # ============================================================================
 # Configure state persistence for the embedded OctoAgentClient.
