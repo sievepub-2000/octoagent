@@ -3,9 +3,9 @@
     "filesystem": {
       "enabled": true,
       "type": "stdio",
-      "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-filesystem",
+      "command": "$OCTOAGENT_MCP_FILESYSTEM_BIN",
       "args": [
-        "/home/sieve-pub/public-workspace/octoagent"
+        "$OCTOAGENT_FILESYSTEM_ROOT"
       ],
       "env": {},
       "headers": {},
@@ -21,9 +21,9 @@
     "postgres": {
       "enabled": true,
       "type": "stdio",
-      "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/mcp-server-postgres",
+      "command": "$OCTOAGENT_MCP_POSTGRES_BIN",
       "args": [
-        "postgresql://octoagent:octoagent_local_2026@127.0.0.1:5432/octoagent?sslmode=disable"
+        "$OCTOAGENT_POSTGRES_SUPERUSER_DSN"
       ],
       "env": {},
       "headers": {},
@@ -41,7 +41,7 @@
     "openapi": {
       "enabled": true,
       "type": "stdio",
-      "command": "/home/sieve-pub/public-workspace/octoagent/runtime/tools/mcp/node_modules/.bin/openapi-mcp-server",
+      "command": "$OCTOAGENT_MCP_OPENAPI_BIN",
       "args": [],
       "env": {
         "API_BASE_URL": "http://127.0.0.1:19802",
@@ -62,7 +62,7 @@
     "docker-compose": {
       "enabled": true,
       "type": "stdio",
-      "command": "/home/sieve-pub/public-workspace/octoagent/backend/.venv/bin/python",
+      "command": "$OCTOAGENT_PYTHON_BIN",
       "args": [
         "-m",
         "src.tools.mcp.local_servers.compose"

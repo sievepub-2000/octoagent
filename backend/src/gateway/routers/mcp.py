@@ -1,11 +1,14 @@
+import json
 import logging
+import re
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from src.runtime.config.extensions_config import ExtensionsConfig, McpServerConfig, get_extensions_config, reload_extensions_config
+from src.runtime.config.tool_config import ToolPermissionScope
 from src.tools.mcp.smoke import load_mcp_smoke_snapshot, run_mcp_smoke_tests
 from src.utils.agent_tool_guide import generate_agent_tool_guide
 from src.utils.json_atomic import write_json_atomic
@@ -14,6 +17,47 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api", tags=["mcp"])
 
 _MCP_RESPONSE_ONLY_FIELDS = {"status", "status_reason", "missing_env"}
+_REDACTED = "********"
+_SECRET_KEY = re.compile(r"token|secret|password|passwd|credential|authorization|api.?key", re.IGNORECASE)
+_URI_PASSWORD = re.compile(r"([a-z][a-z0-9+.-]*://[^:/@\s]+:)([^@/\s]+)(@)", re.IGNORECASE)
+_QUERY_SECRET = re.compile(r"(?i)([?&](?:token|secret|password|passwd|api_?key)=)([^&\s]+)")
+
+
+def _redact_value(value: str, *, key: str = "") -> str:
+    if not value:
+        return value
+    if _SECRET_KEY.search(key):
+        return _REDACTED
+    redacted = _URI_PASSWORD.sub(rf"\1{_REDACTED}\3", value)
+    return _QUERY_SECRET.sub(rf"\1{_REDACTED}", redacted)
+
+
+def _restore_redacted(incoming: Any, existing: Any) -> Any:
+    """Restore masked response values from the raw, unresolved config."""
+    if isinstance(incoming, str) and _REDACTED in incoming:
+        return existing
+    if isinstance(incoming, dict):
+        previous = existing if isinstance(existing, dict) else {}
+        return {key: _restore_redacted(value, previous.get(key)) for key, value in incoming.items()}
+    if isinstance(incoming, list):
+        previous = existing if isinstance(existing, list) else []
+        return [
+            _restore_redacted(value, previous[index] if index < len(previous) else None)
+            for index, value in enumerate(incoming)
+        ]
+    return incoming
+
+
+def _read_raw_config(config_path: Path) -> dict[str, Any]:
+    if not config_path.exists():
+        return {}
+    data = json.loads(config_path.read_text(encoding="utf-8"))
+    return data if isinstance(data, dict) else {}
+
+
+def _raw_mcp_servers(config_data: dict[str, Any]) -> dict[str, Any]:
+    servers = config_data.get("mcpServers", config_data.get("mcp_servers", {}))
+    return dict(servers) if isinstance(servers, dict) else {}
 
 
 class McpOAuthConfigResponse(BaseModel):
@@ -54,6 +98,11 @@ class McpServerConfigResponse(BaseModel):
     headers: dict[str, str] = Field(default_factory=dict, description="HTTP headers to send (for sse or http type)")
     oauth: McpOAuthConfigResponse | None = Field(default=None, description="OAuth configuration for MCP HTTP/SSE servers")
     description: str = Field(default="", description="Human-readable description of what this MCP server provides")
+    permission_scope: ToolPermissionScope = Field(
+        default="sandbox",
+        alias="permissionScope",
+        description="Server-enforced permission scope for every tool from this server.",
+    )
     status: Literal["ready", "disabled", "configuration_error"] = Field(default="ready", description="Resolved runtime readiness")
     status_reason: str = Field(default="", description="Human-readable readiness reason")
     missing_env: list[str] = Field(default_factory=list, description="Environment variables configured but unresolved")
@@ -62,6 +111,15 @@ class McpServerConfigResponse(BaseModel):
 
 def _mcp_server_response(server: McpServerConfig) -> McpServerConfigResponse:
     payload = server.model_dump(by_alias=True)
+    payload["args"] = [_redact_value(str(value)) for value in server.args]
+    payload["env"] = {key: _redact_value(str(value), key=key) for key, value in server.env.items()}
+    payload["headers"] = {key: _redact_value(str(value), key=key) for key, value in server.headers.items()}
+    payload["url"] = _redact_value(str(server.url)) if server.url else None
+    if server.oauth is not None:
+        oauth = server.oauth.model_dump()
+        oauth["client_secret"] = _redact_value(str(oauth.get("client_secret") or ""), key="client_secret") or None
+        oauth["refresh_token"] = _redact_value(str(oauth.get("refresh_token") or ""), key="refresh_token") or None
+        payload["oauth"] = oauth
     missing_env = [key for key, value in server.env.items() if not str(value or "").strip()]
     if not server.enabled:
         status: Literal["ready", "disabled", "configuration_error"] = "disabled"
@@ -181,12 +239,16 @@ def update_mcp_configuration(request: McpConfigUpdateRequest) -> McpConfigRespon
             config_path = Path.cwd().parent / "extensions_config.json"
             logger.info(f"No existing extensions config found. Creating new config at: {config_path}")
 
-        # Load current config to preserve skills / hooks configuration
-        current_config = get_extensions_config()
-
-        current_config.mcp_servers = {name: McpServerConfig.model_validate(server.model_dump(exclude=_MCP_RESPONSE_ONLY_FIELDS)) for name, server in request.mcp_servers.items()}
-
-        config_data = current_config.to_serializable_dict()
+        config_data = _read_raw_config(config_path)
+        existing_servers = _raw_mcp_servers(config_data)
+        config_data["mcpServers"] = {
+            name: _restore_redacted(
+                server.model_dump(by_alias=True, exclude=_MCP_RESPONSE_ONLY_FIELDS, exclude_none=True),
+                existing_servers.get(name, {}),
+            )
+            for name, server in request.mcp_servers.items()
+        }
+        config_data.pop("mcp_servers", None)
 
         # Write the configuration to file atomically
         write_json_atomic(config_path, config_data)
@@ -242,14 +304,15 @@ class McpServerMutationResponse(BaseModel):
     mcp_servers: dict[str, McpServerConfigResponse] = Field(default_factory=dict)
 
 
-def _persist_mcp_servers(servers: dict[str, McpServerConfig]) -> dict[str, McpServerConfigResponse]:
+def _persist_mcp_servers(servers: dict[str, dict[str, Any]]) -> dict[str, McpServerConfigResponse]:
     config_path = ExtensionsConfig.resolve_config_path()
     if config_path is None:
         config_path = Path.cwd().parent / "extensions_config.json"
 
-    current_config = get_extensions_config()
-    current_config.mcp_servers = servers
-    write_json_atomic(config_path, current_config.to_serializable_dict())
+    config_data = _read_raw_config(config_path)
+    config_data["mcpServers"] = servers
+    config_data.pop("mcp_servers", None)
+    write_json_atomic(config_path, config_data)
     reloaded_config = reload_extensions_config()
     return {name: _mcp_server_response(server) for name, server in reloaded_config.mcp_servers.items()}
 
@@ -264,9 +327,15 @@ def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutationRespo
     if not name:
         raise HTTPException(status_code=400, detail="MCP server name is required")
 
-    config = get_extensions_config()
-    servers = dict(config.mcp_servers)
-    servers[name] = McpServerConfig.model_validate(request.server.model_dump(exclude=_MCP_RESPONSE_ONLY_FIELDS))
+    config_path = ExtensionsConfig.resolve_config_path()
+    if config_path is None:
+        config_path = Path.cwd().parent / "extensions_config.json"
+    config_data = _read_raw_config(config_path)
+    servers = _raw_mcp_servers(config_data)
+    servers[name] = _restore_redacted(
+        request.server.model_dump(by_alias=True, exclude=_MCP_RESPONSE_ONLY_FIELDS, exclude_none=True),
+        servers.get(name, {}),
+    )
 
     try:
         refreshed = _persist_mcp_servers(servers)
@@ -288,8 +357,10 @@ def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutationRespo
     summary="Remove a single MCP server",
 )
 def delete_mcp_server(name: str) -> McpServerMutationResponse:
-    config = get_extensions_config()
-    servers = dict(config.mcp_servers)
+    config_path = ExtensionsConfig.resolve_config_path()
+    if config_path is None:
+        config_path = Path.cwd().parent / "extensions_config.json"
+    servers = _raw_mcp_servers(_read_raw_config(config_path))
     if name not in servers:
         raise HTTPException(status_code=404, detail=f"MCP server '{name}' not found")
     servers.pop(name, None)

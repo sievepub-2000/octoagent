@@ -1765,6 +1765,9 @@ slices for traceability:
   authenticated System Executor boundary as `host_shell`.
 - Regenerated the model-facing Harness guide from the live registry and removed
   seven obsolete pre-Harness tool/MCP planning and repair reports.
+- MCP management responses now redact credentials in DSNs, environment
+  variables, headers, URLs, and OAuth fields while preserving unresolved secret
+  references and permission scopes during update/delete lifecycles.
 - Deleted the 1,700-line legacy CapabilityCore/agent-skills compatibility
   registry. Runtime Doctor and the generated model guide now use the same
   public Harness registry as `/api/harness` and `list_capabilities`.
