@@ -10,6 +10,7 @@ the runtime router so we don't need to spin up the whole gateway.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import pytest
@@ -24,6 +25,22 @@ def runtime_client() -> TestClient:
     app = FastAPI()
     app.include_router(router)
     return TestClient(app)
+
+
+def test_runtime_doctor_builds_harness_registry_off_event_loop(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.gateway.routers.runtime import _build_tool_registry_async
+    from src.tools.registry.service import ToolRegistryService
+
+    sentinel = object()
+
+    def build_registry(_self):
+        with pytest.raises(RuntimeError, match="no running event loop"):
+            asyncio.get_running_loop()
+        return sentinel
+
+    monkeypatch.setattr(ToolRegistryService, "build_registry", build_registry)
+
+    assert asyncio.run(_build_tool_registry_async()) is sentinel
 
 
 # -------- /api/runtime/effective-config --------

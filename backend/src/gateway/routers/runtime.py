@@ -48,6 +48,13 @@ def _default_model_endpoint_health(model: object) -> tuple[bool, str]:
         return False, f"{endpoint}: {type(exc).__name__}"
 
 
+async def _build_tool_registry_async():
+    """Build the filesystem-backed Harness registry outside the ASGI loop."""
+    from src.tools.registry.service import ToolRegistryService
+
+    return await asyncio.to_thread(ToolRegistryService().build_registry)
+
+
 def _resolve_repo_root() -> Path:
     """Resolve the repo root robustly.
 
@@ -330,9 +337,7 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
     )
 
     try:
-        from src.tools.registry.service import ToolRegistryService
-
-        registry = ToolRegistryService().build_registry()
+        registry = await _build_tool_registry_async()
         summary = registry.summary
         registry_total = (
             summary.builtin_tools_total

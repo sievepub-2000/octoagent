@@ -1768,6 +1768,8 @@ slices for traceability:
 - MCP management responses now redact credentials in DSNs, environment
   variables, headers, URLs, and OAuth fields while preserving unresolved secret
   references and permission scopes during update/delete lifecycles.
+- Runtime Doctor now builds the filesystem-backed Harness registry in a worker
+  thread, eliminating its final LangGraph event-loop blocking failure.
 - Deleted the 1,700-line legacy CapabilityCore/agent-skills compatibility
   registry. Runtime Doctor and the generated model guide now use the same
   public Harness registry as `/api/harness` and `list_capabilities`.
