@@ -9,8 +9,7 @@
 ## Search Strategy
 - Use Tavily for general web search
 - Use web_read for detailed page content
-- Use scrapling for JS-heavy pages
-- If web_read returns browser_required, use Browser
+- If web_read returns browser_required, use the Patchright-backed Browser
 
 ## Memory Management
 - Store important patterns in archival memory

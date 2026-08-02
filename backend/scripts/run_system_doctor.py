@@ -143,10 +143,13 @@ def _check_runtime_doctor(client: TestClient) -> str:
 def _check_harness(client: TestClient) -> str:
     payload = _json(client, "/api/harness")
     summary = payload.get("summary") or {}
-    total = sum(int(value or 0) for key, value in summary.items() if key.endswith("_total"))
-    _expect(total > 0, "Harness capability inventory is empty")
+    builtins = payload.get("builtin_tools") or []
+    builtin_names = {item.get("name") for item in builtins if isinstance(item, dict)}
+    missing = {"web_search", "web_read", "browser"} - builtin_names
+    _expect(int(summary.get("builtin_tools_total") or 0) > 0, "Harness built-in tool inventory is empty")
+    _expect(not missing, f"Harness is missing required web tools: {sorted(missing)}")
     _expect(isinstance(payload.get("memory"), dict), "Harness memory status missing")
-    return f"capabilities={total}, skills={summary.get('skills_total')}, builtins={summary.get('builtin_tools_total')}"
+    return f"skills={summary.get('skills_total')}, builtins={summary.get('builtin_tools_total')}, web=ok"
 
 
 def _check_agent_runtime(client: TestClient) -> str:

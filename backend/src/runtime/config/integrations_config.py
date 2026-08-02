@@ -46,7 +46,7 @@ class EmailIngressConfig(BaseModel):
 
 
 class BrowserAutomationConfig(BaseModel):
-    enabled: bool = Field(default=False)
+    enabled: bool = Field(default=True)
     engine: Literal["patchright", "none"] = Field(default="patchright")
     embedded_headless: bool = Field(default=True)
     headless: bool = Field(default=True)

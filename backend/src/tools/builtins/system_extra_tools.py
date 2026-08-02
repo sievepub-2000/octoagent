@@ -761,24 +761,6 @@ def pytest_run_tool(path: str = "backend", keyword: str = "", timeout_seconds: i
     return _json({"generated_at": _now(), "result": _run(args, cwd=_REPO_ROOT, timeout=max(60, min(int(timeout_seconds), 7200)), tool_name="pytest_run")})
 
 
-@tool("playwright_run", parse_docstring=True)
-def playwright_run_tool(project: str = "", grep: str = "", timeout_seconds: int = 1200) -> str:
-    """Run frontend Playwright tests.
-
-    Args:
-        project: Optional Playwright project name.
-        grep: Optional grep filter.
-        timeout_seconds: Timeout.
-    """
-    package_manager = _which("pnpm") or _which("npm") or "npm"
-    args = [package_manager, "exec", "playwright", "test"] if Path(package_manager).name == "pnpm" else [_which("npx") or "npx", "playwright", "test"]
-    if project.strip():
-        args.extend(["--project", project.strip()])
-    if grep.strip():
-        args.extend(["--grep", grep.strip()])
-    return _json({"generated_at": _now(), "result": _run(args, cwd=_FRONTEND_ROOT, timeout=max(60, min(int(timeout_seconds), 7200)), tool_name="playwright_run")})
-
-
 @tool("frontend_typecheck", parse_docstring=True)
 def frontend_typecheck_tool(timeout_seconds: int = 600) -> str:
     """Run frontend typecheck if package script exists, otherwise tsc noEmit.
@@ -1138,7 +1120,6 @@ SYSTEM_EXTRA_TOOLS = [
     trivy_scan_tool,
     pytest_collect_tool,
     pytest_run_tool,
-    playwright_run_tool,
     frontend_typecheck_tool,
     lint_run_tool,
     awesome_selfhosted_tool,

@@ -8,6 +8,10 @@
 - Kept Patchright as the only production browser engine. Removed Scrapling,
   Python Playwright, the duplicate heavy fetch tool, and hidden browser
   fallbacks that bypassed Harness scheduling and permission enforcement.
+- Added one real model-facing `browser` tool for ordered Patchright click,
+  fill, evaluate, wait, snapshot, and screenshot actions. Removed the duplicate
+  Playwright test runner and browser publishing/auditing tools from the model
+  registry, and bundle the matching Chromium runtime in the backend image.
 - Removed the bundled Node MCP installation. Harness now loads only explicitly
   configured external MCP servers and scans the canonical Skills roots.
 - Removed OpenHarness and Bytebot compatibility tools, SQLite checkpoint code,
@@ -17,9 +21,15 @@
 
 - Replaced MarkItDown's all-format dependency stack with direct DOCX, XLSX,
   PPTX, and PDF text extraction using retained Office libraries.
-- Reduced the Python lock from 230 to 170 resolved packages and removed the
+- Reduced the Python lock from 230 to 171 resolved packages and removed the
   bundled 167-package Node MCP lock. Both production dependency audits are
   clean after security upgrades.
+- Pinned MCP to the compatible 1.x API until `langchain-mcp-adapters` supports
+  MCP 2.0; this restores live MCP tool loading instead of a silent empty cache.
+- Upgraded the LangGraph runtime family to the current stable releases
+  (`langgraph` 1.2.10, API 0.11.2, CLI 0.4.31, in-memory runtime 0.31.2).
+  MCP SDK 2.0 was tested separately and rejected for this release because the
+  current LangChain MCP adapter still imports the removed MCP 1.x callback API.
 - Made `runtime/config/config.yaml` and
   `runtime/config/extensions_config.json` the only implicit configuration
   sources. Explicit environment paths remain supported.
@@ -28,11 +38,13 @@
   `docs/` and Git history are now the documentation and archive.
 - Updated release prechecks and Runtime Doctor probes to the actual Agent
   Runtime and Harness interfaces and portable package-manager invocation.
+- Harness no longer hides a broken configured-tool import as an empty registry;
+  Runtime Doctor now fails unless built-ins and all three web tools are real.
 
 ### Verification
 
 - Added real DOCX/XLSX/PPTX/PDF conversion tests and unified web-read tests.
-- Backend: Ruff clean, dead-code scan clean, 436 tests passing, and
+- Backend: Ruff clean, dead-code scan clean, 439 tests passing, and
   `pip-audit` clean.
 - Frontend production dependencies: `pnpm audit --prod` clean.
 

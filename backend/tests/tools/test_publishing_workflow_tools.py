@@ -16,8 +16,7 @@ def _payload(result: str) -> dict:
 
 def test_requested_tool_names_are_registered() -> None:
     names = {tool.name for tool in PUBLISHING_WORKFLOW_TOOLS}
-    assert "browser_publisher" in names
-    assert "publication_auditor" in names
+    assert "browser" not in names  # Browser is a core Harness tool, not a publishing duplicate.
     assert "human_approval_gate" in names
     assert "novel_project_store" in names
     assert "writestory" in names

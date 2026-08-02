@@ -96,10 +96,7 @@ class ToolRegistryService:
         ]
 
         channel_items = self._channel_reader.read()
-        try:
-            builtin_items = self._builtin_catalog.list_items()
-        except Exception:
-            builtin_items = []
+        builtin_items = self._builtin_catalog.list_items()
         managed_items = [ToolRegistryManagedItem.model_validate(item) for item in self._managed_tools_loader()]
 
         app_config = self._app_config_getter()

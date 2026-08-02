@@ -189,8 +189,7 @@ def novel_project_store_tool(
                 "writing_review_suite",
                 "writing_format_export",
                 "human_approval_gate",
-                "browser_publisher or wp_cli_publish",
-                "publication_auditor",
+                "browser or wp_cli_publish",
             ],
         }
         (root / "project.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -417,7 +416,7 @@ def webnovel_write_tool(
         "source_path": str(source),
         "word_estimate": len(re.findall(r"\w+", text)),
         "created_at": _now(),
-        "required_flow": ["writing_review_suite", "human_approval_gate", "browser_publisher/wp_cli_publish", "publication_auditor"],
+        "required_flow": ["writing_review_suite", "human_approval_gate", "browser/wp_cli_publish"],
     }
     path = _write_project_file(project_slug, f"publication/{_slug(platform, 'platform')}-{_slug(title, 'item')}.json", json.dumps(package, ensure_ascii=False, indent=2))
     return _json({"generated_at": _now(), "package_path": str(path), "package": package})
@@ -567,82 +566,6 @@ def human_approval_gate_tool(action: str, risk_summary: str, artifacts_json: str
     return _json({"generated_at": _now(), "approval_record": str(path), **record})
 
 
-@tool("browser_publisher", parse_docstring=True)
-def browser_publisher_tool(
-    url: str,
-    mode: str = "dry_run",
-    instructions: str = "",
-    content_path: str = "",
-    confirmed_by_user: bool = False,
-) -> str:
-    """Use Playwright/browser-use-ready automation for publishing page dry-runs and guarded submissions.
-
-    Args:
-        url: Target publishing or preview URL.
-        mode: dry_run, preview, or submit. submit requires confirmed_by_user.
-        instructions: Human-readable action plan for the browser agent.
-        content_path: Optional content file to reference in the action plan.
-        confirmed_by_user: Required for submit or other state-changing modes.
-    """
-    normalized = mode.strip().lower()
-    if normalized not in {"dry_run", "preview", "submit"}:
-        return _json({"error": "mode must be dry_run, preview, or submit"})
-    if normalized == "submit" and not confirmed_by_user:
-        return _json({"error": "human_approval_required", "message": "Call human_approval_gate before browser_publisher submit mode."})
-    root = _WRITING_ROOT / "browser_publisher"
-    root.mkdir(parents=True, exist_ok=True)
-    screenshot = root / f"{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}-{_slug(normalized, 'browser')}.png"
-    plan = {"url": url, "mode": normalized, "instructions": instructions, "content_path": content_path, "screenshot": str(screenshot)}
-    script = """
-const fs = require('fs');
-const { chromium } = require('./frontend/node_modules/@playwright/test');
-const plan = JSON.parse(process.argv[1]);
-(async () => {
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1365, height: 900 } });
-  await page.goto(plan.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  const title = await page.title();
-  const text = (await page.locator('body').innerText({ timeout: 10000 }).catch(() => '')).slice(0, 4000);
-  await page.screenshot({ path: plan.screenshot, fullPage: true });
-  await browser.close();
-  console.log(JSON.stringify({ title, text_preview: text, screenshot: plan.screenshot }));
-})();
-""".strip()
-    result = _run([_binary("node") or "node", "-e", script, json.dumps(plan)], timeout=60)
-    return _json({"generated_at": _now(), "plan": plan, "result": result, "browser_use_python": str(_WRITING_PYTHON) if _WRITING_PYTHON.exists() else None})
-
-
-@tool("publication_auditor", parse_docstring=True)
-def publication_auditor_tool(url: str, expected_text: str = "", screenshot: bool = True) -> str:
-    """Audit a published URL by collecting title, visible text preview, screenshot, and expected text match.
-
-    Args:
-        url: Published or preview URL to audit.
-        expected_text: Optional text snippet expected to appear on the page.
-        screenshot: Capture a full-page screenshot when true.
-    """
-    root = _WRITING_ROOT / "publication_auditor"
-    root.mkdir(parents=True, exist_ok=True)
-    screenshot_path = root / f"{datetime.now(UTC).strftime('%Y%m%d-%H%M%S')}-audit.png"
-    script = """
-const { chromium } = require('./frontend/node_modules/@playwright/test');
-const cfg = JSON.parse(process.argv[1]);
-(async () => {
-  const browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({ viewport: { width: 1365, height: 900 } });
-  await page.goto(cfg.url, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  const title = await page.title();
-  const text = await page.locator('body').innerText({ timeout: 10000 }).catch(() => '');
-  if (cfg.screenshot) await page.screenshot({ path: cfg.screenshot_path, fullPage: true });
-  await browser.close();
-  console.log(JSON.stringify({ title, contains_expected_text: cfg.expected_text ? text.includes(cfg.expected_text) : null, text_preview: text.slice(0, 4000), screenshot: cfg.screenshot ? cfg.screenshot_path : null }));
-})();
-""".strip()
-    cfg = {"url": url, "expected_text": expected_text, "screenshot": bool(screenshot), "screenshot_path": str(screenshot_path)}
-    result = _run([_binary("node") or "node", "-e", script, json.dumps(cfg)], timeout=60)
-    return _json({"generated_at": _now(), "url": url, "result": result})
-
-
 @tool("wp_cli_publish", parse_docstring=True)
 def wp_cli_publish_tool(
     site_path: str,
@@ -691,7 +614,5 @@ PUBLISHING_WORKFLOW_TOOLS = [
     writing_review_suite_tool,
     writing_format_export_tool,
     human_approval_gate_tool,
-    browser_publisher_tool,
-    publication_auditor_tool,
     wp_cli_publish_tool,
 ]

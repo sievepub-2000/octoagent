@@ -4,6 +4,7 @@ from ..capability_tools import (
     list_capabilities_tool,
     load_skill_tool,
 )
+from .browser_tool import browser_tool
 from .clarification_tool import ask_clarification_tool
 from .codex_cli_tool import codex_cli_tool
 from .desktop_driver_tools import DESKTOP_DRIVER_TOOLS
@@ -25,6 +26,7 @@ __all__ = [
     "present_file_tool",
     "PUBLISHING_WORKFLOW_TOOLS",
     "ask_clarification_tool",
+    "browser_tool",
     "codex_cli_tool",
     "view_image_tool",
     "task_tool",

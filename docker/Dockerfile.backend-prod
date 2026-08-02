@@ -26,6 +26,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_HTTP_TIMEOUT=300 \
     UV_PROJECT_ENVIRONMENT=/app/backend/.venv \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/patchright \
     HOME=/tmp \
     PATH=/app/backend/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -62,6 +63,8 @@ COPY backend/pyproject.toml backend/uv.lock backend/README.md ./backend/
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /app/backend && uv sync --frozen --no-dev --no-install-project
 
+RUN cd /app/backend && .venv/bin/patchright install chromium
+
 # Install Readability.js at build time. The Python wrapper otherwise tries a
 # runtime npm install into root-owned site-packages, which fails under the
 # unprivileged service user and silently degrades every web read to fallback
@@ -94,6 +97,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_HTTP_TIMEOUT=300 \
     UV_PROJECT_ENVIRONMENT=/app/backend/.venv \
+    PLAYWRIGHT_BROWSERS_PATH=/opt/patchright \
     HOME=/tmp \
     PATH=/app/backend/.venv/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -127,6 +131,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
 
 COPY --from=backend-builder /app /app
+COPY --from=backend-builder /opt/patchright /opt/patchright
 
 RUN mkdir -p /app/logs /app/tmp /app/runtime/cache /app/runtime/logs \
     /app/runtime/system_tools /app/workspace/env /app/workspace/default \

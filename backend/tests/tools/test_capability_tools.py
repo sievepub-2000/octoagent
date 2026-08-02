@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 import pytest
 
@@ -38,6 +39,33 @@ def test_list_capabilities_uses_harness_registry() -> None:
     assert payload["source"] == "/api/harness"
     assert payload["summary"]["builtin_tools_total"] > 0
     assert payload["items"][0]["kind"] == "builtin_tool"
+
+
+def test_harness_registry_does_not_hide_builtin_loading_failure() -> None:
+    from src.tools.registry.service import ToolRegistryService
+
+    class BrokenCatalog:
+        def list_items(self):
+            raise ImportError("broken configured tool")
+
+    service = ToolRegistryService(
+        extensions_config_getter=lambda: SimpleNamespace(mcp_servers={}),
+        plugin_service_getter=lambda: SimpleNamespace(
+            list_plugins=lambda: SimpleNamespace(plugins=[])
+        ),
+        skills_loader=lambda **_kwargs: [],
+        app_config_getter=lambda: SimpleNamespace(models=[]),
+        subagents_config_getter=lambda: SimpleNamespace(
+            max_concurrent_subagents=0, max_total_subagent_jobs=0
+        ),
+        runtime_snapshot_getter=lambda: {},
+        builtin_catalog=BrokenCatalog(),
+        channel_reader=SimpleNamespace(read=lambda: []),
+        managed_tools_loader=lambda: [],
+    )
+
+    with pytest.raises(ImportError, match="broken configured tool"):
+        service.build_registry()
 
 
 def test_list_capabilities_defaults_to_compact_queryable_results(monkeypatch: pytest.MonkeyPatch) -> None:

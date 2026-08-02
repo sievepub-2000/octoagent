@@ -1,14 +1,15 @@
 """Tool catalog — narrow-waist design.
 
-Seven core tools are loaded into every tool-capable system prompt by default:
+Eight core tools are loaded into every tool-capable system prompt by default:
 
     1. task_tool          - Task management / subagent delegation
     2. ask_clarification  - Ask the user for clarification
     3. present_file       - Present file contents to the user
     4. setup_agent        - Agent configuration / role setup
     5. web_read           - Lightweight web content reading
-    6. list_capabilities  - Authoritative Harness discovery
-    7. inspect_octoagent_runtime - Sanitized deployment self-check
+    6. browser            - Patchright-only interactive browser
+    7. list_capabilities  - Authoritative Harness discovery
+    8. inspect_octoagent_runtime - Sanitized deployment self-check
 
 All other tools are registered in ``LAZY_LOAD_REGISTRY`` and loaded on
 demand via :func:`tool_loader.load_tools_for_intent` when the agent's
@@ -40,6 +41,7 @@ from src.tools.builtins import (
     SYSTEM_EXTRA_TOOLS,
     SYSTEM_OPS_TOOLS,
     ask_clarification_tool,
+    browser_tool,
     codex_cli_tool,
     convert_document_tool,
     inspect_octoagent_runtime_tool,
@@ -76,6 +78,7 @@ BUILTIN_TOOLS_CORE: list[BaseTool] = [
     present_file_tool,
     setup_agent,
     web_read_tool,
+    browser_tool,
     list_capabilities_tool,
     inspect_octoagent_runtime_tool,
 ]
@@ -95,7 +98,7 @@ def _env_flag(name: str, *, default: bool) -> bool:
 LAZY_LOAD_REGISTRY: dict[str, list[BaseTool]] = {
     # L2: system operations (shell, docker, git, security scans, etc.)
     "system_ops": SYSTEM_OPS_TOOLS,
-    # L2: system extras (lint, typecheck, playwright, db, etc.)
+    # L2: system extras (lint, typecheck, database, etc.)
     "system_extra": SYSTEM_EXTRA_TOOLS,
     # L2: desktop driver tools
     "desktop_driver": DESKTOP_DRIVER_TOOLS,
@@ -150,6 +153,7 @@ BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "html_to_canvas": "system",
     "flipbook": "system",
     "host_shell": "system",
+    "browser": "directory",
     "host_file_manage": "system",
     "tcp_connect": "system",
     "http_transfer": "system",
@@ -178,7 +182,6 @@ BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "octo_doctor": "system",
     "lint_run": "directory",
     "frontend_typecheck": "directory",
-    "playwright_run": "directory",
     "pytest_run": "directory",
     "pytest_collect": "directory",
     "trivy_scan": "directory",
@@ -220,8 +223,6 @@ BUILTIN_PERMISSION_SCOPES: dict[str, ToolPermissionScope] = {
     "writing_review_suite": "directory",
     "writing_format_export": "directory",
     "human_approval_gate": "directory",
-    "browser_publisher": "system",
-    "publication_auditor": "system",
     "wp_cli_publish": "system",
 }
 
@@ -254,7 +255,6 @@ DANGEROUS_CONFIRMATION_TOOLS = {
     "ssh_copy",
     "ssh_exec",
     "docker_compose_apply",
-    "browser_publisher",
     "wp_cli_publish",
 }
 

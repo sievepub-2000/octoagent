@@ -15,6 +15,7 @@ _BUILTIN_CATEGORY_MAP: dict[str, str] = {
     "grep": "file-io",
     "web_read": "web",
     "web_search": "web",
+    "browser": "web",
     "lsp": "code",
     "notebook_edit": "code",
     "task": "agents",
@@ -68,8 +69,6 @@ _BUILTIN_CATEGORY_MAP: dict[str, str] = {
     "writing_review_suite": "writing-review",
     "writing_format_export": "writing-export",
     "human_approval_gate": "governance",
-    "browser_publisher": "publishing",
-    "publication_auditor": "publishing",
     "wp_cli_publish": "publishing",
 }
 
@@ -101,8 +100,6 @@ _SYSTEM_ARTIFACT_TOOLS = {
     "webnovel-write",
     "writing_review_suite",
     "writing_format_export",
-    "browser_publisher",
-    "publication_auditor",
     "wp_cli_publish",
 }
 _DEFAULT_TIMEOUTS = {
@@ -119,8 +116,6 @@ _DEFAULT_TIMEOUTS = {
     "writing_toolchain_status": 30,
     "writing_review_suite": 120,
     "writing_format_export": 180,
-    "browser_publisher": 60,
-    "publication_auditor": 60,
     "wp_cli_publish": 120,
 }
 
@@ -156,7 +151,7 @@ def _failure_modes(name: str, scope: str) -> list[str]:
         modes.extend(["database_unreachable", "read_only_policy_blocked"])
     if name in {"bandit_scan", "trivy_scan", "pytest_run", "static_security_scan"}:
         modes.append("tool_binary_missing_or_failed")
-    if name in {"writing_review_suite", "writing_format_export", "browser_publisher", "publication_auditor", "wp_cli_publish"}:
+    if name in {"writing_review_suite", "writing_format_export", "wp_cli_publish"}:
         modes.extend(["tool_binary_missing_or_failed", "external_service_or_browser_unavailable"])
     return modes
 

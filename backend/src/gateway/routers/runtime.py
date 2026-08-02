@@ -347,6 +347,9 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
             + summary.channels_total
             + summary.managed_tools_total
         )
+        builtin_names = {item.name for item in registry.builtin_tools}
+        required_web_tools = {"web_search", "web_read", "browser"}
+        missing_web_tools = sorted(required_web_tools - builtin_names)
         enabled_mcp_failures = [
             item.name
             for item in registry.mcp
@@ -356,9 +359,9 @@ async def get_runtime_doctor() -> RuntimeDoctorResponse:
             RuntimeDoctorCheck(
                 id="capability-registry",
                 title="Harness capability registry",
-                status="ok" if registry_total > 0 else "fail",
-                detail=f"items={registry_total}, builtins={summary.builtin_tools_total}, skills={summary.skills_total}, mcp={summary.mcp_total}, plugins={summary.plugins_total}",
-                recommendation=None if registry_total > 0 else "Harness returned no capabilities; check tool and extension loading.",
+                status="ok" if summary.builtin_tools_total > 0 and not missing_web_tools else "fail",
+                detail=f"items={registry_total}, builtins={summary.builtin_tools_total}, skills={summary.skills_total}, mcp={summary.mcp_total}, plugins={summary.plugins_total}, missing_web={missing_web_tools}",
+                recommendation=None if summary.builtin_tools_total > 0 and not missing_web_tools else "Repair built-in tool loading and restore web_search, web_read, and browser.",
             )
         )
         checks.append(
@@ -608,7 +611,6 @@ async def get_runtime_effective_config() -> RuntimeEffectiveConfigResponse:
         "OCTO_HARNESS_RUN_JOURNAL",
         "OCTO_HARNESS_BUDGET_ENABLED",
         "OCTOAGENT_SYSTEM_TOOLS_ENABLED",
-        "OCTO_WEB_FETCH_ALLOW_INSECURE_SSL_RETRY",
     ):
         if key in os.environ:
             flags[key] = os.environ[key]

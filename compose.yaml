@@ -31,7 +31,7 @@ x-backend-env: &backend-env
   XDG_CACHE_HOME: /app/runtime/cache/xdg
   UV_CACHE_DIR: /app/runtime/cache/uv
   PIP_CACHE_DIR: /app/runtime/cache/pip
-  PLAYWRIGHT_BROWSERS_PATH: /app/runtime/cache/ms-playwright
+  PLAYWRIGHT_BROWSERS_PATH: /opt/patchright
   HF_HOME: /app/runtime/cache/huggingface
   SENTENCE_TRANSFORMERS_HOME: /app/runtime/cache/sentence_transformers
   HF_HUB_OFFLINE: "1"

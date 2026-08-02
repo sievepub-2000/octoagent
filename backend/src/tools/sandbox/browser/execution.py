@@ -12,8 +12,6 @@ from pathlib import Path
 from typing import Any, Literal
 from urllib.parse import urljoin
 
-import httpx
-
 from .contracts import (
     BrowserActionExecutionRequest,
     BrowserActionExecutionResult,
@@ -226,26 +224,9 @@ class BrowserSessionExecutionEngine:
 
     def fetch_page(self, target: str) -> BrowserFetch:
         provider = EmbeddedHeadlessProvider()
-        if provider.enabled and provider.engine != "none":
-            try:
-                return provider.fetch_page(target)
-            except Exception:
-                if _truthy(os.environ.get("OCTO_BROWSER_REQUIRE_HEADLESS")):
-                    raise
-        response = httpx.get(target, follow_redirects=True, timeout=10.0)
-        response.raise_for_status()
-        text = response.text
-        title = extract_title(text)
-        final_url = str(response.url)
-        targets, inputs = extract_page_structure(text, final_url)
-        return {
-            "final_url": final_url,
-            "title": title,
-            "status_code": response.status_code,
-            "content_length": len(text),
-            "available_targets": targets,
-            "available_inputs": inputs,
-        }
+        if not provider.enabled or provider.engine != "patchright":
+            raise RuntimeError("Patchright browser is not enabled")
+        return provider.fetch_page(target)
 
     def sync_fetch_state(
         self,
