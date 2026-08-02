@@ -247,8 +247,10 @@ def _normalize_capability_kind(kind: str | None) -> str | None:
 @tool("list_capabilities", parse_docstring=True)
 def list_capabilities_tool(
     kind: str | None = None,
+    query: str | None = None,
     enabled_only: bool = True,
-    max_items: int = 80,
+    max_items: int = 20,
+    include_details: bool = False,
 ) -> str:
     """List installed runtime capabilities such as skills, plugins, MCP servers, and hooks.
 
@@ -257,8 +259,10 @@ def list_capabilities_tool(
 
     Args:
         kind: Optional capability kind filter.
+        query: Optional text matched against kind, name, display name, and description.
         enabled_only: Whether to include only enabled capabilities.
         max_items: Maximum number of capability items to return.
+        include_details: Whether to include full capability metadata instead of a compact summary.
     """
 
     normalized_kind = _normalize_capability_kind(kind)
@@ -267,8 +271,32 @@ def list_capabilities_tool(
         items = [item for item in items if item["kind"] == normalized_kind]
     if enabled_only:
         items = [item for item in items if item["enabled"]]
+    normalized_query = str(query or "").strip().lower()
+    if normalized_query:
+        items = [
+            item
+            for item in items
+            if normalized_query
+            in " ".join(
+                str(item.get(field) or "").lower()
+                for field in ("kind", "name", "display_name", "description")
+            )
+        ]
 
     limited_items = items[: max(1, min(max_items, 200))]
+    if not include_details:
+        limited_items = [
+            {
+                "capability_id": item.get("capability_id"),
+                "kind": item.get("kind"),
+                "name": item.get("name"),
+                "display_name": item.get("display_name") or item.get("name"),
+                "description": str(item.get("description") or "")[:240],
+                "enabled": bool(item.get("enabled")),
+                "source": item.get("source"),
+            }
+            for item in limited_items
+        ]
     payload = {
         "source": "/api/harness",
         "summary": registry["summary"],
@@ -277,7 +305,7 @@ def list_capabilities_tool(
         "truncated": len(items) > len(limited_items),
         "items": limited_items,
     }
-    return json.dumps(payload, ensure_ascii=False, indent=2)
+    return json.dumps(payload, ensure_ascii=False, separators=(",", ":"))
 
 
 def _public_url(url: str) -> str:

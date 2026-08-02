@@ -1815,3 +1815,14 @@ slices for traceability:
   `n_ctx_train=262144`, with MTP still disabled and Q8 KV caches retained.
 - Added cross-provider protocol, bound-tool safety, narrow-waist selection and
   OpenAI Responses call-ID regression coverage.
+
+## [20260802.0.3] - 2026-08-02
+
+### Compact capability discovery
+
+- Changed `list_capabilities` from an unbounded full-registry dump to a compact,
+  queryable discovery result with a 20-item default page.
+- Added optional text filtering and explicit full-detail mode while keeping the
+  authoritative Harness summary and runtime status in every response.
+- Removed large metadata and truncated descriptions from the default model
+  result, reducing the second model turn after capability discovery.

@@ -1,7 +1,7 @@
 # OctoAgent Project Status
 
 **Last verified:** 2026-07-24
-**Version:** 20260802.0.2
+**Version:** 20260802.0.3
 
 ## Product truth
 

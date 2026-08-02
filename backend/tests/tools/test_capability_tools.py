@@ -40,6 +40,55 @@ def test_list_capabilities_uses_harness_registry() -> None:
     assert payload["items"][0]["kind"] == "builtin_tool"
 
 
+def test_list_capabilities_defaults_to_compact_queryable_results(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.tools import capability_tools
+
+    items = [
+        {
+            "capability_id": f"builtin:tool_{index}",
+            "kind": "builtin_tool",
+            "name": f"tool_{index}",
+            "display_name": f"Tool {index}",
+            "description": "x" * 500,
+            "enabled": True,
+            "source": "/api/harness",
+            "metadata": {"parameters": {"huge": "y" * 2_000}},
+        }
+        for index in range(40)
+    ]
+    monkeypatch.setattr(
+        capability_tools,
+        "_harness_items",
+        lambda: ({"summary": {"harness_total": 40}, "runtime": {"status": "healthy"}}, items),
+    )
+
+    payload = json.loads(list_capabilities_tool.invoke({}))
+
+    assert payload["returned"] == 20
+    assert payload["truncated"] is True
+    assert "metadata" not in payload["items"][0]
+    assert len(payload["items"][0]["description"]) <= 240
+    assert len(json.dumps(payload, ensure_ascii=False)) < 10_000
+
+
+def test_list_capabilities_query_filters_before_limiting(monkeypatch: pytest.MonkeyPatch) -> None:
+    from src.tools import capability_tools
+
+    items = [
+        {"kind": "skill", "name": "document_writer", "description": "Create DOCX", "enabled": True, "source": "/api/harness", "metadata": {}},
+        {"kind": "skill", "name": "image_editor", "description": "Edit PNG", "enabled": True, "source": "/api/harness", "metadata": {}},
+    ]
+    monkeypatch.setattr(
+        capability_tools,
+        "_harness_items",
+        lambda: ({"summary": {"harness_total": 2}, "runtime": {}}, items),
+    )
+
+    payload = json.loads(list_capabilities_tool.invoke({"query": "DOCX"}))
+
+    assert [item["name"] for item in payload["items"]] == ["document_writer"]
+
+
 def test_runtime_inspection_is_sanitized_and_uses_authoritative_sources(monkeypatch: pytest.MonkeyPatch) -> None:
     from src.tools import capability_tools
 
