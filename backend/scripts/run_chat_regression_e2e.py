@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
 import re
@@ -19,6 +20,7 @@ from patchright.sync_api import TimeoutError as PlaywrightTimeoutError
 from patchright.sync_api import sync_playwright
 
 DEFAULT_FRONTEND_URL = "http://127.0.0.1:19800"
+_FIXTURE_THREADS: list[tuple[str, str]] = []
 
 
 def _browser_launch_options(playwright) -> dict[str, object]:
@@ -203,6 +205,21 @@ def _api_json(base_url: str, path: str, payload: dict) -> dict:
         raise RuntimeError(f"API {path} failed with HTTP {exc.code}: {body}") from exc
 
 
+def _cleanup_fixture_threads() -> None:
+    for base_url, thread_id in reversed(_FIXTURE_THREADS):
+        request = urllib.request.Request(
+            f"{base_url}/threads/{thread_id}",
+            method="DELETE",
+        )
+        try:
+            urllib.request.urlopen(request, timeout=10).close()
+        except (urllib.error.URLError, TimeoutError):
+            pass
+
+
+atexit.register(_cleanup_fixture_threads)
+
+
 def _create_fixture_thread(
     frontend_url: str,
     messages: list[dict],
@@ -215,6 +232,7 @@ def _create_fixture_thread(
         {"metadata": {"graph_id": "lead_agent", "fixture": "chat-regression"}},
     )
     thread_id = thread["thread_id"]
+    _FIXTURE_THREADS.append((langgraph_url, thread_id))
     _api_json(
         langgraph_url,
         f"/threads/{thread_id}/state",
@@ -557,6 +575,7 @@ def main() -> None:
             wait_until="domcontentloaded",
         )
         _wait_for_chat_input(page, timeout=20000)
+        page.locator('[data-chat-scroll-container="true"]').wait_for(timeout=15000)
         scroll_metrics = page.evaluate(
             """async () => {
               const scroller = document.querySelector('[data-chat-scroll-container="true"]');
