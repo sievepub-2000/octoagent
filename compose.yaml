@@ -70,6 +70,7 @@ services:
 
   system-executor:
     image: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
+    pull_policy: never
     restart: unless-stopped
     user: "0:0"
     command: >-
