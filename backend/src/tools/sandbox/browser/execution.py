@@ -144,24 +144,10 @@ class EmbeddedHeadlessProvider:
 
     @property
     def engine(self) -> str:
-        return str(getattr(self.config, "engine", "playwright") or "playwright")
+        return str(getattr(self.config, "engine", "patchright") or "patchright")
 
     def _sync_playwright(self):
-        engine = self.engine
-        if engine == "patchright":
-            from patchright.sync_api import sync_playwright
-
-            return sync_playwright
-        if engine == "camoufox":
-            try:
-                from camoufox.sync_api import sync_playwright
-
-                return sync_playwright
-            except Exception:
-                from playwright.sync_api import sync_playwright
-
-                return sync_playwright
-        from playwright.sync_api import sync_playwright
+        from patchright.sync_api import sync_playwright
 
         return sync_playwright
 
@@ -240,7 +226,7 @@ class BrowserSessionExecutionEngine:
 
     def fetch_page(self, target: str) -> BrowserFetch:
         provider = EmbeddedHeadlessProvider()
-        if provider.enabled and provider.engine not in {"none", "remote_cdp", "cloakbrowser"}:
+        if provider.enabled and provider.engine != "none":
             try:
                 return provider.fetch_page(target)
             except Exception:
@@ -394,14 +380,14 @@ class BrowserSessionExecutionEngine:
                 detail = session.latest_snapshot_summary or "Snapshot captured."
             elif next_action.kind == "screenshot":
                 provider = EmbeddedHeadlessProvider()
-                if not provider.enabled or provider.engine in {"none", "remote_cdp", "cloakbrowser"}:
+                if not provider.enabled or provider.engine == "none":
                     raise ValueError("embedded headless provider is not enabled for screenshot")
                 artifact_path = _run_browser_call(lambda: provider.screenshot(session, session.current_url or next_action.target or session.target))
                 session.latest_artifact_path = artifact_path
                 detail = f"Screenshot captured to {artifact_path}."
             elif next_action.kind == "eval":
                 provider = EmbeddedHeadlessProvider()
-                if not provider.enabled or provider.engine in {"none", "remote_cdp", "cloakbrowser"}:
+                if not provider.enabled or provider.engine == "none":
                     raise ValueError("embedded headless provider is not enabled for eval")
                 script = next_action.value or next_action.target or "document.title"
                 result = _run_browser_call(lambda: provider.evaluate(session.current_url or session.target, script))

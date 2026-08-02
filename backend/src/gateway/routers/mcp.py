@@ -234,11 +234,6 @@ def update_mcp_configuration(request: McpConfigUpdateRequest) -> McpConfigRespon
         # Get the current config path (or determine where to save it)
         config_path = ExtensionsConfig.resolve_config_path()
 
-        # If no config file exists, create one in the parent directory (project root)
-        if config_path is None:
-            config_path = Path.cwd().parent / "extensions_config.json"
-            logger.info(f"No existing extensions config found. Creating new config at: {config_path}")
-
         config_data = _read_raw_config(config_path)
         existing_servers = _raw_mcp_servers(config_data)
         config_data["mcpServers"] = {
@@ -306,9 +301,6 @@ class McpServerMutationResponse(BaseModel):
 
 def _persist_mcp_servers(servers: dict[str, dict[str, Any]]) -> dict[str, McpServerConfigResponse]:
     config_path = ExtensionsConfig.resolve_config_path()
-    if config_path is None:
-        config_path = Path.cwd().parent / "extensions_config.json"
-
     config_data = _read_raw_config(config_path)
     config_data["mcpServers"] = servers
     config_data.pop("mcp_servers", None)
@@ -328,8 +320,6 @@ def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutationRespo
         raise HTTPException(status_code=400, detail="MCP server name is required")
 
     config_path = ExtensionsConfig.resolve_config_path()
-    if config_path is None:
-        config_path = Path.cwd().parent / "extensions_config.json"
     config_data = _read_raw_config(config_path)
     servers = _raw_mcp_servers(config_data)
     servers[name] = _restore_redacted(
@@ -358,8 +348,6 @@ def upsert_mcp_server(request: McpServerUpsertRequest) -> McpServerMutationRespo
 )
 def delete_mcp_server(name: str) -> McpServerMutationResponse:
     config_path = ExtensionsConfig.resolve_config_path()
-    if config_path is None:
-        config_path = Path.cwd().parent / "extensions_config.json"
     servers = _raw_mcp_servers(_read_raw_config(config_path))
     if name not in servers:
         raise HTTPException(status_code=404, detail=f"MCP server '{name}' not found")

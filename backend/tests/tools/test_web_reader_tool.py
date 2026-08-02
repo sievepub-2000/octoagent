@@ -1,11 +1,49 @@
 from __future__ import annotations
 
-from src.tools.builtins.web_reader_tool import (
+import json
+from importlib import import_module
+
+from src.tools.builtins import web_read_tool
+from src.tools.builtins.web_read_tool import (
     _cap_extracted_content,
     _clean_extracted_text,
-    _is_recoverable_http_status,
     _quality_failure_reason,
 )
+
+
+def test_web_read_extracts_article_without_browser(monkeypatch) -> None:
+    web_read_module = import_module("src.tools.builtins.web_read_tool")
+
+    monkeypatch.setattr(web_read_module, "is_url_safe", lambda _url: True)
+    monkeypatch.setattr(web_read_module, "_timeout", lambda: 10.0)
+    monkeypatch.setattr(
+        web_read_module,
+        "_fetch",
+        lambda _url, timeout: (
+            200,
+            "text/html",
+            "<html><head><title>Example</title></head><body><article><h1>Example</h1><p>" + "Useful article text. " * 30 + "</p></article></body></html>",
+            "https://example.com/article",
+        ),
+    )
+
+    result = web_read_tool.invoke({"url": "https://example.com/article"})
+
+    assert "Useful article text" in result
+    assert "browser_required" not in result
+
+
+def test_web_read_explicitly_escalates_blocked_pages(monkeypatch) -> None:
+    web_read_module = import_module("src.tools.builtins.web_read_tool")
+
+    monkeypatch.setattr(web_read_module, "is_url_safe", lambda _url: True)
+    monkeypatch.setattr(web_read_module, "_timeout", lambda: 10.0)
+    monkeypatch.setattr(web_read_module, "_fetch", lambda _url, timeout: (403, "text/html", "Access denied", _url))
+
+    payload = json.loads(web_read_tool.invoke({"url": "https://example.com/protected"}))
+
+    assert payload["status"] == "browser_required"
+    assert payload["next_tool"] == "browser"
 
 
 def test_github_boilerplate_is_removed_from_extracted_text() -> None:
@@ -43,7 +81,7 @@ def test_extracted_content_is_capped_with_actionable_note() -> None:
     capped = _cap_extracted_content("x" * 30_000)
 
     assert len(capped) < 25_000
-    assert "content shortened by OctoAgent web reader" in capped
+    assert "content shortened" in capped
 
 
 def test_low_quality_github_page_chrome_is_rejected() -> None:
@@ -54,11 +92,4 @@ def test_low_quality_github_page_chrome_is_rejected() -> None:
     )
 
     assert reason is not None
-    assert "boilerplate" in reason
-
-
-def test_antibot_http_statuses_are_recoverable_by_web_fetch_chain() -> None:
-    assert _is_recoverable_http_status(403)
-    assert _is_recoverable_http_status(429)
-    assert _is_recoverable_http_status(503)
-    assert not _is_recoverable_http_status(404)
+    assert "navigation or login chrome" in reason

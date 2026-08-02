@@ -31,7 +31,7 @@ class BrowserRuntimeCapability(BaseModel):
     default_provider: Literal["agent_browser", "none"] = "agent_browser"
     supports_cloud_sandbox: bool = True
     supports_authenticated_sessions: bool = False
-    embedded_engine: str = "playwright"
+    embedded_engine: str = "patchright"
     executable_path: str | None = None
     supports_high_privilege_mode: bool = False
     supports_policy_profiles: bool = True

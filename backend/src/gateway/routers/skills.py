@@ -319,13 +319,7 @@ def update_skill(skill_name: str, request: SkillUpdateRequest) -> SkillResponse:
                 detail=f"Cannot edit built-in skill '{skill_name}'. Only custom skills can be edited.",
             )
 
-        # Get or create config path
         config_path = ExtensionsConfig.resolve_config_path()
-        if config_path is None:
-            # Create new config file in parent directory (project root)
-            config_path = Path.cwd().parent / "extensions_config.json"
-            logger.info(f"No existing extensions config found. Creating new config at: {config_path}")
-
         # Load current configuration
         extensions_config = get_extensions_config()
 

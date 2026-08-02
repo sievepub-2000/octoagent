@@ -6,7 +6,6 @@ from datetime import UTC, datetime
 from fastapi import APIRouter
 
 from src.harness.memory import get_harness_memory
-from src.tools.builtins.bytebot_compat_tools import BYTEBOT_COMPAT_TOOLS
 from src.tools.builtins.desktop_driver_tools import DESKTOP_DRIVER_TOOLS, desktop_driver_status
 from src.tools.registry.service import ToolRegistryService
 
@@ -67,6 +66,6 @@ async def desktop_control_status() -> dict:
                 "name": getattr(tool, "name", str(tool)),
                 "description": (getattr(tool, "description", "") or "").split("\n", 1)[0][:200],
             }
-            for tool in [*DESKTOP_DRIVER_TOOLS, *BYTEBOT_COMPAT_TOOLS]
+            for tool in DESKTOP_DRIVER_TOOLS
         ],
     }

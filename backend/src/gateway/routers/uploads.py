@@ -69,11 +69,8 @@ ALLOWED_EXTENSIONS = {
 # File extensions that should be converted to markdown
 CONVERTIBLE_EXTENSIONS = {
     ".pdf",
-    ".ppt",
     ".pptx",
-    ".xls",
     ".xlsx",
-    ".doc",
     ".docx",
 }
 
@@ -104,7 +101,7 @@ def get_uploads_dir(thread_id: str) -> Path:
 
 
 async def convert_file_to_markdown(file_path: Path) -> Path | None:
-    """Convert a file to markdown using markitdown.
+    """Convert a supported document to markdown.
 
     Args:
         file_path: Path to the file to convert.
@@ -113,13 +110,11 @@ async def convert_file_to_markdown(file_path: Path) -> Path | None:
         Path to the markdown file if conversion was successful, None otherwise.
     """
     try:
-        from markitdown import MarkItDown
-
-        md = MarkItDown()
-        result = md.convert(str(file_path))
+        from src.utils.document_text import document_to_markdown
 
         md_path = file_path.with_suffix(".md")
-        await asyncio.to_thread(md_path.write_text, result.text_content, encoding="utf-8")
+        text = await asyncio.to_thread(document_to_markdown, file_path)
+        await asyncio.to_thread(md_path.write_text, text, encoding="utf-8")
 
         logger.info("Converted %s to markdown: %s", file_path.name, md_path.name)
         return md_path
@@ -135,7 +130,7 @@ async def upload_files(
 ) -> UploadResponse:
     """Upload multiple files to a thread's uploads directory.
 
-    For PDF, PPT, Excel, and Word files, they will be converted to markdown using markitdown.
+    PDF, PPTX, XLSX, and DOCX files are also converted to markdown.
     All files (original and converted) are saved to /mnt/user-data/uploads.
 
     Args:

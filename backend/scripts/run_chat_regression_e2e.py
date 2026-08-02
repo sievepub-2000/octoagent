@@ -15,8 +15,8 @@ from dataclasses import asdict, dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.sync_api import sync_playwright
+from patchright.sync_api import TimeoutError as PlaywrightTimeoutError
+from patchright.sync_api import sync_playwright
 
 DEFAULT_FRONTEND_URL = "http://127.0.0.1:19800"
 
@@ -349,12 +349,12 @@ def _web_tool_chain_messages() -> list[dict]:
             "tool_calls": [
                 {
                     "id": "tool-web-fetch-1",
-                    "name": "web_fetch",
+                    "name": "web_read",
                     "args": {"url": "https://example.test/octoagent"},
                 },
                 {
                     "id": "tool-read-webpage-1",
-                    "name": "read_webpage",
+                    "name": "browser",
                     "args": {"url": "https://example.test/octoagent/guide"},
                 },
             ],
@@ -362,14 +362,14 @@ def _web_tool_chain_messages() -> list[dict]:
         {
             "id": "tool-web-fetch-1-result",
             "type": "tool",
-            "name": "web_fetch",
+            "name": "web_read",
             "tool_call_id": "tool-web-fetch-1",
             "content": "# OctoAgent\n\nA multi-model multi-agent OS workspace.",
         },
         {
             "id": "tool-read-webpage-1-result",
             "type": "tool",
-            "name": "read_webpage",
+            "name": "browser",
             "tool_call_id": "tool-read-webpage-1",
             "content": "Guide page loaded with setup and runtime details.",
         },

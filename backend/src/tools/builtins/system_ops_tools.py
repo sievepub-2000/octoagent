@@ -47,7 +47,6 @@ _DEFAULT_CONFIG_PATTERNS = (
     "backend/pyproject.toml",
     "frontend/package.json",
     "README.md",
-    "project_docs/**/*.md",
 )
 _SKIPPED_DIR_NAMES = {
     ".git",

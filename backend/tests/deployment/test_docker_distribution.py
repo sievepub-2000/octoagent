@@ -1,13 +1,8 @@
-import json
 from pathlib import Path
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
-
-
-def _read_json(path: str):
-    return json.loads((ROOT / path).read_text(encoding="utf-8"))
 
 
 def test_compose_packages_every_required_runtime_module() -> None:
@@ -17,22 +12,17 @@ def test_compose_packages_every_required_runtime_module() -> None:
     assert "COPY skills ./skills" in dockerfile
     assert "COPY tools/hooks ./tools/hooks" in dockerfile
     assert "COPY runtime/catalogs ./runtime/catalogs" in dockerfile
-    assert "runtime/tools/mcp/package-lock.json" in dockerfile
+    assert "runtime/tools/mcp/package-lock.json" not in dockerfile
     assert "USER octoagent" in dockerfile
     assert "passwd" in dockerfile
     assert "/usr/local/libexec/docker/cli-plugins" in dockerfile
     assert "/usr/sbin" in dockerfile
     assert "--no-create-home" in dockerfile
-    assert "--no-audit" in dockerfile
     assert "chown -R" not in dockerfile
     assert "uv sync --frozen --no-dev" in dockerfile
     assert "--no-install-project" in dockerfile
     assert dockerfile.index("COPY backend/pyproject.toml") < dockerfile.index("COPY backend ./backend")
-    assert dockerfile.index("npm ci --omit=dev") < dockerfile.index("COPY backend ./backend")
     assert "uv run uvicorn" not in dockerfile
-    mcp_package = _read_json("runtime/tools/mcp/package.json")
-    assert "mcp-server-kubernetes" not in mcp_package["dependencies"]
-    assert mcp_package["overrides"]["@modelcontextprotocol/sdk"] == "^1.25.3"
 
 
 def test_mutable_settings_are_persistent_and_writable() -> None:

@@ -1,5 +1,6 @@
-# Frontend Docs Redirect
+# OctoAgent frontend
 
-Frontend documentation has been consolidated into [project_docs/frontend/README.md](../project_docs/frontend/README.md).
-
-The previous frontend README content now lives in [project_docs/imported/component_readmes/frontend_README.md](../project_docs/imported/component_readmes/frontend_README.md).
+The frontend is the Next.js management and chat UI. Run checks with
+`pnpm lint`, `pnpm typecheck`, `pnpm test`, and `pnpm build`. Its management
+surfaces mirror the Agent Runtime and Harness boundaries described in
+[`docs/architecture.md`](../docs/architecture.md).

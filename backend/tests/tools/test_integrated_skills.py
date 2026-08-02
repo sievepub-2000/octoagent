@@ -8,13 +8,13 @@ def test_integrated_skills_are_loadable() -> None:
     skills = load_skills(enabled_only=False)
     names = {skill.name for skill in skills}
 
-    assert "agent-rules-books" in names
-    assert "goalbuddy" in names
-    assert "ian-handdrawn-ppt" in names
+    assert "data-analysis" in names
+    assert "deep-research" in names
+    assert "office-generation" in names
 
 
-def test_load_skill_tool_loads_goalbuddy() -> None:
-    result = load_skill_tool.invoke({"skill_name": "goalbuddy"})
+def test_load_skill_tool_loads_deep_research() -> None:
+    result = load_skill_tool.invoke({"skill_name": "deep-research"})
 
-    assert "Goal contract skill" in result
-    assert "acceptance checks" in result
+    assert "# Skill: deep-research" in result
+    assert "well-informed content" in result

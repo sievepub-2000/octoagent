@@ -73,7 +73,7 @@ _QUERY_TOOL_NAMES: frozenset[str] = frozenset(
         "sql_query",
         "web_search",
         "url_fetch",
-        "web_fetch",
+        "web_read",
         "http_get",
         "search",
         "query_database",

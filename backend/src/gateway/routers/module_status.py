@@ -206,8 +206,7 @@ def _probe_openrouter_key() -> dict[str, Any]:
 def _probe_web_search_keys() -> dict[str, Any]:
     """Probe web search tooling.
 
-    Primary path is now Tavily (Round F, 2026-05-14); DDG remains as a keyless
-    fallback exposed as web_search_ddg / web_fetch_ddg.
+    Tavily is the primary search provider; DDG is its keyless fallback.
     """
     out: dict[str, Any] = {}
     status = "ok"

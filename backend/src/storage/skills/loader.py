@@ -147,31 +147,6 @@ def load_skills(skills_path: Path | None = None, use_config: bool = True, enable
         # If config loading fails, default to all enabled
         logger.debug("Failed to load extensions config: %s", exc)
 
-    # ── Extra skill roots (e.g. ``.agents/skills/`` shipped with the repo) ──
-    # Loaded only if not already present (skills/public/ takes priority).
-    seen_names = {s.name for s in skills}
-    repo_root = Path(__file__).resolve().parents[4]
-    EXTRA_SKILL_ROOTS = [
-        (repo_root / ".agents" / "skills", "public"),
-        (repo_root / "project_docs" / "skills" / "public", "public"),
-    ]
-    for extra_root, extra_category in EXTRA_SKILL_ROOTS:
-        if not extra_root.exists() or not extra_root.is_dir():
-            continue
-        for current_root, dir_names, file_names in os.walk(extra_root):
-            dir_names[:] = sorted(name for name in dir_names if not name.startswith("."))
-            if "SKILL.md" not in file_names:
-                continue
-            skill_file = Path(current_root) / "SKILL.md"
-            try:
-                relative_path = skill_file.parent.relative_to(extra_root)
-            except ValueError:
-                continue
-            skill = parse_skill_file(skill_file, category=extra_category, relative_path=relative_path)
-            if skill and skill.name not in seen_names:
-                skills.append(skill)
-                seen_names.add(skill.name)
-
     # Sort by name for consistent ordering
     skills.sort(key=lambda s: s.name)
 

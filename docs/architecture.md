@@ -1,6 +1,6 @@
 # OctoAgent architecture
 
-Version 20260721.1.0 has two public application Modules.
+Version 20260802 has two public application Modules.
 
 ```text
 WebUI
@@ -33,3 +33,14 @@ first writes an atomic `.raw.md` transcript and `.memory.md` extraction.
 PostgreSQL pgvector is a derived HNSW retrieval index. Harness startup scans the
 Markdown source and repairs missing index rows, so a database index failure
 cannot erase the original memory.
+
+The model-visible web surface is deliberately small:
+
+- `web_search` finds candidate sources through Tavily with a keyless DDG
+  fallback.
+- `web_read` reads public static content through HTTP and Readability. It never
+  starts a hidden browser.
+- Browser uses Patchright through Harness for JavaScript and interaction.
+
+`web_read` returns `browser_required` for dynamic or blocked pages, leaving the
+model free to escalate while keeping the expensive execution path explicit.

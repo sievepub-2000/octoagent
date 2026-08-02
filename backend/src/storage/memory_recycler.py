@@ -62,15 +62,8 @@ class MemoryRecycler:
             return False
         return True
 
-    def trigger_recycle(self, *, context_compacted: bool = False) -> RecycleResult:
-        """Trigger memory and cache recycling.
-
-        Args:
-            context_compacted: Whether triggered by context compaction.
-
-        Returns:
-            RecycleResult with statistics.
-        """
+    def trigger_recycle(self) -> RecycleResult:
+        """Trigger memory and cache recycling."""
         start_time = time.time()
         freed_memory_mb = 0.0
         freed_disk_mb = 0.0

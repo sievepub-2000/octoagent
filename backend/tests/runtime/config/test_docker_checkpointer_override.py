@@ -11,8 +11,7 @@ def test_explicit_docker_checkpointer_dsn_overrides_host_config(monkeypatch):
         {
             "models": [],
             "checkpointer": {
-                "type": "sqlite",
-                "connection_string": "checkpoints.db",
+                "type": "memory",
             },
         }
     )
@@ -23,17 +22,16 @@ def test_explicit_docker_checkpointer_dsn_overrides_host_config(monkeypatch):
     }
 
 
-def test_checkpointer_config_is_unchanged_without_override(monkeypatch):
+def test_memory_checkpointer_config_is_unchanged_without_override(monkeypatch):
     monkeypatch.delenv("OCTOAGENT_CHECKPOINTER_DSN", raising=False)
 
     resolved = AppConfigLoader().resolve_config_data(
         {
             "models": [],
             "checkpointer": {
-                "type": "sqlite",
-                "connection_string": "checkpoints.db",
+                "type": "memory",
             },
         }
     )
 
-    assert resolved["checkpointer"]["type"] == "sqlite"
+    assert resolved["checkpointer"]["type"] == "memory"

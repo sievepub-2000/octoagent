@@ -54,8 +54,7 @@ _BARE_XML_FALLBACK_TOOL_NAMES = {
     "write_file",
     "str_replace",
     "web_search",
-    "web_fetch",
-    "read_webpage",
+    "web_read",
     "convert_document",
 }
 _DESCRIPTION_REQUIRED_TOOL_NAMES = {"bash", "ls", "read_file", "write_file", "str_replace"}

@@ -1,5 +1,6 @@
-# Backend Docs Redirect
+# OctoAgent backend
 
-Backend documentation has been consolidated into [project_docs/backend/README.md](../project_docs/backend/README.md).
-
-The previous backend README content now lives in [project_docs/imported/component_readmes/backend_README.md](../project_docs/imported/component_readmes/backend_README.md).
+The backend is the LangGraph agent runtime and FastAPI gateway. Run checks with
+`uv run ruff check src tests` and `uv run pytest`. See
+[`docs/architecture.md`](../docs/architecture.md) for the system boundary and
+[`docs/docker-install.md`](../docs/docker-install.md) for deployment.

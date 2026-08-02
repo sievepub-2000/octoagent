@@ -14,6 +14,7 @@ from typing import Any
 
 from langchain_core.tools import tool
 
+from src.runtime.config.extensions_config import ExtensionsConfig
 from src.tools.builtins.system_ops_tools import _run_host_shell
 from src.utils.serialization import fmt_json as _json
 
@@ -73,27 +74,13 @@ def _backend_python() -> str:
 
 os.environ.setdefault("TRIVY_CACHE_DIR", str(_MANAGED_TOOLS_DIR / "trivy-cache"))
 
-_MCP_NODE_BIN = _MANAGED_TOOLS_DIR / "mcp" / "node_modules" / ".bin"
-_MCP_COMMAND_DEFAULTS = {
-    "OCTOAGENT_PYTHON_BIN": str(_BACKEND_VENV_BIN / "python"),
-    "OCTOAGENT_MCP_FILESYSTEM_BIN": str(_MCP_NODE_BIN / "mcp-server-filesystem"),
-    "OCTOAGENT_MCP_POSTGRES_BIN": str(_MCP_NODE_BIN / "mcp-server-postgres"),
-    "OCTOAGENT_MCP_OPENAPI_BIN": str(_MCP_NODE_BIN / "openapi-mcp-server"),
-    "OCTOAGENT_MCP_KUBERNETES_BIN": str(_MCP_NODE_BIN / "mcp-server-kubernetes"),
-}
-
-
 def _resolve_mcp_command(raw: str) -> str:
-    """Resolve an MCP command field, expanding a leading $ENV placeholder.
-
-    Mirrors the Docker image defaults so the doctor reports accurately even
-    when the MCP bin env vars are not exported in the current process.
-    """
+    """Resolve a leading $ENV placeholder from the active process."""
     raw = (raw or "").strip()
     if not raw.startswith("$"):
         return raw
     name = raw[1:]
-    return os.environ.get(name) or _MCP_COMMAND_DEFAULTS.get(name, "")
+    return os.environ.get(name, "")
 
 
 def _mcp_command_missing(cfg: dict) -> bool:
@@ -1088,7 +1075,7 @@ def octo_doctor_tool(include_repairs: bool = False) -> str:
     )
     checks["binaries"] = {name: _which(name) for name in ("npx", "node", "docker", "git", "ssh", "psql", "sqlite3", "pytest", "ruff", "bandit", "trivy")}
     checks["tool_policy"] = {"backend_venv": str(_BACKEND_VENV_BIN), "managed_bin": str(_MANAGED_BIN), "node_tools_bin": str(_NODE_TOOLS_BIN)}
-    cfg_path = _REPO_ROOT / "extensions_config.json"
+    cfg_path = ExtensionsConfig.resolve_config_path()
     if cfg_path.exists():
         data = json.loads(cfg_path.read_text())
         mcp = data.get("mcpServers", {})

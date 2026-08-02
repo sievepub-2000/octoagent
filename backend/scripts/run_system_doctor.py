@@ -114,24 +114,10 @@ def _contract_checks(*, include_git: bool) -> list[DoctorCheck]:
             lambda: _check_runtime_doctor(client),
         )
     )
-    checks.append(
-        _timed(
-            "capability-registry-api",
-            lambda: _check_capability_registry(client),
-        )
-    )
-    checks.append(
-        _timed(
-            "capability-binding-contract-api",
-            lambda: _check_binding_contract(client),
-        )
-    )
+    checks.append(_timed("harness-api", lambda: _check_harness(client)))
+    checks.append(_timed("agent-runtime-api", lambda: _check_agent_runtime(client)))
     checks.append(_timed("channels-api", lambda: _check_channels(client)))
     checks.append(_timed("models-api", lambda: _check_models(client)))
-    checks.append(_timed("memory-api", lambda: _check_memory(client)))
-    checks.append(_timed("capability-policy-api", lambda: _check_capability_policy(client)))
-    checks.append(_timed("capability-policy-export-api", lambda: _check_capability_policy_export(client)))
-    checks.append(_timed("capability-policy-precheck-api", lambda: _check_capability_policy_precheck(client)))
     checks.append(_timed("runtime-long-running-health-api", lambda: _check_long_running_health(client)))
     checks.append(_timed("runtime-maintenance-api", lambda: _check_runtime_maintenance(client)))
     return checks
@@ -147,34 +133,26 @@ def _check_runtime_doctor(client: TestClient) -> str:
     payload = _json(client, "/api/runtime/doctor")
     checks = payload.get("checks") or []
     ids = {item.get("id") for item in checks if isinstance(item, dict)}
-    required = {"config", "models", "capability-registry", "capability-binding-contract", "channels", "langgraph-state"}
+    required = {"config", "models", "capability-registry", "channels", "langgraph-state"}
     missing = sorted(required - ids)
     _expect(not missing, f"runtime doctor missing checks: {missing}")
     _expect(payload.get("overall_status") in {"ok", "warn", "fail"}, f"invalid doctor status: {payload}")
     return f"overall={payload.get('overall_status')}, checks={len(checks)}"
 
 
-def _check_capability_registry(client: TestClient) -> str:
-    payload = _json(client, "/api/capabilities/registry")
+def _check_harness(client: TestClient) -> str:
+    payload = _json(client, "/api/harness")
     summary = payload.get("summary") or {}
-    total = int(summary.get("total_items") or 0)
-    by_kind = summary.get("by_kind") or {}
-    _expect(total > 0, "capability registry is empty")
-    _expect("skill" in by_kind, f"skill kind missing: {by_kind}")
-    _expect("channel" in by_kind, f"channel kind missing: {by_kind}")
-    _expect(isinstance(payload.get("items"), list), "registry items must be a list")
-    return f"items={total}, kinds={by_kind}"
+    total = sum(int(value or 0) for key, value in summary.items() if key.endswith("_total"))
+    _expect(total > 0, "Harness capability inventory is empty")
+    _expect(isinstance(payload.get("memory"), dict), "Harness memory status missing")
+    return f"capabilities={total}, skills={summary.get('skills_total')}, builtins={summary.get('builtin_tools_total')}"
 
 
-def _check_binding_contract(client: TestClient) -> str:
-    registry = _json(client, "/api/capabilities/registry")
-    payload = _json(client, "/api/capabilities/binding-contract")
-    registry_total = int((registry.get("summary") or {}).get("total_items") or 0)
-    contract_total = int((payload.get("summary") or {}).get("total_items") or 0)
-    _expect(contract_total == registry_total, f"contract_total={contract_total}, registry_total={registry_total}")
-    items = payload.get("items") or []
-    _expect(all("bindable_targets" in item and "dispatch_contract" in item for item in items[:10]), "contract item shape invalid")
-    return f"items={contract_total}"
+def _check_agent_runtime(client: TestClient) -> str:
+    payload = _json(client, "/api/agent-runtime")
+    _expect(isinstance(payload, dict), "Agent Runtime snapshot must be an object")
+    return f"keys={sorted(payload)[:8]}"
 
 
 def _check_channels(client: TestClient) -> str:
@@ -190,35 +168,6 @@ def _check_models(client: TestClient) -> str:
     models = payload.get("models") if isinstance(payload, dict) else None
     _expect(isinstance(models, list), "models endpoint should return an object with a models list")
     return f"models={len(models)}"
-
-
-def _check_memory(client: TestClient) -> str:
-    payload = _json(client, "/api/memory/status")
-    _expect(isinstance(payload, dict), "memory status must be an object")
-    return f"keys={sorted(payload.keys())[:8]}"
-
-
-def _check_capability_policy(client: TestClient) -> str:
-    payload = _json(client, "/api/capabilities/policies")
-    _expect(isinstance(payload.get("policies"), list), "policies must be a list")
-    _expect(isinstance(payload.get("audit_events"), list), "audit_events must be a list")
-    return f"policies={len(payload.get('policies') or [])}, audit_events={len(payload.get('audit_events') or [])}"
-
-
-def _check_capability_policy_export(client: TestClient) -> str:
-    payload = _json(client, "/api/capabilities/policies/export", headers=_operator_headers(role="admin"))
-    _expect(payload.get("signature_algorithm") == "sha256", "policy export must be signed with sha256")
-    _expect(bool(payload.get("signature")), "policy export signature missing")
-    state = payload.get("state") or {}
-    _expect(isinstance(state, dict), "policy export state must be an object")
-    return f"signature={str(payload.get('signature'))[:12]}"
-
-
-def _check_capability_policy_precheck(client: TestClient) -> str:
-    payload = _json(client, "/api/capabilities/policies/precheck")
-    _expect(payload.get("ok") is True, "policy precheck must return ok")
-    _expect(bool(payload.get("signature")), "policy precheck signature missing")
-    return f"policies={payload.get('policy_count')}, deny={payload.get('deny_count')}, audit_only={payload.get('audit_only_count')}"
 
 
 def _check_long_running_health(client: TestClient) -> str:

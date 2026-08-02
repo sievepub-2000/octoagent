@@ -193,20 +193,8 @@ tools:
   #   # Used to limit the scope of search results, only returns content within the specified time range. Set to -1 to disable time filtering
   #   search_time_range: 10
 
-  # Web fetch tool (direct HTTP with layered Scrapling/RSS fallbacks)
-  - name: web_fetch
-    group: web
-    use: src.community.ddg.tools:web_fetch_tool
-    timeout: 10
-
-  # Web fetch tool (uses InfoQuest AI reader)
-  # - name: web_fetch
-  #   group: web
-  #   use: src.community.infoquest.tools:web_fetch_tool
-  #   # Overall timeout for the entire crawling process (in seconds). Set to positive value to enable, -1 to disable
-  #   timeout: 10
-  #   # Waiting time after page loading (in seconds). Set to positive value to enable, -1 to disable
-  #   fetch_time: 10
+  # web_read is a built-in Harness capability. It uses direct HTTP,
+  # Readability, and RSS; dynamic pages explicitly escalate to Browser.
   #   # Timeout for navigating to the page (in seconds). Set to positive value to enable, -1 to disable
   #   navigation_timeout: 30
 
@@ -426,7 +414,7 @@ memory:
 # integrations:
 #   browser:
 #     enabled: true
-#     engine: patchright # patchright | playwright | camoufox | cloakbrowser | remote_cdp | none
+#     engine: patchright # patchright | none
 #     embedded_headless: true
 #     headless: true
 #     executable_path: /snap/bin/chromium
@@ -458,8 +446,7 @@ memory:
 #
 # SQLite (file-based, single-process):
 checkpointer:
-  type: sqlite
-  connection_string: checkpoints.db
+  type: memory  # Docker overrides this with OCTOAGENT_CHECKPOINTER_DSN (PostgreSQL)
 #
 # PostgreSQL (multi-process, production):
 # checkpointer:

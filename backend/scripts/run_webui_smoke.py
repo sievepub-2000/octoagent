@@ -13,8 +13,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 import httpx
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.sync_api import sync_playwright
+from patchright.sync_api import TimeoutError as PlaywrightTimeoutError
+from patchright.sync_api import sync_playwright
 
 DEFAULT_FRONTEND_URL = "http://127.0.0.1:19800"
 DEFAULT_GATEWAY_URL = "http://127.0.0.1:19800"

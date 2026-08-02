@@ -65,25 +65,10 @@ def resolve_app_config_path(config_path: str | None = None) -> Path:
             raise FileNotFoundError(f"Config file specified by environment variable `OCTO_AGENT_CONFIG_PATH` not found at {path}")
         return path
 
-    # Preferred location (since 2026-05-27): runtime/config/config.yaml
-    runtime_config_path = Path("runtime/config/config.yaml")
+    runtime_config_path = Path(__file__).resolve().parents[4] / "runtime" / "config" / "config.yaml"
     if runtime_config_path.exists():
         return runtime_config_path
-
-    parent_runtime_config_path = Path.cwd().parent / "runtime" / "config" / "config.yaml"
-    if parent_runtime_config_path.exists():
-        return parent_runtime_config_path
-
-    # Back-compat fallbacks (deprecated but kept for in-flight clones).
-    cwd_path = Path.cwd() / "config.yaml"
-    if cwd_path.exists():
-        return cwd_path
-
-    parent_path = Path.cwd().parent / "config.yaml"
-    if parent_path.exists():
-        return parent_path
-
-    raise FileNotFoundError("`config.yaml` file not found at runtime/config/config.yaml, the current directory, nor its parent directory")
+    raise FileNotFoundError(f"Canonical runtime config not found: {runtime_config_path}")
 
 
 load_project_dotenv()

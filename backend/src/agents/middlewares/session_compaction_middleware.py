@@ -309,7 +309,7 @@ def _coalesce_identical_tool_messages(messages: list[Any]) -> tuple[list[Any], i
     run_signature: str | None = None
     run_count = 0
 
-    def _flush(end_exclusive: int) -> None:
+    def _flush() -> None:
         nonlocal run_start_index, run_signature, run_count, coalesced
         if run_start_index is None or run_count <= 2:
             run_start_index = None
@@ -339,15 +339,15 @@ def _coalesce_identical_tool_messages(messages: list[Any]) -> tuple[list[Any], i
                 out.append(msg)
                 continue
             # Different tool content — flush previous run (if any)
-            _flush(index)
+            _flush()
             run_start_index = index
             run_signature = signature
             run_count = 1
             out.append(msg)
         else:
-            _flush(index)
+            _flush()
             out.append(msg)
-    _flush(len(messages))
+    _flush()
     return out, coalesced
 
 

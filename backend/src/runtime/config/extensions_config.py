@@ -99,61 +99,30 @@ class ExtensionsConfig(BaseModel):
     model_config = ConfigDict(extra="allow", populate_by_name=True)
 
     @classmethod
-    def resolve_config_path(cls, config_path: str | None = None) -> Path | None:
+    def resolve_config_path(cls, config_path: str | None = None) -> Path:
         """Resolve the extensions config file path.
 
-        Priority:
-        1. If provided `config_path` argument, use it.
-        2. If provided `OCTO_AGENT_EXTENSIONS_CONFIG_PATH` environment variable, use it.
-        3. Otherwise, check for `extensions_config.json` in the current directory, then in the parent directory.
-        4. For backward compatibility, also check for `mcp_config.json` if `extensions_config.json` is not found.
-        5. If not found, return None (extensions are optional).
+        Explicit arguments and the environment override must exist. Local
+        development otherwise uses the same runtime/config path as Docker.
 
         Args:
             config_path: Optional path to extensions config file.
 
         Returns:
-            Path to the extensions config file if found, otherwise None.
+            The single authoritative extensions config path.
         """
         if config_path:
             path = Path(config_path)
             if not path.exists():
                 raise FileNotFoundError(f"Extensions config file specified by param `config_path` not found at {path}")
             return path
-        elif os.getenv("OCTO_AGENT_EXTENSIONS_CONFIG_PATH"):
-            path = Path(os.getenv("OCTO_AGENT_EXTENSIONS_CONFIG_PATH"))
+        env_path = os.getenv("OCTO_AGENT_EXTENSIONS_CONFIG_PATH")
+        if env_path:
+            path = Path(env_path)
             if not path.exists():
                 raise FileNotFoundError(f"Extensions config file specified by environment variable `OCTO_AGENT_EXTENSIONS_CONFIG_PATH` not found at {path}")
             return path
-        else:
-            # Cache cwd once to avoid repeated blocking os.getcwd() calls
-            # (blockbuster raises BlockingError in async event loops).
-            try:
-                cwd = Path(os.getcwd())
-            except Exception:
-                return None
-
-            # Check if the extensions_config.json is in the current directory
-            path = cwd / "extensions_config.json"
-            if path.exists():
-                return path
-
-            # Check if the extensions_config.json is in the parent directory of CWD
-            path = cwd.parent / "extensions_config.json"
-            if path.exists():
-                return path
-
-            # Backward compatibility: check for mcp_config.json
-            path = cwd / "mcp_config.json"
-            if path.exists():
-                return path
-
-            path = cwd.parent / "mcp_config.json"
-            if path.exists():
-                return path
-
-            # Extensions are optional, so return None if not found
-            return None
+        return Path(__file__).resolve().parents[4] / "runtime" / "config" / "extensions_config.json"
 
     @classmethod
     def from_file(cls, config_path: str | None = None) -> "ExtensionsConfig":
@@ -168,67 +137,18 @@ class ExtensionsConfig(BaseModel):
             ExtensionsConfig: The loaded config, or empty config if file not found.
         """
         resolved_path = cls.resolve_config_path(config_path)
-        if resolved_path is None:
-            # Return empty config if extensions config file is not found
+        if not resolved_path.exists():
             return cls(mcp_servers={}, skills={}, hooks={})
 
         try:
             with open(resolved_path, encoding="utf-8") as f:
                 config_data = json.load(f)
             cls.resolve_env_variables(config_data)
-            parsed = cls.model_validate(config_data)
-            parsed.apply_runtime_overrides()
-            return parsed
+            return cls.model_validate(config_data)
         except json.JSONDecodeError as e:
             raise ValueError(f"Extensions config file at {resolved_path} is not valid JSON: {e}") from e
         except Exception as e:
             raise RuntimeError(f"Failed to load extensions config from {resolved_path}: {e}") from e
-
-    def apply_runtime_overrides(self) -> None:
-        """Map packaged local MCP services onto the active runtime paths.
-
-        Operator configuration remains the single persisted source. Docker can
-        therefore preserve an existing host configuration without copying or
-        destructively rewriting credentials and permission scopes.
-        """
-
-        command_overrides = {
-            "filesystem": "OCTOAGENT_MCP_FILESYSTEM_BIN",
-            "postgres": "OCTOAGENT_MCP_POSTGRES_BIN",
-            "openapi": "OCTOAGENT_MCP_OPENAPI_BIN",
-        }
-        for server_name, env_name in command_overrides.items():
-            server = self.mcp_servers.get(server_name)
-            override = os.getenv(env_name, "").strip()
-            if server is not None and override:
-                server.command = override
-
-        compose = self.mcp_servers.get("docker-compose")
-        python_bin = os.getenv("OCTOAGENT_PYTHON_BIN", "").strip()
-        if compose is not None and python_bin:
-            compose.command = python_bin
-
-        argument_overrides = {
-            "filesystem": os.getenv("OCTOAGENT_FILESYSTEM_ROOT", "").strip(),
-            "postgres": os.getenv("OCTOAGENT_POSTGRES_SUPERUSER_DSN", "").strip(),
-        }
-        for server_name, argument in argument_overrides.items():
-            server = self.mcp_servers.get(server_name)
-            if server is not None and argument:
-                server.args = [argument]
-
-        openapi = self.mcp_servers.get("openapi")
-        if openapi is not None and os.getenv("OCTOAGENT_MCP_OPENAPI_BIN", "").strip():
-            api_base = os.getenv("OCTOAGENT_GATEWAY_INTERNAL_URL", "http://gateway:19802").strip()
-            spec_url = os.getenv("OCTOAGENT_OPENAPI_SPEC_URL", f"{api_base.rstrip('/')}/openapi.json").strip()
-            openapi.args = [
-                "--transport",
-                "stdio",
-                "--api-base-url",
-                api_base,
-                "--openapi-spec",
-                spec_url,
-            ]
 
     @classmethod
     def resolve_env_variables(cls, config: dict[str, Any]) -> dict[str, Any]:

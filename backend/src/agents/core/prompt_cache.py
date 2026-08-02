@@ -33,7 +33,7 @@ The following 5 tools are always available:
 2. **ask_clarification** -- Ask the user a question when the task is ambiguous, under-specified, or requires a decision you cannot make autonomously.
 3. **present_file** -- Show file contents, directory listings, or code snippets to the user. Use this to surface evidence or share results.
 4. **setup_agent** -- Configure agent roles, capabilities, and execution parameters for multi-agent workflows.
-5. **read_webpage** -- Fetch and extract clean content from URLs using readability parsing. Use this for web research, documentation lookup, and fact-finding.
+5. **web_read** -- Read public URLs through HTTP and extract compact content. If it returns `browser_required`, use Browser for dynamic interaction.
 
 ## Additional Tools (Available On Demand)
 When your task requires capabilities beyond the core set, additional tool categories can be activated automatically based on your intent:

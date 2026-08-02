@@ -311,7 +311,7 @@ class ParallelExecutor:
                     lock = _get_file_lock(p)
                     path_locks[p] = lock
 
-        async def _run_with_lock(ref_idx: int, ref: ToolCallRef) -> CallResult | None:
+        async def _run_with_lock(ref: ToolCallRef) -> CallResult | None:
             relevant_locks: list[asyncio.Lock] = []
             if ref.category == ToolCategory.WRITE:
                 for p in ref.paths:
@@ -331,7 +331,7 @@ class ParallelExecutor:
                         for lock in relevant_locks:
                             lock.release()
 
-        tasks = [_run_with_lock(i, ref) for i, ref in enumerate(call_refs)]
+        tasks = [_run_with_lock(ref) for ref in call_refs]
         completed_results = await asyncio.gather(*tasks)
 
         for i, result in enumerate(completed_results):

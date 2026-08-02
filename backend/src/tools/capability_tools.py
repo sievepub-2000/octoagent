@@ -54,7 +54,6 @@ def _harness_items() -> tuple[dict, list[dict]]:
 
     from src.harness.hook_core import get_hook_core_service
     from src.harness.hooks import get_hook_registry
-    from src.tools.builtins.bytebot_compat_tools import BYTEBOT_COMPAT_TOOLS
     from src.tools.builtins.desktop_driver_tools import DESKTOP_DRIVER_TOOLS, desktop_driver_status
     from src.tools.registry.service import ToolRegistryService
 
@@ -197,7 +196,7 @@ def _harness_items() -> tuple[dict, list[dict]]:
         desktop_enabled = bool(desktop_status.get("available"))
         desktop_rows = [
             {"name": tool.name, "description": (tool.description or "").split("\n", 1)[0]}
-            for tool in [*DESKTOP_DRIVER_TOOLS, *BYTEBOT_COMPAT_TOOLS]
+            for tool in DESKTOP_DRIVER_TOOLS
         ]
     items.extend(
         {

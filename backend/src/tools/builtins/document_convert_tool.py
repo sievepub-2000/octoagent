@@ -1,6 +1,6 @@
 """Document format conversion tool — convert between text formats.
 
-Uses markitdown for Office→Markdown, markdownify for HTML→Markdown,
+Uses narrow format readers for Office/PDF→Markdown, markdownify for HTML→Markdown,
 and built-in markdown for Markdown→HTML.  All dependencies already exist
 in the project.
 """
@@ -32,7 +32,7 @@ def convert_document_tool(
     """Convert a document file to another format.
 
     Supported conversions:
-      - Office files (docx, xlsx, pptx, pdf) → Markdown  (via markitdown)
+      - DOCX, XLSX, PPTX, and PDF → Markdown
       - HTML files → Markdown  (via markdownify)
       - Markdown files → HTML  (via Python markdown)
       - CSV files → Markdown table
@@ -62,33 +62,21 @@ def convert_document_tool(
     suffix = path.suffix.lower()
     target = target_format.lower().strip()
 
-    # ---- Office/PDF → Markdown via markitdown ----
-    office_exts = {".pdf", ".doc", ".docx", ".ppt", ".pptx", ".xls", ".xlsx"}
+    # ---- Office/PDF → Markdown ----
+    office_exts = {".pdf", ".docx", ".pptx", ".xlsx"}
     if suffix in office_exts and target in ("markdown", "md"):
         try:
-            from markitdown import MarkItDown
+            from src.utils.document_text import document_to_markdown
 
-            md = MarkItDown()
-            result = md.convert(str(path))
+            text = document_to_markdown(path)
             out_path = path.with_suffix(".md")
-            out_path.write_text(result.text_content, encoding="utf-8")
-            preview = result.text_content[:3000]
+            out_path.write_text(text, encoding="utf-8")
+            preview = text[:3000]
             return Command(
                 update={
                     "messages": [
                         ToolMessage(
                             f"Converted {path.name} → {out_path.name}\n\nPreview:\n{preview}",
-                            tool_call_id=tool_call_id,
-                        )
-                    ]
-                }
-            )
-        except ImportError:
-            return Command(
-                update={
-                    "messages": [
-                        ToolMessage(
-                            "Error: markitdown not installed.",
                             tool_call_id=tool_call_id,
                         )
                     ]

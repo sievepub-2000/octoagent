@@ -51,7 +51,7 @@ def test_after_agent_carries_tool_failures_into_task_state() -> None:
             HumanMessage(content="请研究公开资料并完成报告。"),
             ToolMessage(
                 content="Error: low-quality webpage extraction for https://github.com/x/y",
-                name="read_webpage",
+                name="web_read",
                 tool_call_id="call-1",
                 status="error",
             ),
@@ -68,7 +68,7 @@ def test_after_agent_carries_tool_failures_into_task_state() -> None:
 
     assert update is not None
     assert update["task_state"]["status"] == "incomplete"
-    assert "read_webpage" in update["task_state"]["failed_attempts"][0]
+    assert "web_read" in update["task_state"]["failed_attempts"][0]
     assert update["runtime"]["incomplete_state"]["status"] == "recoverable"
 
 

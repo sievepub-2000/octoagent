@@ -1,5 +1,5 @@
-"""DuckDuckGo + httpx web tools (zero API key, system proxy aware)."""
+"""DuckDuckGo web search (zero API key, system proxy aware)."""
 
-from src.community.ddg.tools import web_fetch_tool, web_search_tool
+from src.community.ddg.tools import web_search_tool
 
-__all__ = ["web_search_tool", "web_fetch_tool"]
+__all__ = ["web_search_tool"]

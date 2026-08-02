@@ -467,8 +467,6 @@ class HookCoreService:
             return None
 
         config_path = ExtensionsConfig.resolve_config_path()
-        if config_path is None:
-            config_path = self._repo_root() / "extensions_config.json"
 
         config = get_extensions_config()
         config.hooks[hook_name] = HookStateConfig(enabled=enabled)

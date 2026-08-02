@@ -3,7 +3,7 @@
 Provides an **async context manager** for long-running async servers that need
 proper resource cleanup.
 
-Supported backends: memory, sqlite, postgres.
+Supported backends: memory and postgres.
 
 Usage (e.g. FastAPI lifespan)::
 
@@ -17,10 +17,8 @@ For sync usage see :mod:`src.agents.checkpointer.provider`.
 
 from __future__ import annotations
 
-import asyncio
 import contextlib
 import logging
-import time
 from collections.abc import AsyncIterator, Iterable, Sequence
 
 from langgraph.types import Checkpointer
@@ -28,10 +26,7 @@ from langgraph.types import Checkpointer
 from src.agents.checkpointer.provider import (
     POSTGRES_CONN_REQUIRED,
     POSTGRES_INSTALL,
-    SQLITE_INSTALL,
-    _resolve_sqlite_conn_str,
 )
-from src.agents.checkpointer.sqlite_maintenance import ensure_async_sqlite_maintenance_hooks
 
 logger = logging.getLogger(__name__)
 
@@ -225,16 +220,6 @@ class OctoAgentAsyncPostgresSaverMixin:
             )
 
 
-@contextlib.contextmanager
-def _timed(label: str):
-    """Log how long the wrapped block took at INFO level."""
-    t0 = time.perf_counter()
-    try:
-        yield
-    finally:
-        logger.info("%s took %.3fs", label, time.perf_counter() - t0)
-
-
 # ---------------------------------------------------------------------------
 # Async factory
 # ---------------------------------------------------------------------------
@@ -247,25 +232,6 @@ async def _async_checkpointer(config) -> AsyncIterator[Checkpointer]:
         from langgraph.checkpoint.memory import InMemorySaver
 
         yield InMemorySaver()
-        return
-
-    if config.type == "sqlite":
-        try:
-            from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
-        except ImportError as exc:
-            raise ImportError(SQLITE_INSTALL) from exc
-
-        import pathlib
-
-        conn_str = _resolve_sqlite_conn_str(config.connection_string or "store.db")
-        # Only create parent directories for real filesystem paths
-        if conn_str != ":memory:" and not conn_str.startswith("file:"):
-            await asyncio.to_thread(pathlib.Path(conn_str).parent.mkdir, parents=True, exist_ok=True)
-        with _timed(f"checkpointer.sqlite.open conn={conn_str}"):
-            async with AsyncSqliteSaver.from_conn_string(conn_str) as saver:
-                with _timed("checkpointer.sqlite.setup"):
-                    await saver.setup()
-                yield ensure_async_sqlite_maintenance_hooks(saver)
         return
 
     if config.type == "postgres":

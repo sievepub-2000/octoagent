@@ -6,7 +6,7 @@ Seven core tools are loaded into every tool-capable system prompt by default:
     2. ask_clarification  - Ask the user for clarification
     3. present_file       - Present file contents to the user
     4. setup_agent        - Agent configuration / role setup
-    5. read_webpage       - Web content reading
+    5. web_read           - Lightweight web content reading
     6. list_capabilities  - Authoritative Harness discovery
     7. inspect_octoagent_runtime - Sanitized deployment self-check
 
@@ -33,10 +33,8 @@ from langchain.tools import BaseTool
 from src.harness.dynamic_import import resolve_variable
 from src.runtime.config import get_app_config
 from src.tools.builtins import (
-    BYTEBOT_COMPAT_TOOLS,
     DESKTOP_DRIVER_TOOLS,
     ECOSYSTEM_WORKFLOW_TOOLS,
-    OPENHARNESS_COMPAT_TOOLS,
     PUBLISHING_WORKFLOW_TOOLS,
     SOFTWARE_INTERFACE_TOOLS,
     SYSTEM_EXTRA_TOOLS,
@@ -48,10 +46,10 @@ from src.tools.builtins import (
     list_capabilities_tool,
     present_file_tool,
     process_image_tool,
-    read_webpage_tool,
     setup_agent,
     task_tool,
     view_image_tool,
+    web_read_tool,
 )
 from src.tools.permissions import ToolPermissionScope, set_tool_permission_metadata
 
@@ -77,30 +75,10 @@ BUILTIN_TOOLS_CORE: list[BaseTool] = [
     ask_clarification_tool,
     present_file_tool,
     setup_agent,
-    read_webpage_tool,
+    web_read_tool,
     list_capabilities_tool,
     inspect_octoagent_runtime_tool,
 ]
-
-
-def _openharness_compat_enabled() -> bool:
-    """Sprint-1 P0 optimization: OPENHARNESS_COMPAT_TOOLS adds ~1542 LOC of
-    tool descriptions to every system prompt. Default to OFF; opt in with
-    OCTOAGENT_OPENHARNESS_ENABLED=1 if a workflow requires the legacy shim."""
-    value = os.environ.get("OCTOAGENT_OPENHARNESS_ENABLED", "").strip().lower()
-    return value in {"1", "true", "yes", "on"}
-
-
-def _bytebot_compat_enabled() -> bool:
-    """Return True when BYTEBOT_COMPAT_ENABLED env flag is truthy.
-
-    Default is disabled to keep the default sandbox profile unchanged; the
-    adapter is observation-only (returns ``not_implemented`` JSON payloads) so
-    enabling it is safe, but we still opt-in explicitly per the
-    self-optimization policy (observe/suggest/shadow only).
-    """
-    value = os.environ.get("BYTEBOT_COMPAT_ENABLED", "").strip().lower()
-    return value in {"1", "true", "yes", "on"}
 
 
 def _env_flag(name: str, *, default: bool) -> bool:
@@ -134,18 +112,14 @@ LAZY_LOAD_REGISTRY: dict[str, list[BaseTool]] = {
 }
 
 # L3: MCP / plugin tools (loaded only when explicitly enabled)
-L3_MCP_PLUGIN_TOOLS: dict[str, list[BaseTool]] = {
-    "openharness_compat": OPENHARNESS_COMPAT_TOOLS,
-    "bytebot_compat": BYTEBOT_COMPAT_TOOLS,
-    "software_interface": SOFTWARE_INTERFACE_TOOLS,
-}
+L3_MCP_PLUGIN_TOOLS: dict[str, list[BaseTool]] = {"software_interface": SOFTWARE_INTERFACE_TOOLS}
 
 
 # ---------------------------------------------------------------------------
 # Backwards-compat alias
 # ---------------------------------------------------------------------------
 
-BUILTIN_TOOLS: list[BaseTool] = BUILTIN_TOOLS_CORE + (OPENHARNESS_COMPAT_TOOLS if _openharness_compat_enabled() else [])
+BUILTIN_TOOLS: list[BaseTool] = BUILTIN_TOOLS_CORE.copy()
 
 SUBAGENT_TOOLS: list[BaseTool] = [task_tool]
 
@@ -344,13 +318,6 @@ class ToolCatalog:
         if subagent_enabled:
             builtin_tools.extend(SUBAGENT_TOOLS)
             logger.info("Including subagent tools (task)")
-
-        if _bytebot_compat_enabled():
-            builtin_tools.extend(BYTEBOT_COMPAT_TOOLS)
-            logger.info(
-                "Including bytebot_compat tools (observation-only, %d entries)",
-                len(BYTEBOT_COMPAT_TOOLS),
-            )
 
         if resolved_model_name is None and config.models:
             resolved_model_name = config.models[0].name

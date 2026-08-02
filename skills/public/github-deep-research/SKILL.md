@@ -5,7 +5,7 @@ description: Conduct multi-round deep research on any GitHub Repo. Use when user
 
 # GitHub Deep Research Skill
 
-Multi-round research combining GitHub API, web_search, web_fetch to produce comprehensive markdown reports.
+Multi-round research combining GitHub API, web_search, and web_read to produce comprehensive markdown reports.
 
 ## Research Workflow
 
@@ -61,11 +61,11 @@ python /path/to/skill/scripts/github_api.py <owner> <repo> tree
 - Find official website/repo
 - Identify main players/competitors
 
-**Round 3 - Deep Investigation (5-10 web_search + web_fetch)**
+**Round 3 - Deep Investigation (5-10 web_search + web_read)**
 - Technical architecture details
 - Timeline of key events
 - Community sentiment
-- Use web_fetch on valuable URLs for full content
+- Use web_read on valuable URLs for full content
 
 **Round 4 - Deep Dive**
 - Analyze commit history for timeline

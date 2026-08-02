@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 from urllib.request import urlopen
 
-from playwright.sync_api import Page, sync_playwright
+from patchright.sync_api import Page, sync_playwright
 
 BASE_URL = os.getenv("OCTO_WEBUI_BASE_URL", "http://127.0.0.1:19880")
 SCREENSHOT_DIR = Path(__file__).resolve().parents[1] / "screenshots" / "webui-installs"

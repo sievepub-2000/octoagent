@@ -403,7 +403,7 @@ def build_report(*, run_doctor: bool, evidence_manifest: Path | None = None) -> 
             evidence=[
                 _doctor_evidence(doctor, "memory-api", manifest),
                 _path_evidence("harness_memory", "backend/src/harness/memory.py", "Markdown source and pgvector recall implementation exists"),
-                _path_evidence("memory_governance_doc", "project_docs/backend/SYSTEM_MEMORY_GOVERNANCE.md", "memory governance documentation exists"),
+                _path_evidence("memory_governance_doc", "docs/memory-personalization.md", "memory governance documentation exists"),
                 long_replay,
             ],
             blockers=[] if long_replay.ok else ["long conversation replay needs fresh staging artifacts"],
@@ -453,7 +453,7 @@ def build_report(*, run_doctor: bool, evidence_manifest: Path | None = None) -> 
             base=83,
             evidence=[
                 _path_evidence("release_precheck", "backend/scripts/run_release_precheck.py", "release precheck script exists"),
-                _path_evidence("release_materials", "project_docs/docs/RELEASE_PACKAGING_AND_MATERIALS.md", "release packaging document exists"),
+                _path_evidence("release_materials", "docs/docker-install.md", "release packaging document exists"),
                 _path_evidence("docker_installer", "scripts/install-docker.sh", "single Docker installation path exists"),
                 _path_evidence("container_logs", "compose.yaml", "container log lifecycle is owned by the Docker deployment"),
                 soak_monitor,
@@ -476,7 +476,7 @@ def build_report(*, run_doctor: bool, evidence_manifest: Path | None = None) -> 
                 _path_evidence("system_executor_security_gate", "backend/tests/system_executor/test_app.py", "root executor auth boundary is regression tested"),
                 _path_evidence("module_lifecycle_gate", "scripts/verify-module-lifecycles.py", "live module lifecycle smoke exists"),
                 _path_evidence("bounded_soak_gate", "backend/scripts/run_long_running_soak.py", "bounded soak smoke exists"),
-                _path_evidence("source_test_deletion_policy", "project_docs/CONTRIBUTING.md", "source-test deletion policy is documented"),
+                _path_evidence("source_test_deletion_policy", "CONTRIBUTING.md", "source-test deletion policy is documented"),
                 regression_bundle,
             ],
             blockers=[] if regression_bundle.ok else ["source tests are intentionally absent; release confidence must come from gates and soak evidence"],

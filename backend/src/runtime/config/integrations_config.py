@@ -47,14 +47,14 @@ class EmailIngressConfig(BaseModel):
 
 class BrowserAutomationConfig(BaseModel):
     enabled: bool = Field(default=False)
-    engine: Literal["patchright", "playwright", "camoufox", "cloakbrowser", "remote_cdp", "none"] = Field(default="playwright")
+    engine: Literal["patchright", "none"] = Field(default="patchright")
     embedded_headless: bool = Field(default=True)
     headless: bool = Field(default=True)
     executable_path: str | None = Field(default=None)
     artifacts_dir: str | None = Field(default=None)
     supports_authenticated_sessions: bool = Field(default=False)
     supports_remote_browser_pool: bool = Field(default=False)
-    note: str = Field(default=("Prefer Patchright/Playwright for the embedded headless provider. Camoufox/Cloakbrowser remain selectable when their runtime is installed and explicitly configured."))
+    note: str = Field(default="Patchright is the single embedded browser engine.")
 
 
 class IntegrationsConfig(BaseModel):

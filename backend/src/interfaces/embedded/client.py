@@ -548,8 +548,6 @@ class OctoAgentClient:
             OSError: If the config file cannot be written.
         """
         config_path = ExtensionsConfig.resolve_config_path()
-        if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set OCTO_AGENT_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
 
         current_config = get_extensions_config()
 
@@ -611,8 +609,6 @@ class OctoAgentClient:
             raise ValueError(f"Skill '{name}' not found")
 
         config_path = ExtensionsConfig.resolve_config_path()
-        if config_path is None:
-            raise FileNotFoundError("Cannot locate extensions_config.json. Set OCTO_AGENT_EXTENSIONS_CONFIG_PATH or ensure it exists in the project root.")
 
         extensions_config = get_extensions_config()
         extensions_config.skills[name] = SkillStateConfig(enabled=enabled)

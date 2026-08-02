@@ -62,12 +62,6 @@ COPY backend/pyproject.toml backend/uv.lock backend/README.md ./backend/
 RUN --mount=type=cache,target=/root/.cache/uv \
     cd /app/backend && uv sync --frozen --no-dev --no-install-project
 
-# Starlette prefers httpx2 for its test-client compatibility path. Keep it in
-# the production runtime so the health/doctor checks do not emit a deprecation
-# warning even though the main project does not otherwise depend on it.
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv pip install --python /app/backend/.venv/bin/python httpx2==2.6.0
-
 # Install Readability.js at build time. The Python wrapper otherwise tries a
 # runtime npm install into root-owned site-packages, which fails under the
 # unprivileged service user and silently degrades every web read to fallback
@@ -75,10 +69,6 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 RUN --mount=type=cache,target=/root/.npm \
     cd /app/backend/.venv/lib/python3.12/site-packages/readabilipy/javascript \
     && npm install --omit=dev --loglevel=error --no-fund --no-audit
-
-COPY runtime/tools/mcp/package.json runtime/tools/mcp/package-lock.json ./runtime/tools/mcp/
-RUN --mount=type=cache,target=/root/.npm \
-    cd /app/runtime/tools/mcp && npm ci --omit=dev --loglevel=error --no-fund --no-audit
 
 COPY backend ./backend
 COPY skills ./skills

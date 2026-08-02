@@ -83,7 +83,7 @@ class ResearchRuntimeService:
                 ],
                 iteration_budget=4,
                 time_budget_minutes=20,
-                allowed_mutation_roots=["backend/src", "frontend/src", "project_docs/docs"],
+                allowed_mutation_roots=["backend/src", "frontend/src", "docs"],
                 allowed_tool_classes=["analysis", "edit", "validation"],
             )
         ]

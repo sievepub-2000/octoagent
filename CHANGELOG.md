@@ -1,3 +1,41 @@
+## [20260802] - 2026-08-02
+
+### Minimal Harness and web execution
+
+- Reduced model-visible web capabilities to `web_search`, `web_read`, and
+  Harness Browser. `web_read` owns safe redirects, Readability extraction, RSS
+  fallback, output modes, and explicit `browser_required` escalation.
+- Kept Patchright as the only production browser engine. Removed Scrapling,
+  Python Playwright, the duplicate heavy fetch tool, and hidden browser
+  fallbacks that bypassed Harness scheduling and permission enforcement.
+- Removed the bundled Node MCP installation. Harness now loads only explicitly
+  configured external MCP servers and scans the canonical Skills roots.
+- Removed OpenHarness and Bytebot compatibility tools, SQLite checkpoint code,
+  legacy SQLite maintenance hooks, and duplicate MCP runtime overrides.
+
+### Smaller dependencies and repository
+
+- Replaced MarkItDown's all-format dependency stack with direct DOCX, XLSX,
+  PPTX, and PDF text extraction using retained Office libraries.
+- Reduced the Python lock from 230 to 170 resolved packages and removed the
+  bundled 167-package Node MCP lock. Both production dependency audits are
+  clean after security upgrades.
+- Made `runtime/config/config.yaml` and
+  `runtime/config/extensions_config.json` the only implicit configuration
+  sources. Explicit environment paths remain supported.
+- Removed duplicate `.agents/skills`, `tools/skills`, `project_docs`, generated
+  historical reports, obsolete topology automation, and stale audit artifacts.
+  `docs/` and Git history are now the documentation and archive.
+- Updated release prechecks and Runtime Doctor probes to the actual Agent
+  Runtime and Harness interfaces and portable package-manager invocation.
+
+### Verification
+
+- Added real DOCX/XLSX/PPTX/PDF conversion tests and unified web-read tests.
+- Backend: Ruff clean, dead-code scan clean, 436 tests passing, and
+  `pip-audit` clean.
+- Frontend production dependencies: `pnpm audit --prod` clean.
+
 ## [20260724.1.0] - 2026-07-24
 
 ### Agent Runtime + Harness architecture

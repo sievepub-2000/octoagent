@@ -501,10 +501,10 @@ function normalizeEntries(
 
   const desktopEnabled = desktop.enabled === true;
   const desktopBadge = desktop.badge ?? "stub";
-  const envFlag = desktop.env_flag ?? "BYTEBOT_COMPAT_ENABLED";
+  const envFlag = desktop.env_flag ?? "OCTOAGENT_SYSTEM_TOOLS_ENABLED";
   const desktopNote =
     desktop.note ??
-    "Observation-only stub. Returns not_implemented payloads for desktop actions.";
+    "Harness-managed desktop adapter; system permission is enforced at dispatch.";
   for (const tool of desktop.tools ?? []) {
     if (!tool?.name) continue;
     entries.push({
@@ -514,7 +514,7 @@ function normalizeEntries(
       description: tool.description ?? desktopNote,
       enabled: desktopEnabled,
       badge: desktopBadge,
-      usage: `${desktopNote} Mount controlled by env ${envFlag} (default off). Use /api/browser-runtime/* for real automation.`,
+      usage: `${desktopNote} Availability is reported by ${envFlag}.`,
     });
   }
 
@@ -821,7 +821,7 @@ export default function HarnessPage() {
 
       <footer className="mt-6 flex items-center gap-1 text-xs text-muted-foreground">
         <ExternalLinkIcon aria-hidden="true" className="size-3.5" />
-        Detailed docs live in <code>project_docs/TOOLS_CATALOG.md</code>.
+        Detailed docs live in <code>docs/tool-lifecycle-and-harness.md</code>.
       </footer>
       </div>
       )}

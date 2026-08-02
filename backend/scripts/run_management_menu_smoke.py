@@ -13,8 +13,8 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
-from playwright.sync_api import sync_playwright
+from patchright.sync_api import TimeoutError as PlaywrightTimeoutError
+from patchright.sync_api import sync_playwright
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 if str(BACKEND_ROOT) not in sys.path:

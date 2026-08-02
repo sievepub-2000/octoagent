@@ -260,7 +260,7 @@ function ToolCall({
         )}
       </ChainOfThoughtStep>
     );
-  } else if (name === "web_fetch") {
+  } else if (name === "web_read") {
     const url = (args as { url: string })?.url;
     let title = url;
     if (typeof result === "string") {

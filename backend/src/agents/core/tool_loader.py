@@ -207,8 +207,6 @@ _INTENT_TRIGGERS: dict[str, list[str]] = {
 
 # L3 MCP/plugin triggers (loaded only when explicitly enabled)
 _L3_TRIGGERS: dict[str, list[str]] = {
-    "openharness_compat": ["openharness", "legacy compat"],
-    "bytebot_compat": ["bytebot", "bytebot compat"],
     "software_interface": ["software interface", "authorize software"],
 }
 

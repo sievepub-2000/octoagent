@@ -54,10 +54,10 @@ def _run_step(
 
 
 def _frontend_package_manager_base() -> list[str]:
-    if shutil.which("pnpm"):
-        return ["pnpm"]
     if shutil.which("corepack"):
         return ["corepack", "pnpm"]
+    if shutil.which("pnpm"):
+        return ["pnpm"]
     raise RuntimeError("pnpm is required for frontend release precheck")
 
 
@@ -123,10 +123,16 @@ def main() -> int:
     steps.append(
         _run_step(
             name="verify uv dependency lock with bounded resolver",
-            command=["timeout", "600s", "uv", "lock", "--locked"],
+            command=["uv", "lock", "--check"],
             cwd=backend_root,
         )
     )
+
+    runtime_env = {
+        **os.environ,
+        "OCTO_AGENT_CONFIG_PATH": str(backend_root.parent / "config.example.yaml"),
+        "OCTOAGENT_MANAGED_SECRETS_FILE": str(backend_root.parent / "runtime" / "config" / ".precheck.env"),
+    }
 
     steps.append(
         _run_step(
@@ -150,6 +156,7 @@ def main() -> int:
                 "2",
             ],
             cwd=backend_root,
+            env=runtime_env,
         )
     )
 
@@ -158,6 +165,7 @@ def main() -> int:
             name="system doctor and core API contract smoke",
             command=[str(python_bin), "scripts/run_system_doctor.py", "--skip-git"],
             cwd=backend_root,
+            env=runtime_env,
         )
     )
 

@@ -8,9 +8,9 @@
 
 ## Search Strategy
 - Use Tavily for general web search
-- Use web_fetch for detailed page content
+- Use web_read for detailed page content
 - Use scrapling for JS-heavy pages
-- Use read_webpage for article extraction
+- If web_read returns browser_required, use Browser
 
 ## Memory Management
 - Store important patterns in archival memory

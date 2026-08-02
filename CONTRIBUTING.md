@@ -14,17 +14,11 @@ docker compose ps
 curl -fsS http://127.0.0.1:19800/health
 ```
 
-The canonical development handbook is
-[`project_docs/imported/root_files/CONTRIBUTING.md`](project_docs/imported/root_files/CONTRIBUTING.md);
-backend-specific notes live in
-[`project_docs/backend/CONTRIBUTING.md`](project_docs/backend/CONTRIBUTING.md).
-
 ## 2. Code style & checks
 
 Before opening a PR:
 
 - `cd backend && .venv/bin/ruff check src tests`
-- `cd backend && .venv/bin/python scripts/check_topology_freeze.py`
 - `cd backend && .venv/bin/pytest`
 - `cd frontend && pnpm lint && pnpm typecheck && pnpm build`
 
@@ -136,12 +130,5 @@ The active runtime configuration file lives at
 - `make config` will populate `runtime/config/config.yaml` with mode
   `0600`. The directory `runtime/config/` is gitignored
   (`runtime/config/*.yaml` and `runtime/config/*.env`).
-- A root-level `config.yaml` is still honoured as a back-compat
-  fallback by `resolve_app_config_path()`, but new installations
-  should use the runtime/config/ location.
 - Override at runtime with `OCTO_AGENT_CONFIG_PATH=/abs/path/to.yaml`
   or pass `config_path=...` to the loader.
-
-If you migrate from the legacy root layout, just `mkdir -p
-runtime/config && mv config.yaml runtime/config/config.yaml`. The
-loader picks up the new location automatically.
