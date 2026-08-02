@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import os
 import shutil
@@ -91,6 +92,23 @@ def _create_user() -> tuple[str, str, str, str]:
     return username, password, email, fingerprint
 
 
+def _cleanup_user(username: str) -> None:
+    """Remove the isolated smoke account and its tenant on every exit path."""
+
+    from src.governance.multi_tenant import get_tenant_registry
+    from src.governance.users import get_user_account_store
+
+    store = get_user_account_store()
+    tenant_id = ""
+    with store._connect() as conn:  # noqa: SLF001 - test-only cleanup
+        row = conn.execute("SELECT tenant_id FROM users WHERE username=?", (username,)).fetchone()
+        tenant_id = str(row["tenant_id"]) if row else ""
+        conn.execute("DELETE FROM users WHERE username=?", (username,))
+        conn.execute("DELETE FROM verification_codes WHERE username=?", (username,))
+    if tenant_id:
+        get_tenant_registry().deregister(tenant_id)
+
+
 def _api_check(client: httpx.Client, method: str, url: str, **kwargs: Any) -> dict[str, Any]:
     try:
         response = client.request(method, url, **kwargs)
@@ -105,6 +123,7 @@ def main() -> int:
     report = ManagementSmokeReport()
     timeout_ms = int(args.timeout_seconds * 1000)
     username, password, email, fingerprint = _create_user()
+    atexit.register(_cleanup_user, username)
 
     with httpx.Client(timeout=args.timeout_seconds, trust_env=False) as client:
         login = client.post(
@@ -126,9 +145,9 @@ def main() -> int:
             ("GET", "/api/plugins/registry", {"headers": headers}),
             ("GET", "/api/plugins/manifests", {"headers": headers}),
             ("GET", "/api/skills", {"headers": headers}),
-            ("GET", "/api/tools/registry", {"headers": headers}),
+            ("GET", "/api/harness", {"headers": headers}),
             ("GET", "/api/channels/", {"headers": headers}),
-            ("GET", "/api/memory/system/stats", {"headers": headers}),
+            ("GET", "/api/runtime/doctor", {"headers": headers}),
             ("GET", "/api/metrics/memory-health", {"headers": headers}),
         ]
         for method, path, kwargs in endpoints:
@@ -148,8 +167,6 @@ def main() -> int:
         "/workspace/config/skills",
         "/workspace/config/tools",
         "/workspace/config/channels",
-        "/workspace/config/memory",
-        "/workspace/config/evolution",
         "/workspace/chats/new?settings=general&mock=true",
         "/workspace/chats/new?settings=models&mock=true",
         "/workspace/chats/new?settings=skills&mock=true",

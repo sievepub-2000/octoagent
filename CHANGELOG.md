@@ -42,6 +42,9 @@
   Runtime Doctor now fails unless built-ins and all three web tools are real.
 - Moved file-backed authentication calls off the ASGI event loop so LangGraph
   1.2's blocking-call guard does not turn login and registration into HTTP 500.
+- Realigned the authenticated WebUI smoke contract with Harness and Runtime
+  Doctor, removed probes for deleted settings pages, and made smoke accounts
+  self-cleaning on success and failure.
 
 ### Verification
 
