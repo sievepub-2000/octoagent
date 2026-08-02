@@ -76,11 +76,15 @@ function resolveRunControlState({
   runtime,
   error,
   lastUserText,
+  contextGuardTruncatedLabel,
+  contextGuardTruncatedDetail,
 }: {
   isLoading: boolean;
   runtime: AgentThreadState["runtime"];
   error: unknown;
   lastUserText: string | null;
+  contextGuardTruncatedLabel: string;
+  contextGuardTruncatedDetail: string;
 }): RunControlState {
   if (isLoading) {
     return {
@@ -108,6 +112,22 @@ function resolveRunControlState({
       level: "error",
       canRetry: Boolean(lastUserText),
       canResume: true,
+    };
+  }
+
+  if (
+    runtime?.recommended_memory_action === "truncate_oversized_messages" ||
+    runtime?.context_guard_state === "truncated" ||
+    runtime?.context_guard_state === "trimmed" ||
+    runtime?.context_guard_state === "compacted"
+  ) {
+    return {
+      visible: true,
+      label: contextGuardTruncatedLabel,
+      detail: contextGuardTruncatedDetail,
+      level: "warning",
+      canRetry: false,
+      canResume: false,
     };
   }
 
@@ -617,8 +637,19 @@ function ChatThreadView({
         runtime: thread.values.runtime,
         error: thread.error,
         lastUserText,
+        contextGuardTruncatedLabel:
+          t.workspace.inspector.memoryGuardTruncatedTitle,
+        contextGuardTruncatedDetail:
+          t.workspace.inspector.memoryGuardTruncatedDetail,
       }),
-    [lastUserText, thread.error, thread.isLoading, thread.values.runtime],
+    [
+      lastUserText,
+      t.workspace.inspector.memoryGuardTruncatedDetail,
+      t.workspace.inspector.memoryGuardTruncatedTitle,
+      thread.error,
+      thread.isLoading,
+      thread.values.runtime,
+    ],
   );
 
   const handleRetryLastTurn = useCallback(() => {
