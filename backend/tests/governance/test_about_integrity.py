@@ -27,8 +27,7 @@ def test_about_markdown_starts_with_license_section():
     body = about.about_markdown()
     assert body.startswith("**Project License**"), "About body must lead with the license section, not the contact line."
     assert "SSPL v1" in body
-    assert "MIT" in body
-    assert "Bytedance" in body
+    assert "LICENSE" in body
     assert "=====" in body
 
 

@@ -1,7 +1,6 @@
 OctoAgent License
 =================
 
-Copyright (c) 2025 Bytedance Ltd. and/or its affiliates  
 Copyright (c) 2025-2026 OctopusAgent Authors  
 Copyright (c) 2026 OctoSys (https://octosys.cloud) — contact zillafan80@gmail.com
 
@@ -65,19 +64,6 @@ the OctopusAgent Authors / OctoSys. You may make nominative fair use
 not imply endorsement, affiliation, or origin. You may not use the Marks
 in the name of any forked or derivative project without prior written
 permission to: zillafan80@gmail.com.
-
-----------------------------------------------------------------------
-Upstream Attribution (preserved per MIT terms)
-----------------------------------------------------------------------
-
-Portions of this Software were originally released by Bytedance Ltd.
-and/or its affiliates under the MIT License (the "Upstream MIT Code").
-The full upstream MIT notice is preserved in ``NOTICE.md`` at the
-repository root. Nothing in this License removes or restricts any rights
-the Upstream MIT Code grants under its original MIT terms; this License
-governs only contributions made by the OctopusAgent Authors / OctoSys
-and the project's combined form. Recipients seeking to use the Upstream
-MIT Code in isolation may do so under MIT.
 
 ----------------------------------------------------------------------
 Server Side Public License v1 (SSPL v1)

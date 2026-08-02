@@ -4,9 +4,6 @@
 > - **SSPL v1** (the public source license — see [`LICENSE`](../LICENSE)).
 > - **Commercial license** (a separate, paid agreement — contact
 >   **zillafan80@gmail.com**).
->
-> The Bytedance-derived portion remains under **MIT** — see
-> [`NOTICE.md`](../NOTICE.md) for the file-level attribution.
 
 This FAQ exists because SSPL is widely misread as "free for anything,
 since it's open source". It is not. The summary below is non-binding;
@@ -71,17 +68,6 @@ the commercial license is the pragmatic path.
 
 The commercial license is **separate** from the OSS license; you
 continue to receive the public source releases under SSPL.
-
----
-
-## What about the MIT-licensed Bytedance-derived files?
-
-A subset of files under `backend/src/` originated in Bytedance's
-agent-sandbox project and remain under **MIT**. See
-[`NOTICE.md`](../NOTICE.md) for the file list. You are free to use,
-modify, and redistribute *those specific files* under MIT regardless of
-the rest of OctoAgent's licensing. The MIT carve-out does **not**
-extend to the project as a whole.
 
 ---
 

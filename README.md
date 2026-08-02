@@ -1,10 +1,11 @@
 # OctoAgent
 
-OctoAgent 是一个可审计、自托管的通用 Agent 系统。当前版本只保留一条
-生产执行链：LangGraph Agent Runtime 负责模型回合与运行状态，Harness
-负责能力发现、权限、工具执行、产物和记忆。
+OctoAgent 是一个面向真实任务执行的自托管通用 Agent 系统，强调模型自主性、
+可审计性、低资源开销和部署可控性。系统只保留一条生产执行链：LangGraph
+Agent Runtime 负责模型回合、上下文接续与运行状态；Harness 统一负责能力扫描、
+权限策略、跨模型工具协议、执行适配、产物和 Markdown + pgvector 永久记忆。
 
-当前版本：`20260802.0.3`
+当前版本：`20260802`
 
 ## 架构
 
@@ -148,8 +149,7 @@ pnpm build
 
 ## 许可证与联系
 
-项目采用 SSPL v1 与商业许可双重授权；Bytedance 派生部分继续遵循
-MIT，详情见 [LICENSE](LICENSE)、[NOTICE.md](NOTICE.md) 和
+项目采用 SSPL v1 与商业许可双重授权，详情见 [LICENSE](LICENSE) 和
 [商业许可 FAQ](docs/COMMERCIAL_LICENSE_FAQ.md)。
 
 - Bug 与功能建议：GitHub Issues

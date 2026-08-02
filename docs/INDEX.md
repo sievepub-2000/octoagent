@@ -38,7 +38,7 @@ goal below.
   [`deploy/`](../deploy/).
 * **Licensing & commercial use** —
   [`docs/COMMERCIAL_LICENSE_FAQ.md`](./COMMERCIAL_LICENSE_FAQ.md),
-  [`LICENSE`](../LICENSE), [`NOTICE.md`](../NOTICE.md).
+  [`LICENSE`](../LICENSE).
 
 ### Contribute to OctoAgent
 
@@ -65,7 +65,7 @@ goal below.
   [`backend/src/governance/audit/`](../backend/src/governance/audit/).
 * **License compliance** —
   [`docs/COMMERCIAL_LICENSE_FAQ.md`](./COMMERCIAL_LICENSE_FAQ.md),
-  [`NOTICE.md`](../NOTICE.md).
+  [`LICENSE`](../LICENSE).
 * **Change history** —
   [`CHANGELOG.md`](../CHANGELOG.md).
 * **Stable-period Phase 1 verification** —

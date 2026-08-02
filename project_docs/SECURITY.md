@@ -2,11 +2,12 @@
 
 ## Supported Versions
 
-As octopusagent doesn't provide an offical release yet, please use the latest version for the security updates.
-Current we have two branches to maintain: 
-* main branch for octopusagent 2.x
-* main-1.x branch for octopusagent 1.x 
+Security fixes are provided for the latest release on the `main` branch.
+Operators should upgrade to the latest Docker image and repository revision
+before reporting a problem.
 
 ## Reporting a Vulnerability
 
-Please go to https://github.com/bytedance/octopusagent/security to report the vulnerability you find.
+Do not disclose vulnerabilities in a public issue. Send a private report to
+`zillafan80@gmail.com` with the affected version, reproduction steps, impact,
+and any suggested mitigation.

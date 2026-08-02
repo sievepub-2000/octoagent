@@ -60,10 +60,9 @@ jobs:
           license-checker-rseidelsohn --production --excludePackages "octoagent-frontend" \
               --failOn 'GPL-2.0;GPL-3.0;LGPL-2.1;LGPL-3.0;AGPL-1.0;AGPL-3.0'
 
-      - name: Verify LICENSE + NOTICE present
+      - name: Verify LICENSE present
         run: |
           test -f LICENSE
-          test -f NOTICE.md
           grep -q "SSPL" LICENSE
           grep -q "Anti-Bypassing" LICENSE
           grep -q "Patent Retaliation" LICENSE

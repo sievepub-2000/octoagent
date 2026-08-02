@@ -9,7 +9,6 @@
 - [frontend-design](../octopusagent/skills/public/frontend-design/skill-frontend-design.md)
 - [github-deep-research](../octopusagent/skills/public/github-deep-research/skill-github-deep-research.md)
 - [image-generation](../octopusagent/skills/public/image-generation/skill-image-generation.md)
-- [podcast-generation](../octopusagent/skills/public/podcast-generation/skill-podcast-generation.md)
 - [ppt-generation](../octopusagent/skills/public/ppt-generation/skill-ppt-generation.md)
 - [skill-creator](../octopusagent/skills/public/skill-creator/skill-skill-creator.md)
 - [surprise-me](../octopusagent/skills/public/surprise-me/skill-surprise-me.md)

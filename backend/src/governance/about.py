@@ -77,8 +77,7 @@ _ABOUT_BODY = """**Project License**
 
 - Default open-source terms: **Server Side Public License v1 (SSPL v1)**.
 - Commercial alternatives also available: **closed-source / SaaS / embedded / OEM licenses** (contact for terms).
-- This project includes original code excerpts from **Bytedance Ltd.**, redistributed under the **MIT License**; see `NOTICE.md` at the repository root for the full notice.
-- Full terms in `LICENSE` and `NOTICE.md` at the repository root.
+- Full terms are in `LICENSE` at the repository root.
 
 **Author Contact: zillafan80@gmail.com**
 
@@ -112,7 +111,7 @@ Office automation · Business due diligence · Data analysis reports · Academic
 # whenever the canonical About body legitimately changes (e.g. translation
 # typo). Editing the email itself is a deliberate breakage signal — do not
 # bypass.
-_INTEGRITY_FINGERPRINT = "3062ceb1d2cd43168209d298fd2a0ac6bedd2edbdee05452c808234e587dd059"  # resealed by refresh_about_fingerprint.py
+_INTEGRITY_FINGERPRINT = "ed8fa3bc1c5ddf06fb7e82ab358d5b804a9dd69a3ed7d1f417a11cedd07a585e"  # resealed by refresh_about_fingerprint.py
 
 
 class AboutIntegrityError(RuntimeError):

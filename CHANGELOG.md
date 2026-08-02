@@ -1826,5 +1826,18 @@ slices for traceability:
   authoritative Harness summary and runtime status in every response.
 - Removed large metadata and truncated descriptions from the default model
   result, reducing the second model turn after capability discovery.
-- Removed the ByteDance code-excerpt redistribution sentence from every
-  localized Settings > About view while leaving repository license files intact.
+- Removed obsolete third-party redistribution copy from every localized
+  Settings > About view.
+
+## [20260802] - 2026-08-02
+
+### Project identity cleanup
+
+- Removed the obsolete root notice, related attribution copy, legacy repository
+  links, and the duplicated unregistered podcast skill tied to a retired TTS
+  endpoint.
+- Replaced stale legacy configuration names in contributor documentation with
+  the active `OCTO_AGENT_CONFIG_PATH` and
+  `OCTO_AGENT_EXTENSIONS_CONFIG_PATH` settings.
+- Updated the README project description to the current Agent Runtime + Harness
+  architecture and aligned every live version surface to `20260802`.

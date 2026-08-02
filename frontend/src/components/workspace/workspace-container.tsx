@@ -94,7 +94,7 @@ export function WorkspaceHeader({
         <Tooltip content={t.workspace.githubTooltip}>
           <a
             aria-label={t.workspace.githubTooltip}
-            href="https://github.com/bytedance/octoagent"
+            href="https://github.com/sievepub-2000/octoagent"
             target="_blank"
             rel="noopener noreferrer"
             className="opacity-75 transition hover:opacity-100"

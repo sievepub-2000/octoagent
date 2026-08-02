@@ -212,7 +212,7 @@ models:
 - `DEEPSEEK_API_KEY` - DeepSeek API key
 - `NOVITA_API_KEY` - Novita API key (OpenAI-compatible endpoint)
 - `TAVILY_API_KEY` - Tavily search API key
-- `DEER_FLOW_CONFIG_PATH` - Custom config file path
+- `OCTO_AGENT_CONFIG_PATH` - Custom config file path
 
 ## Configuration Location
 
@@ -223,7 +223,7 @@ The configuration file should be placed in the **project root directory** (`octo
 OctopusAgent searches for configuration in this order:
 
 1. Path specified in code via `config_path` argument
-2. Path from `DEER_FLOW_CONFIG_PATH` environment variable
+2. Path from `OCTO_AGENT_CONFIG_PATH` environment variable
 3. `config.yaml` in current working directory (typically `backend/` when running)
 4. `config.yaml` in parent directory (project root: `octopusagent/`)
 
@@ -241,7 +241,7 @@ OctopusAgent searches for configuration in this order:
 ### "Config file not found"
 - Ensure `config.yaml` exists in the **project root** directory (`octopusagent/config.yaml`)
 - The backend searches parent directory by default, so root location is preferred
-- Alternatively, set `DEER_FLOW_CONFIG_PATH` environment variable to custom location
+- Alternatively, set `OCTO_AGENT_CONFIG_PATH` environment variable to custom location
 
 ### "Invalid API key"
 - Verify environment variables are set correctly

@@ -19,7 +19,7 @@ const aboutMarkdownEnUS = `**Project License**
 
 - Default open-source terms: **Server Side Public License v1 (SSPL v1)**.
 - Commercial alternatives also available: **closed-source / SaaS / embedded / OEM licenses** (contact for terms).
-- Full terms in \`LICENSE\` and \`NOTICE.md\` at the repository root.
+- Full terms are in \`LICENSE\` at the repository root.
 
 **Author Contact: ${CONTACT_EMAIL}**
 
@@ -58,7 +58,7 @@ const aboutMarkdownZhCN = `**项目许可证**
 
 - 默认开源条款：**Server Side Public License v1（SSPL v1）**。
 - 同时提供商业授权：**闭源 / SaaS / 嵌入式 / OEM 授权**（具体条款请联系作者）。
-- 完整条款见仓库根目录的 \`LICENSE\` 与 \`NOTICE.md\`。
+- 完整条款见仓库根目录的 \`LICENSE\`。
 
 **作者联系方式：${CONTACT_EMAIL}**
 
@@ -95,7 +95,7 @@ const aboutMarkdownZhTW = `**專案授權**
 
 - 預設開源條款：**Server Side Public License v1（SSPL v1）**。
 - 同時提供商業授權：**閉源 / SaaS / 嵌入式 / OEM 授權**（具體條款請聯絡作者）。
-- 完整條款見儲存庫根目錄的 \`LICENSE\` 與 \`NOTICE.md\`。
+- 完整條款見儲存庫根目錄的 \`LICENSE\`。
 
 **作者聯絡方式：${CONTACT_EMAIL}**
 
@@ -132,7 +132,7 @@ const aboutMarkdownJa = `**プロジェクトライセンス**
 
 - 既定のオープンソース条項：**Server Side Public License v1（SSPL v1）**。
 - 商用ライセンスも提供：**クローズドソース / SaaS / 組み込み / OEM ライセンス**（条件はお問い合わせください）。
-- 完全な条項はリポジトリ直下の \`LICENSE\` と \`NOTICE.md\` にあります。
+- 完全な条項はリポジトリ直下の \`LICENSE\` にあります。
 
 **作者連絡先：${CONTACT_EMAIL}**
 
@@ -169,7 +169,7 @@ const aboutMarkdownKo = `**프로젝트 라이선스**
 
 - 기본 오픈소스 조항: **Server Side Public License v1(SSPL v1)**.
 - 상업용 라이선스도 제공: **클로즈드 소스 / SaaS / 임베디드 / OEM 라이선스**(조건은 문의 바랍니다).
-- 전체 조항은 저장소 루트의 \`LICENSE\` 와 \`NOTICE.md\` 에 있습니다.
+- 전체 조항은 저장소 루트의 \`LICENSE\` 에 있습니다.
 
 **작성자 연락처: ${CONTACT_EMAIL}**
 

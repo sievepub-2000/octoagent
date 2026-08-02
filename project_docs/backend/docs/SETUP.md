@@ -43,7 +43,7 @@ OctopusAgent uses a YAML configuration file that should be placed in the **proje
 
 The backend searches for `config.yaml` in this order:
 
-1. `DEER_FLOW_CONFIG_PATH` environment variable (if set)
+1. `OCTO_AGENT_CONFIG_PATH` environment variable (if set)
 2. `backend/config.yaml` (current directory when running from backend/)
 3. `octopusagent/config.yaml` (parent directory - **recommended location**)
 
