@@ -45,6 +45,8 @@
 - Realigned the authenticated WebUI smoke contract with Harness and Runtime
   Doctor, removed probes for deleted settings pages, and made smoke accounts
   self-cleaning on success and failure.
+- Updated the long-chat and seamless-continuation browser fixture to the real
+  Laguna default model and the three-level permission contract.
 
 ### Verification
 

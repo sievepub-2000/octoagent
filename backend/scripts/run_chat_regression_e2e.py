@@ -130,10 +130,14 @@ def _install_local_state(context) -> None:
             setup: {
               completed: true,
               workspace_path: "/home/sieve-pub/public-workspace/octoagent",
-              default_model: "nemotron-3-super-free",
+              default_model: "laguna-s21-nvfp4",
               sandbox_mode: "local"
             },
-            context: { model_name: "nemotron-3-super-free", mode: "flash" },
+            context: {
+              model_name: "laguna-s21-nvfp4",
+              mode: "flash",
+              permission_mode: "directory"
+            },
             layout: { sidebar_collapsed: false },
             appearance: { preset: "default" },
             notification: { enabled: true },
