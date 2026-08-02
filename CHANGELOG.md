@@ -1826,3 +1826,5 @@ slices for traceability:
   authoritative Harness summary and runtime status in every response.
 - Removed large metadata and truncated descriptions from the default model
   result, reducing the second model turn after capability discovery.
+- Removed the ByteDance code-excerpt redistribution sentence from every
+  localized Settings > About view while leaving repository license files intact.

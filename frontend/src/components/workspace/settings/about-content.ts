@@ -19,7 +19,6 @@ const aboutMarkdownEnUS = `**Project License**
 
 - Default open-source terms: **Server Side Public License v1 (SSPL v1)**.
 - Commercial alternatives also available: **closed-source / SaaS / embedded / OEM licenses** (contact for terms).
-- This project includes original code excerpts from **Bytedance Ltd.**, redistributed under the **MIT License**; see \`NOTICE.md\` at the repository root for the full notice.
 - Full terms in \`LICENSE\` and \`NOTICE.md\` at the repository root.
 
 **Author Contact: ${CONTACT_EMAIL}**
@@ -59,7 +58,6 @@ const aboutMarkdownZhCN = `**项目许可证**
 
 - 默认开源条款：**Server Side Public License v1（SSPL v1）**。
 - 同时提供商业授权：**闭源 / SaaS / 嵌入式 / OEM 授权**（具体条款请联系作者）。
-- 本项目包含来自 **字节跳动有限公司（Bytedance Ltd.）** 的原始代码片段，按 **MIT 许可证** 再分发；完整声明见仓库根目录的 \`NOTICE.md\`。
 - 完整条款见仓库根目录的 \`LICENSE\` 与 \`NOTICE.md\`。
 
 **作者联系方式：${CONTACT_EMAIL}**
@@ -97,7 +95,6 @@ const aboutMarkdownZhTW = `**專案授權**
 
 - 預設開源條款：**Server Side Public License v1（SSPL v1）**。
 - 同時提供商業授權：**閉源 / SaaS / 嵌入式 / OEM 授權**（具體條款請聯絡作者）。
-- 本專案包含來自 **字節跳動有限公司（Bytedance Ltd.）** 的原始程式碼片段，依 **MIT 授權** 再散布；完整聲明見儲存庫根目錄的 \`NOTICE.md\`。
 - 完整條款見儲存庫根目錄的 \`LICENSE\` 與 \`NOTICE.md\`。
 
 **作者聯絡方式：${CONTACT_EMAIL}**
@@ -135,7 +132,6 @@ const aboutMarkdownJa = `**プロジェクトライセンス**
 
 - 既定のオープンソース条項：**Server Side Public License v1（SSPL v1）**。
 - 商用ライセンスも提供：**クローズドソース / SaaS / 組み込み / OEM ライセンス**（条件はお問い合わせください）。
-- 本プロジェクトには **Bytedance Ltd.** のオリジナルコード抜粋が含まれ、**MIT ライセンス** で再配布しています。全文はリポジトリ直下の \`NOTICE.md\` を参照してください。
 - 完全な条項はリポジトリ直下の \`LICENSE\` と \`NOTICE.md\` にあります。
 
 **作者連絡先：${CONTACT_EMAIL}**
@@ -173,7 +169,6 @@ const aboutMarkdownKo = `**프로젝트 라이선스**
 
 - 기본 오픈소스 조항: **Server Side Public License v1(SSPL v1)**.
 - 상업용 라이선스도 제공: **클로즈드 소스 / SaaS / 임베디드 / OEM 라이선스**(조건은 문의 바랍니다).
-- 본 프로젝트에는 **Bytedance Ltd.** 의 원본 코드 일부가 포함되어 있으며 **MIT 라이선스** 로 재배포됩니다. 전체 고지는 저장소 루트의 \`NOTICE.md\` 를 참조하세요.
 - 전체 조항은 저장소 루트의 \`LICENSE\` 와 \`NOTICE.md\` 에 있습니다.
 
 **작성자 연락처: ${CONTACT_EMAIL}**
