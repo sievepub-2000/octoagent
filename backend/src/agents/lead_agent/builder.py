@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from dataclasses import dataclass
 from typing import TypedDict
 
 from langchain_core.runnables import RunnableConfig
@@ -11,6 +12,69 @@ from ..dialogue_routing import FAST_ROUTES
 from .runtime import LeadAgentRuntimeOptions
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True, slots=True)
+class ToolBindingScope:
+    groups: list[str]
+    include_mcp: bool
+
+
+_DISCOVERY_TERMS = (
+    "list_capabilities",
+    "inspect_octoagent_runtime",
+    "capability registry",
+    "工具清单",
+    "工具列表",
+    "可用工具",
+)
+_WEB_TERMS = ("web", "search", "internet", "网页", "搜索", "互联网", "检索最新")
+_FILE_SHELL_TERMS = (
+    "code",
+    "repo",
+    "repository",
+    "file",
+    "filesystem",
+    "shell",
+    "bash",
+    "git",
+    "docker",
+    "test",
+    "deploy",
+    "代码",
+    "仓库",
+    "文件",
+    "系统",
+    "容器",
+    "测试",
+    "部署",
+    "修复",
+)
+_MCP_TERMS = ("mcp", "connector", "连接器", "openapi server", "mcp server")
+
+
+def resolve_tool_binding_scope(
+    dialogue_text: str,
+    *,
+    dialogue_route: str,
+    configured_groups: list[str] | None,
+) -> ToolBindingScope:
+    """Select the smallest immediately useful tool surface for this turn."""
+
+    if configured_groups is not None:
+        return ToolBindingScope(groups=list(configured_groups), include_mcp=True)
+
+    text = (dialogue_text or "").lower()
+    include_mcp = any(term in text for term in _MCP_TERMS)
+    if any(term in text for term in _DISCOVERY_TERMS):
+        return ToolBindingScope(groups=[], include_mcp=include_mcp)
+
+    groups: list[str] = []
+    if dialogue_route == "current_research" or any(term in text for term in _WEB_TERMS):
+        groups.append("web")
+    if any(term in text for term in _FILE_SHELL_TERMS) or dialogue_route == "deep_agent":
+        groups.extend(["file:read", "file:write", "bash"])
+    return ToolBindingScope(groups=list(dict.fromkeys(groups)), include_mcp=include_mcp)
 
 
 # The API accepts a deliberately open per-run context (mode, sandbox_id,
@@ -91,13 +155,15 @@ class LeadAgentBuilder:
 
         tools = []
         if options.dialogue_needs_tools:
+            binding_scope = resolve_tool_binding_scope(
+                options.dialogue_text,
+                dialogue_route=options.dialogue_route,
+                configured_groups=options.agent_tool_groups,
+            )
             tools = self._get_available_tools_fn(
                 model_name=options.model_name,
-                groups=options.agent_tool_groups,
-                # Enabled MCP tools are part of the Harness tool surface.  A
-                # fast non-thinking route may use a compact prompt, but must
-                # never silently lose callable tools.
-                include_mcp=True,
+                groups=binding_scope.groups,
+                include_mcp=binding_scope.include_mcp,
                 permission_mode=options.permission_mode,
                 subagent_enabled=options.subagent_enabled,
             )

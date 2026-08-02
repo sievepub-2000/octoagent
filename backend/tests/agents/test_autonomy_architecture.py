@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from src.agents.core.instruction_contracts import detect_instruction_contract
 from src.agents.lead_agent import agent as agent_module
+from src.agents.lead_agent.builder import resolve_tool_binding_scope
 from src.runtime.config.model_config import ModelConfig
 
 
@@ -73,3 +74,36 @@ def test_code_task_with_recent_context_stays_a_code_task() -> None:
 
     assert contract.intent == "code_task"
     assert contract.required_tool_categories == ("filesystem", "tests")
+
+
+def test_tool_discovery_uses_core_narrow_waist_only() -> None:
+    scope = resolve_tool_binding_scope(
+        "请调用 list_capabilities 查看当前真实工具",
+        dialogue_route="tool_action",
+        configured_groups=None,
+    )
+
+    assert scope.groups == []
+    assert scope.include_mcp is False
+
+
+def test_code_task_loads_only_file_and_shell_groups() -> None:
+    scope = resolve_tool_binding_scope(
+        "检查仓库代码并修复测试，然后提交 git",
+        dialogue_route="deep_agent",
+        configured_groups=None,
+    )
+
+    assert scope.groups == ["file:read", "file:write", "bash"]
+    assert scope.include_mcp is False
+
+
+def test_explicit_mcp_task_enables_mcp_without_loading_all_configured_groups() -> None:
+    scope = resolve_tool_binding_scope(
+        "通过 MCP 查询已连接的 PostgreSQL 服务",
+        dialogue_route="tool_action",
+        configured_groups=None,
+    )
+
+    assert scope.groups == []
+    assert scope.include_mcp is True

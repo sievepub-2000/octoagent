@@ -4,10 +4,67 @@ from langchain_core.messages import AIMessage, AIMessageChunk
 from langchain_core.outputs import ChatGenerationChunk
 
 from src.models.semantics import (
+    ToolCallProtocolAdapter,
     _normalize_ai_message_tool_calls,
     _normalize_chat_generation_chunks,
     _normalize_streaming_chat_generation_chunks,
 )
+
+
+def test_unified_adapter_normalizes_openai_responses_function_call_block() -> None:
+    adapter = ToolCallProtocolAdapter()
+    message = AIMessage(
+        content=[
+            {"type": "text", "text": "Checking."},
+            {
+                "type": "function_call",
+                "call_id": "call_responses_1",
+                "name": "read_file",
+                "arguments": '{"path":"/tmp/a.txt"}',
+            },
+        ]
+    )
+
+    normalized = adapter.normalize_message(message, allowed_tool_names={"read_file"})
+
+    assert normalized.content == [{"type": "text", "text": "Checking."}]
+    assert normalized.tool_calls == [
+        {
+            "name": "read_file",
+            "args": {"path": "/tmp/a.txt"},
+            "id": "call_responses_1",
+            "type": "tool_call",
+        }
+    ]
+
+
+def test_unified_adapter_rejects_text_fallback_for_unbound_tool() -> None:
+    adapter = ToolCallProtocolAdapter()
+    message = AIMessage(
+        content='<tool_call>{"name":"host_shell","arguments":{"command":"id"}}</tool_call>'
+    )
+
+    normalized = adapter.normalize_message(message, allowed_tool_names={"read_file"})
+
+    assert normalized is message
+    assert normalized.tool_calls == []
+
+
+def test_unified_adapter_preserves_native_structured_tool_calls() -> None:
+    adapter = ToolCallProtocolAdapter()
+    message = AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "name": "web_search",
+                "args": {"query": "OctoAgent"},
+                "id": "native_1",
+                "type": "tool_call",
+            }
+        ],
+    )
+
+    assert adapter.normalize_message(message, allowed_tool_names={"web_search"}) is message
 
 
 def test_xmlish_tool_call_text_is_normalized_to_tool_call() -> None:

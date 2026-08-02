@@ -87,6 +87,86 @@ class ModelSemanticProfile:
     thinking_semantics: ThinkingSemantics = "none"
 
 
+@dataclass(frozen=True, slots=True)
+class ToolCallProtocolAdapter:
+    """Translate provider/model tool-call dialects to one LangChain contract.
+
+    The canonical boundary is ``{"name": str, "args": dict, "id": str,
+    "type": "tool_call"}``. Provider-native structured calls always win;
+    textual Hermes/Qwen/XML/JSON/tool-code parsing is compatibility fallback.
+    """
+
+    def normalize_tool_choice(self, tool_choice: Any) -> Any:
+        if isinstance(tool_choice, bool):
+            return "required" if tool_choice else "none"
+        if tool_choice == "any":
+            return "required"
+        return tool_choice
+
+    def binding_kwargs(
+        self,
+        model: BaseChatModel,
+        tools,
+        *,
+        tool_choice: Any = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        if not hasattr(model, "bind_tools"):
+            return {}
+        normalized_kwargs = dict(kwargs)
+        if tool_choice is not None:
+            normalized_kwargs["tool_choice"] = self.normalize_tool_choice(tool_choice)
+        bound = model.bind_tools(tools, **normalized_kwargs)
+        return dict(getattr(bound, "kwargs", {}))
+
+    def normalize_message(
+        self,
+        message: AIMessage,
+        *,
+        allowed_tool_names: set[str] | None = None,
+    ) -> AIMessage:
+        return _normalize_ai_message_tool_calls(
+            message,
+            allowed_tool_names=allowed_tool_names,
+        )
+
+    def normalize_result(
+        self,
+        result: ChatResult,
+        *,
+        allowed_tool_names: set[str] | None = None,
+    ) -> ChatResult:
+        return _normalize_chat_result_tool_calls(
+            result,
+            allowed_tool_names=allowed_tool_names,
+        )
+
+    def normalize_chunks(
+        self,
+        chunks: list[ChatGenerationChunk],
+        *,
+        allowed_tool_names: set[str] | None = None,
+    ) -> list[ChatGenerationChunk]:
+        return _normalize_chat_generation_chunks(
+            chunks,
+            allowed_tool_names=allowed_tool_names,
+        )
+
+    def normalize_stream(
+        self,
+        chunks: Iterable[ChatGenerationChunk],
+        *,
+        allowed_tool_names: set[str] | None = None,
+    ) -> Iterable[ChatGenerationChunk]:
+        return _normalize_streaming_chat_generation_chunks(
+            chunks,
+            allowed_tool_names=allowed_tool_names,
+        )
+
+
+DEFAULT_TOOL_CALL_PROTOCOL_ADAPTER = ToolCallProtocolAdapter()
+
+
 class ModelSemanticTranslator:
     """Normalize provider-facing settings, messages, and tool-binding inputs."""
 
@@ -248,11 +328,7 @@ class ModelSemanticTranslator:
         return item
 
     def normalize_tool_choice(self, tool_choice: Any) -> Any:
-        if isinstance(tool_choice, bool):
-            return "required" if tool_choice else "none"
-        if tool_choice == "any":
-            return "required"
-        return tool_choice
+        return DEFAULT_TOOL_CALL_PROTOCOL_ADAPTER.normalize_tool_choice(tool_choice)
 
     def tool_binding_kwargs(
         self,
@@ -262,13 +338,12 @@ class ModelSemanticTranslator:
         tool_choice: Any = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        if not hasattr(model, "bind_tools"):
-            return {}
-        normalized_kwargs = dict(kwargs)
-        if tool_choice is not None:
-            normalized_kwargs["tool_choice"] = self.normalize_tool_choice(tool_choice)
-        bound = model.bind_tools(tools, **normalized_kwargs)
-        return dict(getattr(bound, "kwargs", {}))
+        return DEFAULT_TOOL_CALL_PROTOCOL_ADAPTER.binding_kwargs(
+            model,
+            tools,
+            tool_choice=tool_choice,
+            **kwargs,
+        )
 
     def _infer_provider_family(
         self,
@@ -605,7 +680,7 @@ def _extract_content_block_tool_calls(content: list[Any]) -> tuple[list[Any], li
         if item_type in {"tool_use", "tool_call", "function_call"}:
             normalised = _normalise_one_tool_call(
                 {
-                    "id": item.get("id"),
+                    "id": item.get("id") or item.get("call_id"),
                     "name": item.get("name") or item.get("tool_name") or item.get("function_name"),
                     "args": item.get("input") if "input" in item else item.get("args") if "args" in item else item.get("arguments"),
                 },
@@ -813,11 +888,13 @@ def _normalize_ai_message_tool_calls(message: AIMessage, *, allowed_tool_names: 
     if message.tool_calls:
         return message
     raw_tool_calls = _extract_additional_kwargs_tool_calls(message)
+    raw_tool_calls = _filter_tool_calls_by_name(raw_tool_calls, allowed_tool_names)
     if raw_tool_calls:
         return message.model_copy(update={"tool_calls": raw_tool_calls})
 
     if isinstance(message.content, list):
         kept_content, block_tool_calls = _extract_content_block_tool_calls(message.content)
+        block_tool_calls = _filter_tool_calls_by_name(block_tool_calls, allowed_tool_names)
         if block_tool_calls:
             return message.model_copy(update={"content": kept_content, "tool_calls": block_tool_calls})
         return message
@@ -835,6 +912,7 @@ def _normalize_ai_message_tool_calls(message: AIMessage, *, allowed_tool_names: 
         normalized_content, tool_calls = _extract_jsonish_tool_calls(message.content, allowed_tool_names=allowed_tool_names)
     if not tool_calls:
         normalized_content, tool_calls = _extract_tool_code_calls(message.content)
+    tool_calls = _filter_tool_calls_by_name(tool_calls, allowed_tool_names)
     if not tool_calls:
         return message
     return message.model_copy(
@@ -1000,6 +1078,7 @@ class SemanticChatModel(CoreBaseChatModel):
     wrapped_model: BaseChatModel
     semantic_profile: ModelSemanticProfile
     translator: ModelSemanticTranslator = Field(default_factory=ModelSemanticTranslator)
+    tool_call_adapter: ToolCallProtocolAdapter = Field(default_factory=ToolCallProtocolAdapter)
     bound_tools_list: list | None = None
     bound_tools_kwargs: dict[str, Any] = Field(default_factory=dict)
 
@@ -1050,7 +1129,7 @@ class SemanticChatModel(CoreBaseChatModel):
         normalized_messages = self.translator.normalize_messages(messages, self.semantic_profile)
         merged = {**kwargs, **self.bound_invocation_kwargs()}
         result = self.wrapped_model._generate(normalized_messages, stop=stop, run_manager=run_manager, **merged)
-        return _normalize_chat_result_tool_calls(result, allowed_tool_names=_invocation_tool_names(self.bound_tools_list, merged))
+        return self.tool_call_adapter.normalize_result(result, allowed_tool_names=_invocation_tool_names(self.bound_tools_list, merged))
 
     async def _agenerate(
         self,
@@ -1062,7 +1141,7 @@ class SemanticChatModel(CoreBaseChatModel):
         normalized_messages = self.translator.normalize_messages(messages, self.semantic_profile)
         merged = {**kwargs, **self.bound_invocation_kwargs()}
         result = await self.wrapped_model._agenerate(normalized_messages, stop=stop, run_manager=run_manager, **merged)
-        return _normalize_chat_result_tool_calls(result, allowed_tool_names=_invocation_tool_names(self.bound_tools_list, merged))
+        return self.tool_call_adapter.normalize_result(result, allowed_tool_names=_invocation_tool_names(self.bound_tools_list, merged))
 
     def _stream(
         self,
@@ -1073,7 +1152,7 @@ class SemanticChatModel(CoreBaseChatModel):
     ):
         normalized_messages = self.translator.normalize_messages(messages, self.semantic_profile)
         merged = {**kwargs, **self.bound_invocation_kwargs()}
-        yield from _normalize_streaming_chat_generation_chunks(
+        yield from self.tool_call_adapter.normalize_stream(
             self.wrapped_model._stream(normalized_messages, stop=stop, run_manager=run_manager, **merged),
             allowed_tool_names=_invocation_tool_names(self.bound_tools_list, merged),
         )
@@ -1101,5 +1180,5 @@ class SemanticChatModel(CoreBaseChatModel):
                 continue
             yield chunk
         if buffered:
-            for chunk in _normalize_chat_generation_chunks(buffered, allowed_tool_names=_invocation_tool_names(self.bound_tools_list, merged)):
+            for chunk in self.tool_call_adapter.normalize_chunks(buffered, allowed_tool_names=_invocation_tool_names(self.bound_tools_list, merged)):
                 yield chunk

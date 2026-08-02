@@ -1789,3 +1789,29 @@ slices for traceability:
   pgvector writer.
 - Added reducer-level regressions for checkpoint ordering, actual context
   reduction, and preservation of the original transcript through Harness.
+
+## [20260802.0.2] - 2026-08-02
+
+### Unified model tool-call protocol
+
+- Added one `ToolCallProtocolAdapter` contract for OpenAI-compatible native
+  calls, Anthropic tool-use blocks, Gemini function calls, OpenAI Responses
+  blocks, llama.cpp, Hermes/Qwen XML/JSON, bare XML/JSON and tool-code fallback.
+- Kept provider-native structured calls as the authoritative path and limited
+  every text fallback to tools actually bound for that turn, preventing an
+  unbound or hallucinated textual call from reaching the executor.
+- Unified sync, async and streamed normalization behind the same adapter while
+  preserving the canonical LangChain `ToolCall(name, args, id)` boundary used
+  by Harness, middleware and LangGraph.
+- Replaced unconditional serialization of every configured and MCP tool with
+  core Harness tools plus intent-relevant web, file, shell or explicitly
+  requested MCP groups. This removes the observed 26K-token tool prompt.
+
+### Laguna 128K
+
+- Raised the production Laguna S 2.1 NVFP4 llama.cpp runtime context from
+  65,536 to 131,072 tokens and aligned the authoritative OctoAgent model card.
+- Verified the loaded runtime reports `n_ctx=131072` against the model's native
+  `n_ctx_train=262144`, with MTP still disabled and Q8 KV caches retained.
+- Added cross-provider protocol, bound-tool safety, narrow-waist selection and
+  OpenAI Responses call-ID regression coverage.

@@ -265,7 +265,7 @@ def test_resume_always_keeps_tools_attached() -> None:
     assert options.dialogue_needs_tools is True
 
 
-def test_fast_tool_route_keeps_enabled_mcp_tools_attached() -> None:
+def test_fast_tool_route_loads_relevant_tools_without_unrequested_mcp() -> None:
     from src.agents.lead_agent.builder import LeadAgentBuilder
 
     calls: list[dict] = []
@@ -310,4 +310,5 @@ def test_fast_tool_route_keeps_enabled_mcp_tools_attached() -> None:
 
     builder.build({}, options)
 
-    assert calls[0]["include_mcp"] is True
+    assert calls[0]["groups"] == ["file:read", "file:write", "bash"]
+    assert calls[0]["include_mcp"] is False
