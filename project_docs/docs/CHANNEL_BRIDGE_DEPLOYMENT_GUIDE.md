@@ -8,7 +8,7 @@ OctoAgent currently supports two channel integration modes:
 
 | Mode | Channels | Transport | Notes |
 | --- | --- | --- | --- |
-| Native | Feishu/Lark, Slack, Telegram | websocket, socket mode, long polling | Implemented directly in the backend |
+| Native | Slack, Telegram | socket mode, long polling | Implemented directly in the backend |
 | External bridge | QQ, WeChat, LINE, KakaoTalk, WhatsApp, Zalo, Facebook Messenger | webhook bridge | OctoAgent receives normalized events from an external bridge process |
 
 Telegram remains natively supported. If you need a uniform connector fleet, you can still put Telegram behind the same bridge contract.

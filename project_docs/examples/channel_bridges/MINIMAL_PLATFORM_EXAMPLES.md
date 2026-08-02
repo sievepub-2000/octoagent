@@ -193,16 +193,6 @@ channels:
     allowed_users: []
 ```
 
-## Feishu native minimal config
-
-```yaml
-channels:
-  feishu:
-    enabled: true
-    app_id: $FEISHU_APP_ID
-    app_secret: $FEISHU_APP_SECRET
-```
-
 ## Outbound callback behavior
 
 All bridge-backed channels should expose:

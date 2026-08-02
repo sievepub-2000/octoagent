@@ -118,7 +118,7 @@ export const ja: Translations = {
     pluginsDesc:
       "プラグイン機能、エンジニアリングワークフロー、フックパイプラインの管理。",
     channels: "ソフトウェアインターフェース",
-    channelsDesc: "Feishu、Slack、Telegram のIMチャンネルコネクターを管理。",
+    channelsDesc: "Slack、Telegram のIMチャンネルコネクターを管理。",
     evolutionEnabled: "進化エンジン",
     evolutionEnabledDesc: "タスク実行後に自動でスキル進化を実行します。",
     autoFix: "自動修復",

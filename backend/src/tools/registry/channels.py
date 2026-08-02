@@ -9,7 +9,6 @@ from src.runtime.config.app_config import AppConfig
 from .contracts import ToolRegistryChannelItem
 
 CHANNEL_DESCRIPTIONS = {
-    "feishu": "飞书/Lark IM — WebSocket 实时通道",
     "slack": "Slack — Socket Mode 实时通道",
     "telegram": "Telegram Bot — 长轮询通道",
 }
@@ -27,7 +26,7 @@ class ToolRegistryChannelReader:
         channels = cast(dict[str, Any], raw_channels if isinstance(raw_channels, dict) else {})
 
         items: list[ToolRegistryChannelItem] = []
-        for channel_name in ["feishu", "slack", "telegram"]:
+        for channel_name in ["slack", "telegram"]:
             raw_cfg = channels.get(channel_name)
             cfg = cast(dict[str, Any], raw_cfg if isinstance(raw_cfg, dict) else {})
             items.append(

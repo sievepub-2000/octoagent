@@ -31,26 +31,6 @@ def _field(
     }
 
 
-def _feishu_fields() -> list[dict[str, Any]]:
-    return [
-        _field("enabled", "Enabled", "boolean", description="Start the Feishu connector with OctoAgent."),
-        _field("app_id", "App ID", "text", description="Feishu/Lark app identifier.", required=True),
-        _field(
-            "app_secret",
-            "App Secret",
-            "secret",
-            description="App secret used for websocket authentication.",
-            required=True,
-        ),
-        _field(
-            "verification_token",
-            "Verification Token",
-            "secret",
-            description="Optional verification token for additional ingress validation.",
-        ),
-    ]
-
-
 def _slack_fields() -> list[dict[str, Any]]:
     return [
         _field("enabled", "Enabled", "boolean", description="Start the Slack Socket Mode connector."),
@@ -128,17 +108,6 @@ def _bridge_fields() -> list[dict[str, Any]]:
 
 # Channel name → registry metadata
 _CHANNEL_REGISTRY: dict[str, dict[str, Any]] = {
-    "feishu": {
-        "import_path": "src.gateway.channels.feishu:FeishuChannel",
-        "handler_path": "src.gateway.channels.feishu:FeishuChannel",
-        "config_path": "channels.feishu",
-        "integration_mode": "native",
-        "platform_label": "Feishu/Lark",
-        "transport": "websocket",
-        "description": "Native Feishu/Lark websocket connector.",
-        "required_keys": ["app_id", "app_secret"],
-        "fields": _feishu_fields(),
-    },
     "slack": {
         "import_path": "src.gateway.channels.slack:SlackChannel",
         "handler_path": "src.gateway.channels.slack:SlackChannel",

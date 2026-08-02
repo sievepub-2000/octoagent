@@ -5,7 +5,7 @@ This directory contains runnable and copy-pasteable samples for OctoAgent bridge
 Files:
 
 - `generic_webhook_bridge.py`: minimal relay that forwards normalized inbound events to OctoAgent and accepts outbound callbacks.
-- `MINIMAL_PLATFORM_EXAMPLES.md`: platform-by-platform minimal wiring examples for QQ, WeChat, LINE, KakaoTalk, WhatsApp, Zalo, Facebook Messenger, Telegram, Slack, and Feishu.
+- `MINIMAL_PLATFORM_EXAMPLES.md`: platform-by-platform minimal wiring examples for QQ, WeChat, LINE, KakaoTalk, WhatsApp, Zalo, Facebook Messenger, Telegram, and Slack.
 
 Recommended use:
 

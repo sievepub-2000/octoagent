@@ -118,7 +118,7 @@ export const ko: Translations = {
     plugins: "플러그인",
     pluginsDesc: "플러그인 기능, 엔지니어링 워크플로, 후크 파이프라인 관리.",
     channels: "소프트웨어 인터페이스",
-    channelsDesc: "Feishu, Slack, Telegram IM 채널 커넥터 관리.",
+    channelsDesc: "Slack 및 Telegram IM 채널 커넥터 관리.",
     evolutionEnabled: "진화 엔진",
     evolutionEnabledDesc: "작업 실행 후 자동으로 스킬 진화를 수행합니다.",
     autoFix: "자동 수정",

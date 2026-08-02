@@ -1840,6 +1840,8 @@ slices for traceability:
   otherwise unreferenced provider SDK dependency tree.
 - Removed local `faster-whisper` from the default image; transcription keeps its
   existing API fallback without shipping the unused native model stack.
+- Removed the retired corporate IM channel and SDK so the retained channel
+  surface is limited to Slack, Telegram, QQ, WeChat, and DingTalk adapters.
 - Replaced stale legacy configuration names in contributor documentation with
   the active `OCTO_AGENT_CONFIG_PATH` and
   `OCTO_AGENT_EXTENSIONS_CONFIG_PATH` settings.

@@ -103,8 +103,7 @@ def channels_cycle(c: httpx.Client) -> dict:
     if not items:
         return {"step": "channels", "passed": False, "reason": "no channels configured"}
 
-    # pick feishu if available (has 3 required fields we can supply)
-    name = "feishu" if "feishu" in channels else items[0][0]
+    name = items[0][0]
     before_configured = bool(channels.get(name, {}).get("configured"))
 
     # Fill required fields -> configured should flip True

@@ -100,7 +100,7 @@ Browser ─HTTPS/HTTP─▶  nginx :19880  ─┬─▶ /            ─▶ Next
                                        └─▶ /api/* + /docs + /health  ─▶ FastAPI Gateway :19882
                                                           │
                                                           ├─▶ ServiceBus(system_guard / app_config / gateway_config)
-                                                          ├─▶ ChannelService（Feishu/Slack/Telegram/QQ/WeChat/LINE/KakaoTalk/WhatsApp/Zalo/FB Messenger）
+                                                          ├─▶ ChannelService（Slack/Telegram/QQ/WeChat/LINE/KakaoTalk/WhatsApp/Zalo/FB Messenger）
                                                           ├─▶ Memory cleanup scheduler（3600s, conf=0.30, cap=500/ns）
                                                           ├─▶ Runtime maintenance（900s，单 thread 最多 20 ckpt / 100 run）
                                                           ├─▶ Generic maintenance agent（1800s）
@@ -149,7 +149,7 @@ Browser ─HTTPS/HTTP─▶  nginx :19880  ─┬─▶ /            ─▶ Next
 
 ### 4.3 backend/src/channels —— 通道适配
 
-- 4 个 native（Feishu / Slack / Telegram + Manager dispatch loop），6 个 external bridge（QQ/WeChat/LINE/KakaoTalk/WhatsApp/Zalo/FB Messenger）。
+- 3 个 native（Slack / Telegram + Manager dispatch loop），6 个 external bridge（QQ/WeChat/LINE/KakaoTalk/WhatsApp/Zalo/FB Messenger）。
 - 配置由 `channels.{name}` 段统一驱动，含 `enabled / configured / running / healthy` 四态自检，`fields` schema 直接驱动前端表单 UI（自带表单生成，省一份 schema）。
 - 当前全部 `enabled: false`，未运行；上线时需同步处理 webhook 鉴权、白名单、超时。
 

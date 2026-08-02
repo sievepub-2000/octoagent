@@ -196,7 +196,6 @@ This file is generated from the same live registry exposed by `/api/harness` and
 
 ## Channels
 
-- `feishu` [disabled]: 飞书/Lark IM — WebSocket 实时通道
 - `slack` [disabled]: Slack — Socket Mode 实时通道
 - `telegram` [disabled]: Telegram Bot — 长轮询通道
 

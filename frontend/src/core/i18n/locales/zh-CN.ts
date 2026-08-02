@@ -115,7 +115,7 @@ export const zhCN: Translations = {
     plugins: "插件",
     pluginsDesc: "管理插件能力、工程工作流和钩子管道。",
     channels: "软件接口",
-    channelsDesc: "管理飞书、Slack、Telegram 等即时通讯通道连接器。",
+    channelsDesc: "管理 Slack、Telegram 等即时通讯通道连接器。",
     evolutionEnabled: "进化引擎",
     evolutionEnabledDesc: "任务执行后自动触发技能进化。",
     autoFix: "自动修复",

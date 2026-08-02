@@ -30,7 +30,7 @@ OPENAPI_TAGS = [
     {"name": "uploads", "description": "Upload and manage user files for threads"},
     {"name": "agents", "description": "Create and manage custom agents with per-agent config and prompts"},
     {"name": "suggestions", "description": "Generate follow-up question suggestions for conversations"},
-    {"name": "channels", "description": "Manage IM channel integrations (Feishu, Slack, Telegram)"},
+    {"name": "channels", "description": "Manage IM channel integrations (Slack, Telegram)"},
     {"name": "integrations", "description": "External webhook/API ingress, auth surface, email, and browser automation capability planning"},
     {"name": "health", "description": "Health check and system status endpoints"},
     {"name": "runtime", "description": "Runtime guardrails, model fallback chains, and subagent budget visibility"},

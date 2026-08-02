@@ -123,7 +123,7 @@ export const enUS: Translations = {
       "Manage plugin capabilities, engineering workflows, and hook pipeline.",
     channels: "Software Interfaces",
     channelsDesc:
-      "Manage IM channel connectors for Feishu, Slack, and Telegram.",
+      "Manage IM channel connectors for Slack and Telegram.",
     // Evolution page
     evolutionEnabled: "Evolution Engine",
     evolutionEnabledDesc:
