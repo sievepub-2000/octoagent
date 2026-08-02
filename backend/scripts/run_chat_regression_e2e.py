@@ -206,6 +206,17 @@ def _api_json(base_url: str, path: str, payload: dict) -> dict:
 
 
 def _cleanup_fixture_threads() -> None:
+    fixture_ids = {thread_id for _, thread_id in _FIXTURE_THREADS}
+    for base_url in {base_url for base_url, _ in _FIXTURE_THREADS}:
+        try:
+            threads = _api_json(base_url, "/threads/search", {"limit": 200})
+        except (RuntimeError, urllib.error.URLError, TimeoutError):
+            continue
+        for thread in threads if isinstance(threads, list) else []:
+            runtime = (thread.get("values") or {}).get("runtime") or {}
+            if runtime.get("continuation_source") in fixture_ids:
+                _FIXTURE_THREADS.append((base_url, thread["thread_id"]))
+
     for base_url, thread_id in reversed(_FIXTURE_THREADS):
         request = urllib.request.Request(
             f"{base_url}/threads/{thread_id}",
