@@ -204,7 +204,14 @@ def main() -> int:
             url = f"{args.frontend_url}{route}"
             result: dict[str, Any] = {"route": route, "ok": True}
             try:
-                page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+                for attempt in range(2):
+                    try:
+                        page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)
+                        break
+                    except Exception as exc:
+                        if attempt == 0 and "net::ERR_ABORTED" in str(exc):
+                            continue
+                        raise
                 page.locator("body").wait_for(timeout=timeout_ms)
                 body = page.locator("body").inner_text(timeout=5000)
                 lowered = body.lower()
