@@ -1836,6 +1836,10 @@ slices for traceability:
 - Removed the obsolete root notice, related attribution copy, legacy repository
   links, and the duplicated unregistered podcast skill tied to a retired TTS
   endpoint.
+- Removed the unused `agent-sandbox` compatibility dependency and its large,
+  otherwise unreferenced provider SDK dependency tree.
+- Removed local `faster-whisper` from the default image; transcription keeps its
+  existing API fallback without shipping the unused native model stack.
 - Replaced stale legacy configuration names in contributor documentation with
   the active `OCTO_AGENT_CONFIG_PATH` and
   `OCTO_AGENT_EXTENSIONS_CONFIG_PATH` settings.
