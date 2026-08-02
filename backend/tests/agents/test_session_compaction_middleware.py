@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, RemoveMessage, SystemMessage, ToolMessage
+from langgraph.graph.message import add_messages
 
+from src.agents.middlewares import session_compaction_middleware as compaction_module
 from src.agents.middlewares.runtime_state_middleware import RuntimeStateMiddleware
 from src.agents.middlewares.session_compaction_middleware import (
     SYSTEM_SESSION_CONTINUE_PROMPT,
@@ -20,6 +22,10 @@ class _Runtime:
         self.context = context
 
 
+def _replacement_messages(update: dict) -> list:
+    return [message for message in update["messages"] if not isinstance(message, RemoveMessage)]
+
+
 def test_oversized_tool_output_is_truncated_before_model_call() -> None:
     middleware = SessionCompactionMiddleware(max_context_tokens=32_000, allow_hard_truncation=True)
     oversized_output = "x" * 6_000
@@ -28,7 +34,7 @@ def test_oversized_tool_output_is_truncated_before_model_call() -> None:
     update = middleware.before_model({"messages": messages, "runtime": {}}, None)
 
     assert update is not None
-    next_messages = update["messages"]
+    next_messages = _replacement_messages(update)
     assert SYSTEM_SESSION_CONTINUE_PROMPT in next_messages[1].content
     assert "OctoAgent context guard" not in next_messages[1].content
     assert "truncated" not in next_messages[1].content
@@ -49,11 +55,12 @@ def test_compaction_result_is_trimmed_to_model_budget() -> None:
     assert update is not None
     assert update["runtime"]["recommended_memory_action"] == "compact"
     assert update["runtime"]["compaction_dropped_messages"] > 0
-    assert any(SYSTEM_SESSION_CONTINUE_PROMPT == message.content for message in update["messages"] if message.type == "system")
-    assert not any("<system:" in message.content for message in update["messages"] if message.type == "system")
-    assert not any("OctoAgent context guard" in message.content for message in update["messages"] if message.type == "system")
-    assert len(update["messages"]) < len(messages)
-    assert sum(_message_estimated_tokens(message) for message in update["messages"]) <= 850
+    replacement = _replacement_messages(update)
+    assert any(SYSTEM_SESSION_CONTINUE_PROMPT == message.content for message in replacement if message.type == "system")
+    assert not any("<system:" in message.content for message in replacement if message.type == "system")
+    assert not any("OctoAgent context guard" in message.content for message in replacement if message.type == "system")
+    assert len(replacement) < len(messages)
+    assert sum(_message_estimated_tokens(message) for message in replacement) <= 850
     assert "context_handoff_required" not in update["runtime"]
     assert "context_handoff" not in update["runtime"]
 
@@ -118,9 +125,59 @@ def test_persisted_checkpoint_is_injected_before_agent() -> None:
     )
 
     assert update is not None
-    assert "OctoAgent long-running context checkpoint" in update["messages"][0].content
+    assert "OctoAgent long-running context checkpoint" in _replacement_messages(update)[0].content
     assert update["runtime"]["continuation_mode"] == "resumed"
     assert update["runtime"]["recommended_memory_action"] == "continue"
+
+    materialized = add_messages(
+        [HumanMessage(content="continue", id="human-1")],
+        update["messages"],
+    )
+    assert "OctoAgent long-running context checkpoint" in materialized[0].content
+    assert materialized[1].content == "continue"
+
+
+def test_compaction_update_replaces_graph_messages_instead_of_appending() -> None:
+    middleware = SessionCompactionMiddleware(max_context_tokens=200, keep_recent_turns=1)
+    messages = [SystemMessage(content="System prompt", id="system-1")]
+    for index in range(12):
+        messages.append(HumanMessage(content=f"old user {index} " + "x" * 300, id=f"human-{index}"))
+        messages.append(AIMessage(content=f"old assistant {index} " + "y" * 300, id=f"ai-{index}"))
+
+    update = middleware.before_model({"messages": messages, "runtime": {}}, None)
+
+    assert update is not None
+    materialized = add_messages(messages, update["messages"])
+    assert sum(_message_estimated_tokens(message) for message in materialized) <= 200
+    assert len(materialized) < len(messages)
+
+
+def test_compaction_archives_original_history_through_harness(monkeypatch) -> None:
+    captured: list[dict] = []
+
+    class _Memory:
+        def capture(self, **kwargs):
+            captured.append(kwargs)
+            return {"status": "indexed", "run_id": "archive-1"}
+
+    monkeypatch.setattr(compaction_module, "get_harness_memory", lambda: _Memory())
+    middleware = SessionCompactionMiddleware(max_context_tokens=200, keep_recent_turns=1)
+    messages = [SystemMessage(content="System prompt", id="system-1")]
+    for index in range(10):
+        messages.append(HumanMessage(content=f"old user {index} " + "x" * 300, id=f"human-{index}"))
+        messages.append(AIMessage(content=f"old assistant {index} " + "y" * 300, id=f"ai-{index}"))
+
+    update = middleware.before_model(
+        {"messages": messages, "runtime": {}},
+        _Runtime({"thread_id": "thread-archive"}),
+    )
+
+    assert update is not None
+    assert len(captured) == 1
+    assert captured[0]["thread_id"] == "thread-archive"
+    assert captured[0]["messages"] == messages
+    assert captured[0]["metadata"]["source"] == "session_compaction"
+    assert update["runtime"]["pre_compaction_memory_write"]["source_message_count"] == len(messages)
 
 
 def test_persisted_task_state_is_injected_as_checkpoint() -> None:
@@ -139,8 +196,8 @@ def test_persisted_task_state_is_injected_as_checkpoint() -> None:
     )
 
     assert update is not None
-    assert "Persistent task state" in update["messages"][0].content
-    assert "repair resumable execution" in update["messages"][0].content
+    assert "Persistent task state" in _replacement_messages(update)[0].content
+    assert "repair resumable execution" in _replacement_messages(update)[0].content
 
 
 def test_persisted_task_checkpoint_prevents_repeating_completed_steps() -> None:
@@ -161,7 +218,7 @@ def test_persisted_task_checkpoint_prevents_repeating_completed_steps() -> None:
     )
 
     assert update is not None
-    content = update["messages"][0].content
+    content = _replacement_messages(update)[0].content
     assert "Completed items are historical evidence" in content
     assert "Resume only pending items" in content
 
@@ -183,7 +240,7 @@ def test_active_checkpoint_is_not_marked_as_completed_history() -> None:
     )
 
     assert update is not None
-    content = str(update["messages"][0].content)
+    content = str(_replacement_messages(update)[0].content)
     assert "【历史】 An older diagnostic step finished." in content
     assert "【历史】 - Goal: repair continuation" not in content
     assert "<active_continuation_contract>" in content
@@ -206,13 +263,14 @@ def test_compaction_preserves_tool_message_role_and_identity() -> None:
     update = middleware.before_model({"messages": messages, "runtime": {}}, None)
 
     assert update is not None
-    tool_messages = [message for message in update["messages"] if isinstance(message, ToolMessage)]
+    replacement = _replacement_messages(update)
+    tool_messages = [message for message in replacement if isinstance(message, ToolMessage)]
     assert len(tool_messages) == 1
     assert tool_messages[0].name == "bash"
     assert tool_messages[0].tool_call_id == "call-preserve"
     ai_tool_call_ids = {
         call["id"]
-        for message in update["messages"]
+        for message in replacement
         if isinstance(message, AIMessage)
         for call in message.tool_calls
     }
@@ -229,7 +287,7 @@ def test_budget_trim_drops_orphan_tool_results() -> None:
     update = middleware.before_model({"messages": messages, "runtime": {}}, None)
 
     assert update is not None
-    assert not any(isinstance(message, ToolMessage) and message.tool_call_id == "orphan-call" for message in update["messages"])
+    assert not any(isinstance(message, ToolMessage) and message.tool_call_id == "orphan-call" for message in _replacement_messages(update))
 
 
 def test_coalescing_keeps_unique_tool_call_results() -> None:

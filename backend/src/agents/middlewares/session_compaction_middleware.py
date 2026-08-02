@@ -17,9 +17,12 @@ from typing import Any, override
 
 from langchain.agents import AgentState
 from langchain.agents.middleware import AgentMiddleware
-from langchain_core.messages import BaseMessage, SystemMessage
+from langchain_core.messages import BaseMessage, RemoveMessage, SystemMessage
+from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langgraph.runtime import Runtime
 
+from src.harness.memory import get_harness_memory
+from src.runtime.config.memory_config import get_memory_config
 from src.runtime.context_budget import (
     SYSTEM_SESSION_CONTINUE_PROMPT,
     MessageTokenLimits,
@@ -54,6 +57,12 @@ _MESSAGE_TOKEN_LIMITS = MessageTokenLimits(
     ai=_MAX_ASSISTANT_MESSAGE_TOKENS,
     default=_MAX_ASSISTANT_MESSAGE_TOKENS,
 )
+
+
+def _replace_messages(messages: list[Any]) -> list[Any]:
+    """Build an add_messages update that truly replaces persisted history."""
+
+    return [RemoveMessage(id=REMOVE_ALL_MESSAGES), *messages]
 
 
 def _context_cycle_runtime_update(runtime: Runtime) -> dict[str, Any]:
@@ -442,6 +451,49 @@ class SessionCompactionMiddleware(AgentMiddleware):
         self._compactor = SessionCompactor(config)
         self._allow_hard_truncation = os.getenv("OCTOAGENT_ALLOW_HARD_CONTEXT_TRUNCATION", "0") == "1" if allow_hard_truncation is None else allow_hard_truncation
 
+    @staticmethod
+    def _archive_before_rewrite(
+        state: AgentState,
+        runtime: Runtime,
+        *,
+        reason: str,
+    ) -> dict[str, Any] | None:
+        """Ask Harness to preserve raw history before the graph deletes it."""
+
+        if not get_memory_config().enabled:
+            return None
+        context = getattr(runtime, "context", None) or {}
+        thread_id = str(context.get("thread_id") or "") if isinstance(context, dict) else ""
+        if not thread_id:
+            return None
+        messages = list(state.get("messages") or [])
+        if not any(getattr(message, "type", None) == "human" for message in messages):
+            return None
+        if not any(getattr(message, "type", None) == "ai" for message in messages):
+            return None
+        fingerprint_source = "\0".join(
+            f"{getattr(message, 'id', '')}:{getattr(message, 'type', '')}:{getattr(message, 'content', '')}"
+            for message in messages
+        )
+        fingerprint = hashlib.sha256(fingerprint_source.encode("utf-8", errors="replace")).hexdigest()[:20]
+        prior = (state.get("runtime") or {}).get("pre_compaction_memory_write")
+        if isinstance(prior, dict) and prior.get("source_fingerprint") == fingerprint:
+            return prior
+        write = get_harness_memory().capture(
+            thread_id=thread_id,
+            messages=messages,
+            metadata={
+                "memory_pipeline": "markdown_pgvector",
+                "capture_reason": reason,
+                "source": "session_compaction",
+            },
+        )
+        return {
+            **write,
+            "source_fingerprint": fingerprint,
+            "source_message_count": len(messages),
+        }
+
     def _runtime_checkpoint_message(self, state: AgentState) -> SystemMessage | None:
         runtime_state = state.get("runtime") or {}
         summary = runtime_state.get("compaction_summary") if isinstance(runtime_state, dict) else None
@@ -493,7 +545,7 @@ class SessionCompactionMiddleware(AgentMiddleware):
         runtime_state.update(phase_update)
         runtime_state["continuation_mode"] = runtime_state.get("continuation_mode") or "resumed"
         runtime_state["recommended_memory_action"] = "continue"
-        update = {"messages": messages, "runtime": runtime_state}
+        update = {"messages": _replace_messages(messages), "runtime": runtime_state}
         if merged_task_state is not None and merged_task_state != state.get("task_state"):
             update["task_state"] = merged_task_state
         return update
@@ -552,9 +604,16 @@ class SessionCompactionMiddleware(AgentMiddleware):
             runtime_state["context_pressure"] = "medium"
             runtime_state["context_guard_state"] = "coalesced" if not truncated else "truncated"
             runtime_state["recommended_memory_action"] = "compact" if truncated else "coalesce_tool_messages"
+            archived = self._archive_before_rewrite(
+                state,
+                runtime,
+                reason="oversized_message_rewrite" if truncated else "tool_message_coalescing",
+            )
+            if archived is not None:
+                runtime_state["pre_compaction_memory_write"] = archived
             if coalesced_count:
                 runtime_state["tool_messages_coalesced"] = coalesced_count
-            update = {"messages": messages, "runtime": runtime_state}
+            update = {"messages": _replace_messages(messages), "runtime": runtime_state}
             if merged_task_state is not None and merged_task_state != state.get("task_state"):
                 update["task_state"] = merged_task_state
             return update
@@ -591,9 +650,12 @@ class SessionCompactionMiddleware(AgentMiddleware):
                 runtime_state["context_pressure"] = "high"
                 runtime_state["context_guard_state"] = "emergency_trimmed"
                 runtime_state["recommended_memory_action"] = "compact"
+                archived = self._archive_before_rewrite(state, runtime, reason="emergency_context_trim")
+                if archived is not None:
+                    runtime_state["pre_compaction_memory_write"] = archived
                 if budget_trimmed:
                     runtime_state["compaction_dropped_messages"] = dropped_count
-                update = {"messages": messages, "runtime": runtime_state}
+                update = {"messages": _replace_messages(messages), "runtime": runtime_state}
                 if merged_task_state is not None and merged_task_state != state.get("task_state"):
                     update["task_state"] = merged_task_state
                 return update
@@ -644,6 +706,9 @@ class SessionCompactionMiddleware(AgentMiddleware):
         runtime_state["resource_recovery_action"] = "run_stage_resource_recovery_if_pressure_persists"
         runtime_state["memory_followup_action"] = "promote_compaction_review_to_memory"
         runtime_state["capability_control_mode"] = "memory_guided_self_control"
+        archived = self._archive_before_rewrite(state, runtime, reason="session_compaction")
+        if archived is not None:
+            runtime_state["pre_compaction_memory_write"] = archived
         runtime_state["context_cycle_id"] = runtime_state.get("context_cycle_id") or f"context-cycle-{uuid.uuid4().hex[:12]}"
         runtime_state["context_cycle_started_at"] = runtime_state.get("context_cycle_started_at") or datetime.now(UTC).isoformat()
         runtime_state["context_cycle_base_tokens"] = total_tokens
@@ -697,7 +762,7 @@ class SessionCompactionMiddleware(AgentMiddleware):
             ):
                 runtime_state.pop(key, None)
         runtime_state["updated_at"] = datetime.now(UTC).isoformat()
-        update = {"messages": rebuilt, "runtime": runtime_state}
+        update = {"messages": _replace_messages(rebuilt), "runtime": runtime_state}
         if merged_task_state is not None and merged_task_state != state.get("task_state"):
             update["task_state"] = merged_task_state
         return update

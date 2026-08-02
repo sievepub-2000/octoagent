@@ -1777,3 +1777,15 @@ slices for traceability:
   completes a clean Next.js production build.
 - Made `config.yaml` the single authoritative default-model source; setup state
   can no longer override a model selected in WebUI or drift after deletion.
+
+## [20260802.0.1] - 2026-08-02
+
+### Harness and middleware state handoff
+
+- Fixed Session Compaction updates to explicitly replace LangGraph message
+  history instead of appending compacted messages to the original context.
+- Added a pre-rewrite archive handoff: middleware requests preservation before
+  destructive compaction, while Harness remains the only Markdown and
+  pgvector writer.
+- Added reducer-level regressions for checkpoint ordering, actual context
+  reduction, and preservation of the original transcript through Harness.
