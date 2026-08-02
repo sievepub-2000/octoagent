@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from fastapi import APIRouter, Header, HTTPException
@@ -68,10 +69,18 @@ def _session_response(session: AuthSession) -> AuthSessionResponse:
     return AuthSessionResponse(**session.__dict__)
 
 
+async def _store_call(method: str, **kwargs: Any) -> Any:
+    """Keep the file-backed auth store off LangGraph's ASGI event loop."""
+
+    return await asyncio.to_thread(
+        lambda: getattr(get_user_account_store(), method)(**kwargs),
+    )
+
+
 @router.post("/register/start", response_model=AuthChallengeResponse)
 async def start_registration(request: RegisterStartRequest) -> dict[str, Any]:
     try:
-        return get_user_account_store().start_registration(**request.model_dump())
+        return await _store_call("start_registration", **request.model_dump())
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -79,7 +88,7 @@ async def start_registration(request: RegisterStartRequest) -> dict[str, Any]:
 @router.post("/register/verify", response_model=AuthSessionResponse)
 async def verify_registration(request: VerifyRequest) -> AuthSessionResponse:
     try:
-        return _session_response(get_user_account_store().verify_registration(**request.model_dump()))
+        return _session_response(await _store_call("verify_registration", **request.model_dump()))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
@@ -87,7 +96,7 @@ async def verify_registration(request: VerifyRequest) -> AuthSessionResponse:
 @router.post("/login", response_model=AuthSessionResponse)
 async def login(request: LoginRequest) -> AuthSessionResponse:
     try:
-        return _session_response(get_user_account_store().login(**request.model_dump()))
+        return _session_response(await _store_call("login", **request.model_dump()))
     except ValueError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
@@ -95,7 +104,7 @@ async def login(request: LoginRequest) -> AuthSessionResponse:
 @router.post("/device-login", response_model=AuthSessionResponse)
 async def device_login(request: DeviceLoginRequest) -> AuthSessionResponse:
     try:
-        return _session_response(get_user_account_store().device_login(**request.model_dump()))
+        return _session_response(await _store_call("device_login", **request.model_dump()))
     except PermissionError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
@@ -105,7 +114,7 @@ async def device_login(request: DeviceLoginRequest) -> AuthSessionResponse:
 @router.post("/device/verify/start", response_model=AuthChallengeResponse)
 async def start_device_verification(request: DeviceVerifyStartRequest) -> dict[str, Any]:
     try:
-        return get_user_account_store().start_device_verification(username=request.username)
+        return await _store_call("start_device_verification", username=request.username)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -113,14 +122,14 @@ async def start_device_verification(request: DeviceVerifyStartRequest) -> dict[s
 @router.post("/device/verify", response_model=AuthSessionResponse)
 async def verify_device(request: VerifyRequest) -> AuthSessionResponse:
     try:
-        return _session_response(get_user_account_store().verify_device(**request.model_dump()))
+        return _session_response(await _store_call("verify_device", **request.model_dump()))
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("/me", response_model=AuthSessionResponse)
 async def me(x_octoagent_session_token: str | None = Header(default=None, alias="X-OctoAgent-Session-Token")) -> AuthSessionResponse:
-    session = get_user_account_store().session_for_token(x_octoagent_session_token or "")
+    session = await _store_call("session_for_token", token=x_octoagent_session_token or "")
     if session is None:
         raise HTTPException(status_code=401, detail="Invalid or expired session")
     return _session_response(session)

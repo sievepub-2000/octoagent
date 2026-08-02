@@ -40,6 +40,8 @@
   Runtime and Harness interfaces and portable package-manager invocation.
 - Harness no longer hides a broken configured-tool import as an empty registry;
   Runtime Doctor now fails unless built-ins and all three web tools are real.
+- Moved file-backed authentication calls off the ASGI event loop so LangGraph
+  1.2's blocking-call guard does not turn login and registration into HTTP 500.
 
 ### Verification
 
