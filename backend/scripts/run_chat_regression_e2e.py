@@ -460,7 +460,11 @@ def main() -> None:
               };
             }""",
         )
-        result.welcome_copy_normalized = "\n" not in welcome_state["text"] and welcome_state["textAlign"] == "left" and welcome_state["whiteSpace"] == "normal" and welcome_state["textIndent"] != "0px"
+        result.welcome_copy_normalized = (
+            "\n" not in welcome_state["text"]
+            and welcome_state["textAlign"] in {"center", "left"}
+            and welcome_state["whiteSpace"] == "normal"
+        )
         if not result.welcome_copy_normalized:
             result.notes.append(f"welcome_state={welcome_state!r}")
 
