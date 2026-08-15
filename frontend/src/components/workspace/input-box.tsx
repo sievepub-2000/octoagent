@@ -57,6 +57,7 @@ import {
   type ContextTokenUsage,
 } from "@/core/context/context-token-counter";
 import { useI18n } from "@/core/i18n/hooks";
+import { verifyPermissionMode } from "@/core/harness/api";
 import { getWorkspaceLocaleCopy } from "@/core/i18n/workspace-copy";
 import { useModels } from "@/core/models/hooks";
 import { useLocalSettings } from "@/core/settings/hooks";
@@ -532,6 +533,21 @@ export function InputBox({
         ...localSettings.context,
         permission_mode,
       });
+      if (permission_mode === "directory" || permission_mode === "system") {
+        void verifyPermissionMode(permission_mode)
+          .then((probe) => {
+            if (!probe.executable) {
+              throw new Error(`${probe.adapter} is not executable`);
+            }
+            toast.success(
+              `${probe.adapter}: ${probe.network ? "execution and network verified" : "execution verified; network unavailable"}`,
+            );
+          })
+          .catch((error) => {
+            console.error("Permission boundary verification failed:", error);
+            toast.error("Permission mode saved, but its execution boundary is unavailable");
+          });
+      }
     },
     [context, localSettings.context, onContextChange, setLocalSettings],
   );

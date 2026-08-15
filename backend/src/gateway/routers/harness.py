@@ -1,15 +1,55 @@
 from __future__ import annotations
 
 import asyncio
+import json
+import os
+import urllib.error
+import urllib.request
 from datetime import UTC, datetime
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from src.harness.memory import get_harness_memory
 from src.tools.builtins.desktop_driver_tools import DESKTOP_DRIVER_TOOLS, desktop_driver_status
 from src.tools.registry.service import ToolRegistryService
 
 router = APIRouter(prefix="/api/harness", tags=["harness"])
+
+
+class PermissionProbeRequest(BaseModel):
+    mode: str
+
+
+def _container_probe() -> dict:
+    network = False
+    try:
+        request = urllib.request.Request("https://pypi.org/", method="HEAD")
+        with urllib.request.build_opener().open(request, timeout=5) as response:
+            network = response.status < 500
+    except (OSError, urllib.error.URLError):
+        pass
+    return {
+        "mode": "directory",
+        "adapter": "container-executor",
+        "executable": os.access(os.getcwd(), os.R_OK | os.X_OK),
+        "identity": f"uid={os.getuid()}\ngid={os.getgid()}\ncwd={os.getcwd()}",
+        "network": network,
+    }
+
+
+def _system_probe() -> dict:
+    endpoint = os.getenv("OCTOAGENT_SYSTEM_EXECUTOR_URL", "http://system-executor:19808").rstrip("/")
+    token = os.getenv("OCTOAGENT_SYSTEM_EXECUTOR_TOKEN", "")
+    request = urllib.request.Request(
+        f"{endpoint}/probe",
+        data=b"{}",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+        method="POST",
+    )
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    with opener.open(request, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
 
 
 def _snapshot() -> dict:
@@ -50,6 +90,19 @@ async def refresh_harness_snapshot() -> dict:
         "tool_guide": str(guide),
     }
     return snapshot
+
+
+@router.post("/permissions/verify", summary="Verify the selected execution boundary")
+async def verify_permission_mode(payload: PermissionProbeRequest) -> dict:
+    mode = payload.mode.strip().lower()
+    if mode == "directory":
+        return await asyncio.to_thread(_container_probe)
+    if mode == "system":
+        try:
+            return await asyncio.to_thread(_system_probe)
+        except (OSError, ValueError, urllib.error.URLError) as exc:
+            raise HTTPException(status_code=503, detail=f"system executor verification failed: {type(exc).__name__}") from exc
+    raise HTTPException(status_code=422, detail="mode must be directory or system")
 
 
 @router.get("/desktop-control/status", summary="Get the Harness desktop execution status")

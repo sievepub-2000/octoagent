@@ -1,3 +1,45 @@
+## [20260815] - 2026-08-15
+
+### Lean unified Harness
+
+- Audited OctoAgent against DeepSeek Harness and Prime Agent. Retained the
+  existing two-module Agent Runtime + Harness topology and absorbed only their
+  useful contracts: one canonical tool-call boundary, explicit execution
+  adapters, recoverable state, and provider-tolerant message handling. No
+  plugin forest, daemon/worker split, IPython kernel, ZeroMQ bus, or second
+  runtime was added.
+- Removed 3,000+ lines of disconnected compression, prompt-cache, parallel
+  executor, tool-dependency, research-service, distributed-execution, role,
+  exception, and self-only test code. LangGraph and the active session
+  compaction middleware remain the single execution and context owners.
+- Upgraded LangGraph to 1.2.11, LangGraph API to 0.12.4, in-memory runtime to
+  0.32.4, and the official LangChain MCP adapter to 0.3.2. MCP stays on 1.29
+  because the latest official adapter still declares `mcp<2`; forcing MCP 2.0
+  would break the production adapter.
+
+### Real boundaries and richer artifacts
+
+- Added a Harness permission verification API used directly by the chat
+  permission selector. Container mode reports the unprivileged App Server
+  identity; system mode executes a fixed authenticated probe through the
+  isolated root executor and verifies host identity plus network resolution.
+- Strengthened System Executor health checks to prove Docker daemon access,
+  not merely the existence of the socket. Frontend and System Executor no
+  longer inherit the backend secrets file; they receive only explicit values.
+- Added explicit right-panel rendering for images, audio, video/native streams,
+  PDF, DOCX, XLSX, PPTX, sandboxed HTML, and URL-backed app/stream manifests.
+  Office previews are extracted server-side without a new service or frontend
+  package.
+- Replaced the broken Pandoc Office path with the bundled Python generator and
+  added append/update support for DOCX, XLSX, PPTX, PDF, and Markdown.
+
+### Verification
+
+- Backend full suite: 397 tests passed; Ruff clean.
+- Production Docker build, permission/lifecycle probes, restart persistence,
+  ownership audit, and browser validation are recorded in the deployment
+  report for this release.
+
 ## [20260802] - 2026-08-02
 
 ### Minimal Harness and web execution

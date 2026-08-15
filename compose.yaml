@@ -75,11 +75,15 @@ services:
     user: "0:0"
     command: >-
       bash -lc "cd /app/backend && /app/backend/.venv/bin/uvicorn src.system_executor.app:app --host 0.0.0.0 --port 19808"
-    env_file:
-      - .env.docker
     environment:
       OCTOAGENT_SYSTEM_EXECUTOR_TOKEN: ${OCTOAGENT_SYSTEM_EXECUTOR_TOKEN:?set OCTOAGENT_SYSTEM_EXECUTOR_TOKEN in .env.docker}
       OCTOAGENT_BACKEND_IMAGE: octoagent/backend:${OCTOAGENT_IMAGE_TAG:-local}
+      HTTP_PROXY: ${HTTP_PROXY:-}
+      HTTPS_PROXY: ${HTTPS_PROXY:-}
+      NO_PROXY: ${NO_PROXY:-}
+      http_proxy: ${http_proxy:-}
+      https_proxy: ${https_proxy:-}
+      no_proxy: ${no_proxy:-}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     expose:
@@ -153,8 +157,6 @@ services:
         NO_PROXY: ${OCTOAGENT_BUILD_NO_PROXY:-${NO_PROXY:-}}
     image: octoagent/frontend:${OCTOAGENT_IMAGE_TAG:-local}
     restart: unless-stopped
-    env_file:
-      - .env.docker
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"

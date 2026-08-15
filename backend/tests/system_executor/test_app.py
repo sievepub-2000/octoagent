@@ -58,3 +58,35 @@ def test_host_helper_inherits_proxy_environment(monkeypatch) -> None:
     assert "HTTPS_PROXY=http://172.17.0.1:7897" in captured
     assert "NO_PROXY=localhost,system-executor" in captured
     assert captured.index("--env") < captured.index("octoagent/backend:local")
+
+
+def test_health_checks_docker_daemon_not_only_socket(monkeypatch) -> None:
+    token = "system-executor-test-token-000000000000"
+    monkeypatch.setenv("OCTOAGENT_SYSTEM_EXECUTOR_TOKEN", token)
+    monkeypatch.setattr(executor_app.os.path, "exists", lambda _path: True)
+    monkeypatch.setattr(executor_app, "_docker_ready", lambda: (False, "daemon unavailable"))
+
+    response = TestClient(executor_app.app).get("/health")
+
+    assert response.status_code == 503
+    assert response.json()["detail"]["docker_ready"] is False
+
+
+def test_probe_executes_fixed_host_identity_check(monkeypatch) -> None:
+    token = "system-executor-test-token-000000000000"
+    monkeypatch.setenv("OCTOAGENT_SYSTEM_EXECUTOR_TOKEN", token)
+    monkeypatch.setattr(
+        executor_app,
+        "_execute_on_host",
+        lambda request: {"exit_code": 0, "stdout": "uid=0\ngid=0\ncwd=/", "duration_ms": 1.0},
+    )
+
+    response = TestClient(executor_app.app).post(
+        "/probe",
+        json={},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["adapter"] == "host-root-executor"
+    assert response.json()["executable"] is True

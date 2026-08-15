@@ -5,17 +5,19 @@ export function urlOfArtifact({
   filepath,
   threadId,
   download = false,
+  preview = false,
   isMock = false,
 }: {
   filepath: string;
   threadId: string;
   download?: boolean;
+  preview?: boolean;
   isMock?: boolean;
 }) {
   if (isMock) {
-    return `${getBackendBaseURL()}/mock/api/threads/${threadId}/artifacts${filepath}${download ? "?download=true" : ""}`;
+    return `${getBackendBaseURL()}/mock/api/threads/${threadId}/artifacts${filepath}${download ? "?download=true" : preview ? "?preview=true" : ""}`;
   }
-  return `${getBackendBaseURL()}/api/threads/${threadId}/artifacts${filepath}${download ? "?download=true" : ""}`;
+  return `${getBackendBaseURL()}/api/threads/${threadId}/artifacts${filepath}${download ? "?download=true" : preview ? "?preview=true" : ""}`;
 }
 
 export function extractArtifactsFromThread(thread: AgentThread) {
@@ -40,4 +42,3 @@ export async function deleteArtifact({
     throw new Error(detail || `Failed to delete artifact: ${response.status}`);
   }
 }
-

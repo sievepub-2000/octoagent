@@ -21,3 +21,14 @@ def test_harness_snapshot_builds_outside_event_loop(monkeypatch) -> None:
 
     assert result["module"] == "harness"
     assert built_on_worker is True
+
+
+def test_permission_probe_selects_real_adapter(monkeypatch) -> None:
+    monkeypatch.setattr(harness, "_container_probe", lambda: {"mode": "directory", "adapter": "container-executor", "executable": True})
+    monkeypatch.setattr(harness, "_system_probe", lambda: {"mode": "system", "adapter": "host-root-executor", "executable": True})
+
+    directory = asyncio.run(harness.verify_permission_mode(harness.PermissionProbeRequest(mode="directory")))
+    system = asyncio.run(harness.verify_permission_mode(harness.PermissionProbeRequest(mode="system")))
+
+    assert directory["adapter"] == "container-executor"
+    assert system["adapter"] == "host-root-executor"

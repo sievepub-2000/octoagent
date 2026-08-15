@@ -19,10 +19,10 @@ def _sections(spec: dict[str, Any]) -> list[dict[str, Any]]:
     return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
 
 
-def generate_docx(spec: dict[str, Any], output: Path) -> None:
+def generate_docx(spec: dict[str, Any], output: Path, append: bool = False) -> None:
     from docx import Document
 
-    document = Document()
+    document = Document(output) if append and output.exists() else Document()
     document.core_properties.title = _text(spec.get("title"))
     if spec.get("title"):
         document.add_heading(_text(spec["title"]), level=0)
@@ -36,13 +36,15 @@ def generate_docx(spec: dict[str, Any], output: Path) -> None:
     document.save(output)
 
 
-def generate_xlsx(spec: dict[str, Any], output: Path) -> None:
-    from openpyxl import Workbook
+def generate_xlsx(spec: dict[str, Any], output: Path, append: bool = False) -> None:
+    from openpyxl import Workbook, load_workbook
     from openpyxl.styles import Font
 
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = _text(spec.get("sheet_name") or "Sheet1")[:31]
+    workbook = load_workbook(output) if append and output.exists() else Workbook()
+    sheet_name = _text(spec.get("sheet_name") or "Sheet1")[:31]
+    sheet = workbook[sheet_name] if sheet_name in workbook.sheetnames else workbook.create_sheet(sheet_name)
+    if not append and workbook.active.max_row == 1 and workbook.active.max_column == 1 and workbook.active["A1"].value is None and sheet is not workbook.active:
+        workbook.remove(workbook.active)
     headers = spec.get("headers", [])
     rows = spec.get("rows", [])
     if isinstance(headers, list) and headers:
@@ -57,10 +59,10 @@ def generate_xlsx(spec: dict[str, Any], output: Path) -> None:
     workbook.save(output)
 
 
-def generate_pptx(spec: dict[str, Any], output: Path) -> None:
+def generate_pptx(spec: dict[str, Any], output: Path, append: bool = False) -> None:
     from pptx import Presentation
 
-    presentation = Presentation()
+    presentation = Presentation(output) if append and output.exists() else Presentation()
     slides = spec.get("slides", [])
     if not isinstance(slides, list) or not slides:
         slides = [{"title": spec.get("title", "Presentation"), "bullets": []}]
@@ -82,7 +84,7 @@ def generate_pptx(spec: dict[str, Any], output: Path) -> None:
     presentation.save(output)
 
 
-def generate_pdf(spec: dict[str, Any], output: Path) -> None:
+def generate_pdf(spec: dict[str, Any], output: Path, append: bool = False) -> None:
     from reportlab.lib.enums import TA_LEFT
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.pdfbase import pdfmetrics
@@ -105,10 +107,23 @@ def generate_pdf(spec: dict[str, Any], output: Path) -> None:
         bullets = [ListItem(Paragraph(_text(item), body_style)) for item in section.get("bullets", [])]
         if bullets:
             story.append(ListFlowable(bullets, bulletType="bullet"))
-    SimpleDocTemplate(str(output), title=_text(spec.get("title"))).build(story)
+    if append and output.exists():
+        from pypdf import PdfReader, PdfWriter
+
+        temporary = output.with_suffix(".append.pdf")
+        SimpleDocTemplate(str(temporary), title=_text(spec.get("title"))).build(story)
+        writer = PdfWriter()
+        for source in (output, temporary):
+            for page in PdfReader(source).pages:
+                writer.add_page(page)
+        with output.open("wb") as handle:
+            writer.write(handle)
+        temporary.unlink()
+    else:
+        SimpleDocTemplate(str(output), title=_text(spec.get("title"))).build(story)
 
 
-def generate_markdown(spec: dict[str, Any], output: Path) -> None:
+def generate_markdown(spec: dict[str, Any], output: Path, append: bool = False) -> None:
     lines = [f"# {_text(spec.get('title'))}", ""] if spec.get("title") else []
     for section in _sections(spec):
         if section.get("heading"):
@@ -118,7 +133,10 @@ def generate_markdown(spec: dict[str, Any], output: Path) -> None:
         for bullet in section.get("bullets", []):
             lines.append(f"- {_text(bullet)}")
         lines.append("")
-    output.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")
+    rendered = "\n".join(lines).rstrip() + "\n"
+    if append and output.exists():
+        rendered = output.read_text(encoding="utf-8").rstrip() + "\n\n" + rendered
+    output.write_text(rendered, encoding="utf-8")
 
 
 GENERATORS = {"docx": generate_docx, "xlsx": generate_xlsx, "pptx": generate_pptx, "pdf": generate_pdf, "md": generate_markdown}
@@ -131,6 +149,7 @@ def main() -> None:
     parser.add_argument("--format", choices=sorted(GENERATORS), required=True)
     parser.add_argument("--spec", type=Path, required=True)
     parser.add_argument("--output-file", type=Path, required=True)
+    parser.add_argument("--append", action="store_true")
     args = parser.parse_args()
     if args.output_file.suffix.lower() != f".{args.format}":
         parser.error("output extension must match --format")
@@ -138,7 +157,7 @@ def main() -> None:
     if not isinstance(spec, dict):
         parser.error("spec must be a JSON object")
     args.output_file.parent.mkdir(parents=True, exist_ok=True)
-    GENERATORS[args.format](spec, args.output_file)
+    GENERATORS[args.format](spec, args.output_file, args.append)
     print(json.dumps({"ok": True, "format": args.format, "path": str(args.output_file.resolve()), "bytes": args.output_file.stat().st_size}, ensure_ascii=False))
 
 

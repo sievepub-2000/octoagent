@@ -83,16 +83,64 @@ def _execute_on_host(request: ExecuteRequest) -> dict[str, object]:
     }
 
 
+def _docker_ready() -> tuple[bool, str]:
+    try:
+        result = subprocess.run(
+            ["/usr/local/bin/docker", "version", "--format", "{{.Server.Version}}"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return False, type(exc).__name__
+    detail = (result.stdout or result.stderr or "docker unavailable").strip()
+    return result.returncode == 0, detail
+
+
 @app.get("/health")
 async def health() -> dict[str, object]:
     token_ready = len(os.environ.get("OCTOAGENT_SYSTEM_EXECUTOR_TOKEN", "")) >= 32
     socket_ready = os.path.exists("/var/run/docker.sock")
-    if not token_ready or not socket_ready:
+    docker_ready, docker_detail = await asyncio.to_thread(_docker_ready) if socket_ready else (False, "socket missing")
+    if not token_ready or not socket_ready or not docker_ready:
         raise HTTPException(
             status_code=503,
-            detail={"status": "unhealthy", "token_ready": token_ready, "docker_socket": socket_ready},
+            detail={
+                "status": "unhealthy",
+                "token_ready": token_ready,
+                "docker_socket": socket_ready,
+                "docker_ready": docker_ready,
+                "docker_detail": docker_detail,
+            },
         )
-    return {"status": "healthy", "token_ready": True, "docker_socket": True}
+    return {
+        "status": "healthy",
+        "token_ready": True,
+        "docker_socket": True,
+        "docker_ready": True,
+        "docker_server_version": docker_detail,
+    }
+
+
+@app.post("/probe", dependencies=[Depends(_authorize)])
+async def probe() -> dict[str, object]:
+    """Prove the root/host boundary without accepting caller-supplied commands."""
+    request = ExecuteRequest(
+        command="printf 'uid=%s\\ngid=%s\\ncwd=%s\\n' \"$(id -u)\" \"$(id -g)\" \"$(pwd)\"; getent hosts pypi.org >/dev/null",
+        cwd="/",
+        timeout_seconds=15,
+    )
+    async with _execution_lock:
+        result = await asyncio.to_thread(_execute_on_host, request)
+    return {
+        "mode": "system",
+        "adapter": "host-root-executor",
+        "executable": result.get("exit_code") == 0,
+        "identity": result.get("stdout", ""),
+        "network": result.get("exit_code") == 0,
+        "duration_ms": result.get("duration_ms"),
+    }
 
 
 @app.post("/execute", dependencies=[Depends(_authorize)])

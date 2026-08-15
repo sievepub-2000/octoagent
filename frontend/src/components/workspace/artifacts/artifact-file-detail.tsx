@@ -34,7 +34,7 @@ import { urlOfArtifact } from "@/core/artifacts/utils";
 import { useI18n } from "@/core/i18n/hooks";
 import { installSkill } from "@/core/skills/api";
 import { streamdownPlugins } from "@/core/streamdown";
-import { checkCodeFile, getFileName } from "@/core/utils/files";
+import { checkCodeFile, getFileExtension, getFileName } from "@/core/utils/files";
 import { cn } from "@/lib/utils";
 
 import { CitationLink } from "../citations/citation-link";
@@ -72,6 +72,13 @@ export function ArtifactFileDetail({
   const isSkillFile = useMemo(() => {
     return filepath.endsWith(".skill");
   }, [filepath]);
+  const extension = getFileExtension(filepath);
+  const isManifest = filepath.endsWith(".app.json") || filepath.endsWith(".stream.json");
+  const isRichPreview = [
+    "png", "jpg", "jpeg", "gif", "webp", "svg", "bmp", "mp4", "webm", "mov",
+    "m4v", "m3u8", "mp3", "wav", "ogg", "aac", "m4a", "flac", "pdf", "docx",
+    "xlsx", "pptx",
+  ].includes(extension) || isManifest;
   const { isCodeFile, language } = useMemo(() => {
     if (isWriteFile) {
       let language = checkCodeFile(filepath).language;
@@ -85,12 +92,12 @@ export function ArtifactFileDetail({
     return checkCodeFile(filepath);
   }, [filepath, isWriteFile, isSkillFile]);
   const isSupportPreview = useMemo(() => {
-    return language === "html" || language === "markdown";
-  }, [language]);
+    return language === "html" || language === "markdown" || isRichPreview;
+  }, [language, isRichPreview]);
   const { content } = useArtifactContent({
     threadId,
     filepath: filepathFromProps,
-    enabled: isCodeFile && !isWriteFile,
+    enabled: isCodeFile && !isWriteFile && (!isRichPreview || isManifest),
   });
 
   const displayContent = content ?? "";
@@ -244,6 +251,15 @@ export function ArtifactFileDetail({
               language={language ?? "text"}
             />
           )}
+        {isRichPreview && viewMode === "preview" && (
+          <RichArtifactPreview
+            content={displayContent}
+            extension={extension}
+            filepath={filepath}
+            threadId={threadId}
+            isMock={Boolean(isMock)}
+          />
+        )}
         {isCodeFile && viewMode === "code" && (
           <CodeEditor
             className="size-full resize-none rounded-none border-none"
@@ -251,7 +267,7 @@ export function ArtifactFileDetail({
             readonly
           />
         )}
-        {!isCodeFile && (
+        {!isCodeFile && !isRichPreview && (
           <iframe
             className="size-full"
             src={urlOfArtifact({ filepath, threadId, isMock })}
@@ -260,6 +276,45 @@ export function ArtifactFileDetail({
       </ArtifactContent>
     </Artifact>
   );
+}
+
+function RichArtifactPreview({
+  content,
+  extension,
+  filepath,
+  threadId,
+  isMock,
+}: {
+  content: string;
+  extension: string;
+  filepath: string;
+  threadId: string;
+  isMock: boolean;
+}) {
+  const source = urlOfArtifact({ filepath, threadId, isMock });
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"].includes(extension)) {
+    return <img className="size-full object-contain" src={source} alt={getFileName(filepath)} />;
+  }
+  if (["mp4", "webm", "mov", "m4v", "m3u8"].includes(extension)) {
+    return <video className="size-full bg-black object-contain" src={source} controls playsInline />;
+  }
+  if (["mp3", "wav", "ogg", "aac", "m4a", "flac"].includes(extension)) {
+    return <audio className="m-auto w-[min(40rem,90%)]" src={source} controls />;
+  }
+  if (["docx", "xlsx", "pptx"].includes(extension)) {
+    return <iframe className="size-full" title="Document preview" src={urlOfArtifact({ filepath, threadId, isMock, preview: true })} sandbox="" />;
+  }
+  if (filepath.endsWith(".app.json") || filepath.endsWith(".stream.json")) {
+    try {
+      const manifest = JSON.parse(content) as { title?: string; url?: string };
+      if (manifest.url) {
+        return <iframe className="size-full" title={manifest.title ?? "App preview"} src={manifest.url} sandbox="allow-scripts allow-forms allow-same-origin" allow="camera; microphone; fullscreen" />;
+      }
+    } catch {
+      return <div className="p-4 text-sm text-destructive">Invalid preview manifest</div>;
+    }
+  }
+  return <iframe className="size-full" title="Artifact preview" src={source} />;
 }
 
 export function ArtifactFilePreview({

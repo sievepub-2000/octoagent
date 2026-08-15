@@ -1,8 +1,10 @@
 import hashlib
+import json
 import logging
 import os
 import re
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -408,43 +410,62 @@ async def read_file_tool(
 
 
 async def _convert_markdown_to_office(content: str, output_path: str, sandbox) -> str:
-    """Convert Markdown to office format using Pandoc."""
-    with tempfile.NamedTemporaryFile(mode="w", suffix=".md", delete=False, encoding="utf-8") as f:
-        f.write(content)
-        md_path = f.name
-
+    """Create an Office file through the bundled Python-only generator."""
+    title = ""
+    sections: list[dict[str, object]] = []
+    current: dict[str, object] = {"paragraphs": [], "bullets": []}
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if line.startswith("# ") and not title:
+            title = line[2:].strip()
+        elif line.startswith("## "):
+            if current.get("heading") or current["paragraphs"] or current["bullets"]:
+                sections.append(current)
+            current = {"heading": line[3:].strip(), "paragraphs": [], "bullets": []}
+        elif line.startswith(("- ", "* ")):
+            current["bullets"].append(line[2:].strip())
+        elif line and not line.startswith("```"):
+            current["paragraphs"].append(line)
+    if current.get("heading") or current["paragraphs"] or current["bullets"]:
+        sections.append(current)
+    spec: dict[str, object] = {"title": title or Path(output_path).stem, "sections": sections}
+    if output_path.lower().endswith(".xlsx"):
+        spec = {"sheet_name": title or "Sheet1", "headers": ["Content"], "rows": [[line] for line in content.splitlines() if line.strip()]}
+    elif output_path.lower().endswith(".pptx"):
+        spec = {
+            "title": title or Path(output_path).stem,
+            "slides": [{"title": item.get("heading") or title or "Slide", "bullets": [*item["paragraphs"], *item["bullets"]]} for item in sections],
+        }
+    spec_path = ""
     try:
-        _, ext = os.path.splitext(output_path.lower())
-        fmt_map = {".docx": "docx", ".xlsx": "xlsx", ".pptx": "pptx"}
-        pandoc_fmt = fmt_map.get(ext, "docx")
-
-        proc = subprocess.Popen(
-            ["pandoc", md_path, "-o", output_path, "--from=markdown", "--to=" + pandoc_fmt],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8") as handle:
+            json.dump(spec, handle, ensure_ascii=False)
+            spec_path = handle.name
+        output_format = Path(output_path).suffix.lower().lstrip(".")
+        script = REPO_ROOT / "skills" / "public" / "office-generation" / "scripts" / "generate.py"
+        proc = subprocess.run(
+            [sys.executable, str(script), "--format", output_format, "--spec", spec_path, "--output-file", output_path],
+            capture_output=True,
+            text=True,
+            timeout=180,
             cwd=str(REPO_ROOT),
+            check=False,
         )
-        _, stderr = proc.communicate(timeout=180)
-
         if proc.returncode != 0:
-            return "Error: Pandoc failed: " + stderr.decode()[:200]
-
+            return "Error: Office generation failed: " + proc.stderr[:300]
         if os.path.exists(output_path):
-            size = os.path.getsize(output_path)
-            return "OK (converted to " + pandoc_fmt + ", " + str(size) + " bytes)"
+            return f"OK (generated {output_format}, {os.path.getsize(output_path)} bytes)"
         return "Error: Output not created"
     except subprocess.TimeoutExpired:
-        proc.kill()
-        return "Error: Pandoc timeout (180s)"
-    except FileNotFoundError:
-        return "Error: Pandoc not installed"
+        return "Error: Office generation timeout (180s)"
     except Exception as e:
         return "Error: " + type(e).__name__ + ": " + str(e)
     finally:
-        try:
-            os.unlink(md_path)
-        except OSError:
-            pass
+        if spec_path:
+            try:
+                os.unlink(spec_path)
+            except OSError:
+                pass
 
 
 @tool("write_file", parse_docstring=True)

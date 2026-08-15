@@ -1,6 +1,6 @@
 # OctoAgent architecture
 
-Version 20260802 has two public application Modules.
+Version 20260815 has two public application Modules.
 
 ```text
 WebUI

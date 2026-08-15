@@ -53,6 +53,8 @@ def test_packaged_profile_has_health_checks_and_persistent_databases() -> None:
     assert "uv run" not in compose["services"]["app-server"]["command"]
     assert "/app/backend/.venv/bin/langgraph" in compose["services"]["app-server"]["command"]
     assert compose["services"]["system-executor"]["user"] == "0:0"
+    assert "env_file" not in compose["services"]["system-executor"]
+    assert "env_file" not in compose["services"]["frontend"]
 
 
 def test_all_supported_platform_installers_are_shipped() -> None:

@@ -1,4 +1,5 @@
 import asyncio
+import html
 import logging
 import mimetypes
 import os
@@ -10,6 +11,7 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Response
 
 from src.gateway.path_utils import resolve_thread_virtual_path
+from src.utils.document_text import document_to_markdown
 
 logger = logging.getLogger(__name__)
 
@@ -147,6 +149,21 @@ async def get_artifact(thread_id: str, path: str, request: Request) -> FileRespo
     # if `download` query parameter is true, return the file as a download
     if request.query_params.get("download"):
         return FileResponse(path=actual_path, filename=actual_path.name, media_type=mime_type, headers={"Content-Disposition": f"attachment; filename*=UTF-8''{encoded_filename}"})
+
+    if request.query_params.get("preview") and actual_path.suffix.lower() in {".docx", ".xlsx", ".pptx"}:
+        try:
+            markdown = await asyncio.to_thread(document_to_markdown, actual_path)
+        except (OSError, ValueError) as exc:
+            raise HTTPException(status_code=422, detail=f"Document preview failed: {type(exc).__name__}") from exc
+        return HTMLResponse(
+            content=(
+                "<!doctype html><meta charset='utf-8'>"
+                "<style>body{margin:0;padding:24px;font:14px/1.6 system-ui;color:#18181b;background:#fff}"
+                "pre{white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}</style>"
+                f"<pre>{html.escape(markdown)}</pre>"
+            ),
+            headers={"Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'"},
+        )
 
     if mime_type and mime_type == "text/html":
         content = await asyncio.to_thread(actual_path.read_text)
