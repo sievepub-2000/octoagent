@@ -1,3 +1,43 @@
+## [20260821] - 2026-08-21
+
+### All-in-one container deployment
+
+- Added a single-container deployment profile (`compose.allinone.yaml` +
+  `docker/Dockerfile.allinone` + `allinone/`) that runs the full OctoAgent
+  stack in one container: PostgreSQL 16 (PGDG) + system executor + app
+  server (LangGraph) + Next.js frontend + nginx, coordinated by
+  supervisord with per-service users (postgres/app-server as unprivileged,
+  nginx/system-executor as root) and per-service log files under
+  `/var/log/supervisor/`.
+- The PostgreSQL data volume is bound as an external volume to the existing
+  `octoagent_postgres-data` of the 5-container stack, so the all-in-one
+  deployment reuses live data (checkpoints, threads, memory index) with
+  zero migration and rollback stays a one-command switch back to
+  `compose.yaml`.
+- Bundled PostgreSQL ships from the PGDG repo (PG 16 on the trixie-based
+  backend image) with the `en_US.utf8` locale generated so the existing
+  initdb'd cluster starts without configuration errors; a one-shot
+  `pg-bootstrap` program re-syncs the app role password and the pgvector
+  extension on every container start.
+- Fixed the in-container tool-guide path: the all-in-one environment now
+  sets `OCTOAGENT_TOOL_GUIDE_PATH` to the mounted
+  `/app/runtime/system_tools/copilot-instructions.md` so Harness
+  initialization no longer attempts to create `/app/.github` inside the
+  image.
+- Bumped the project version to 20260821 (backend `pyproject.toml` and
+  frontend `package.json`).
+
+### Verification
+
+- All five services report RUNNING under supervisord; container health
+  check green.
+- `/health` reports `persistence.ok=true` with the full checkpoint count
+  preserved from the previous deployment (15,765 checkpoints / 4 threads).
+- Routes verified through the nginx ingress: `/`, `/health`,
+  `/openapi.json`, `/api/langgraph/health`, `/docs` all reachable.
+- Log audit across all five service logs: no tracebacks, no unhandled
+  exceptions; Harness initialized with `healthy: true`.
+
 ## [20260815] - 2026-08-15
 
 ### Lean unified Harness

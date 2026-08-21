@@ -1,0 +1,83 @@
+# OctoAgent all-in-one image: postgres + system-executor + app-server + frontend + nginx
+# Built on top of the existing production images so no application code is rebuilt here.
+ARG BACKEND_IMAGE=octoagent/backend:local
+ARG FRONTEND_IMAGE=octoagent/frontend:local
+
+# Intermediate stage so the image reference can be parameterized.
+FROM ${FRONTEND_IMAGE} AS frontend-src
+
+FROM ${BACKEND_IMAGE}
+# The backend image ends as USER octoagent; all package management below
+# requires root. Per-service run users are enforced by supervisord.
+USER root
+
+# NOTE: the backend image bakes in HTTP(S)_PROXY=host.docker.internal:7897
+# build-time env vars. Direct outbound access works from this network, so
+# clear the proxy env AND force apt to bypass any proxy outright.
+ENV HTTP_PROXY= HTTPS_PROXY= http_proxy= https_proxy= all_proxy= ALL_PROXY=
+
+# Base tooling from the distro repos.
+RUN set -eux; \
+    unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy all_proxy ALL_PROXY; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    APTOPTS="-o Acquire::Retries=5 -o Acquire::http::Proxy=DIRECT -o Acquire::https::Proxy=DIRECT"; \
+    apt-get update $APTOPTS; \
+    apt-get install -y --no-install-recommends $APTOPTS \
+        nginx supervisor gettext-base gnupg ca-certificates curl;
+# locales: the existing PostgreSQL data volume was initdb'd with
+# en_US.utf8 locale settings that postgres validates at startup.
+RUN set -eux; \
+    unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy all_proxy ALL_PROXY; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    APTOPTS="-o Acquire::Retries=5 -o Acquire::http::Proxy=DIRECT -o Acquire::https::Proxy=DIRECT"; \
+    apt-get install -y --no-install-recommends $APTOPTS locales; \
+    sed -i 's/^# en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen; \
+    locale-gen; \
+    locale -a | grep -i en_us
+
+# PostgreSQL 16 + pgvector from the official PGDG repo.
+# The base image is Debian trixie (ships PG17), but the existing data volume
+# is a PG16 cluster from the pgvector/pgvector:pg16-bookworm image, so PG16
+# from PGDG is required to reuse the volume without a data migration.
+RUN set -eux; \
+    unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy all_proxy ALL_PROXY; \
+    export DEBIAN_FRONTEND=noninteractive; \
+    APTOPTS="-o Acquire::Retries=5 -o Acquire::http::Proxy=DIRECT -o Acquire::https::Proxy=DIRECT"; \
+    install -d /usr/share/keyrings; \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+        | gpg --dearmor > /usr/share/keyrings/pgdg.gpg; \
+    echo "deb [signed-by=/usr/share/keyrings/pgdg.gpg] https://apt.postgresql.org/pub/repos/apt trixie-pgdg main" \
+        > /etc/apt/sources.list.d/pgdg.list; \
+    apt-get update $APTOPTS; \
+    apt-get install -y --no-install-recommends $APTOPTS \
+        postgresql-16 postgresql-16-pgvector postgresql-client-16; \
+    rm -rf /var/lib/apt/lists/*
+
+# The existing data volume is owned by uid/gid 999 (pgvector official image).
+# Ensure the PGDG postgres user matches so the volume can be mounted without
+# a recursive chown.
+RUN set -eux; \
+    uid=$(id -u postgres); \
+    if [ "$uid" != "999" ]; then \
+      userdel -r postgres 2>/dev/null || userdel postgres; \
+      groupdel postgres 2>/dev/null || true; \
+      groupadd -g 999 postgres; \
+      useradd -u 999 -g 999 -d /var/lib/postgresql -s /bin/bash postgres; \
+    fi; \
+    id postgres
+
+# Next.js standalone build from the existing production frontend image.
+COPY --from=frontend-src /app/frontend/ /opt/frontend/
+RUN set -eux; \
+    chown -R 1000:1000 /opt/frontend; \
+    chown -R root:root /etc/nginx; \
+    mkdir -p /var/cache/nginx && chown -R www-data:www-data /var/cache/nginx
+
+COPY allinone/entrypoint.sh /entrypoint.sh
+COPY allinone/pg-bootstrap.sh /pg-bootstrap.sh
+COPY allinone/supervisor.conf /etc/supervisor/conf.d/octoagent.conf
+COPY allinone/nginx.allinone.conf.template /etc/nginx/templates/nginx.allinone.conf.template
+RUN chmod 0755 /entrypoint.sh /pg-bootstrap.sh
+
+EXPOSE 19800
+ENTRYPOINT ["/entrypoint.sh"]
