@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 
 from fastapi import APIRouter, Header, HTTPException, Path
@@ -148,7 +149,7 @@ async def memory_health() -> MemoryHealthResponse:
     try:
         from src.harness.memory import get_harness_memory
 
-        store_data = get_harness_memory().stats()
+        store_data = await asyncio.to_thread(get_harness_memory().stats)
     except Exception as exc:
         store_data = {"error": str(exc)}
 

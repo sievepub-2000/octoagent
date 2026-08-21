@@ -19,13 +19,15 @@ router = APIRouter(prefix="/api", tags=["artifacts"])
 
 
 def is_text_file_by_content(path: Path, sample_size: int = 8192) -> bool:
-    """Check if file is text by examining content for null bytes."""
+    """Return true when the sampled content is valid UTF-8 text."""
     try:
         with open(path, "rb") as f:
             chunk = f.read(sample_size)
-            # Text files shouldn't contain null bytes
-            return b"\x00" not in chunk
-    except Exception:
+        if b"\x00" in chunk:
+            return False
+        chunk.decode("utf-8")
+        return True
+    except (OSError, UnicodeDecodeError):
         return False
 
 

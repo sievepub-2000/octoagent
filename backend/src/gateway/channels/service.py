@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -472,7 +473,7 @@ async def start_channel_service() -> ChannelService:
     global _channel_service
     if _channel_service is not None:
         return _channel_service
-    _channel_service = ChannelService.from_app_config()
+    _channel_service = await asyncio.to_thread(ChannelService.from_app_config)
     await _channel_service.start()
     return _channel_service
 

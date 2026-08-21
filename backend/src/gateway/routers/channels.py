@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from pathlib import Path
@@ -135,19 +136,19 @@ def _normalize_channel_value(field: dict[str, Any], value: Any) -> Any:
     return str(value).strip()
 
 
-def _service_snapshot():
+async def _service_snapshot():
     from src.gateway.channels.service import ChannelService, get_channel_service
 
     service = get_channel_service()
     if service is not None:
         return service
-    return ChannelService.from_app_config()
+    return await asyncio.to_thread(ChannelService.from_app_config)
 
 
 @router.get("/", response_model=ChannelStatusResponse)
 async def get_channels_status() -> ChannelStatusResponse:
     """Get the status of all IM channels."""
-    service = _service_snapshot()
+    service = await _service_snapshot()
     status = service.get_status()
     return ChannelStatusResponse(**status)
 
@@ -296,7 +297,7 @@ async def logout_channel(name: str) -> ChannelLogoutResponse:
         service = await start_channel_service()
     except Exception:
         logger.exception("Failed to restart channel service after logout %s", name)
-        service = ChannelService.from_app_config()
+        service = await asyncio.to_thread(ChannelService.from_app_config)
 
     status = service.get_status()
     channel_status = status.get("channels", {}).get(name) or {}
@@ -351,7 +352,7 @@ async def update_channel_config(
         service = await start_channel_service()
     except Exception:
         logger.exception("Failed to fully restart channel service after updating %s", name)
-        service = ChannelService.from_app_config()
+        service = await asyncio.to_thread(ChannelService.from_app_config)
 
     status = service.get_status()
     channel_status = status.get("channels", {}).get(name)
@@ -407,7 +408,7 @@ async def delete_channel_config(name: str) -> ChannelConfigUpdateResponse:
         service = await start_channel_service()
     except Exception:
         logger.exception("Failed to restart channel service after deleting %s", name)
-        service = ChannelService.from_app_config()
+        service = await asyncio.to_thread(ChannelService.from_app_config)
 
     status = service.get_status()
     channel_status = status.get("channels", {}).get(name) or {}
@@ -467,7 +468,7 @@ async def update_channel_enabled(
         service = await start_channel_service()
     except Exception:
         logger.exception("Failed to fully restart channel service after toggling %s", name)
-        service = ChannelService.from_app_config()
+        service = await asyncio.to_thread(ChannelService.from_app_config)
 
     status = service.get_status()
     channel_status = status.get("channels", {}).get(name)
